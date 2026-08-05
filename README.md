@@ -24,6 +24,9 @@ Secrets: JWT_SECRET, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY
 
 Production APP_URL: https://quilthosting.com
 
+Admin: public/admin.html
+Portal: public/portal.html?slug=YOUR_GUILD
+
 ## License
 
 Private — QuiltHosting / QuiltMap / Holzrichter Group
