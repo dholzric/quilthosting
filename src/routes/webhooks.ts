@@ -29,7 +29,8 @@ webhookRoutes.post("/stripe", async (c) => {
     const relatedId = meta.related_id;
     const paymentType = meta.type;
 
-    if (!tenantId || !memberId) {
+    // member_id is optional: non-member event registrations have none
+    if (!tenantId || (paymentType === "dues" && !memberId)) {
       console.warn("Missing metadata on checkout session", session.id);
       return c.json({ received: true });
     }
@@ -46,7 +47,7 @@ webhookRoutes.post("/stripe", async (c) => {
       .bind(
         paymentId,
         tenantId,
-        memberId,
+        memberId || null,
         paymentType || "dues",
         session.amount_total || 0,
         session.payment_intent || session.id,
@@ -60,7 +61,7 @@ webhookRoutes.post("/stripe", async (c) => {
     if (paymentType === "event" && relatedId) {
       await c.env.DB.prepare(
         `UPDATE event_registrations
-         SET amount_paid_cents = ?, updated_at = ?
+         SET amount_paid_cents = ?, status = 'registered', updated_at = ?
          WHERE id = ? AND tenant_id = ?`
       )
         .bind(session.amount_total || 0, now, relatedId, tenantId)

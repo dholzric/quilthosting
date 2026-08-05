@@ -92,6 +92,8 @@ export async function createCheckoutSession(
   };
 }
 
+const WEBHOOK_TOLERANCE_SECONDS = 300;
+
 export async function constructWebhookEvent(
   env: Env,
   payload: string,
@@ -99,7 +101,46 @@ export async function constructWebhookEvent(
 ): Promise<StripeResponse | null> {
   if (!signatureHeader || !env.STRIPE_WEBHOOK_SECRET) {
     console.warn("Missing Stripe webhook signature or secret");
+    return null;
   }
+
+  // Header format: t=<unix ts>,v1=<hex hmac>[,v1=...]
+  let timestamp = "";
+  const signatures: string[] = [];
+  for (const part of signatureHeader.split(",")) {
+    const [k, v] = part.trim().split("=");
+    if (k === "t") timestamp = v;
+    else if (k === "v1") signatures.push(v);
+  }
+  if (!timestamp || signatures.length === 0) return null;
+
+  const age = Math.abs(Date.now() / 1000 - Number(timestamp));
+  if (!Number.isFinite(age) || age > WEBHOOK_TOLERANCE_SECONDS) {
+    console.warn("Stripe webhook timestamp outside tolerance");
+    return null;
+  }
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(env.STRIPE_WEBHOOK_SECRET),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const mac = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(`${timestamp}.${payload}`)
+  );
+  const expected = [...new Uint8Array(mac)]
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  if (!signatures.includes(expected)) {
+    console.warn("Stripe webhook signature mismatch");
+    return null;
+  }
+
   try {
     return JSON.parse(payload) as StripeResponse;
   } catch {

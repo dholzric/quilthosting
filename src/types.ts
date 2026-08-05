@@ -3,6 +3,8 @@ export type Env = {
   DB: D1Database;
   FILES: R2Bucket;
   KV: KVNamespace;
+  ASSETS: Fetcher;
+  SITE_ACCESS_PASSWORD?: string;
   STRIPE_SECRET_KEY: string;
   STRIPE_WEBHOOK_SECRET: string;
   RESEND_API_KEY: string;
@@ -14,7 +16,7 @@ export type Env = {
 export type Plan = "free" | "starter" | "pro";
 export type MemberStatus = "pending" | "active" | "lapsed" | "cancelled";
 export type MembershipStatus = "active" | "expired" | "cancelled";
-export type RegistrationStatus = "registered" | "waitlist" | "cancelled" | "checked_in";
+export type RegistrationStatus = "pending_payment" | "registered" | "waitlist" | "cancelled" | "checked_in";
 export type PaymentStatus = "pending" | "succeeded" | "failed" | "refunded";
 export type PaymentType = "dues" | "event" | "store" | "donation";
 export type TenantRole = "owner" | "admin" | "membership" | "events" | "viewer";

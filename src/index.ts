@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import type { Env } from "./types";
 import { tenantMiddleware } from "./middleware/tenant";
+import { siteGate } from "./middleware/siteGate";
 import { runRenewalJob } from "./lib/renewals";
 
 import { authRoutes } from "./routes/auth";
@@ -27,6 +28,8 @@ app.use(
   })
 );
 
+app.use("*", siteGate);
+
 app.get("/", (c) => {
   return c.json({
     name: "QuiltHosting API",
@@ -36,27 +39,6 @@ app.get("/", (c) => {
     admin: "/admin",
     portal: "/portal",
   });
-});
-
-app.get("/admin", (c) => {
-  return c.html(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>QuiltHosting Admin</title>
-<style>body{font-family:system-ui;max-width:640px;margin:3rem auto;padding:0 1rem;line-height:1.6}
-code{background:#f4f0eb;padding:0.15em 0.4em;border-radius:4px}
-a{color:#c45c26}</style></head><body>
-<h1>QuiltHosting Admin</h1>
-<p>Open <code>public/admin.html</code> in your browser for the full admin UI.</p>
-<p>API: <a href="/">/</a> · Portal: open <code>public/portal.html?slug=YOUR_SLUG</code></p>
-</body></html>`);
-});
-
-app.get("/portal", (c) => {
-  return c.html(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Member Portal</title>
-<style>body{font-family:system-ui;max-width:640px;margin:3rem auto;padding:0 1rem;line-height:1.6}
-code{background:#f4f0eb;padding:0.15em 0.4em;border-radius:4px}
-a{color:#c45c26}</style></head><body>
-<h1>Member Portal</h1>
-<p>Open <code>public/portal.html?slug=YOUR_GUILD_SLUG</code> in your browser.</p>
-</body></html>`);
 });
 
 app.route("/api/webhooks", webhookRoutes);
@@ -82,6 +64,15 @@ app.get("/__scheduled", async (c) => {
 app.post("/__scheduled", async (c) => {
   const result = await runRenewalJob(c.env);
   return c.json({ ok: true, ...result });
+});
+
+// With run_worker_first, static assets (admin/portal UIs) are served
+// through the Worker so the site gate applies to them too.
+app.notFound((c) => {
+  if (c.req.method === "GET" || c.req.method === "HEAD") {
+    return c.env.ASSETS.fetch(c.req.raw);
+  }
+  return c.json({ error: "Not found" }, 404);
 });
 
 export default {

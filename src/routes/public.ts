@@ -252,8 +252,6 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
   const body = await c.req.json<{
     email: string;
     name?: string;
-    member_id?: string;
-    is_member?: boolean;
   }>();
 
   if (!body.email) {
@@ -261,9 +259,18 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
   }
 
   const email = body.email.toLowerCase().trim();
-  const priceCents = body.is_member
-    ? event.member_price_cents
-    : event.non_member_price_cents;
+
+  // Member pricing is decided server-side: only active members qualify
+  const memberRow = await first<{ id: string; status: string }>(
+    c.env.DB.prepare(
+      "SELECT id, status FROM members WHERE tenant_id = ? AND email = ?"
+    ).bind(tenant.id, email)
+  );
+  const memberId = memberRow?.id ?? null;
+  const priceCents =
+    memberRow?.status === "active"
+      ? event.member_price_cents
+      : event.non_member_price_cents;
 
   // Capacity check
   if (event.capacity) {
@@ -326,7 +333,7 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
         regId,
         tenant.id,
         eventId,
-        body.member_id ?? null,
+        memberId,
         email,
         body.name ?? null,
         status,
@@ -367,17 +374,25 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
     return c.json({ error: "Payments not configured" }, 503);
   }
 
-  // Create pending registration
+  // Drop any stale unpaid attempt for this email so retries aren't blocked
+  await c.env.DB.prepare(
+    `DELETE FROM event_registrations
+     WHERE event_id = ? AND tenant_id = ? AND email = ? AND status = 'pending_payment'`
+  )
+    .bind(eventId, tenant.id, email)
+    .run();
+
+  // Held as pending_payment until the Stripe webhook confirms payment
   await c.env.DB.prepare(
     `INSERT INTO event_registrations
      (id, tenant_id, event_id, member_id, email, name, status, amount_paid_cents, ticket_code, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, 'registered', 0, ?, ?, ?)`
+     VALUES (?, ?, ?, ?, ?, ?, 'pending_payment', 0, ?, ?, ?)`
   )
     .bind(
       regId,
       tenant.id,
       eventId,
-      body.member_id ?? null,
+      memberId,
       email,
       body.name ?? null,
       ticketCode,
@@ -387,20 +402,31 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
     .run();
 
   const baseUrl = c.env.APP_URL || "http://localhost:8787";
-  const session = await createCheckoutSession(c.env, {
-    tenantId: tenant.id,
-    tenantSlug: tenant.slug,
-    memberId: body.member_id,
-    email,
-    name: body.name,
-    amountCents: priceCents,
-    description: `${tenant.name} – ${event.title}`,
-    type: "event",
-    relatedId: regId,
-    successUrl: `${baseUrl}/public/${tenant.slug}/events/${eventId}?registered=1`,
-    cancelUrl: `${baseUrl}/public/${tenant.slug}/events/${eventId}?cancelled=1`,
-    mode: "payment",
-  });
+  let session;
+  try {
+    session = await createCheckoutSession(c.env, {
+      tenantId: tenant.id,
+      tenantSlug: tenant.slug,
+      memberId: memberId ?? undefined,
+      email,
+      name: body.name,
+      amountCents: priceCents,
+      description: `${tenant.name} – ${event.title}`,
+      type: "event",
+      relatedId: regId,
+      successUrl: `${baseUrl}/public/${tenant.slug}/events/${eventId}?registered=1`,
+      cancelUrl: `${baseUrl}/public/${tenant.slug}/events/${eventId}?cancelled=1`,
+      mode: "payment",
+    });
+  } catch (err) {
+    await c.env.DB.prepare(
+      "DELETE FROM event_registrations WHERE id = ? AND tenant_id = ?"
+    )
+      .bind(regId, tenant.id)
+      .run();
+    console.error("Checkout session failed", err);
+    return c.json({ error: "Payment session could not be created" }, 502);
+  }
 
   return c.json({
     status: "checkout",
