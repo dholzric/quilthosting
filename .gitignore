@@ -1,6 +1,13 @@
 node_modules/
 .wrangler/
-.dev.vars
 dist/
+.env*
+.dev.vars*
 *.local
 .DS_Store
+
+# source archive drops (e.g. quilthosting-source.tar.gz)
+*.tar
+*.tar.gz
+*.tgz
+*.zip

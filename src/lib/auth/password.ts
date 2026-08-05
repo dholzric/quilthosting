@@ -2,8 +2,8 @@ const ITERATIONS = 100_000;
 const SALT_LENGTH = 16;
 const KEY_LENGTH = 32;
 
-function bufToHex(buf: ArrayBuffer): string {
-  return [...new Uint8Array(buf)]
+function bufToHex(buf: ArrayBuffer | Uint8Array): string {
+  return [...(buf instanceof Uint8Array ? buf : new Uint8Array(buf))]
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 }
