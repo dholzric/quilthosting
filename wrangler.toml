@@ -6,7 +6,7 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "quilthosting-db"
-database_id = "REPLACE_WITH_YOUR_D1_ID"
+database_id = "e32d55bf-900a-44fd-ac94-c182f11cc5e2"
 migrations_dir = "migrations"
 
 [[r2_buckets]]
@@ -15,17 +15,18 @@ bucket_name = "quilthosting-files"
 
 [[kv_namespaces]]
 binding = "KV"
-id = "REPLACE_WITH_YOUR_KV_ID"
+id = "7eddc866d7b94b32bab6c40088f099c3"
 
 [assets]
 directory = "./public"
 binding = "ASSETS"
 run_worker_first = true
 
+# Local dev overrides these via .dev.vars
 [vars]
-ENVIRONMENT = "development"
-APP_URL = "http://localhost:8787"
-# Production: APP_URL = https://quilthosting.com
+ENVIRONMENT = "production"
+# Stealth phase: workers.dev only; switch to https://quilthosting.com at launch
+APP_URL = "https://quilthosting.dholzric.workers.dev"
 
 [triggers]
 crons = ["0 8 * * *"]
