@@ -52,34 +52,22 @@ export type CreateCheckoutParams = {
   amountCents: number;
   description: string;
   type: "dues" | "event" | "store" | "donation";
-  relatedId?: string; // membership level id or event id
+  relatedId?: string;
   successUrl: string;
   cancelUrl: string;
   mode?: "payment" | "subscription";
-  interval?: "month" | "year"; // for subscription
+  interval?: "month" | "year";
 };
 
-/**
- * Create a Stripe Checkout Session for one-time or subscription payment.
- * Returns the session URL to redirect the user to.
- */
 export async function createCheckoutSession(
   env: Env,
   params: CreateCheckoutParams
 ): Promise<{ id: string; url: string }> {
-  const metadata: Record<string, string> = {
-    tenant_id: params.tenantId,
-    type: params.type,
-    email: params.email,
-  };
-  if (params.memberId) metadata.member_id = params.memberId;
-  if (params.relatedId) metadata.related_id = params.relatedId;
-
   const body: Record<string, string | number | undefined> = {
-    "mode": params.mode || "payment",
-    "success_url": params.successUrl,
-    "cancel_url": params.cancelUrl,
-    "customer_email": params.email,
+    mode: params.mode || "payment",
+    success_url: params.successUrl,
+    cancel_url: params.cancelUrl,
+    customer_email: params.email,
     "metadata[tenant_id]": params.tenantId,
     "metadata[type]": params.type,
     "metadata[email]": params.email,
@@ -92,7 +80,6 @@ export async function createCheckoutSession(
   if (params.memberId) body["metadata[member_id]"] = params.memberId;
   if (params.relatedId) body["metadata[related_id]"] = params.relatedId;
 
-  // For subscriptions, add recurring
   if (params.mode === "subscription" && params.interval) {
     body["line_items[0][price_data][recurring][interval]"] = params.interval;
   }
@@ -105,21 +92,14 @@ export async function createCheckoutSession(
   };
 }
 
-/**
- * Verify Stripe webhook signature (simplified for Workers).
- * In production use the official Stripe library or full HMAC verification.
- */
 export async function constructWebhookEvent(
   env: Env,
   payload: string,
   signatureHeader: string
 ): Promise<StripeResponse | null> {
-  // Basic presence check — full verification should use Stripe's signing secret
-  // and timestamp tolerance. For MVP we trust the endpoint is secret.
   if (!signatureHeader || !env.STRIPE_WEBHOOK_SECRET) {
     console.warn("Missing Stripe webhook signature or secret");
   }
-
   try {
     return JSON.parse(payload) as StripeResponse;
   } catch {

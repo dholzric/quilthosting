@@ -7,7 +7,6 @@ import { sendEmail, welcomeEmail } from "../lib/email";
 
 export const webhookRoutes = new Hono<{ Bindings: Env }>();
 
-// POST /api/webhooks/stripe
 webhookRoutes.post("/stripe", async (c) => {
   const signature = c.req.header("stripe-signature") || "";
   const payload = await c.req.text();
@@ -37,7 +36,6 @@ webhookRoutes.post("/stripe", async (c) => {
 
     const now = new Date().toISOString();
 
-    // Record payment
     const paymentId = generateId();
     await c.env.DB.prepare(
       `INSERT INTO payments
@@ -59,7 +57,6 @@ webhookRoutes.post("/stripe", async (c) => {
       )
       .run();
 
-    // Event registration payment
     if (paymentType === "event" && relatedId) {
       await c.env.DB.prepare(
         `UPDATE event_registrations
@@ -70,7 +67,6 @@ webhookRoutes.post("/stripe", async (c) => {
         .run();
     }
 
-    // Activate membership for dues payments
     if (paymentType === "dues" && relatedId) {
       const level = await first<MembershipLevel>(
         c.env.DB.prepare(
@@ -110,14 +106,11 @@ webhookRoutes.post("/stripe", async (c) => {
           .bind(now, memberId)
           .run();
 
-        // Welcome email
         const member = await first<Member>(
           c.env.DB.prepare("SELECT * FROM members WHERE id = ?").bind(memberId)
         );
         const tenant = await first<{ name: string }>(
-          c.env.DB.prepare("SELECT name FROM tenants WHERE id = ?").bind(
-            tenantId
-          )
+          c.env.DB.prepare("SELECT name FROM tenants WHERE id = ?").bind(tenantId)
         );
 
         if (member && tenant) {
@@ -138,7 +131,6 @@ webhookRoutes.post("/stripe", async (c) => {
 
   if (type === "invoice.paid") {
     console.log("Invoice paid", data?.id);
-    // Future: extend membership end_date on recurring invoices
   }
 
   return c.json({ received: true });

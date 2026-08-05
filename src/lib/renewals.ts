@@ -24,12 +24,6 @@ type MembershipRow = {
 
 const REMINDER_DAYS = [30, 14, 7, 1] as const;
 
-/**
- * Daily renewal job:
- * 1. Send reminder emails for memberships ending in 30/14/7/1 days
- * 2. Mark expired memberships as expired and members as lapsed
- * 3. Log emails to email_logs (best-effort)
- */
 export async function runRenewalJob(env: Env): Promise<{
   reminders_sent: number;
   expired: number;
@@ -37,9 +31,8 @@ export async function runRenewalJob(env: Env): Promise<{
 }> {
   const result = { reminders_sent: 0, expired: 0, errors: [] as string[] };
   const now = new Date();
-  const today = now.toISOString().slice(0, 10); // YYYY-MM-DD
+  const today = now.toISOString().slice(0, 10);
 
-  // --- 1. Reminders ---
   for (const days of REMINDER_DAYS) {
     const target = new Date(now);
     target.setUTCDate(target.getUTCDate() + days);
@@ -64,7 +57,6 @@ export async function runRenewalJob(env: Env): Promise<{
       );
 
       for (const row of rows) {
-        // Skip if we already sent this reminder today (simple dedupe via email_logs)
         const already = await first(
           env.DB.prepare(
             `SELECT id FROM email_logs
@@ -94,7 +86,6 @@ export async function runRenewalJob(env: Env): Promise<{
           ],
         });
 
-        // Log
         try {
           await env.DB.prepare(
             `INSERT INTO email_logs (id, tenant_id, member_id, to_email, template, resend_id, status, created_at)
@@ -123,13 +114,8 @@ export async function runRenewalJob(env: Env): Promise<{
     }
   }
 
-  // --- 2. Expire memberships past end_date (grace: same day) ---
   try {
-    const expired = await all<{
-      id: string;
-      member_id: string;
-      tenant_id: string;
-    }>(
+    const expired = await all<{ id: string; member_id: string; tenant_id: string }>(
       env.DB.prepare(
         `SELECT id, member_id, tenant_id FROM memberships
          WHERE status = 'active' AND date(end_date) < date(?)`
@@ -143,7 +129,6 @@ export async function runRenewalJob(env: Env): Promise<{
         .bind(new Date().toISOString(), row.id)
         .run();
 
-      // Lapse member only if they have no other active membership
       const other = await first(
         env.DB.prepare(
           `SELECT id FROM memberships

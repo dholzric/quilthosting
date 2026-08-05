@@ -18,9 +18,6 @@ export type SendEmailResult = {
   error?: string;
 };
 
-/**
- * Send a transactional email via Resend.
- */
 export async function sendEmail(
   env: Env,
   params: SendEmailParams
@@ -73,8 +70,6 @@ export async function sendEmail(
     };
   }
 }
-
-// ---------- Email Templates ----------
 
 export function welcomeEmail(opts: {
   guildName: string;
