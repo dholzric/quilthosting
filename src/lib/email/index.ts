@@ -27,7 +27,11 @@ export async function sendEmail(
     return { id: "", success: false, error: "Email not configured" };
   }
 
-  const from = params.from || "QuiltHosting <noreply@quilthosting.com>";
+  // EMAIL_FROM must be on a Resend-verified domain. During stealth we
+  // send via quiltmap.com (the account's verified domain); switch to
+  // quilthosting.com at launch.
+  const from =
+    params.from || env.EMAIL_FROM || "QuiltHosting <noreply@quilthosting.com>";
 
   const body = {
     from,
