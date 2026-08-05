@@ -1,0 +1,23 @@
+{
+  "name": "quilthosting",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate:local": "wrangler d1 migrations apply quilthosting-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply quilthosting-db --remote",
+    "db:create": "wrangler d1 create quilthosting-db",
+    "cf-typegen": "wrangler types"
+  },
+  "dependencies": {
+    "hono": "^4.7.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250620.0",
+    "typescript": "^5.8.0",
+    "wrangler": "^4.20.0"
+  }
+}

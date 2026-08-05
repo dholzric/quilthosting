@@ -1,0 +1,26 @@
+name = "quilthosting"
+main = "src/index.ts"
+compatibility_date = "2026-04-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "quilthosting-db"
+database_id = "REPLACE_WITH_YOUR_D1_ID"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "quilthosting-files"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "REPLACE_WITH_YOUR_KV_ID"
+
+[vars]
+ENVIRONMENT = "development"
+APP_URL = "http://localhost:8787"
+# Production: APP_URL = https://quilthosting.com
+
+[triggers]
+crons = ["0 8 * * *"]

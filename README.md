@@ -1,2 +1,29 @@
-# quilthosting
-QuiltHosting — membership + events for quilt guilds. Cloudflare Workers + D1 + Stripe. Domain: quilthosting.com
+# QuiltHosting
+
+Membership + events platform for quilt (and craft) guilds.
+
+**Domain:** quilthosting.com (purchased)
+
+Built on Cloudflare Workers + D1 + R2 + KV. Alternative to Wild Apricot, with QuiltMap synergies.
+
+## Stack
+
+Cloudflare Workers, Hono, D1, R2, KV, Stripe, Resend
+
+## Quick start
+
+```bash
+npm install
+npx wrangler d1 create quilthosting-db
+# update wrangler.toml IDs
+npm run db:migrate:local
+npm run dev
+```
+
+Secrets: JWT_SECRET, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY
+
+Production APP_URL: https://quilthosting.com
+
+## License
+
+Private — QuiltHosting / QuiltMap / Holzrichter Group
