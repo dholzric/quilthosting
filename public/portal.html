@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Member Portal – QuiltHosting</title>
+  <style>
+    :root { --accent: #c45c26; --bg: #faf8f5; --border: #e5e0d8; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: var(--bg); }
+    header { background: #2c1810; color: #f5e6d3; padding: 1rem 1.5rem; }
+    .wrap { max-width: 640px; margin: 0 auto; padding: 1.5rem; }
+    .card { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; margin-bottom: 1rem; }
+    input, button { padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.95rem; }
+    input { width: 100%; border: 1px solid var(--border); margin-bottom: 0.75rem; }
+    button { background: var(--accent); color: #fff; border: none; cursor: pointer; }
+    .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; background: #d8f3dc; font-size: 0.75rem; }
+    .error { color: #9b2226; }
+    .hidden { display: none; }
+    .muted { color: #666; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <header><h1 id="title">Member Portal</h1></header>
+  <div class="wrap">
+    <div id="login" class="card">
+      <p class="muted">Open with <code>?slug=yourguild</code></p>
+      <p id="err" class="error hidden"></p>
+      <label>API base</label>
+      <input id="api" value="http://localhost:8787" />
+      <label>Email</label>
+      <input id="email" type="email" />
+      <label>Password</label>
+      <input id="password" type="password" />
+      <button onclick="login()">Sign in</button>
+    </div>
+    <div id="app" class="hidden">
+      <div class="card" id="home"></div>
+      <div class="card">
+        <h2>Upcoming events</h2>
+        <div id="events"></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const slug = params.get('slug') || localStorage.getItem('qh_slug') || '';
+    let token = localStorage.getItem('qh_token');
+    if (slug) localStorage.setItem('qh_slug', slug);
+    const api = () => document.getElementById('api').value.replace(/\/$/, '');
+    async function req(path, opts = {}) {
+      const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+      if (token) headers.Authorization = 'Bearer ' + token;
+      const res = await fetch(api() + path, { ...opts, headers });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || res.statusText);
+      return data;
+    }
+    async function login() {
+      const err = document.getElementById('err');
+      err.classList.add('hidden');
+      try {
+        const data = await req('/api/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value,
+          }),
+        });
+        token = data.token;
+        localStorage.setItem('qh_token', token);
+        load();
+      } catch (e) {
+        err.textContent = e.message;
+        err.classList.remove('hidden');
+      }
+    }
+    async function load() {
+      if (!slug) {
+        document.getElementById('err').textContent = 'Add ?slug=yourguild to the URL';
+        document.getElementById('err').classList.remove('hidden');
+        return;
+      }
+      document.getElementById('login').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+      const me = await req('/api/portal/' + slug + '/me');
+      document.getElementById('title').textContent = me.tenant.name;
+      const m = me.membership;
+      document.getElementById('home').innerHTML =
+        '<h2>Membership</h2><p><span class="badge">' +
+        (m?.status || me.member?.status || 'none') +
+        '</span> ' + (m?.level_name || '') +
+        '</p><p class="muted">' +
+        (m?.end_date ? 'Ends ' + new Date(m.end_date).toLocaleDateString() : '') +
+        '</p><p style="margin-top:1rem"><button onclick="renew()">Renew</button></p>';
+      const ev = await req('/api/portal/' + slug + '/events');
+      document.getElementById('events').innerHTML = (ev.events || []).map(e =>
+        '<div style="padding:0.5rem 0;border-bottom:1px solid #e5e0d8"><strong>' +
+        e.title + '</strong><div class="muted">' +
+        new Date(e.start_at).toLocaleString() + '</div></div>'
+      ).join('') || '<p class="muted">No upcoming events</p>';
+    }
+    async function renew() {
+      try {
+        const data = await req('/api/portal/' + slug + '/renew', { method: 'POST', body: '{}' });
+        if (data.checkout_url) location.href = data.checkout_url;
+        else { alert('Renewed'); load(); }
+      } catch (e) { alert(e.message); }
+    }
+    if (token && slug) load();
+  </script>
+</body>
+</html>
