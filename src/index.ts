@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import type { Env } from "./types";
 import { tenantMiddleware } from "./middleware/tenant";
+import { requireAuth, requireTenantAccess } from "./middleware/auth";
 import { siteGate } from "./middleware/siteGate";
 import { runRenewalJob } from "./lib/renewals";
 
@@ -47,7 +48,9 @@ app.route("/api/tenants", tenantRoutes);
 app.route("/api/portal", portalRoutes);
 
 const tenantApp = new Hono<{ Bindings: Env }>();
+tenantApp.use("*", requireAuth);
 tenantApp.use("*", tenantMiddleware);
+tenantApp.use("*", requireTenantAccess);
 tenantApp.route("/levels", levelRoutes);
 tenantApp.route("/members", memberRoutes);
 tenantApp.route("/events", eventRoutes);

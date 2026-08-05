@@ -144,6 +144,29 @@
     </p>
   </div>
 
+  <!-- Guild picker / first-guild creation -->
+  <div id="guild-view" class="login-box hidden">
+    <h1>Your Guilds</h1>
+    <div id="guild-error" class="error hidden"></div>
+    <div id="guild-list"></div>
+    <div id="guild-create">
+      <p style="margin:0.75rem 0;color:var(--muted);font-size:0.9rem" id="guild-create-intro">
+        Create a guild to get started.
+      </p>
+      <label>Guild name</label>
+      <input type="text" id="guild-name" placeholder="Prairie Star Quilt Guild" />
+      <label>Web address</label>
+      <input type="text" id="guild-slug" placeholder="prairie-star" />
+      <p style="font-size:0.8rem;color:var(--muted);margin-top:0.25rem">
+        Lowercase letters, numbers and dashes. Used in your public links.
+      </p>
+      <button onclick="createGuild()" style="width:100%;margin-top:0.75rem">Create Guild</button>
+    </div>
+    <p style="text-align:center;margin-top:1rem">
+      <a href="#" onclick="logout();return false" style="font-size:0.85rem;color:var(--muted)">Log out</a>
+    </p>
+  </div>
+
   <!-- App -->
   <div id="app-view" class="layout hidden">
     <aside class="sidebar">
@@ -167,6 +190,7 @@
     let token = localStorage.getItem("gb_token");
     let tenantId = localStorage.getItem("gb_tenant_id");
     let tenantSlug = localStorage.getItem("gb_tenant_slug") || "";
+    let tenantName = localStorage.getItem("gb_tenant_name") || "";
 
     async function api(path, opts = {}) {
       const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
@@ -192,12 +216,77 @@
         });
         token = data.token;
         localStorage.setItem("gb_token", token);
-        // For demo: prompt for tenant id if not set
-        if (!tenantId) {
-          tenantId = prompt("Enter Tenant ID (from /api/tenants create response):");
-          if (tenantId) localStorage.setItem("gb_tenant_id", tenantId);
-        }
-        initApp();
+        await enterApp();
+      } catch (e) {
+        errEl.textContent = e.message;
+        show(errEl);
+      }
+    }
+
+    function selectGuild(t) {
+      tenantId = t.id;
+      tenantSlug = t.slug;
+      tenantName = t.name;
+      localStorage.setItem("gb_tenant_id", t.id);
+      localStorage.setItem("gb_tenant_slug", t.slug);
+      localStorage.setItem("gb_tenant_name", t.name);
+      hide(document.getElementById("guild-view"));
+      initApp();
+    }
+
+    // After sign-in: auto-select the only guild, or show a picker /
+    // first-guild creation form. No IDs are ever shown to the user.
+    async function enterApp(forcePicker = false) {
+      hide(document.getElementById("login-view"));
+      hide(document.getElementById("app-view"));
+      let guilds = [];
+      try {
+        const data = await api("/api/tenants");
+        guilds = data.tenants || [];
+      } catch (e) {
+        logout();
+        return;
+      }
+      if (guilds.length === 1 && !forcePicker) {
+        selectGuild(guilds[0]);
+        return;
+      }
+      const listEl = document.getElementById("guild-list");
+      listEl.textContent = "";
+      for (const t of guilds) {
+        const btn = document.createElement("button");
+        btn.className = "secondary";
+        btn.style.cssText = "width:100%;margin-bottom:0.5rem;text-align:left";
+        btn.textContent = t.name + " ";
+        const roleSpan = document.createElement("span");
+        roleSpan.style.cssText = "color:var(--muted);font-size:0.8rem";
+        roleSpan.textContent = "(" + (t.role || "member") + ")";
+        btn.appendChild(roleSpan);
+        btn.addEventListener("click", () => selectGuild(t));
+        listEl.appendChild(btn);
+      }
+      document.getElementById("guild-create-intro").textContent = guilds.length
+        ? "Or create another guild:"
+        : "Create a guild to get started.";
+      show(document.getElementById("guild-view"));
+    }
+
+    async function createGuild() {
+      const errEl = document.getElementById("guild-error");
+      hide(errEl);
+      const name = document.getElementById("guild-name").value.trim();
+      const slug = document.getElementById("guild-slug").value.trim();
+      if (!name || !slug) {
+        errEl.textContent = "Name and web address are required.";
+        show(errEl);
+        return;
+      }
+      try {
+        const t = await api("/api/tenants", {
+          method: "POST",
+          body: JSON.stringify({ name, slug }),
+        });
+        selectGuild(t);
       } catch (e) {
         errEl.textContent = e.message;
         show(errEl);
@@ -212,7 +301,7 @@
       }
       hide(document.getElementById("login-view"));
       show(document.getElementById("app-view"));
-      document.getElementById("tenant-label").textContent = tenantId.slice(0, 8) + "…";
+      document.getElementById("tenant-label").textContent = tenantName || tenantSlug || "";
       navigate("dashboard");
     }
 
@@ -478,27 +567,30 @@
       el.innerHTML = `
         <h2>Settings</h2>
         <div class="card">
-          <p><strong>Tenant ID:</strong> <code>${tenantId}</code></p>
-          <p style="margin-top:0.5rem"><strong>API Base:</strong> <code>${API}</code></p>
+          <p><strong>Guild:</strong> ${esc(tenantName || tenantSlug)}</p>
+          <p style="margin-top:0.5rem"><strong>Public links:</strong> <code>${API}/public/${esc(tenantSlug)}/…</code></p>
           <p style="margin-top:1rem;color:var(--muted);font-size:0.9rem">
-            Set tenant: <button class="secondary" onclick="switchTenant()">Change Tenant ID</button>
+            <button class="secondary" onclick="switchTenant()">Switch guild</button>
             <button class="secondary" onclick="logout()" style="margin-left:0.5rem">Log out</button>
           </p>
         </div>
       `;
     }
     function switchTenant() {
-      const id = prompt("Tenant ID:", tenantId);
-      if (id) {
-        tenantId = id;
-        localStorage.setItem("gb_tenant_id", id);
-        initApp();
-      }
+      enterApp(true);
     }
     function logout() {
       localStorage.removeItem("gb_token");
+      localStorage.removeItem("gb_tenant_id");
+      localStorage.removeItem("gb_tenant_slug");
+      localStorage.removeItem("gb_tenant_name");
       token = null;
-      initApp();
+      tenantId = null;
+      tenantSlug = "";
+      tenantName = "";
+      hide(document.getElementById("guild-view"));
+      hide(document.getElementById("app-view"));
+      show(document.getElementById("login-view"));
     }
 
     function esc(s) {
@@ -509,17 +601,8 @@
 
     // Boot
     if (token && tenantId) initApp();
-    else {
-      show(document.getElementById("login-view"));
-      // Allow token-only bootstrap
-      if (token && !tenantId) {
-        tenantId = prompt("Enter Tenant ID:");
-        if (tenantId) {
-          localStorage.setItem("gb_tenant_id", tenantId);
-          initApp();
-        }
-      }
-    }
+    else if (token) enterApp();
+    else show(document.getElementById("login-view"));
   </script>
 </body>
 </html>

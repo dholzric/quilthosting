@@ -1,11 +1,33 @@
 import { Hono } from "hono";
 import type { Env, Tenant } from "../types";
 import { generateId } from "../lib/utils/id";
-import { first } from "../lib/db";
+import { first, all } from "../lib/db";
+import { requireAuth, type AuthVariables } from "../middleware/auth";
 
-export const tenantRoutes = new Hono<{ Bindings: Env }>();
+export const tenantRoutes = new Hono<{
+  Bindings: Env;
+  Variables: AuthVariables;
+}>();
 
+tenantRoutes.use("*", requireAuth);
+
+// GET /api/tenants — guilds the current user belongs to
+tenantRoutes.get("/", async (c) => {
+  const user = c.get("user");
+  const rows = await all<Tenant & { role: string }>(
+    c.env.DB.prepare(
+      `SELECT t.*, tu.role FROM tenants t
+       JOIN tenant_users tu ON tu.tenant_id = t.id
+       WHERE tu.user_id = ? AND t.status = 'active'
+       ORDER BY t.created_at`
+    ).bind(user.id)
+  );
+  return c.json({ tenants: rows });
+});
+
+// POST /api/tenants — create a guild; creator becomes owner
 tenantRoutes.post("/", async (c) => {
+  const user = c.get("user");
   const body = await c.req.json<{ name: string; slug: string }>();
   if (!body.name || !body.slug) {
     return c.json({ error: "name and slug are required" }, 400);
@@ -22,20 +44,32 @@ tenantRoutes.post("/", async (c) => {
   }
   const id = generateId();
   const now = new Date().toISOString();
-  await c.env.DB.prepare(
-    `INSERT INTO tenants (id, name, slug, plan, status, settings_json, created_at, updated_at)
-     VALUES (?, ?, ?, 'free', 'active', '{}', ?, ?)`
-  )
-    .bind(id, body.name, slug, now, now)
-    .run();
+  await c.env.DB.batch([
+    c.env.DB.prepare(
+      `INSERT INTO tenants (id, name, slug, plan, status, settings_json, created_at, updated_at)
+       VALUES (?, ?, ?, 'free', 'active', '{}', ?, ?)`
+    ).bind(id, body.name, slug, now, now),
+    c.env.DB.prepare(
+      `INSERT INTO tenant_users (tenant_id, user_id, role, created_at)
+       VALUES (?, ?, 'owner', ?)`
+    ).bind(id, user.id, now),
+  ]);
   const tenant = await first<Tenant>(
     c.env.DB.prepare("SELECT * FROM tenants WHERE id = ?").bind(id)
   );
   return c.json(tenant, 201);
 });
 
+// GET /api/tenants/:id — members of the guild only
 tenantRoutes.get("/:id", async (c) => {
+  const user = c.get("user");
   const id = c.req.param("id");
+  const membership = await first(
+    c.env.DB.prepare(
+      "SELECT role FROM tenant_users WHERE tenant_id = ? AND user_id = ?"
+    ).bind(id, user.id)
+  );
+  if (!membership) return c.json({ error: "Forbidden" }, 403);
   const tenant = await first<Tenant>(
     c.env.DB.prepare("SELECT * FROM tenants WHERE id = ?").bind(id)
   );

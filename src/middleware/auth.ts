@@ -1,6 +1,7 @@
 import { createMiddleware } from "hono/factory";
 import type { Env, TenantVariables } from "../types";
 import { verifyJwt, extractBearer } from "../lib/auth";
+import { first } from "../lib/db";
 
 export type AuthVariables = TenantVariables & {
   user: {
@@ -27,6 +28,28 @@ export const requireAuth = createMiddleware<{
     email: payload.email,
     name: payload.name,
   });
+  await next();
+});
+
+/**
+ * Runs after requireAuth + tenantMiddleware: the user must have a
+ * tenant_users row for the resolved tenant. Attaches tenantRole.
+ */
+export const requireTenantAccess = createMiddleware<{
+  Bindings: Env;
+  Variables: AuthVariables & { tenantRole: string };
+}>(async (c, next) => {
+  const user = c.get("user");
+  const tenant = c.get("tenant");
+  const row = await first<{ role: string }>(
+    c.env.DB.prepare(
+      "SELECT role FROM tenant_users WHERE tenant_id = ? AND user_id = ?"
+    ).bind(tenant.id, user.id)
+  );
+  if (!row) {
+    return c.json({ error: "Forbidden" }, 403);
+  }
+  c.set("tenantRole", row.role);
   await next();
 });
 
