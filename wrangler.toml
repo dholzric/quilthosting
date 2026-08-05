@@ -17,6 +17,9 @@ bucket_name = "quilthosting-files"
 binding = "KV"
 id = "REPLACE_WITH_YOUR_KV_ID"
 
+[assets]
+directory = "./public"
+
 [vars]
 ENVIRONMENT = "development"
 APP_URL = "http://localhost:8787"
