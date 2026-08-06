@@ -12,6 +12,7 @@ import { tenantRoutes } from "./routes/tenants";
 import { levelRoutes } from "./routes/levels";
 import { memberRoutes } from "./routes/members";
 import { eventRoutes } from "./routes/events";
+import { statsRoutes, paymentRoutes } from "./routes/stats";
 import { publicRoutes } from "./routes/public";
 import { webhookRoutes } from "./routes/webhooks";
 import { portalRoutes } from "./routes/portal";
@@ -31,7 +32,12 @@ app.use(
 
 app.use("*", siteGate);
 
+// Landing page for browsers; JSON status for API clients
 app.get("/", (c) => {
+  if (c.req.header("Accept")?.includes("text/html")) {
+    // Assets serve index.html at the canonical "/" path
+    return c.env.ASSETS.fetch(c.req.raw);
+  }
   return c.json({
     name: "QuiltHosting API",
     version: "0.6.0",
@@ -40,6 +46,13 @@ app.get("/", (c) => {
     admin: "/admin",
     portal: "/portal",
   });
+});
+
+// Public guild page: /g/:slug — static shell reads the slug client-side
+app.get("/g/:slug", (c) => {
+  const url = new URL(c.req.url);
+  url.pathname = "/guild"; // canonical asset path for guild.html
+  return c.env.ASSETS.fetch(new Request(url.toString(), c.req.raw));
 });
 
 app.route("/api/webhooks", webhookRoutes);
@@ -54,6 +67,8 @@ tenantApp.use("*", requireTenantAccess);
 tenantApp.route("/levels", levelRoutes);
 tenantApp.route("/members", memberRoutes);
 tenantApp.route("/events", eventRoutes);
+tenantApp.route("/stats", statsRoutes);
+tenantApp.route("/payments", paymentRoutes);
 app.route("/api/tenants/:tenantId", tenantApp);
 
 app.route("/public", publicRoutes);

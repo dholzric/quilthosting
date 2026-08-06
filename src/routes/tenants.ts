@@ -76,3 +76,41 @@ tenantRoutes.get("/:id", async (c) => {
   if (!tenant) return c.json({ error: "Not found" }, 404);
   return c.json(tenant);
 });
+
+// PATCH /api/tenants/:id — owner/admin can rename or update settings
+tenantRoutes.patch("/:id", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const membership = await first<{ role: string }>(
+    c.env.DB.prepare(
+      "SELECT role FROM tenant_users WHERE tenant_id = ? AND user_id = ?"
+    ).bind(id, user.id)
+  );
+  if (!membership || !["owner", "admin"].includes(membership.role)) {
+    return c.json({ error: "Forbidden" }, 403);
+  }
+  const body = await c.req.json<{ name?: string; settings?: Record<string, unknown> }>();
+  const fields: string[] = [];
+  const params: any[] = [];
+  if (body.name !== undefined) {
+    if (!body.name.trim()) return c.json({ error: "name cannot be empty" }, 400);
+    fields.push("name = ?");
+    params.push(body.name.trim());
+  }
+  if (body.settings !== undefined) {
+    fields.push("settings_json = ?");
+    params.push(JSON.stringify(body.settings));
+  }
+  if (!fields.length) return c.json({ error: "No fields to update" }, 400);
+  fields.push("updated_at = ?");
+  params.push(new Date().toISOString(), id);
+  await c.env.DB.prepare(
+    `UPDATE tenants SET ${fields.join(", ")} WHERE id = ?`
+  )
+    .bind(...params)
+    .run();
+  const tenant = await first<Tenant>(
+    c.env.DB.prepare("SELECT * FROM tenants WHERE id = ?").bind(id)
+  );
+  return c.json(tenant);
+});

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Guild — QuiltHosting</title>
+  <style>
+    :root {
+      --bg: #faf8f5; --surface: #fff; --text: #1a1a1a; --muted: #666;
+      --accent: #c45c26; --accent-dark: #a04a1e; --border: #e8e0d5;
+      --success: #2d7a3a; --danger: #b3261e;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    header { background: var(--surface); border-bottom: 1px solid var(--border); }
+    .header-inner { max-width: 880px; margin: 0 auto; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+    .brand { font-size: 0.8rem; color: var(--muted); text-decoration: none; }
+    main { max-width: 880px; margin: 0 auto; padding: 1.5rem; }
+    h2 { font-size: 1.2rem; margin: 2rem 0 0.75rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 0.9rem; }
+    .row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .price { font-weight: 700; white-space: nowrap; }
+    .muted { color: var(--muted); font-size: 0.9rem; }
+    button, .btn { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 0.55rem 1.2rem; font-size: 0.95rem; cursor: pointer; font-weight: 600; }
+    button:hover { background: var(--accent-dark); }
+    button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+    input { padding: 0.55rem 0.7rem; border: 1px solid #ccc; border-radius: 8px; font-size: 0.95rem; width: 100%; margin-top: 0.4rem; }
+    label { font-size: 0.85rem; color: var(--muted); display: block; margin-top: 0.6rem; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem; }
+    .notice { padding: 0.8rem 1rem; border-radius: 8px; margin: 1rem 0; font-size: 0.95rem; }
+    .notice.ok { background: #d8f3dc; color: var(--success); }
+    .notice.err { background: #fde7e5; color: var(--danger); }
+    .hidden { display: none; }
+    dialog { border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; max-width: 420px; width: 92%; }
+    dialog::backdrop { background: rgba(0,0,0,0.35); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <strong id="guild-name">Loading…</strong>
+      <a class="brand" href="/">powered by QuiltHosting 🧵</a>
+    </div>
+  </header>
+  <main>
+    <div id="flash"></div>
+
+    <h2>Membership</h2>
+    <div id="levels"><p class="muted">Loading membership levels…</p></div>
+
+    <h2>Upcoming Events</h2>
+    <div id="events"><p class="muted">Loading events…</p></div>
+  </main>
+
+  <dialog id="signup-dialog">
+    <h3 id="dialog-title" style="margin-top:0"></h3>
+    <div id="dialog-error" class="notice err hidden"></div>
+    <div class="form-grid">
+      <div><label>First name</label><input id="su-first" /></div>
+      <div><label>Last name</label><input id="su-last" /></div>
+    </div>
+    <label>Email</label><input id="su-email" type="email" placeholder="you@example.com" />
+    <div style="display:flex;gap:0.6rem;justify-content:flex-end;margin-top:1.2rem">
+      <button class="secondary" onclick="document.getElementById('signup-dialog').close()">Cancel</button>
+      <button id="su-submit" onclick="submitSignup()">Continue</button>
+    </div>
+  </dialog>
+
+  <script>
+    // All dynamic content is inserted via textContent / createElement — no
+    // string-interpolated HTML from API data.
+    const slug = decodeURIComponent(location.pathname.split("/")[2] || "");
+    const API = location.origin;
+    let signupAction = null; // {type:'join', levelId} | {type:'event', eventId}
+
+    const $ = (id) => document.getElementById(id);
+    const money = (c) => "$" + (c / 100).toFixed(2);
+
+    function el(tag, className, text) {
+      const n = document.createElement(tag);
+      if (className) n.className = className;
+      if (text !== undefined) n.textContent = text;
+      return n;
+    }
+
+    function flash(kind, msg) {
+      const box = el("div", "notice " + kind, msg);
+      $("flash").replaceChildren(box);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    const qs = new URLSearchParams(location.search);
+    if (qs.get("registered")) flash("ok", "You're registered! Check your email for confirmation.");
+    if (qs.get("joined")) flash("ok", "Welcome! Your membership is active — check your email.");
+    if (qs.get("cancelled")) flash("err", "Checkout was cancelled. You have not been charged.");
+
+    function openSignup(title, action) {
+      signupAction = action;
+      $("dialog-title").textContent = title;
+      $("dialog-error").classList.add("hidden");
+      $("signup-dialog").showModal();
+    }
+
+    async function submitSignup() {
+      const errEl = $("dialog-error");
+      errEl.classList.add("hidden");
+      const email = $("su-email").value.trim();
+      if (!email) { errEl.textContent = "Email is required."; errEl.classList.remove("hidden"); return; }
+      const body = {
+        email,
+        first_name: $("su-first").value.trim() || undefined,
+        last_name: $("su-last").value.trim() || undefined,
+      };
+      let url;
+      if (signupAction.type === "join") {
+        body.level_id = signupAction.levelId;
+        url = `${API}/public/${slug}/join`;
+      } else {
+        body.name = [body.first_name, body.last_name].filter(Boolean).join(" ") || undefined;
+        url = `${API}/public/${slug}/events/${signupAction.eventId}/register`;
+      }
+      $("su-submit").disabled = true;
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Something went wrong");
+        if (data.checkout_url) { location.href = data.checkout_url; return; }
+        $("signup-dialog").close();
+        if (signupAction.type === "join") {
+          flash("ok", data.message || "Membership activated — welcome!");
+        } else {
+          flash("ok", (data.message || "Registered!") + " Your ticket code is " + data.ticket_code + ".");
+        }
+      } catch (e) {
+        errEl.textContent = e.message;
+        errEl.classList.remove("hidden");
+      } finally {
+        $("su-submit").disabled = false;
+      }
+    }
+
+    function levelCard(l) {
+      const card = el("div", "card row");
+      const left = el("div");
+      left.appendChild(el("strong", "", l.name));
+      if (l.description) left.appendChild(el("div", "muted", l.description));
+      left.appendChild(el("div", "muted", l.duration_months + " month" + (l.duration_months === 1 ? "" : "s")));
+      const right = el("div");
+      right.style.textAlign = "right";
+      right.appendChild(el("div", "price", l.price_cents ? money(l.price_cents) : "Free"));
+      const btn = el("button", "", "Join");
+      btn.addEventListener("click", () =>
+        openSignup("Join — " + l.name + " (" + (l.price_cents ? money(l.price_cents) : "Free") + ")", { type: "join", levelId: l.id })
+      );
+      right.appendChild(btn);
+      card.append(left, right);
+      return card;
+    }
+
+    function eventCard(ev) {
+      const when = new Date(ev.start_at).toLocaleString(undefined, { dateStyle: "full", timeStyle: "short" });
+      const card = el("div", "card row");
+      const left = el("div");
+      left.appendChild(el("strong", "", ev.title));
+      left.appendChild(el("div", "muted", when + (ev.location ? " · " + ev.location : "")));
+      if (ev.description) left.appendChild(el("div", "muted", ev.description));
+      left.appendChild(el("div", "muted",
+        "Members " + (ev.member_price_cents ? money(ev.member_price_cents) : "free") +
+        " · Non-members " + (ev.non_member_price_cents ? money(ev.non_member_price_cents) : "free")));
+      const right = el("div");
+      right.style.textAlign = "right";
+      if (ev.registration_open) {
+        const btn = el("button", "", "Register");
+        btn.addEventListener("click", () => openSignup("Register — " + ev.title, { type: "event", eventId: ev.id }));
+        right.appendChild(btn);
+      } else {
+        right.appendChild(el("span", "muted", "Registration closed"));
+      }
+      card.append(left, right);
+      return card;
+    }
+
+    async function load() {
+      try {
+        const [levelsRes, eventsRes] = await Promise.all([
+          fetch(`${API}/public/${slug}/levels`),
+          fetch(`${API}/public/${slug}/events`),
+        ]);
+        if (!levelsRes.ok) throw new Error("Guild not found");
+        const levelsData = await levelsRes.json();
+        const eventsData = await eventsRes.json();
+
+        $("guild-name").textContent = levelsData.tenant.name;
+        document.title = levelsData.tenant.name + " — QuiltHosting";
+
+        const lv = $("levels");
+        lv.replaceChildren();
+        if (!levelsData.levels.length) lv.appendChild(el("p", "muted", "No membership levels are open right now."));
+        for (const l of levelsData.levels) lv.appendChild(levelCard(l));
+
+        const evb = $("events");
+        evb.replaceChildren();
+        if (!eventsData.events.length) evb.appendChild(el("p", "muted", "No upcoming events."));
+        for (const ev of eventsData.events) evb.appendChild(eventCard(ev));
+      } catch (e) {
+        $("guild-name").textContent = "Not found";
+        $("levels").replaceChildren(el("div", "notice err", e.message));
+        $("events").replaceChildren();
+      }
+    }
+    load();
+  </script>
+</body>
+</html>

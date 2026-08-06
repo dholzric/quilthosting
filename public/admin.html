@@ -184,6 +184,7 @@
         <a href="#" data-page="members">Members</a>
         <a href="#" data-page="levels">Levels</a>
         <a href="#" data-page="events">Events</a>
+        <a href="#" data-page="payments">Payments</a>
         <a href="#" data-page="settings">Settings</a>
       </nav>
       <div style="margin-top:2rem;font-size:0.8rem;color:#a08060" id="tenant-label"></div>
@@ -330,6 +331,7 @@
         else if (page === "members") await renderMembers(el);
         else if (page === "levels") await renderLevels(el);
         else if (page === "events") await renderEvents(el);
+        else if (page === "payments") await renderPayments(el);
         else if (page === "settings") renderSettings(el);
       } catch (e) {
         el.innerHTML = `<p class="error">${e.message}</p>`;
@@ -337,19 +339,37 @@
     }
 
     async function renderDashboard(el) {
-      const [members, events, levels] = await Promise.all([
-        api(`/api/tenants/${tenantId}/members`),
+      const [stats, events] = await Promise.all([
+        api(`/api/tenants/${tenantId}/stats`),
         api(`/api/tenants/${tenantId}/events?upcoming=1`),
-        api(`/api/tenants/${tenantId}/levels`),
       ]);
-      const active = members.filter((m) => m.status === "active").length;
+      const m = stats.members;
       el.innerHTML = `
         <h2>Dashboard</h2>
         <div class="stats">
-          <div class="stat"><div class="label">Active Members</div><div class="value">${active}</div></div>
-          <div class="stat"><div class="label">Total Members</div><div class="value">${members.length}</div></div>
-          <div class="stat"><div class="label">Upcoming Events</div><div class="value">${events.length}</div></div>
-          <div class="stat"><div class="label">Membership Levels</div><div class="value">${levels.length}</div></div>
+          <div class="stat"><div class="label">Active Members</div><div class="value">${m.active}</div></div>
+          <div class="stat"><div class="label">New This Month</div><div class="value">${m.new_this_month}</div></div>
+          <div class="stat"><div class="label">Renewals Due (30d)</div><div class="value">${stats.renewals_due_30d}</div></div>
+          <div class="stat"><div class="label">Upcoming Events</div><div class="value">${stats.upcoming_events}</div></div>
+          <div class="stat"><div class="label">Event Signups (month)</div><div class="value">${stats.registrations_this_month}</div></div>
+          <div class="stat"><div class="label">Pending / Lapsed</div><div class="value">${m.pending} / ${m.lapsed}</div></div>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:0.75rem">Revenue by Month</h3>
+          ${stats.revenue_by_month.length === 0 ? "<p style='color:var(--muted)'>No payments yet</p>" : `
+            <table>
+              <thead><tr><th>Month</th><th>Payments</th><th>Total</th></tr></thead>
+              <tbody>
+                ${stats.revenue_by_month.map((r) => `
+                  <tr>
+                    <td>${esc(r.month)}</td>
+                    <td>${r.payments}</td>
+                    <td>$${(r.total_cents / 100).toFixed(2)}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          `}
         </div>
         <div class="card">
           <h3 style="margin-bottom:0.75rem">Upcoming Events</h3>
@@ -362,6 +382,32 @@
                     <td>${esc(e.title)}</td>
                     <td>${new Date(e.start_at).toLocaleDateString()}</td>
                     <td>${esc(e.location || "—")}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          `}
+        </div>
+      `;
+    }
+
+    async function renderPayments(el) {
+      const rows = await api(`/api/tenants/${tenantId}/payments`);
+      el.innerHTML = `
+        <h2>Payments</h2>
+        <div class="card">
+          ${rows.length === 0 ? "<p style='color:var(--muted)'>No payments yet</p>" : `
+            <table>
+              <thead><tr><th>Date</th><th>Member</th><th>Type</th><th>Description</th><th>Amount</th><th>Status</th></tr></thead>
+              <tbody>
+                ${rows.map((p) => `
+                  <tr>
+                    <td>${new Date(p.created_at).toLocaleDateString()}</td>
+                    <td>${esc([p.first_name, p.last_name].filter(Boolean).join(" ") || p.member_email || "—")}</td>
+                    <td>${esc(p.type)}</td>
+                    <td>${esc(p.description || "—")}</td>
+                    <td>$${(p.amount_cents / 100).toFixed(2)}</td>
+                    <td><span class="badge ${p.status}">${esc(p.status)}</span></td>
                   </tr>
                 `).join("")}
               </tbody>
@@ -396,9 +442,35 @@
           <button onclick="addMember()">Save</button>
           <button class="secondary" onclick="hideAddMember()">Cancel</button>
         </div>
+        <div id="edit-member-form" class="card hidden">
+          <h3 style="margin-bottom:0.75rem">Edit Member</h3>
+          <input type="hidden" id="em-id" />
+          <div class="form-row">
+            <div><label>Email</label><input id="em-email" type="email" /></div>
+            <div><label>Status</label>
+              <select id="em-status">
+                <option value="pending">Pending</option>
+                <option value="active">Active</option>
+                <option value="lapsed">Lapsed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div><label>First Name</label><input id="em-first" /></div>
+            <div><label>Last Name</label><input id="em-last" /></div>
+          </div>
+          <div class="form-row">
+            <div><label>Phone</label><input id="em-phone" /></div>
+            <div><label>Notes</label><input id="em-notes" /></div>
+          </div>
+          <button onclick="saveMember()">Save</button>
+          <button class="secondary" onclick="hide(document.getElementById('edit-member-form'))">Close</button>
+          <button class="secondary" style="color:var(--danger);float:right" onclick="cancelMember()">Cancel membership</button>
+        </div>
         <div class="card">
           <table>
-            <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Joined</th></tr></thead>
+            <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Joined</th><th></th></tr></thead>
             <tbody id="members-tbody">
               ${members.map((m) => `
                 <tr data-search="${esc((m.first_name||'') + ' ' + (m.last_name||'') + ' ' + m.email).toLowerCase()}">
@@ -406,12 +478,49 @@
                   <td>${esc(m.email)}</td>
                   <td><span class="badge ${m.status}">${m.status}</span></td>
                   <td>${m.joined_at ? new Date(m.joined_at).toLocaleDateString() : "—"}</td>
+                  <td><button class="secondary" onclick='editMember(${JSON.stringify(m.id)})'>Edit</button></td>
                 </tr>
               `).join("")}
             </tbody>
           </table>
         </div>
       `;
+      window._members = members;
+    }
+
+    function editMember(id) {
+      const m = (window._members || []).find((x) => x.id === id);
+      if (!m) return;
+      document.getElementById("em-id").value = m.id;
+      document.getElementById("em-email").value = m.email;
+      document.getElementById("em-status").value = m.status;
+      document.getElementById("em-first").value = m.first_name || "";
+      document.getElementById("em-last").value = m.last_name || "";
+      document.getElementById("em-phone").value = m.phone || "";
+      document.getElementById("em-notes").value = m.notes || "";
+      show(document.getElementById("edit-member-form"));
+      document.getElementById("edit-member-form").scrollIntoView({ behavior: "smooth" });
+    }
+    async function saveMember() {
+      const id = document.getElementById("em-id").value;
+      await api(`/api/tenants/${tenantId}/members/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          email: document.getElementById("em-email").value,
+          status: document.getElementById("em-status").value,
+          first_name: document.getElementById("em-first").value || null,
+          last_name: document.getElementById("em-last").value || null,
+          phone: document.getElementById("em-phone").value || null,
+          notes: document.getElementById("em-notes").value || null,
+        }),
+      });
+      navigate("members");
+    }
+    async function cancelMember() {
+      if (!confirm("Cancel this membership? Their history is kept, but active memberships end.")) return;
+      const id = document.getElementById("em-id").value;
+      await api(`/api/tenants/${tenantId}/members/${id}`, { method: "DELETE" });
+      navigate("members");
     }
 
     function filterMembers() {
@@ -454,9 +563,25 @@
           <button onclick="addLevel()">Save</button>
           <button class="secondary" onclick="hide(document.getElementById('add-level-form'))">Cancel</button>
         </div>
+        <div id="edit-level-form" class="card hidden">
+          <h3 style="margin-bottom:0.75rem">Edit Level</h3>
+          <input type="hidden" id="el-id" />
+          <div class="form-row">
+            <div><label>Name</label><input id="el-name" /></div>
+            <div><label>Price (cents)</label><input id="el-price" type="number" /></div>
+          </div>
+          <div class="form-row">
+            <div><label>Duration (months)</label><input id="el-duration" type="number" /></div>
+            <div><label>Renewal</label>
+              <select id="el-renewal"><option value="manual">Manual</option><option value="auto">Auto</option></select>
+            </div>
+          </div>
+          <button onclick="saveLevel()">Save</button>
+          <button class="secondary" onclick="hide(document.getElementById('edit-level-form'))">Close</button>
+        </div>
         <div class="card">
           <table>
-            <thead><tr><th>Name</th><th>Price</th><th>Duration</th><th>Renewal</th></tr></thead>
+            <thead><tr><th>Name</th><th>Price</th><th>Duration</th><th>Renewal</th><th></th></tr></thead>
             <tbody>
               ${levels.map((l) => `
                 <tr>
@@ -464,12 +589,37 @@
                   <td>$${(l.price_cents / 100).toFixed(2)}</td>
                   <td>${l.duration_months} mo</td>
                   <td>${l.renewal_type}</td>
+                  <td><button class="secondary" onclick='editLevel(${JSON.stringify(l.id)})'>Edit</button></td>
                 </tr>
               `).join("")}
             </tbody>
           </table>
         </div>
       `;
+      window._levels = levels;
+    }
+    function editLevel(id) {
+      const l = (window._levels || []).find((x) => x.id === id);
+      if (!l) return;
+      document.getElementById("el-id").value = l.id;
+      document.getElementById("el-name").value = l.name;
+      document.getElementById("el-price").value = l.price_cents;
+      document.getElementById("el-duration").value = l.duration_months;
+      document.getElementById("el-renewal").value = l.renewal_type;
+      show(document.getElementById("edit-level-form"));
+    }
+    async function saveLevel() {
+      const id = document.getElementById("el-id").value;
+      await api(`/api/tenants/${tenantId}/levels/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          name: document.getElementById("el-name").value,
+          price_cents: Number(document.getElementById("el-price").value),
+          duration_months: Number(document.getElementById("el-duration").value),
+          renewal_type: document.getElementById("el-renewal").value,
+        }),
+      });
+      navigate("levels");
     }
     function showAddLevel() { show(document.getElementById("add-level-form")); }
     async function addLevel() {
@@ -505,7 +655,7 @@
         </div>
         <div class="card">
           <table>
-            <thead><tr><th>Title</th><th>Date</th><th>Location</th><th>Member $</th><th>Public $</th></tr></thead>
+            <thead><tr><th>Title</th><th>Date</th><th>Location</th><th>Member $</th><th>Public $</th><th></th></tr></thead>
             <tbody>
               ${events.map((e) => `
                 <tr>
@@ -514,6 +664,11 @@
                   <td>${esc(e.location || "—")}</td>
                   <td>$${(e.member_price_cents / 100).toFixed(2)}</td>
                   <td>$${(e.non_member_price_cents / 100).toFixed(2)}</td>
+                  <td>
+                    <button class="secondary" onclick='toggleRegistration(${JSON.stringify(e.id)}, ${e.registration_open ? 0 : 1})'>
+                      ${e.registration_open ? "Close reg" : "Open reg"}
+                    </button>
+                  </td>
                 </tr>
               `).join("")}
             </tbody>
@@ -563,6 +718,13 @@
         </div>
       `;
     }
+    async function toggleRegistration(eventId, open) {
+      await api(`/api/tenants/${tenantId}/events/${eventId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ registration_open: open }),
+      });
+      navigate("events");
+    }
     async function checkIn(eventId, regId) {
       await api(`/api/tenants/${tenantId}/events/${eventId}/check-in`, {
         method: "POST",
@@ -575,14 +737,37 @@
       el.innerHTML = `
         <h2>Settings</h2>
         <div class="card">
-          <p><strong>Guild:</strong> ${esc(tenantName || tenantSlug)}</p>
-          <p style="margin-top:0.5rem"><strong>Public links:</strong> <code>${API}/public/${esc(tenantSlug)}/…</code></p>
-          <p style="margin-top:1rem;color:var(--muted);font-size:0.9rem">
+          <h3 style="margin-bottom:0.75rem">Guild</h3>
+          <label>Guild name</label>
+          <input id="set-name" value="${esc(tenantName || "")}" style="max-width:320px" />
+          <button onclick="saveTenantName()" style="margin-top:0.5rem">Save</button>
+          <span id="set-saved" class="hidden" style="color:var(--success);margin-left:0.5rem">Saved ✓</span>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:0.75rem">Public guild page</h3>
+          <p>Share this link with prospective members — joining and event registration happen here:</p>
+          <p style="margin-top:0.5rem"><a href="${API}/g/${esc(tenantSlug)}" target="_blank"><code>${API}/g/${esc(tenantSlug)}</code></a></p>
+        </div>
+        <div class="card">
+          <p style="color:var(--muted);font-size:0.9rem">
             <button class="secondary" onclick="switchTenant()">Switch guild</button>
             <button class="secondary" onclick="logout()" style="margin-left:0.5rem">Log out</button>
           </p>
         </div>
       `;
+    }
+    async function saveTenantName() {
+      const name = document.getElementById("set-name").value.trim();
+      if (!name) return;
+      const t = await api(`/api/tenants/${tenantId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ name }),
+      });
+      tenantName = t.name;
+      localStorage.setItem("gb_tenant_name", t.name);
+      document.getElementById("tenant-label").textContent = t.name;
+      show(document.getElementById("set-saved"));
+      setTimeout(() => hide(document.getElementById("set-saved")), 2000);
     }
     function switchTenant() {
       enterApp(true);
