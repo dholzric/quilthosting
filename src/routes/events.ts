@@ -144,10 +144,26 @@ eventRoutes.get("/:eventId/registrations", async (c) => {
     ).bind(eventId, tenant.id)
   );
   const questions = parseEventSettings(event?.settings_json).questions || [];
+  const { parsePageParams, pageMeta } = await import("../lib/pagination");
+  const { limit, offset } = parsePageParams(
+    {
+      limit: c.req.query("limit") || undefined,
+      offset: c.req.query("offset") || undefined,
+      page: c.req.query("page") || undefined,
+    },
+    { limit: 200, max: 500 }
+  );
+  const countRow = await first<{ cnt: number }>(
+    c.env.DB.prepare(
+      `SELECT COUNT(*) as cnt FROM event_registrations WHERE tenant_id = ? AND event_id = ?`
+    ).bind(tenant.id, eventId)
+  );
+  const total = countRow?.cnt ?? 0;
   const regs = await all<Registration>(
     c.env.DB.prepare(
-      `SELECT * FROM event_registrations WHERE tenant_id = ? AND event_id = ? ORDER BY created_at ASC`
-    ).bind(tenant.id, eventId)
+      `SELECT * FROM event_registrations WHERE tenant_id = ? AND event_id = ?
+       ORDER BY created_at ASC LIMIT ? OFFSET ?`
+    ).bind(tenant.id, eventId, limit, offset)
   );
   return c.json({
     questions,
@@ -158,6 +174,7 @@ eventRoutes.get("/:eventId/registrations", async (c) => {
       } catch {}
       return { ...r, answers };
     }),
+    ...pageMeta(total, limit, offset),
   });
 });
 

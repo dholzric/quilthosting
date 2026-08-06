@@ -7,7 +7,7 @@
 | Method | Path | Scope | Description |
 |--------|------|-------|-------------|
 | GET | `/me` | read | Tenant id, name, slug, plan |
-| GET | `/members?status=` | read | Members (max 500) |
+| GET | `/members?status=&page=&limit=` | read | Members (paginated; max 500/page) |
 | GET | `/events` | read | Events |
 | GET | `/payments` | read | Payments |
 | GET | `/levels` | read | Active membership levels |

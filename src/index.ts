@@ -34,6 +34,7 @@ import { smsRoutes } from "./routes/sms";
 import { chapterRoutes } from "./routes/chapters";
 import { v1Routes } from "./routes/v1";
 import { runAutomationJob } from "./lib/automations";
+import { processQueuedBlasts } from "./lib/blastSend";
 import { generateId } from "./lib/utils/id";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -59,7 +60,7 @@ app.get("/", (c) => {
   }
   return c.json({
     name: "QuiltHosting API",
-    version: "0.20.2",
+    version: "0.21.0",
     status: "ok",
     environment: c.env.ENVIRONMENT,
     admin: "/admin",
@@ -253,7 +254,25 @@ async function runDailyJobs(env: Env) {
   const events = await runEventReminderJob(env);
   const blasts = await runScheduledBlasts(env);
   const automations = await runAutomationJob(env);
-  return { renewals, events, blasts, automations };
+  // Drain large queued email blasts (may need multiple cron ticks for 50k)
+  const queuedBlasts = await processQueuedBlasts(env);
+  // Extra drain passes for big lists within one scheduled invocation
+  let extra = 0;
+  for (let i = 0; i < 20; i++) {
+    const r = await processQueuedBlasts(env);
+    extra += r.emails;
+    if (r.emails === 0) break;
+  }
+  return {
+    renewals,
+    events,
+    blasts,
+    automations,
+    queuedBlasts: {
+      ...queuedBlasts,
+      extra_emails: extra,
+    },
+  };
 }
 
 app.get("/__scheduled", async (c) => {

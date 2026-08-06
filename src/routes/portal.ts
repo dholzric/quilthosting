@@ -479,10 +479,23 @@ portalRoutes.get("/:slug/directory", async (c) => {
         `SELECT first_name, last_name, joined_at, bio, photo_file_id, showcase_json FROM members
          WHERE tenant_id = ? AND status = 'active'
            AND coalesce(directory_visible, 1) = 1
-         ORDER BY last_name, first_name LIMIT 500`
+         ORDER BY last_name, first_name LIMIT 100 OFFSET ?`
+      ).bind(ctx.tenant.id, Math.max(0, Math.min(5000, Number(c.req.query("offset")) || 0)))
+    );
+    const countRow = await first<{ cnt: number }>(
+      c.env.DB.prepare(
+        `SELECT COUNT(*) as cnt FROM members
+         WHERE tenant_id = ? AND status = 'active'
+           AND coalesce(directory_visible, 1) = 1`
       ).bind(ctx.tenant.id)
     );
-    return c.json({ tenant: { name: ctx.tenant.name }, members: rows });
+    return c.json({
+      tenant: { name: ctx.tenant.name },
+      members: rows,
+      total: countRow?.cnt ?? rows.length,
+      limit: 100,
+      offset: Math.max(0, Math.min(5000, Number(c.req.query("offset")) || 0)),
+    });
   } catch {
     const rows = await all<{
       first_name: string | null;
@@ -492,10 +505,10 @@ portalRoutes.get("/:slug/directory", async (c) => {
       c.env.DB.prepare(
         `SELECT first_name, last_name, joined_at FROM members
          WHERE tenant_id = ? AND status = 'active'
-         ORDER BY last_name, first_name LIMIT 500`
+         ORDER BY last_name, first_name LIMIT 100`
       ).bind(ctx.tenant.id)
     );
-    return c.json({ tenant: { name: ctx.tenant.name }, members: rows });
+    return c.json({ tenant: { name: ctx.tenant.name }, members: rows, total: rows.length });
   }
 });
 

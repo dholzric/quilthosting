@@ -292,17 +292,16 @@
     }
 
     async function renderDashboard(el) {
-      const [stats, events, levels, members, billing] = await Promise.all([
+      const [stats, events, levels, billing] = await Promise.all([
         api(`/api/tenants/${tenantId}/stats`),
         api(`/api/tenants/${tenantId}/events?upcoming=1`),
         api(`/api/tenants/${tenantId}/levels`).catch(() => []),
-        api(`/api/tenants/${tenantId}/members`).catch(() => []),
         api(`/api/tenants/${tenantId}/billing`).catch(() => null),
       ]);
       const m = stats.members;
       const steps = [
         { done: levels.length > 0, label: "Add a membership level", page: "levels" },
-        { done: members.length > 0, label: "Add or import members", page: "members" },
+        { done: (m.total || 0) > 0, label: "Add or import members", page: "members" },
         { done: true, label: "Share your public guild page", href: `/g/${tenantSlug}` },
         { done: !!(billing && billing.connect && billing.connect.charges_enabled), label: "Connect Stripe for dues payouts", page: "settings" },
         { done: localStorage.getItem("gb_onboarding") !== tenantId, label: "You're ready — explore the rest", page: null },
@@ -375,13 +374,17 @@
       `;
     }
 
-    async function renderPayments(el) {
-      const rows = await api(`/api/tenants/${tenantId}/payments`);
+    async function renderPayments(el, page = 1) {
+      const data = await api(`/api/tenants/${tenantId}/payments?page=${page}&limit=50`);
+      const rows = Array.isArray(data) ? data : (data.payments || []);
+      const total = data.total != null ? data.total : rows.length;
+      const totalPages = data.total_pages || 1;
       el.innerHTML = `
         <h2>Payments</h2>
         <div class="toolbar">
           <button class="secondary" onclick="exportPayments()">Export CSV</button>
           <button class="secondary" onclick="exportPaymentsIif()">Export QuickBooks (IIF)</button>
+          <span class="muted" style="margin-left:auto;font-size:0.85rem">${total.toLocaleString()} total</span>
         </div>
         <div class="card">
           ${rows.length === 0 ? "<p style='color:var(--muted)'>No payments yet</p>" : `
@@ -404,6 +407,11 @@
                 `).join("")}
               </tbody>
             </table>
+            ${totalPages > 1 ? `<div class="toolbar" style="margin-top:0.75rem">
+              <button class="secondary" ${page <= 1 ? "disabled" : ""} onclick="renderPayments(document.getElementById('page-content'), ${page - 1})">Prev</button>
+              <span class="muted" style="font-size:0.85rem">Page ${page} of ${totalPages}</span>
+              <button class="secondary" ${page >= totalPages ? "disabled" : ""} onclick="renderPayments(document.getElementById('page-content'), ${page + 1})">Next</button>
+            </div>` : ""}
           `}
         </div>
       `;
@@ -456,12 +464,47 @@
       URL.revokeObjectURL(a.href);
     }
 
-    async function renderMembers(el) {
-      const members = await api(`/api/tenants/${tenantId}/members`);
+    window._membersPage = 1;
+    window._membersQ = "";
+    window._membersStatus = "";
+
+    /** Fetch a page of members (handles new {members,total} shape). */
+    async function fetchMembersList(opts = {}) {
+      const qs = new URLSearchParams({
+        limit: String(opts.limit || 100),
+        page: String(opts.page || 1),
+      });
+      if (opts.q) qs.set("q", opts.q);
+      if (opts.status) qs.set("status", opts.status);
+      const data = await api(`/api/tenants/${tenantId}/members?${qs}`);
+      return Array.isArray(data) ? data : (data.members || []);
+    }
+
+    async function renderMembers(el, page) {
+      if (page != null) window._membersPage = page;
+      const p = window._membersPage || 1;
+      const q = window._membersQ || "";
+      const status = window._membersStatus || "";
+      const qs = new URLSearchParams({ page: String(p), limit: "50" });
+      if (q) qs.set("q", q);
+      if (status) qs.set("status", status);
+      const data = await api(`/api/tenants/${tenantId}/members?${qs}`);
+      const members = Array.isArray(data) ? data : (data.members || []);
+      const total = data.total != null ? data.total : members.length;
+      const totalPages = data.total_pages || 1;
       el.innerHTML = `
         <h2>Members</h2>
+        <p class="muted" style="margin-bottom:0.75rem">${total.toLocaleString()} members · server-side search &amp; pagination (scales to 50k+)</p>
         <div class="toolbar">
-          <input type="search" id="member-search" placeholder="Search…" oninput="filterMembers()" />
+          <input type="search" id="member-search" placeholder="Search name or email…" value="${esc(q)}" />
+          <select id="member-status-filter">
+            <option value="">All statuses</option>
+            <option value="active" ${status==="active"?"selected":""}>Active</option>
+            <option value="pending" ${status==="pending"?"selected":""}>Pending</option>
+            <option value="lapsed" ${status==="lapsed"?"selected":""}>Lapsed</option>
+            <option value="cancelled" ${status==="cancelled"?"selected":""}>Cancelled</option>
+          </select>
+          <button class="secondary" onclick="searchMembers()">Search</button>
           <button onclick="showAddMember()">Add Member</button>
           <button class="secondary" onclick="exportMembers()">Export CSV</button>
           <button class="secondary" onclick="document.getElementById('import-input').click()">Import CSV</button>
@@ -543,8 +586,8 @@
           <table>
             <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Joined</th><th></th></tr></thead>
             <tbody id="members-tbody">
-              ${members.map((m) => `
-                <tr data-search="${esc((m.first_name||'') + ' ' + (m.last_name||'') + ' ' + m.email).toLowerCase()}">
+              ${members.length === 0 ? `<tr><td colspan="5" class="muted">No members match.</td></tr>` : members.map((m) => `
+                <tr>
                   <td>${esc([m.first_name, m.last_name].filter(Boolean).join(" ") || "—")}</td>
                   <td>${esc(m.email)}</td>
                   <td><span class="badge ${m.status}">${m.status}</span></td>
@@ -554,9 +597,26 @@
               `).join("")}
             </tbody>
           </table>
+          <div class="toolbar" style="margin-top:0.75rem">
+            <button class="secondary" ${p <= 1 ? "disabled" : ""} onclick="renderMembers(document.getElementById('page-content'), ${p - 1})">Prev</button>
+            <span class="muted" style="font-size:0.85rem">Page ${p} of ${Math.max(1, totalPages)}</span>
+            <button class="secondary" ${p >= totalPages ? "disabled" : ""} onclick="renderMembers(document.getElementById('page-content'), ${p + 1})">Next</button>
+          </div>
         </div>
       `;
       window._members = members;
+      const searchEl = document.getElementById("member-search");
+      if (searchEl) {
+        searchEl.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") searchMembers();
+        });
+      }
+    }
+    function searchMembers() {
+      window._membersQ = document.getElementById("member-search")?.value?.trim() || "";
+      window._membersStatus = document.getElementById("member-status-filter")?.value || "";
+      window._membersPage = 1;
+      renderMembers(document.getElementById("page-content"), 1);
     }
 
     async function tenantCustomFields() {
@@ -566,7 +626,10 @@
       return window._settings.custom_fields || [];
     }
     async function editMember(id) {
-      const m = (window._members || []).find((x) => x.id === id);
+      let m = (window._members || []).find((x) => x.id === id);
+      if (!m) {
+        try { m = await api(`/api/tenants/${tenantId}/members/${id}`); } catch { return; }
+      }
       if (!m) return;
       document.getElementById("em-id").value = m.id;
       document.getElementById("em-email").value = m.email;
@@ -726,9 +789,10 @@
           }),
         });
         await editMember(id);
-        // Refresh list badges without full navigate
-        const members = await api(`/api/tenants/${tenantId}/members`);
-        window._members = members;
+        // Refresh current members page cache
+        try {
+          window._members = await fetchMembersList({ page: window._membersPage || 1, limit: 50, q: window._membersQ, status: window._membersStatus });
+        } catch {}
       } catch (e) {
         alert(e.message || "Could not assign membership");
       }
@@ -816,10 +880,7 @@
       input.value = "";
     }
     function filterMembers() {
-      const q = document.getElementById("member-search").value.toLowerCase();
-      document.querySelectorAll("#members-tbody tr").forEach((tr) => {
-        tr.style.display = tr.dataset.search.includes(q) ? "" : "none";
-      });
+      searchMembers();
     }
     function showAddMember() { show(document.getElementById("add-member-form")); }
     function hideAddMember() { hide(document.getElementById("add-member-form")); }
@@ -1556,14 +1617,15 @@
       panel.innerHTML = "<p class='muted'>Loading…</p>";
       try {
         const data = await api(`/api/tenants/${tenantId}/groups/${id}/members`);
-        const members = await api(`/api/tenants/${tenantId}/members`);
+        const members = await fetchMembersList({ limit: 200, status: "active" }).catch(() => []);
         const inGroup = new Set(data.members.map((m) => m.id));
         panel.innerHTML = `
           <h3 style="margin-bottom:0.5rem">${esc(data.group.name)}</h3>
           <p class="muted" style="font-size:0.85rem;margin-bottom:0.5rem">${data.members.length} members</p>
           <div class="form-row">
             <div>
-              <label>Add member</label>
+              <label>Add member (search first 200 active)</label>
+              <input type="search" id="g-add-q" placeholder="Type to search…" style="margin-bottom:0.35rem" />
               <select id="g-add-member">
                 <option value="">— Select —</option>
                 ${members.filter((m) => m.status !== "cancelled" && !inGroup.has(m.id)).map((m) =>
@@ -1679,6 +1741,8 @@
         });
         if (r.scheduled) {
           out.textContent = `Scheduled for ${new Date(r.send_at).toLocaleString()} (${r.recipients} recipients).`;
+        } else if (r.queued) {
+          out.textContent = r.message || `Queued for ${r.recipients} recipients (sending in background).`;
         } else {
           out.textContent = `Sent to ${r.sent} of ${r.recipients} recipients.`;
         }
@@ -2301,17 +2365,15 @@
         el.innerHTML = `<h2>Invoices</h2><p class="error">${esc(e.message)}. Run migration 0008.</p>`;
         return;
       }
-      const members = await api(`/api/tenants/${tenantId}/members`).catch(() => []);
       el.innerHTML = `
         <h2>Invoices</h2>
         <p class="muted" style="margin-bottom:1rem">Numbered multi-line invoices (INV-YYYY-00001). Printable PDF via browser print.</p>
         <div class="card">
           <h3 style="margin-bottom:0.75rem">New invoice</h3>
           <div class="form-row">
-            <div><label>Member</label>
-              <select id="inv-member"><option value="">— optional —</option>
-                ${members.map((m) => `<option value="${esc(m.id)}">${esc((m.first_name||"")+" "+(m.last_name||"")+" · "+m.email)}</option>`).join("")}
-              </select>
+            <div><label>Member (search)</label>
+              <input type="search" id="inv-member-q" placeholder="Search email or name…" />
+              <select id="inv-member"><option value="">— optional —</option></select>
             </div>
             <div><label>Tax (cents)</label><input id="inv-tax" type="number" value="0" /></div>
           </div>
@@ -2340,6 +2402,23 @@
             </tbody>
           </table>
         </div>`;
+      const invQ = document.getElementById("inv-member-q");
+      let invTimer;
+      async function fillInvMembers(q) {
+        const sel = document.getElementById("inv-member");
+        if (!sel) return;
+        const list = await fetchMembersList({ limit: 50, q: q || undefined }).catch(() => []);
+        const cur = sel.value;
+        sel.innerHTML = `<option value="">— optional —</option>` + list.map((m) =>
+          `<option value="${esc(m.id)}">${esc([m.first_name, m.last_name].filter(Boolean).join(" ") || "")} · ${esc(m.email)}</option>`
+        ).join("");
+        if (cur) sel.value = cur;
+      }
+      fillInvMembers("");
+      invQ?.addEventListener("input", () => {
+        clearTimeout(invTimer);
+        invTimer = setTimeout(() => fillInvMembers(invQ.value.trim()), 300);
+      });
     }
     async function createInvoice() {
       const lines = document.getElementById("inv-lines").value.split("\n").map((line) => {
@@ -2613,7 +2692,6 @@
       } catch (e) {
         el.innerHTML = `<h2>SMS</h2><p class="error">${esc(e.message)}</p>`; return;
       }
-      const members = await api(`/api/tenants/${tenantId}/members`).catch(() => []);
       el.innerHTML = `
         <h2>SMS</h2>
         <p class="muted" style="margin-bottom:1rem">Optional Twilio send. Status: <strong>${cfg.configured ? "configured ("+esc(cfg.from_number||"")+")" : "not configured — set twilio in settings_json"}</strong></p>
@@ -2631,10 +2709,9 @@
         <div class="card">
           <h3 style="margin-bottom:0.75rem">Send SMS</h3>
           <div class="form-row">
-            <div><label>Member</label>
-              <select id="sms-member"><option value="">— or enter phone —</option>
-                ${members.filter(m=>m.phone).map(m=>`<option value="${esc(m.id)}" data-phone="${esc(m.phone)}">${esc((m.first_name||"")+" "+(m.last_name||"")+" · "+m.phone)}</option>`).join("")}
-              </select>
+            <div><label>Member (search)</label>
+              <input type="search" id="sms-member-q" placeholder="Search name…" />
+              <select id="sms-member"><option value="">— or enter phone —</option></select>
             </div>
             <div><label>Phone</label><input id="sms-phone" placeholder="+1…" /></div>
           </div>
@@ -2655,6 +2732,20 @@
             </tbody>
           </table>
         </div>`;
+      async function fillSmsMembers(q) {
+        const sel = document.getElementById("sms-member");
+        if (!sel) return;
+        const list = await fetchMembersList({ limit: 50, q: q || undefined }).catch(() => []);
+        sel.innerHTML = `<option value="">— or enter phone —</option>` + list.filter((m) => m.phone).map((m) =>
+          `<option value="${esc(m.id)}" data-phone="${esc(m.phone)}">${esc([m.first_name, m.last_name].filter(Boolean).join(" "))} · ${esc(m.phone)}</option>`
+        ).join("");
+      }
+      fillSmsMembers("");
+      let smsTimer;
+      document.getElementById("sms-member-q")?.addEventListener("input", (e) => {
+        clearTimeout(smsTimer);
+        smsTimer = setTimeout(() => fillSmsMembers(e.target.value.trim()), 300);
+      });
       document.getElementById("sms-member")?.addEventListener("change", (e) => {
         const opt = e.target.selectedOptions[0];
         if (opt?.dataset?.phone) document.getElementById("sms-phone").value = opt.dataset.phone;

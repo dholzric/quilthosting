@@ -10,129 +10,20 @@ import {
   type EmailLayout,
   type MergeContext,
 } from "../lib/email/merge";
+import {
+  countAudience,
+  fetchAudiencePage,
+  type AudienceMember,
+} from "../lib/audience";
+import { processBlastChunk } from "../lib/blastSend";
 
 export const commsRoutes = new Hono<{
   Bindings: Env;
   Variables: TenantVariables;
 }>();
 
-const STATUS_SEGMENTS = ["all", "active", "pending", "lapsed"] as const;
-
-type AudienceMember = {
-  id: string;
-  email: string;
-  first_name: string | null;
-  last_name: string | null;
-  level_name: string | null;
-  end_date: string | null;
-};
-
-type Audience = {
-  label: string;
-  members: AudienceMember[];
-};
-
-async function resolveAudience(
-  db: D1Database,
-  tenantId: string,
-  segment: string
-): Promise<Audience | { error: string; status: number }> {
-  // group:<uuid>
-  if (segment.startsWith("group:")) {
-    const groupId = segment.slice("group:".length);
-    const group = await first<{ id: string; name: string }>(
-      db
-        .prepare(
-          "SELECT id, name FROM member_groups WHERE id = ? AND tenant_id = ?"
-        )
-        .bind(groupId, tenantId)
-    );
-    if (!group) return { error: "Group not found", status: 404 };
-
-    const members = await all<AudienceMember>(
-      db
-        .prepare(
-          `SELECT m.id, m.email, m.first_name, m.last_name,
-                  (SELECT l.name FROM memberships ms
-                   JOIN membership_levels l ON l.id = ms.level_id
-                   WHERE ms.member_id = m.id AND ms.tenant_id = m.tenant_id
-                   ORDER BY CASE ms.status WHEN 'active' THEN 0 ELSE 1 END, ms.created_at DESC
-                   LIMIT 1) as level_name,
-                  (SELECT ms.end_date FROM memberships ms
-                   WHERE ms.member_id = m.id AND ms.tenant_id = m.tenant_id
-                   ORDER BY CASE ms.status WHEN 'active' THEN 0 ELSE 1 END, ms.created_at DESC
-                   LIMIT 1) as end_date
-           FROM member_group_members mgm
-           JOIN members m ON m.id = mgm.member_id
-           WHERE mgm.group_id = ? AND mgm.tenant_id = ?
-             AND m.status != 'cancelled'
-           ORDER BY m.email`
-        )
-        .bind(groupId, tenantId)
-    );
-    return { label: `group:${group.name}`, members };
-  }
-
-  // level:<uuid> — active members currently on this membership level
-  if (segment.startsWith("level:")) {
-    const levelId = segment.slice("level:".length);
-    const level = await first<{ id: string; name: string }>(
-      db
-        .prepare(
-          "SELECT id, name FROM membership_levels WHERE id = ? AND tenant_id = ?"
-        )
-        .bind(levelId, tenantId)
-    );
-    if (!level) return { error: "Level not found", status: 404 };
-
-    const members = await all<AudienceMember>(
-      db
-        .prepare(
-          `SELECT DISTINCT m.id, m.email, m.first_name, m.last_name,
-                  l.name as level_name, ms.end_date
-           FROM memberships ms
-           JOIN members m ON m.id = ms.member_id
-           JOIN membership_levels l ON l.id = ms.level_id
-           WHERE ms.tenant_id = ? AND ms.level_id = ? AND ms.status = 'active'
-             AND m.status != 'cancelled'
-           ORDER BY m.email`
-        )
-        .bind(tenantId, levelId)
-    );
-    return { label: `level:${level.name}`, members };
-  }
-
-  if (!(STATUS_SEGMENTS as readonly string[]).includes(segment)) {
-    return { error: "Invalid segment", status: 400 };
-  }
-
-  let query = `
-    SELECT m.id, m.email, m.first_name, m.last_name,
-           (SELECT l.name FROM memberships ms
-            JOIN membership_levels l ON l.id = ms.level_id
-            WHERE ms.member_id = m.id AND ms.tenant_id = m.tenant_id
-            ORDER BY CASE ms.status WHEN 'active' THEN 0 ELSE 1 END, ms.created_at DESC
-            LIMIT 1) as level_name,
-           (SELECT ms.end_date FROM memberships ms
-            WHERE ms.member_id = m.id AND ms.tenant_id = m.tenant_id
-            ORDER BY CASE ms.status WHEN 'active' THEN 0 ELSE 1 END, ms.created_at DESC
-            LIMIT 1) as end_date
-    FROM members m
-    WHERE m.tenant_id = ?`;
-  const params: string[] = [tenantId];
-  if (segment !== "all") {
-    query += " AND m.status = ?";
-    params.push(segment);
-  } else {
-    query += " AND m.status != 'cancelled'";
-  }
-  query += " ORDER BY m.email";
-
-  const members = await all<AudienceMember>(
-    db.prepare(query).bind(...params)
-  );
-  return { label: segment, members };
-}
+/** Immediate sends for tiny lists; larger lists queue for chunked delivery. */
+const SYNC_SEND_MAX = 75;
 
 function memberMergeCtx(
   m: AudienceMember,
@@ -181,11 +72,11 @@ commsRoutes.post("/", async (c) => {
       ? body.layout
       : "plain";
 
-  const audience = await resolveAudience(c.env.DB, tenant.id, segment);
-  if ("error" in audience) {
-    return c.json({ error: audience.error }, audience.status as 400);
+  const audienceMeta = await countAudience(c.env.DB, tenant.id, segment);
+  if ("error" in audienceMeta) {
+    return c.json({ error: audienceMeta.error }, audienceMeta.status as 400);
   }
-  if (!audience.members.length) {
+  if (!audienceMeta.count) {
     return c.json({ error: "No members in that audience" }, 400);
   }
 
@@ -202,8 +93,8 @@ commsRoutes.post("/", async (c) => {
     try {
       await c.env.DB.prepare(
         `INSERT INTO blasts
-         (id, tenant_id, subject, body_html, segment, recipients, sent_count, created_at, status, send_at, layout)
-         VALUES (?, ?, ?, ?, ?, ?, 0, ?, 'scheduled', ?, ?)`
+         (id, tenant_id, subject, body_html, segment, recipients, sent_count, created_at, status, send_at, layout, body_text)
+         VALUES (?, ?, ?, ?, ?, ?, 0, ?, 'scheduled', ?, ?, ?)`
       )
         .bind(
           blastId,
@@ -211,10 +102,11 @@ commsRoutes.post("/", async (c) => {
           body.subject,
           rawBody,
           segment,
-          audience.members.length,
+          audienceMeta.count,
           now,
           when.toISOString(),
-          layout
+          layout,
+          body.body_text || null
         )
         .run();
     } catch (e) {
@@ -228,9 +120,9 @@ commsRoutes.post("/", async (c) => {
       ok: true,
       scheduled: true,
       blast_id: blastId,
-      segment: audience.label,
+      segment: audienceMeta.label,
       send_at: when.toISOString(),
-      recipients: audience.members.length,
+      recipients: audienceMeta.count,
     });
   }
 
@@ -240,14 +132,67 @@ commsRoutes.post("/", async (c) => {
     bodyHtml: rawBody,
   });
 
+  // Large audiences: queue + chunked send (supports 50k+)
+  if (audienceMeta.count > SYNC_SEND_MAX) {
+    try {
+      await c.env.DB.prepare(
+        `INSERT INTO blasts
+         (id, tenant_id, subject, body_html, segment, recipients, sent_count, created_at, status, send_at, layout, body_text, cursor_email, error_count)
+         VALUES (?, ?, ?, ?, ?, ?, 0, ?, 'queued', null, ?, ?, null, 0)`
+      )
+        .bind(
+          blastId,
+          tenant.id,
+          body.subject,
+          rawBody,
+          segment,
+          audienceMeta.count,
+          now,
+          layout,
+          body.body_text || null
+        )
+        .run();
+    } catch (e) {
+      console.error(e);
+      return c.json(
+        {
+          error:
+            "Queued blasts require migration 0009. Run db:migrate, or send to ≤75 members.",
+        },
+        503
+      );
+    }
+    // Kick off first chunk without blocking the HTTP response long
+    const kick = processBlastChunk(c.env, blastId).catch((err) =>
+      console.error("blast chunk", err)
+    );
+    try {
+      c.executionCtx.waitUntil(kick);
+    } catch {
+      await kick;
+    }
+    return c.json({
+      ok: true,
+      queued: true,
+      blast_id: blastId,
+      segment: audienceMeta.label,
+      recipients: audienceMeta.count,
+      message: `Sending to ${audienceMeta.count} members in the background. Progress updates on the Email page.`,
+    });
+  }
+
+  // Small audience: send synchronously
   let sent = 0;
   const errors: string[] = [];
-
-  const CHUNK = 10;
-  for (let i = 0; i < audience.members.length; i += CHUNK) {
-    const chunk = audience.members.slice(i, i + CHUNK);
+  let afterEmail: string | null = null;
+  for (;;) {
+    const page = await fetchAudiencePage(c.env.DB, tenant.id, segment, {
+      limit: 25,
+      afterEmail,
+    });
+    if (!page.length) break;
     const results = await Promise.all(
-      chunk.map(async (m) => {
+      page.map(async (m) => {
         const logId = generateId();
         const ctx = memberMergeCtx(m, tenant.name);
         const personalizedBody = applyMergeFields(rawBody, ctx);
@@ -257,7 +202,6 @@ commsRoutes.post("/", async (c) => {
           subject: personalizedSubject,
           bodyHtml: personalizedBody,
         });
-        // Click-tracking wrappers + open-tracking pixel
         const { wrapLinksForTracking } = await import("../lib/automations");
         html = wrapLinksForTracking(html, c.env.APP_URL, logId);
         html += trackingPixelHtml(c.env.APP_URL, logId);
@@ -290,6 +234,8 @@ commsRoutes.post("/", async (c) => {
       );
     });
     await c.env.DB.batch(logInserts);
+    afterEmail = page[page.length - 1].email;
+    if (page.length < 25) break;
   }
 
   try {
@@ -303,8 +249,8 @@ commsRoutes.post("/", async (c) => {
         tenant.id,
         body.subject,
         archiveHtml,
-        audience.label,
-        audience.members.length,
+        audienceMeta.label,
+        audienceMeta.count,
         sent,
         now,
         layout
@@ -321,8 +267,8 @@ commsRoutes.post("/", async (c) => {
         tenant.id,
         body.subject,
         archiveHtml,
-        audience.label,
-        audience.members.length,
+        audienceMeta.label,
+        audienceMeta.count,
         sent,
         now
       )
@@ -332,9 +278,9 @@ commsRoutes.post("/", async (c) => {
   return c.json({
     ok: true,
     blast_id: blastId,
-    segment: audience.label,
+    segment: audienceMeta.label,
     layout,
-    recipients: audience.members.length,
+    recipients: audienceMeta.count,
     sent,
     failed: errors.length,
     errors: errors.slice(0, 5),
@@ -356,7 +302,8 @@ commsRoutes.get("/blasts", async (c) => {
   } catch {
     const rows = await all(
       c.env.DB.prepare(
-        `SELECT id, subject, segment, recipients, sent_count, created_at, body_html
+        `SELECT id, subject, segment, recipients, sent_count, created_at, body_html,
+                status, send_at, error_count, cursor_email
          FROM blasts WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 100`
       ).bind(tenant.id)
     );
@@ -410,17 +357,17 @@ commsRoutes.get("/", async (c) => {
   }
 });
 
-// GET /api/tenants/:tenantId/emails/audience?segment=...
+// GET /api/tenants/:tenantId/emails/audience?segment=... — COUNT only (safe for 50k+)
 commsRoutes.get("/audience", async (c) => {
   const tenant = c.get("tenant");
   const segment = c.req.query("segment") || "active";
-  const audience = await resolveAudience(c.env.DB, tenant.id, segment);
+  const audience = await countAudience(c.env.DB, tenant.id, segment);
   if ("error" in audience) {
     return c.json({ error: audience.error }, audience.status as 400);
   }
   return c.json({
     segment: audience.label,
-    count: audience.members.length,
+    count: audience.count,
   });
 });
 

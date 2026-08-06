@@ -141,107 +141,18 @@ export async function runScheduledBlasts(env: Env): Promise<{
 
   for (const blast of rows) {
     try {
-      // Claim the row so concurrent cron doesn't double-send
+      // Move due scheduled blasts onto the queued pipeline (chunked, scale-safe)
       const claim = await env.DB.prepare(
-        `UPDATE blasts SET status = 'sending' WHERE id = ? AND status = 'scheduled'`
+        `UPDATE blasts SET status = 'queued', cursor_email = null, sent_count = 0
+         WHERE id = ? AND status = 'scheduled'`
       )
         .bind(blast.id)
         .run();
       if (!claim.meta.changes) continue;
-
-      const tenant = await first<{ name: string }>(
-        env.DB.prepare("SELECT name FROM tenants WHERE id = ?").bind(
-          blast.tenant_id
-        )
-      );
-      if (!tenant) continue;
-
-      const members = await resolveAudience(
-        env.DB,
-        blast.tenant_id,
-        blast.segment
-      );
-      // body_html for scheduled rows stores the inner content (pre-layout)
-      // Prefer re-wrapping with layout
-      const layout = (blast.layout || "plain") as EmailLayout;
-      const inner = blast.body_html || "";
-      let sent = 0;
-
-      const CHUNK = 10;
-      for (let i = 0; i < members.length; i += CHUNK) {
-        const chunk = members.slice(i, i + CHUNK);
-        await Promise.all(
-          chunk.map(async (m) => {
-            const ctx: MergeContext = {
-              first_name: m.first_name,
-              last_name: m.last_name,
-              email: m.email,
-              guild_name: tenant.name,
-              level_name: m.level_name,
-              end_date: m.end_date,
-            };
-            const subject = applyMergeFields(blast.subject, ctx);
-            const bodyHtml = applyMergeFields(inner, ctx);
-            const html = wrapEmailLayout(layout, {
-              guildName: tenant.name,
-              subject,
-              bodyHtml,
-            });
-            const res = await sendEmail(env, {
-              to: m.email,
-              subject,
-              html,
-            });
-            if (res.success) {
-              sent++;
-              result.emails++;
-            }
-            try {
-              await env.DB.prepare(
-                `INSERT INTO email_logs (id, tenant_id, member_id, to_email, template, resend_id, status, created_at)
-                 VALUES (?, ?, ?, ?, 'blast', ?, ?, ?)`
-              )
-                .bind(
-                  generateId(),
-                  blast.tenant_id,
-                  m.id,
-                  m.email,
-                  res.id || null,
-                  res.success ? "sent" : "failed",
-                  now
-                )
-                .run();
-            } catch {}
-          })
-        );
-      }
-
-      await env.DB.prepare(
-        `UPDATE blasts SET status = 'sent', recipients = ?, sent_count = ?,
-          body_html = ?
-         WHERE id = ?`
-      )
-        .bind(
-          members.length,
-          sent,
-          wrapEmailLayout(layout, {
-            guildName: tenant.name,
-            subject: blast.subject,
-            bodyHtml: inner,
-          }),
-          blast.id
-        )
-        .run();
       result.sent_blasts++;
+      // Delivery continues via processQueuedBlasts / processBlastChunk
     } catch (e) {
       result.errors.push(`blast ${blast.id}: ${String(e)}`);
-      try {
-        await env.DB.prepare(
-          `UPDATE blasts SET status = 'scheduled' WHERE id = ? AND status = 'sending'`
-        )
-          .bind(blast.id)
-          .run();
-      } catch {}
     }
   }
 

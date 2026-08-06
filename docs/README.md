@@ -26,6 +26,7 @@ Source HTML: `public/docs/*` (deployed with the Worker assets binding).
 | [auto-renew-e2e.md](./auto-renew-e2e.md) | Auto-renew E2E checklist & results |
 | [wildapricot-gap-analysis.md](./wildapricot-gap-analysis.md) | WA parity audit |
 | [competition-wild-apricot-alternatives.md](./competition-wild-apricot-alternatives.md) | Competitive notes |
+| [scaling.md](./scaling.md) | Pagination, queued blasts, 50k-member design |
 
 ## Operator quick links
 

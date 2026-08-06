@@ -84,16 +84,35 @@ v1Routes.get("/members", async (c) => {
   const auth = await requireApiKey(c);
   if (isResponse(auth)) return auth;
   const status = c.req.query("status");
-  let sql = `SELECT id, email, first_name, last_name, phone, status, joined_at, created_at
-             FROM members WHERE tenant_id = ?`;
-  const binds: string[] = [auth.tenant.id];
+  const { parsePageParams, pageMeta } = await import("../lib/pagination");
+  const { limit, offset } = parsePageParams(
+    {
+      limit: c.req.query("limit") || undefined,
+      offset: c.req.query("offset") || undefined,
+      page: c.req.query("page") || undefined,
+    },
+    { limit: 100, max: 500 }
+  );
+  let where = `WHERE tenant_id = ?`;
+  const binds: (string | number)[] = [auth.tenant.id];
   if (status) {
-    sql += ` AND status = ?`;
+    where += ` AND status = ?`;
     binds.push(status);
   }
-  sql += ` ORDER BY created_at DESC LIMIT 500`;
-  const rows = await all(c.env.DB.prepare(sql).bind(...binds));
-  return c.json({ members: rows });
+  const countRow = await first<{ cnt: number }>(
+    c.env.DB.prepare(`SELECT COUNT(*) as cnt FROM members ${where}`).bind(
+      ...binds
+    )
+  );
+  const total = countRow?.cnt ?? 0;
+  const rows = await all(
+    c.env.DB.prepare(
+      `SELECT id, email, first_name, last_name, phone, status, joined_at, created_at
+       FROM members ${where}
+       ORDER BY created_at DESC LIMIT ? OFFSET ?`
+    ).bind(...binds, limit, offset)
+  );
+  return c.json({ members: rows, ...pageMeta(total, limit, offset) });
 });
 
 v1Routes.get("/events", async (c) => {

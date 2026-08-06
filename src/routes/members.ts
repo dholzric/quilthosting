@@ -9,32 +9,75 @@ import {
   FREE_ACTIVE_MEMBER_LIMIT,
   effectivePlan,
 } from "../lib/plans";
+import {
+  likeContains,
+  likePrefix,
+  pageMeta,
+  parsePageParams,
+  MAX_EXPORT_BATCH,
+} from "../lib/pagination";
 
 export const memberRoutes = new Hono<{
   Bindings: Env;
   Variables: TenantVariables;
 }>();
 
+/**
+ * GET /members?q=&status=&limit=&offset=&page=
+ * Paginated list — required for guilds with thousands of members.
+ * Response: { members, total, limit, offset, page, total_pages, has_more }
+ */
 memberRoutes.get("/", async (c) => {
   const tenant = c.get("tenant");
   const status = c.req.query("status");
-  const search = c.req.query("q");
-  let query = "SELECT * FROM members WHERE tenant_id = ?";
+  const search = (c.req.query("q") || "").trim();
+  const { limit, offset } = parsePageParams({
+    limit: c.req.query("limit") || undefined,
+    offset: c.req.query("offset") || undefined,
+    page: c.req.query("page") || undefined,
+  });
+
+  let where = "WHERE tenant_id = ?";
   const params: any[] = [tenant.id];
   if (status) {
-    query += " AND status = ?";
+    where += " AND status = ?";
     params.push(status);
   }
   if (search) {
-    query += " AND (email LIKE ? OR first_name LIKE ? OR last_name LIKE ?)";
-    const term = `%${search}%`;
-    params.push(term, term, term);
+    // Prefer prefix match on email (uses index); also match names contains
+    if (search.includes("@") || !search.includes(" ")) {
+      where +=
+        " AND (email LIKE ? ESCAPE '\\' OR first_name LIKE ? ESCAPE '\\' OR last_name LIKE ? ESCAPE '\\')";
+      const pref = likePrefix(search);
+      const cont = likeContains(search);
+      params.push(pref, cont, cont);
+    } else {
+      where +=
+        " AND (email LIKE ? ESCAPE '\\' OR first_name LIKE ? ESCAPE '\\' OR last_name LIKE ? ESCAPE '\\' OR (first_name || ' ' || last_name) LIKE ? ESCAPE '\\')";
+      const cont = likeContains(search);
+      params.push(cont, cont, cont, cont);
+    }
   }
-  query += " ORDER BY last_name, first_name, email LIMIT 200";
-  const members = await all<Member>(
-    c.env.DB.prepare(query).bind(...params)
+
+  const countRow = await first<{ cnt: number }>(
+    c.env.DB.prepare(`SELECT COUNT(*) as cnt FROM members ${where}`).bind(
+      ...params
+    )
   );
-  return c.json(members);
+  const total = countRow?.cnt ?? 0;
+
+  const members = await all<Member>(
+    c.env.DB.prepare(
+      `SELECT * FROM members ${where}
+       ORDER BY last_name COLLATE NOCASE, first_name COLLATE NOCASE, email
+       LIMIT ? OFFSET ?`
+    ).bind(...params, limit, offset)
+  );
+
+  return c.json({
+    members,
+    ...pageMeta(total, limit, offset),
+  });
 });
 
 memberRoutes.post("/", async (c) => {
@@ -97,28 +140,42 @@ memberRoutes.post("/", async (c) => {
   return c.json(member, 201);
 });
 
-// GET /api/tenants/:tenantId/members/export.csv
+// GET /api/tenants/:tenantId/members/export.csv — batched for large tenants
 memberRoutes.get("/export.csv", async (c) => {
   const tenant = c.get("tenant");
-  const members = await all<
-    Member & { level_name: string | null; membership_end: string | null }
-  >(
-    c.env.DB.prepare(
-      `SELECT mem.*,
-              (SELECT l.name FROM memberships m
-               JOIN membership_levels l ON l.id = m.level_id
-               WHERE m.member_id = mem.id AND m.tenant_id = mem.tenant_id
-               ORDER BY CASE m.status WHEN 'active' THEN 0 ELSE 1 END, m.created_at DESC
-               LIMIT 1) as level_name,
-              (SELECT m.end_date FROM memberships m
-               WHERE m.member_id = mem.id AND m.tenant_id = mem.tenant_id
-               ORDER BY CASE m.status WHEN 'active' THEN 0 ELSE 1 END, m.created_at DESC
-               LIMIT 1) as membership_end
-       FROM members mem
-       WHERE mem.tenant_id = ?
-       ORDER BY mem.last_name, mem.first_name`
-    ).bind(tenant.id)
-  );
+  type ExportRow = Member & {
+    level_name: string | null;
+    membership_end: string | null;
+  };
+  const members: ExportRow[] = [];
+  let afterId = "";
+  // Keyset by id in batches (stable, index-friendly)
+  for (let i = 0; i < 200; i++) {
+    const batch = await all<ExportRow>(
+      c.env.DB.prepare(
+        `SELECT mem.id, mem.email, mem.first_name, mem.last_name, mem.phone,
+                mem.status, mem.joined_at, mem.notes,
+                (SELECT l.name FROM memberships m
+                 JOIN membership_levels l ON l.id = m.level_id
+                 WHERE m.member_id = mem.id AND m.tenant_id = mem.tenant_id
+                 ORDER BY CASE m.status WHEN 'active' THEN 0 ELSE 1 END, m.created_at DESC
+                 LIMIT 1) as level_name,
+                (SELECT m.end_date FROM memberships m
+                 WHERE m.member_id = mem.id AND m.tenant_id = mem.tenant_id
+                 ORDER BY CASE m.status WHEN 'active' THEN 0 ELSE 1 END, m.created_at DESC
+                 LIMIT 1) as membership_end
+         FROM members mem
+         WHERE mem.tenant_id = ?
+           AND (? = '' OR mem.id > ?)
+         ORDER BY mem.id
+         LIMIT ?`
+      ).bind(tenant.id, afterId, afterId, MAX_EXPORT_BATCH)
+    );
+    if (!batch.length) break;
+    members.push(...batch);
+    afterId = batch[batch.length - 1].id;
+    if (batch.length < MAX_EXPORT_BATCH) break;
+  }
   const csvCell = (v: unknown) => {
     const s = v == null ? "" : String(v);
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -417,14 +474,30 @@ memberRoutes.post("/import", async (c) => {
   if (!Array.isArray(body.rows) || !body.rows.length) {
     return c.json({ error: "rows array is required" }, 400);
   }
-  if (body.rows.length > 2000) {
-    return c.json({ error: "Max 2000 rows per import" }, 400);
+  // 5k rows/request; clients can loop for larger migrations
+  if (body.rows.length > 5000) {
+    return c.json({ error: "Max 5000 rows per import — split larger files" }, 400);
   }
 
-  const existing = await all<{ id: string; email: string }>(
-    c.env.DB.prepare("SELECT id, email FROM members WHERE tenant_id = ?").bind(tenant.id)
-  );
-  const byEmail = new Map(existing.map((m) => [m.email, m.id]));
+  // Build email map in batches (do not SELECT entire 50k-member table)
+  const byEmail = new Map<string, string>();
+  const emailsInFile = [
+    ...new Set(
+      body.rows
+        .map((r) => (r.email || "").toLowerCase().trim())
+        .filter((e) => e.includes("@"))
+    ),
+  ];
+  for (let i = 0; i < emailsInFile.length; i += 200) {
+    const slice = emailsInFile.slice(i, i + 200);
+    const placeholders = slice.map(() => "?").join(",");
+    const found = await all<{ id: string; email: string }>(
+      c.env.DB.prepare(
+        `SELECT id, email FROM members WHERE tenant_id = ? AND email IN (${placeholders})`
+      ).bind(tenant.id, ...slice)
+    );
+    for (const m of found) byEmail.set(m.email, m.id);
+  }
 
   const levels = await all<MembershipLevel>(
     c.env.DB.prepare(

@@ -90,10 +90,21 @@ export const paymentRoutes = new Hono<{
   Variables: TenantVariables;
 }>();
 
-// GET /api/tenants/:tenantId/payments — recent payments with member info
+// GET /api/tenants/:tenantId/payments — paginated payments with member info
 paymentRoutes.get("/", async (c) => {
   const tenant = c.get("tenant");
-  const limit = Math.min(Number(c.req.query("limit")) || 50, 200);
+  const { parsePageParams, pageMeta } = await import("../lib/pagination");
+  const { limit, offset } = parsePageParams({
+    limit: c.req.query("limit") || undefined,
+    offset: c.req.query("offset") || undefined,
+    page: c.req.query("page") || undefined,
+  });
+  const countRow = await first<{ cnt: number }>(
+    c.env.DB.prepare(
+      `SELECT COUNT(*) as cnt FROM payments WHERE tenant_id = ?`
+    ).bind(tenant.id)
+  );
+  const total = countRow?.cnt ?? 0;
   const rows = await all(
     c.env.DB.prepare(
       `SELECT p.id, p.type, p.amount_cents, p.currency, p.status,
@@ -102,10 +113,10 @@ paymentRoutes.get("/", async (c) => {
        FROM payments p
        LEFT JOIN members m ON m.id = p.member_id
        WHERE p.tenant_id = ?
-       ORDER BY p.created_at DESC LIMIT ?`
-    ).bind(tenant.id, limit)
+       ORDER BY p.created_at DESC LIMIT ? OFFSET ?`
+    ).bind(tenant.id, limit, offset)
   );
-  return c.json(rows);
+  return c.json({ payments: rows, ...pageMeta(total, limit, offset) });
 });
 
 // GET /api/tenants/:tenantId/payments/export.iif — QuickBooks Desktop IIF
