@@ -68,6 +68,10 @@ export async function createCheckoutSession(
     success_url: params.successUrl,
     cancel_url: params.cancelUrl,
     customer_email: params.email,
+    // New Stripe accounts default to Managed Payments (Stripe as merchant
+    // of record), which requires product tax codes. Guilds are their own
+    // merchant, so opt out per session.
+    "managed_payments[enabled]": "false",
     "metadata[tenant_id]": params.tenantId,
     "metadata[type]": params.type,
     "metadata[email]": params.email,
