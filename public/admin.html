@@ -2607,6 +2607,27 @@
           <button onclick="saveTenantName()" style="margin-top:0.5rem">Save</button>
           <span id="set-saved" class="hidden" style="color:var(--success);margin-left:0.5rem">Saved ✓</span>
         </div>
+        <div class="card" id="domain-card">
+          <h3 style="margin-bottom:0.75rem">Custom domain</h3>
+          <p class="muted" style="font-size:0.85rem;margin-bottom:0.75rem">
+            Use your own domain (e.g. <code>www.yourguild.org</code>) or the free QuiltHosting subdomain.
+            Free subdomain is always available as <code>${esc(tenantSlug)}.quilthosting.com</code>.
+          </p>
+          <div id="domain-status" style="font-size:0.9rem">Loading…</div>
+          <div class="form-row" style="margin-top:0.75rem">
+            <div style="flex:1">
+              <label>Custom domain</label>
+              <input id="domain-input" placeholder="yourguild.org" style="max-width:320px" />
+            </div>
+          </div>
+          <div style="margin-top:0.5rem;display:flex;flex-wrap:wrap;gap:0.5rem">
+            <button type="button" onclick="saveCustomDomain()">Save domain</button>
+            <button type="button" class="secondary" onclick="clearCustomDomain()">Clear custom domain</button>
+            <button type="button" class="secondary" onclick="ensurePlatformSubdomain()">Enable free subdomain</button>
+          </div>
+          <div id="domain-msg" class="muted" style="font-size:0.85rem;margin-top:0.5rem"></div>
+          <div id="domain-dns" style="margin-top:0.75rem;font-size:0.85rem"></div>
+        </div>
         <div class="card" id="billing-card">
           <h3 style="margin-bottom:0.75rem">Billing &amp; payouts</h3>
           <p class="muted" style="font-size:0.85rem;margin-bottom:0.75rem">Connect your guild's bank account so dues, events, and donations land with you — not QuiltHosting. Upgrade for unlimited active members.</p>
@@ -2743,6 +2764,87 @@
       } catch {}
       loadQboStatus();
       loadBilling();
+      loadDomainStatus();
+    }
+    async function loadDomainStatus() {
+      const el = document.getElementById("domain-status");
+      const dnsEl = document.getElementById("domain-dns");
+      if (!el) return;
+      try {
+        const d = await api(`/api/tenants/${tenantId}/domain`);
+        const links = [];
+        links.push(`<a href="${esc(d.path_url)}" target="_blank" rel="noopener">Path URL</a>`);
+        if (d.platform_subdomain_url) {
+          links.push(`<a href="${esc(d.platform_subdomain_url)}" target="_blank" rel="noopener">Free subdomain</a>`);
+        }
+        if (d.custom_domain) {
+          links.push(`Custom: <strong>${esc(d.custom_domain)}</strong>`);
+          document.getElementById("domain-input").value = d.custom_domain;
+        } else {
+          document.getElementById("domain-input").value = "";
+        }
+        el.innerHTML = links.join(" · ");
+        if (dnsEl && d.dns) {
+          const recs = (d.dns.recommended || []).map((r) =>
+            `<li><code>${esc(r.type)}</code> ${esc(r.name)} → <code>${esc(r.value)}</code>${r.note ? ` <span class="muted">(${esc(r.note)})</span>` : ""}</li>`
+          ).join("");
+          dnsEl.innerHTML = `
+            <p class="muted" style="margin:0 0 0.35rem">${esc(d.dns.summary || "")}</p>
+            <ul style="margin:0;padding-left:1.2rem;line-height:1.6">${recs}</ul>
+            <p class="muted" style="margin:0.5rem 0 0">Always available: <a href="${esc(d.dns.free_subdomain)}" target="_blank" rel="noopener">${esc(d.dns.free_subdomain)}</a></p>`;
+        }
+      } catch (e) {
+        el.textContent = e.message || "Could not load domain settings";
+      }
+    }
+    async function saveCustomDomain() {
+      const msg = document.getElementById("domain-msg");
+      const domain = document.getElementById("domain-input").value.trim();
+      msg.textContent = "Saving…";
+      try {
+        const r = await api(`/api/tenants/${tenantId}/domain`, {
+          method: "PUT",
+          body: JSON.stringify({ domain }),
+        });
+        const cf = r.cloudflare || {};
+        const apexOk = cf.apex?.ok;
+        const wwwOk = cf.www?.ok;
+        msg.textContent = r.ok
+          ? (apexOk || wwwOk
+            ? "Saved and attached to Cloudflare Worker."
+            : "Saved. " + (cf.note || "Point DNS, then re-save to attach SSL if the zone is on this CF account."))
+          : (r.error || "Failed");
+        await loadDomainStatus();
+      } catch (e) {
+        msg.textContent = e.message;
+      }
+    }
+    async function clearCustomDomain() {
+      if (!confirm("Remove the custom domain? Free subdomain still works.")) return;
+      const msg = document.getElementById("domain-msg");
+      try {
+        await api(`/api/tenants/${tenantId}/domain`, {
+          method: "PUT",
+          body: JSON.stringify({ domain: "" }),
+        });
+        msg.textContent = "Custom domain cleared.";
+        await loadDomainStatus();
+      } catch (e) {
+        msg.textContent = e.message;
+      }
+    }
+    async function ensurePlatformSubdomain() {
+      const msg = document.getElementById("domain-msg");
+      msg.textContent = "Provisioning…";
+      try {
+        const r = await api(`/api/tenants/${tenantId}/domain/ensure-subdomain`, { method: "POST" });
+        msg.textContent = r.ok
+          ? `Live at ${r.url}`
+          : (r.error || "Could not attach subdomain");
+        await loadDomainStatus();
+      } catch (e) {
+        msg.textContent = e.message;
+      }
     }
     async function loadQboStatus() {
       const el = document.getElementById("qbo-status");

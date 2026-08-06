@@ -73,7 +73,8 @@
   <script>
     // All dynamic content is inserted via textContent / createElement — no
     // string-interpolated HTML from API data.
-    const slug = decodeURIComponent(location.pathname.split("/")[2] || "");
+    // Slug from /g/:slug, custom-domain host (/), or ?slug=
+    let slug = "";
     const API = location.origin;
     let signupAction = null; // {type:'join', levelId} | {type:'event', eventId}
 
@@ -93,7 +94,22 @@
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
-    document.getElementById("portal-link").href = `/portal?slug=${encodeURIComponent(slug)}`;
+    async function resolveSlug() {
+      const pathParts = location.pathname.split("/").filter(Boolean);
+      if (pathParts[0] === "g" && pathParts[1]) {
+        return decodeURIComponent(pathParts[1]);
+      }
+      const q = new URLSearchParams(location.search).get("slug");
+      if (q) return q;
+      try {
+        const r = await fetch(`${API}/public/_host`);
+        if (r.ok) {
+          const j = await r.json();
+          if (j.slug) return j.slug;
+        }
+      } catch {}
+      return "";
+    }
 
     const qs = new URLSearchParams(location.search);
     if (qs.get("registered")) flash("ok", "You're registered! Check your email for confirmation.");
@@ -477,6 +493,10 @@
     }
     async function load() {
       try {
+        slug = await resolveSlug();
+        if (!slug) throw new Error("Guild not found");
+        document.getElementById("portal-link").href =
+          `/portal?slug=${encodeURIComponent(slug)}`;
         const [levelsRes, eventsRes, infoRes, productsRes, siteRes, blogRes] = await Promise.all([
           fetch(`${API}/public/${slug}/levels`),
           fetch(`${API}/public/${slug}/events`),

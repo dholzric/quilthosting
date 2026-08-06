@@ -1,6 +1,7 @@
 import { createMiddleware } from "hono/factory";
 import type { Env, Tenant, TenantVariables } from "../types";
 import { first } from "../lib/db";
+import { getTenantByHost } from "../lib/tenantHost";
 
 export const tenantMiddleware = createMiddleware<{
   Bindings: Env;
@@ -18,16 +19,12 @@ export const tenantMiddleware = createMiddleware<{
     );
   } else if (headerSlug) {
     tenant = await first<Tenant>(
-      c.env.DB.prepare("SELECT * FROM tenants WHERE slug = ?").bind(headerSlug)
+      c.env.DB.prepare(
+        "SELECT * FROM tenants WHERE slug = ? AND status = 'active'"
+      ).bind(headerSlug)
     );
   } else {
-    const parts = host.split(".");
-    if (parts.length >= 2 && parts[0] !== "www" && parts[0] !== "api") {
-      const slug = parts[0];
-      tenant = await first<Tenant>(
-        c.env.DB.prepare("SELECT * FROM tenants WHERE slug = ?").bind(slug)
-      );
-    }
+    tenant = await getTenantByHost(c.env.DB, host, c.env.APP_URL);
   }
 
   if (!tenant) {

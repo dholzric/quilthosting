@@ -36,9 +36,11 @@ import { v1Routes } from "./routes/v1";
 import { outboundWebhookRoutes } from "./routes/outboundWebhooks";
 import { qboRoutes } from "./routes/qbo";
 import { platformRoutes } from "./routes/platform";
+import { domainRoutes } from "./routes/domain";
 import { runAutomationJob } from "./lib/automations";
 import { processQueuedBlasts } from "./lib/blastSend";
 import { generateId } from "./lib/utils/id";
+import { getTenantByHost } from "./lib/tenantHost";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -55,7 +57,52 @@ app.use(
 
 app.use("*", siteGate);
 
-// Landing page for browsers; JSON status for API clients
+/**
+ * Custom domain / guild subdomain HTML routing.
+ * When Host is a tenant host (custom_domain or {slug}.quilthosting.com):
+ *   /  → public guild site
+ *   /portal → member portal (slug via query if needed)
+ * Must run before the platform landing "/" handler.
+ */
+app.use("*", async (c, next) => {
+  const host = c.req.header("host") || "";
+  const path = new URL(c.req.url).pathname;
+  // Skip API and static tooling
+  if (
+    path.startsWith("/api/") ||
+    path.startsWith("/public/") ||
+    path.startsWith("/t/") ||
+    path.startsWith("/__") ||
+    path.startsWith("/auth/") ||
+    path.startsWith("/site-access")
+  ) {
+    return next();
+  }
+  const tenant = await getTenantByHost(c.env.DB, host, c.env.APP_URL);
+  if (!tenant) return next();
+
+  // Canonical public site at /
+  if (path === "/" || path === "") {
+    const url = new URL(c.req.url);
+    url.pathname = "/guild";
+    return c.env.ASSETS.fetch(new Request(url.toString(), c.req.raw));
+  }
+  // /g/:anything on custom host → home
+  if (path.startsWith("/g/")) {
+    return c.redirect("/", 302);
+  }
+  // Portal: ensure slug query so portal.js finds the tenant
+  if (path === "/portal" || path === "/portal.html") {
+    const url = new URL(c.req.url);
+    if (!url.searchParams.get("slug")) {
+      url.searchParams.set("slug", tenant.slug);
+      return c.redirect(url.pathname + url.search + url.hash, 302);
+    }
+  }
+  return next();
+});
+
+// Landing page for browsers on the platform host; JSON status for API clients
 app.get("/", (c) => {
   if (c.req.header("Accept")?.includes("text/html")) {
     // Assets serve index.html at the canonical "/" path
@@ -63,7 +110,7 @@ app.get("/", (c) => {
   }
   return c.json({
     name: "QuiltHosting API",
-    version: "0.23.0",
+    version: "0.24.0",
     status: "ok",
     environment: c.env.ENVIRONMENT,
     admin: "/admin",
@@ -240,6 +287,7 @@ tenantApp.route("/sms", smsRoutes);
 tenantApp.route("/chapters", chapterRoutes);
 tenantApp.route("/webhooks", outboundWebhookRoutes);
 tenantApp.route("/qbo", qboRoutes);
+tenantApp.route("/domain", domainRoutes);
 app.route("/api/tenants/:tenantId", tenantApp);
 
 app.route("/public", publicRoutes);

@@ -24,6 +24,14 @@ export type Env = {
   /** Intuit QuickBooks Online app (optional) */
   QBO_CLIENT_ID?: string;
   QBO_CLIENT_SECRET?: string;
+  /**
+   * Optional: Cloudflare API token for attaching Workers custom domains
+   * (guild slug.quilthosting.com + customer domains on zones in this account).
+   */
+  CLOUDFLARE_API_TOKEN?: string;
+  CLOUDFLARE_ACCOUNT_ID?: string;
+  CLOUDFLARE_ZONE_ID?: string;
+  CLOUDFLARE_WORKER_NAME?: string;
 };
 
 export type Plan = "free" | "starter" | "pro";

@@ -4,6 +4,7 @@ import { generateId } from "../lib/utils/id";
 import { first, all } from "../lib/db";
 import { requireAuth, type AuthVariables } from "../middleware/auth";
 import { TRIAL_DAYS } from "../lib/plans";
+import { ensurePlatformSubdomain } from "../lib/tenantHost";
 
 export const tenantRoutes = new Hono<{
   Bindings: Env;
@@ -94,6 +95,8 @@ tenantRoutes.post("/", async (c) => {
   const tenant = await first<Tenant>(
     c.env.DB.prepare("SELECT * FROM tenants WHERE id = ?").bind(id)
   );
+  // Best-effort: attach free {slug}.quilthosting.com Workers domain
+  void ensurePlatformSubdomain(c.env, slug).catch(() => {});
   return c.json(tenant, 201);
 });
 

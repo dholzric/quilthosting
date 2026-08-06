@@ -12,6 +12,7 @@ import {
   parseEventSettings,
   validateAnswers,
 } from "../lib/eventQuestions";
+import { getTenantByHost, tenantPublicBaseUrl } from "../lib/tenantHost";
 
 export const publicRoutes = new Hono<{ Bindings: Env }>();
 
@@ -33,6 +34,31 @@ async function getTenantBySlug(db: D1Database, slug: string) {
       .bind(slug)
   );
 }
+
+/**
+ * GET /public/_host — resolve tenant from Host (custom domain or subdomain).
+ * Used by guild.html when served at / on a tenant hostname.
+ */
+publicRoutes.get("/_host", async (c) => {
+  const tenant = await getTenantByHost(
+    c.env.DB,
+    c.req.header("host") || "",
+    c.env.APP_URL
+  );
+  if (!tenant) {
+    return c.json({ error: "Not a guild host", slug: null }, 404);
+  }
+  return c.json({
+    slug: tenant.slug,
+    name: tenant.name,
+    custom_domain: tenant.custom_domain,
+    public_base_url: tenantPublicBaseUrl(
+      c.env,
+      tenant,
+      c.req.header("host") || undefined
+    ),
+  });
+});
 
 // GET /public/:slug/levels
 publicRoutes.get("/:slug/levels", async (c) => {
