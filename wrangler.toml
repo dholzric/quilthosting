@@ -29,6 +29,8 @@ ENVIRONMENT = "production"
 APP_URL = "https://quilthosting.dholzric.workers.dev"
 # Resend free plan = 1 verified domain (quiltmap.com). Swap at launch.
 EMAIL_FROM = "QuiltHosting <noreply@quiltmap.com>"
+# Public identifier (not a secret); shared OAuth client with quiltmap/createablock/quiltgen
+GOOGLE_CLIENT_ID = "476466840954-53d90qcp82br0o2t8env78vs6q9a3o20.apps.googleusercontent.com"
 
 [triggers]
 crons = ["0 8 * * *"]
