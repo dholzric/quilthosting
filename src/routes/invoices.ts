@@ -39,16 +39,17 @@ invoiceRoutes.get("/", async (c) => {
     const rows = await all<InvoiceRow & { member_email?: string; member_name?: string }>(
       c.env.DB.prepare(
         `SELECT i.*, m.email as member_email,
-                trim(coalesce(m.first_name,'') || ' ' || coalesce(m.last_name,'')) as member_name
+                (coalesce(m.first_name,'') || ' ' || coalesce(m.last_name,'')) as member_name
          FROM invoices i
          LEFT JOIN members m ON m.id = i.member_id
          WHERE i.tenant_id = ?
          ORDER BY i.created_at DESC LIMIT 200`
       ).bind(tenant.id)
     );
-    return c.json(rows);
+    // Envelope + bare array both accepted by admin asList()
+    return c.json({ invoices: rows, total: rows.length });
   } catch {
-    return c.json([]);
+    return c.json({ invoices: [], total: 0 });
   }
 });
 

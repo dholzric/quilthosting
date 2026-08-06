@@ -913,7 +913,7 @@
     }
 
     async function renderLevels(el) {
-      const levels = await api(`/api/tenants/${tenantId}/levels`);
+      const levels = asList(await api(`/api/tenants/${tenantId}/levels`), "levels");
       el.innerHTML = `
         <h2>Membership Levels</h2>
         <div class="toolbar"><button onclick="showAddLevel()">Add Level</button></div>
@@ -1192,7 +1192,7 @@
       let data;
       try {
         data = await api(`/api/tenants/${tenantId}/events/${eventId}/registrations`);
-        const regsCache = Array.isArray(data) ? data : (data.registrations || []);
+        const regsCache = asList(data, "registrations");
         await cacheRegsForOffline(eventId, regsCache);
       } catch (e) {
         // Offline fallback
@@ -1201,8 +1201,8 @@
         const cached = JSON.parse(raw);
         data = { questions: [], registrations: cached.regs || [] };
       }
-      const regs = Array.isArray(data) ? data : (data.registrations || []);
-      const questions = Array.isArray(data) ? [] : (data.questions || []);
+      const regs = asList(data, "registrations");
+      const questions = Array.isArray(data) ? [] : (Array.isArray(data?.questions) ? data.questions : []);
       const qHeaders = questions.map((q) => `<th>${esc(q.label)}</th>`).join("");
       const offline = !navigator.onLine;
       document.getElementById("regs-panel").innerHTML = `
@@ -1302,7 +1302,7 @@
     async function renderStore(el) {
       let products = [];
       try {
-        products = await api(`/api/tenants/${tenantId}/products`);
+        products = asList(await api(`/api/tenants/${tenantId}/products`), "products");
       } catch (e) {
         el.innerHTML = `<h2>Store</h2><p class="error">${esc(e.message)}. Run database migration 0006 if needed.</p>`;
         return;
@@ -2539,7 +2539,10 @@
     /* —— WA parity admin panels —— */
     async function renderInvoices(el) {
       let rows = [];
-      try { rows = await api(`/api/tenants/${tenantId}/invoices`); } catch (e) {
+      try {
+        const data = await api(`/api/tenants/${tenantId}/invoices`);
+        rows = asList(data, "invoices");
+      } catch (e) {
         el.innerHTML = `<h2>Invoices</h2><p class="error">${esc(e.message)}. Run migration 0008.</p>`;
         return;
       }
@@ -2635,7 +2638,10 @@
 
     async function renderAutomations(el) {
       let rows = [];
-      try { rows = await api(`/api/tenants/${tenantId}/automations`); } catch (e) {
+      try {
+        const data = await api(`/api/tenants/${tenantId}/automations`);
+        rows = asList(data, "automations");
+      } catch (e) {
         el.innerHTML = `<h2>Automations</h2><p class="error">${esc(e.message)}</p>`; return;
       }
       el.innerHTML = `
@@ -2700,7 +2706,10 @@
 
     async function renderForms(el) {
       let rows = [];
-      try { rows = await api(`/api/tenants/${tenantId}/forms`); } catch (e) {
+      try {
+        const data = await api(`/api/tenants/${tenantId}/forms`);
+        rows = asList(data, "forms");
+      } catch (e) {
         el.innerHTML = `<h2>Forms</h2><p class="error">${esc(e.message)}</p>`; return;
       }
       el.innerHTML = `
@@ -2760,7 +2769,8 @@
       } catch (e) { document.getElementById("fm-msg").textContent = e.message; }
     }
     async function viewFormResponses(id, name) {
-      const rows = await api(`/api/tenants/${tenantId}/forms/${id}/responses`);
+      const raw = await api(`/api/tenants/${tenantId}/forms/${id}/responses`);
+      const rows = asList(raw, "responses");
       const box = document.getElementById("fm-responses");
       box.innerHTML = `<h3>Responses — ${esc(name)}</h3>
         <table><thead><tr><th>When</th><th>Email</th><th>Answers</th></tr></thead>
@@ -3007,7 +3017,10 @@
 
     async function renderWebhooks(el) {
       let rows = [];
-      try { rows = await api(`/api/tenants/${tenantId}/webhooks`); } catch (e) {
+      try {
+        const data = await api(`/api/tenants/${tenantId}/webhooks`);
+        rows = asList(data, "webhooks");
+      } catch (e) {
         el.innerHTML = `<h2>Zapier / webhooks</h2><p class="error">${esc(e.message)}. Run migration 0010.</p>`;
         return;
       }
