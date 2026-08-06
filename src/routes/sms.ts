@@ -31,9 +31,10 @@ smsRoutes.get("/logs", async (c) => {
         `SELECT * FROM sms_logs WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 100`
       ).bind(tenant.id)
     );
-    return c.json(rows);
+    // Envelope accepted by admin asList(data, "logs"); bare array still works
+    return c.json({ logs: rows, total: rows.length });
   } catch {
-    return c.json([]);
+    return c.json({ logs: [], total: 0 });
   }
 });
 

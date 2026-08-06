@@ -2875,7 +2875,8 @@
     async function renderSms(el) {
       let logs = [], cfg = { configured: false };
       try {
-        logs = await api(`/api/tenants/${tenantId}/sms/logs`);
+        const logsData = await api(`/api/tenants/${tenantId}/sms/logs`);
+        logs = asList(logsData, "logs");
         cfg = await api(`/api/tenants/${tenantId}/sms/config`);
       } catch (e) {
         el.innerHTML = `<h2>SMS</h2><p class="error">${esc(e.message)}</p>`; return;
