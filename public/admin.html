@@ -373,7 +373,10 @@
                     <td>${esc(p.description || "—")}</td>
                     <td>$${(p.amount_cents / 100).toFixed(2)}</td>
                     <td><span class="badge ${p.status === "succeeded" ? "active" : p.status}">${esc(p.status)}</span></td>
-                    <td>${p.status === "succeeded" ? `<button class="secondary" onclick='refundPayment(${JSON.stringify(p.id)}, ${p.amount_cents})'>Refund</button>` : ""}</td>
+                    <td>
+                      <button class="secondary" onclick='openReceipt(${JSON.stringify(p.id)})'>Receipt</button>
+                      ${p.status === "succeeded" ? `<button class="secondary" onclick='refundPayment(${JSON.stringify(p.id)}, ${p.amount_cents})'>Refund</button>` : ""}
+                    </td>
                   </tr>
                 `).join("")}
               </tbody>
@@ -381,6 +384,22 @@
           `}
         </div>
       `;
+    }
+    function openReceipt(paymentId) {
+      // Open printable HTML with auth via fetch → blob URL
+      fetch(`${API}/api/tenants/${tenantId}/payments/${paymentId}/receipt`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then(async (res) => {
+          if (!res.ok) throw new Error("Could not load receipt");
+          const html = await res.text();
+          const w = window.open("", "_blank");
+          if (w) {
+            w.document.write(html);
+            w.document.close();
+          }
+        })
+        .catch((e) => alert(e.message));
     }
     async function refundPayment(id, cents) {
       if (!confirm(`Refund $${(cents / 100).toFixed(2)} to the payer? This cannot be undone.`)) return;
@@ -904,8 +923,14 @@
             <div><label>Non-member price (cents)</label><input id="e-nmprice" type="number" value="0" /></div>
           </div>
           <label style="display:flex;align-items:center;gap:0.4rem"><input type="checkbox" id="e-waitlist" style="width:auto" /> Enable waitlist when full</label>
+          <div style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid var(--border)">
+            <h3 style="margin:0 0 0.35rem;font-size:0.95rem">Registration questions</h3>
+            <p class="muted" style="font-size:0.8rem;margin:0 0 0.5rem">Asked when someone registers (e.g. lunch, skill level). Optional.</p>
+            <div id="e-questions"></div>
+            <button type="button" class="secondary" onclick="addEventQuestion()" style="margin-top:0.35rem">+ Add question</button>
+          </div>
           <input type="hidden" id="e-id" />
-          <button onclick="addEvent()">Save</button>
+          <button onclick="addEvent()" style="margin-top:0.75rem">Save</button>
           <button class="secondary" onclick="hide(document.getElementById('add-event-form'))">Cancel</button>
         </div>
         <div class="card">
@@ -936,7 +961,75 @@
     }
     function showAddEvent() {
       document.getElementById("e-id").value = "";
+      document.getElementById("e-title").value = "";
+      document.getElementById("e-desc").value = "";
+      document.getElementById("e-start").value = "";
+      document.getElementById("e-end").value = "";
+      document.getElementById("e-location").value = "";
+      document.getElementById("e-capacity").value = "";
+      document.getElementById("e-waitlist").checked = false;
+      document.getElementById("e-mprice").value = 0;
+      document.getElementById("e-nmprice").value = 0;
+      renderEventQuestions([]);
       show(document.getElementById("add-event-form"));
+    }
+    function parseEventQuestions(e) {
+      try {
+        const s = JSON.parse(e.settings_json || "{}");
+        return Array.isArray(s.questions) ? s.questions : [];
+      } catch { return []; }
+    }
+    function renderEventQuestions(questions) {
+      const box = document.getElementById("e-questions");
+      if (!box) return;
+      box.replaceChildren();
+      (questions || []).forEach((q, i) => {
+        const row = document.createElement("div");
+        row.className = "form-row";
+        row.dataset.qIndex = String(i);
+        row.style.marginBottom = "0.5rem";
+        row.innerHTML = `
+          <div><label>Label</label><input class="eq-label" value="${esc(q.label || "")}" /></div>
+          <div><label>Type</label>
+            <select class="eq-type">
+              <option value="text" ${q.type !== "select" ? "selected" : ""}>Text</option>
+              <option value="select" ${q.type === "select" ? "selected" : ""}>Dropdown</option>
+            </select>
+          </div>
+          <div><label>Options (comma-sep)</label><input class="eq-options" value="${esc((q.options || []).join(", "))}" /></div>
+          <div style="display:flex;align-items:end;gap:0.5rem;padding-bottom:0.35rem">
+            <label style="display:flex;align-items:center;gap:0.3rem;margin:0;font-weight:400">
+              <input type="checkbox" class="eq-req" style="width:auto" ${q.required ? "checked" : ""} /> Required
+            </label>
+            <button type="button" class="secondary" onclick="this.closest('[data-q-index]').remove()">Remove</button>
+          </div>
+        `;
+        box.appendChild(row);
+      });
+    }
+    function addEventQuestion() {
+      const box = document.getElementById("e-questions");
+      const current = collectEventQuestions();
+      current.push({ label: "", type: "text", options: [], required: false });
+      renderEventQuestions(current);
+    }
+    function collectEventQuestions() {
+      const rows = document.querySelectorAll("#e-questions [data-q-index]");
+      const out = [];
+      rows.forEach((row) => {
+        const label = row.querySelector(".eq-label")?.value?.trim();
+        if (!label) return;
+        const type = row.querySelector(".eq-type")?.value || "text";
+        const options = (row.querySelector(".eq-options")?.value || "")
+          .split(",").map((s) => s.trim()).filter(Boolean);
+        out.push({
+          label,
+          type,
+          required: !!row.querySelector(".eq-req")?.checked,
+          options: type === "select" ? options : undefined,
+        });
+      });
+      return out;
     }
     function editEvent(id) {
       const e = (window._events || []).find((x) => x.id === id);
@@ -957,6 +1050,7 @@
       document.getElementById("e-waitlist").checked = !!e.waitlist_enabled;
       document.getElementById("e-mprice").value = e.member_price_cents;
       document.getElementById("e-nmprice").value = e.non_member_price_cents;
+      renderEventQuestions(parseEventQuestions(e));
       show(document.getElementById("add-event-form"));
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -975,6 +1069,7 @@
         waitlist_enabled: document.getElementById("e-waitlist").checked ? 1 : 0,
         member_price_cents: Number(document.getElementById("e-mprice").value),
         non_member_price_cents: Number(document.getElementById("e-nmprice").value),
+        questions: collectEventQuestions(),
       };
       if (id) {
         await api(`/api/tenants/${tenantId}/events/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
@@ -984,7 +1079,10 @@
       navigate("events");
     }
     async function viewRegistrations(eventId) {
-      const regs = await api(`/api/tenants/${tenantId}/events/${eventId}/registrations`);
+      const data = await api(`/api/tenants/${tenantId}/events/${eventId}/registrations`);
+      const regs = Array.isArray(data) ? data : (data.registrations || []);
+      const questions = Array.isArray(data) ? [] : (data.questions || []);
+      const qHeaders = questions.map((q) => `<th>${esc(q.label)}</th>`).join("");
       document.getElementById("regs-panel").innerHTML = `
         <div class="card" style="margin-top:1rem">
           <h3 style="margin-bottom:0.75rem">Registrations
@@ -992,22 +1090,26 @@
           </h3>
           ${regs.length === 0 ? "<p style='color:var(--muted)'>No registrations yet</p>" : `
             <table>
-              <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Ticket</th><th></th></tr></thead>
+              <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Ticket</th>${qHeaders}<th></th></tr></thead>
               <tbody>
-                ${regs.map((r) => `
+                ${regs.map((r) => {
+                  const ans = r.answers || {};
+                  const qCells = questions.map((q) => `<td>${esc(ans[q.key] || "—")}</td>`).join("");
+                  return `
                   <tr>
                     <td>${esc(r.name || "—")}</td>
                     <td>${esc(r.email)}</td>
                     <td><span class="badge ${r.status}">${r.status}</span></td>
                     <td><code>${r.ticket_code || "—"}</code></td>
+                    ${qCells}
                     <td>
                       ${r.status === "registered" ? `<button onclick="checkIn('${eventId}','${r.id}')">Check in</button>
                         <button class="secondary" onclick="setRegStatus('${eventId}','${r.id}','cancelled')">Cancel</button>` : ""}
                       ${r.status === "waitlist" ? `<button onclick="setRegStatus('${eventId}','${r.id}','registered')">Promote</button>` : ""}
                       ${r.status === "cancelled" ? `<button class="secondary" onclick="setRegStatus('${eventId}','${r.id}','registered')">Restore</button>` : ""}
                     </td>
-                  </tr>
-                `).join("")}
+                  </tr>`;
+                }).join("")}
               </tbody>
             </table>
           `}
@@ -1888,7 +1990,7 @@
       <a href="/privacy">Privacy</a>
       <a href="/terms">Terms</a>
     </nav>
-    <span class="legal"><span class="prerelease" title="QuiltHosting is in private preview">PRE-RELEASE</span> © 2026 QuiltMap LLC · 5900 Balcones Drive STE 100, Austin, TX 78731 · v0.16.0</span>
+    <span class="legal"><span class="prerelease" title="QuiltHosting is in private preview">PRE-RELEASE</span> © 2026 QuiltMap LLC · 5900 Balcones Drive STE 100, Austin, TX 78731 · v0.17.0</span>
   </footer>
 </body>
 </html>

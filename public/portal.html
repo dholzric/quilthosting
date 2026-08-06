@@ -500,7 +500,7 @@
           <div class="card">
             <h2>Payment history</h2>
             <table>
-              <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Status</th></tr></thead>
+              <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Status</th><th></th></tr></thead>
               <tbody>
                 ${data.invoices.map((i) => `
                   <tr>
@@ -508,6 +508,7 @@
                     <td>${esc(i.type)}</td>
                     <td>${money(i.amount_cents)}</td>
                     <td><span class="badge ${i.status === "succeeded" ? "active" : "pending"}">${i.status}</span></td>
+                    <td><a href="/api/portal/${esc(slug)}/receipts/${esc(i.id)}?token=${encodeURIComponent(token)}" target="_blank" rel="noopener">Receipt</a></td>
                   </tr>
                 `).join("")}
               </tbody>
@@ -698,7 +699,7 @@
       <a href="/privacy">Privacy</a>
       <a href="/terms">Terms</a>
     </nav>
-    <span class="legal"><span class="prerelease" title="QuiltHosting is in private preview">PRE-RELEASE</span> © 2026 QuiltMap LLC · 5900 Balcones Drive STE 100, Austin, TX 78731 · v0.16.0</span>
+    <span class="legal"><span class="prerelease" title="QuiltHosting is in private preview">PRE-RELEASE</span> © 2026 QuiltMap LLC · 5900 Balcones Drive STE 100, Austin, TX 78731 · v0.17.0</span>
   </footer>
 </body>
 </html>

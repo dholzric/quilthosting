@@ -98,31 +98,34 @@
       signupAction = action;
       $("dialog-title").textContent = title;
       $("dialog-error").classList.add("hidden");
-      // Guild-defined join questions (only on membership joins)
+      // Guild join fields OR event registration questions
       const box = $("su-custom");
       box.replaceChildren();
-      if (action.type === "join") {
-        for (const f of joinFields) {
-          const label = el("label", "", f.label);
-          box.appendChild(label);
-          let input;
-          if (f.type === "select") {
-            input = document.createElement("select");
-            input.style.cssText = "width:100%;padding:0.55rem 0.7rem;border:1px solid #ccc;border-radius:8px;margin-top:0.4rem";
-            const blank = document.createElement("option");
-            blank.value = ""; blank.textContent = "—";
-            input.appendChild(blank);
-            for (const o of f.options || []) {
-              const opt = document.createElement("option");
-              opt.value = o; opt.textContent = o;
-              input.appendChild(opt);
-            }
-          } else {
-            input = document.createElement("input");
+      const fields =
+        action.type === "join"
+          ? joinFields
+          : (action.questions || []);
+      for (const f of fields) {
+        const label = el("label", "", f.label + (f.required ? " *" : ""));
+        box.appendChild(label);
+        let input;
+        if (f.type === "select") {
+          input = document.createElement("select");
+          input.style.cssText = "width:100%;padding:0.55rem 0.7rem;border:1px solid #ccc;border-radius:8px;margin-top:0.4rem";
+          const blank = document.createElement("option");
+          blank.value = ""; blank.textContent = "—";
+          input.appendChild(blank);
+          for (const o of f.options || []) {
+            const opt = document.createElement("option");
+            opt.value = o; opt.textContent = o;
+            input.appendChild(opt);
           }
-          input.dataset.cfKey = f.key;
-          box.appendChild(input);
+        } else {
+          input = document.createElement("input");
         }
+        input.dataset.cfKey = f.key;
+        if (f.required) input.required = true;
+        box.appendChild(input);
       }
       $("signup-dialog").showModal();
     }
@@ -148,6 +151,11 @@
         url = `${API}/public/${slug}/join`;
       } else {
         body.name = [body.first_name, body.last_name].filter(Boolean).join(" ") || undefined;
+        const answers = {};
+        document.querySelectorAll("#su-custom [data-cf-key]").forEach((i) => {
+          if (i.value) answers[i.dataset.cfKey] = i.value;
+        });
+        if (Object.keys(answers).length) body.custom_answers = answers;
         url = `${API}/public/${slug}/events/${signupAction.eventId}/register`;
       }
       $("su-submit").disabled = true;
@@ -206,7 +214,13 @@
       right.style.textAlign = "right";
       if (ev.registration_open) {
         const btn = el("button", "", "Register");
-        btn.addEventListener("click", () => openSignup("Register — " + ev.title, { type: "event", eventId: ev.id }));
+        btn.addEventListener("click", () =>
+          openSignup("Register — " + ev.title, {
+            type: "event",
+            eventId: ev.id,
+            questions: ev.questions || [],
+          })
+        );
         right.appendChild(btn);
       } else {
         right.appendChild(el("span", "muted", "Registration closed"));
@@ -356,7 +370,7 @@
       <a href="/privacy">Privacy</a>
       <a href="/terms">Terms</a>
     </nav>
-    <span class="legal"><span class="prerelease" title="QuiltHosting is in private preview">PRE-RELEASE</span> © 2026 QuiltMap LLC · 5900 Balcones Drive STE 100, Austin, TX 78731 · v0.16.0</span>
+    <span class="legal"><span class="prerelease" title="QuiltHosting is in private preview">PRE-RELEASE</span> © 2026 QuiltMap LLC · 5900 Balcones Drive STE 100, Austin, TX 78731 · v0.17.0</span>
   </footer>
 </body>
 </html>

@@ -8,6 +8,10 @@ import { formatMoney } from "../lib/utils/money";
 import { activateMembership, portalUrl } from "../lib/memberships";
 import { assertCanActivateMember } from "../lib/plans";
 import { rateLimit } from "../middleware/rateLimit";
+import {
+  parseEventSettings,
+  validateAnswers,
+} from "../lib/eventQuestions";
 
 export const publicRoutes = new Hono<{ Bindings: Env }>();
 
@@ -56,7 +60,8 @@ publicRoutes.get("/:slug/events", async (c) => {
   const events = await all<Event>(
     c.env.DB.prepare(
       `SELECT id, title, description, location, start_at, end_at,
-              member_price_cents, non_member_price_cents, capacity, registration_open
+              member_price_cents, non_member_price_cents, capacity, registration_open,
+              settings_json
        FROM events
        WHERE tenant_id = ? AND is_public = 1 AND start_at >= datetime('now')
        ORDER BY start_at ASC
@@ -66,7 +71,10 @@ publicRoutes.get("/:slug/events", async (c) => {
 
   return c.json({
     tenant: { name: tenant.name, slug: tenant.slug },
-    events,
+    events: events.map((e) => ({
+      ...e,
+      questions: parseEventSettings(e.settings_json).questions || [],
+    })),
   });
 });
 
@@ -87,7 +95,10 @@ publicRoutes.get("/:slug/events/:eventId", async (c) => {
   if (!event) return c.json({ error: "Event not found" }, 404);
   return c.json({
     tenant: { name: tenant.name, slug: tenant.slug },
-    event,
+    event: {
+      ...event,
+      questions: parseEventSettings(event.settings_json).questions || [],
+    },
   });
 });
 
@@ -293,6 +304,7 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
   const body = await c.req.json<{
     email: string;
     name?: string;
+    custom_answers?: Record<string, string>;
   }>();
 
   if (!body.email) {
@@ -300,6 +312,13 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
   }
 
   const email = body.email.toLowerCase().trim();
+
+  const questions = parseEventSettings(event.settings_json).questions || [];
+  const validated = validateAnswers(questions, body.custom_answers);
+  if (!validated.ok) {
+    return c.json({ error: validated.error }, 400);
+  }
+  const answersJson = JSON.stringify(validated.answers);
 
   // Member pricing is decided server-side: only active members qualify
   const memberRow = await first<{ id: string; status: string }>(
@@ -367,8 +386,8 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
   if (priceCents === 0 || status === "waitlist") {
     await c.env.DB.prepare(
       `INSERT INTO event_registrations
-       (id, tenant_id, event_id, member_id, email, name, status, amount_paid_cents, ticket_code, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`
+       (id, tenant_id, event_id, member_id, email, name, status, amount_paid_cents, ticket_code, custom_answers_json, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)`
     )
       .bind(
         regId,
@@ -379,6 +398,7 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
         body.name ?? null,
         status,
         ticketCode,
+        answersJson,
         now,
         now
       )
@@ -427,8 +447,8 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
   // Held as pending_payment until the Stripe webhook confirms payment
   await c.env.DB.prepare(
     `INSERT INTO event_registrations
-     (id, tenant_id, event_id, member_id, email, name, status, amount_paid_cents, ticket_code, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, 'pending_payment', 0, ?, ?, ?)`
+     (id, tenant_id, event_id, member_id, email, name, status, amount_paid_cents, ticket_code, custom_answers_json, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, 'pending_payment', 0, ?, ?, ?, ?)`
   )
     .bind(
       regId,
@@ -438,6 +458,7 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
       email,
       body.name ?? null,
       ticketCode,
+      answersJson,
       now,
       now
     )

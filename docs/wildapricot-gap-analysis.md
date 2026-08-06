@@ -4,7 +4,7 @@
 > /features/membership-management).
 >
 > **QuiltHosting baseline in original draft:** v0.11.0  
-> **Updated against deployed code:** v0.16.0 (2026-08-06)
+> **Updated against deployed code:** v0.17.0 (2026-08-06)
 
 ## Wild Apricot quick profile
 
@@ -53,11 +53,11 @@
 | Area | Wild Apricot | QuiltHosting v0.16 | Gap to close |
 |---|---|---|---|
 | Website builder | Full drag-and-drop site, themes, embed widgets | Public `/g/:slug` + HTML pages + profile | Blocks editor, themes, nav; **embeddable join/event widgets** for WordPress |
-| Custom forms | Applications, events, surveys; conditionals | Custom member fields on join (text/dropdown) | **Per-event registration questions**; surveys; required/conditional |
+| Custom forms | Applications, events, surveys; conditionals | Custom member fields on join + **per-event registration questions** (text/select, required) | Surveys; conditional fields |
 | Recurring payments | Saved cards, mature auto-renew | `renewal_type: auto` + subscription Checkout + `invoice.paid` extend | **E2E test** in Stripe test mode; card-update / cancel UX in portal |
 | Financial exports | Excel + **QuickBooks** | CSV (members, payments, regs) | QuickBooks IIF/QBO or integration |
 | Directory | Public OR members-only, showcases, opt-out | Members-only names list | Privacy opt-in/out, richer profiles, optional public directory |
-| Invoicing | Auto invoices + PDF documents | Payment history list; receipt emails for join/donation | **Printable/PDF** receipts & invoices |
+| Invoicing | Auto invoices + PDF documents | Payment history + **printable receipts** (admin + portal, Print → PDF) + receipt emails | Full auto-invoice numbering / multi-line invoices |
 | Automation | Sequences beyond renewals | Renewals + event reminders + welcome + waitlist + receipts | Welcome series, lapsed win-back sequence; open/click tracking |
 | Onboarding / trial | 60-day trial + coach | **Dashboard checklist** + stealth gate | Real free trial (no gate), trial clock, optional coach path |
 | Mobile | Native admin + member apps | Responsive web | **PWA** (install + offline check-in) covers most guild needs |
@@ -108,8 +108,8 @@ For **quilt guilds**, sales-blocking gaps **remaining** (priority order):
 |---|-----|---------------|----------------------|
 | 1 | **Recurring dues verified E2E** | Treasurers won’t trust auto-renew without a proven test path | Stripe test-mode checklist doc + portal cancel/update card |
 | 2 | **Exit stealth / trial story** | Gate + no public trial vs WA’s 60 days | Soft gate for marketing pages; 30-day Guild trial on signup |
-| 3 | **Event registration questions** | Workshops need lunch/level/equipment fields | `custom_answers_json` already on regs — productize admin UI + public form |
-| 4 | **PDF/printable receipts** | Treasurers ask day one | Simple HTML print view or server PDF for payment + membership |
+| 3 | ~~Event registration questions~~ | **Shipped v0.17** | Admin questions + public form + CSV |
+| 4 | ~~Printable receipts~~ | **Shipped v0.17** | Admin + portal Print → Save as PDF |
 | 5 | **Store lite / products** | Patterns, kits, raffle tickets | Reuse donation Checkout with product name + amount |
 | 6 | **Embed widgets** | Guilds keep WordPress | `/embed/:slug/join` + `/embed/:slug/events` iframe snippets |
 | 7 | **PWA check-in** | Mobile day-of at events | Manifest + offline reg list for admins |

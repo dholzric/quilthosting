@@ -3,6 +3,10 @@ import type { Env, Event, TenantVariables } from "../types";
 import { generateId, generateTicketCode } from "../lib/utils/id";
 import { all, first } from "../lib/db";
 import { sendEmail, waitlistPromotedEmail } from "../lib/email";
+import {
+  normalizeQuestions,
+  parseEventSettings,
+} from "../lib/eventQuestions";
 
 export const eventRoutes = new Hono<{
   Bindings: Env;
@@ -19,6 +23,7 @@ type Registration = {
   status: string;
   amount_paid_cents: number;
   ticket_code: string | null;
+  custom_answers_json?: string;
   created_at: string;
 };
 
@@ -46,24 +51,28 @@ eventRoutes.post("/", async (c) => {
     non_member_price_cents?: number;
     is_public?: boolean;
     waitlist_enabled?: boolean;
+    questions?: unknown;
   }>();
   if (!body.title || !body.start_at) {
     return c.json({ error: "title and start_at are required" }, 400);
   }
+  const questions = normalizeQuestions(body.questions);
+  const settingsJson = JSON.stringify({ questions });
   const id = generateId();
   const now = new Date().toISOString();
   await c.env.DB.prepare(
     `INSERT INTO events
      (id, tenant_id, title, description, location, start_at, end_at, capacity,
       member_price_cents, non_member_price_cents, is_public, waitlist_enabled,
-      created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      settings_json, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   )
     .bind(
       id, tenant.id, body.title, body.description ?? null, body.location ?? null,
       body.start_at, body.end_at ?? null, body.capacity ?? null,
       body.member_price_cents ?? 0, body.non_member_price_cents ?? 0,
-      body.is_public === false ? 0 : 1, body.waitlist_enabled ? 1 : 0, now, now
+      body.is_public === false ? 0 : 1, body.waitlist_enabled ? 1 : 0,
+      settingsJson, now, now
     )
     .run();
   const event = await first<Event>(
@@ -91,6 +100,14 @@ eventRoutes.patch("/:eventId", async (c) => {
   );
   if (!existing) return c.json({ error: "Not found" }, 404);
   const now = new Date().toISOString();
+
+  let settingsJson: string | null = null;
+  if (body.questions !== undefined) {
+    const current = parseEventSettings(existing.settings_json);
+    current.questions = normalizeQuestions(body.questions);
+    settingsJson = JSON.stringify(current);
+  }
+
   await c.env.DB.prepare(
     `UPDATE events SET
        title = coalesce(?, title), description = coalesce(?, description),
@@ -98,7 +115,9 @@ eventRoutes.patch("/:eventId", async (c) => {
        end_at = coalesce(?, end_at), capacity = coalesce(?, capacity),
        member_price_cents = coalesce(?, member_price_cents),
        non_member_price_cents = coalesce(?, non_member_price_cents),
-       registration_open = coalesce(?, registration_open), updated_at = ?
+       registration_open = coalesce(?, registration_open),
+       settings_json = coalesce(?, settings_json),
+       updated_at = ?
      WHERE id = ? AND tenant_id = ?`
   )
     .bind(
@@ -106,6 +125,7 @@ eventRoutes.patch("/:eventId", async (c) => {
       body.start_at ?? null, body.end_at ?? null, body.capacity ?? null,
       body.member_price_cents ?? null, body.non_member_price_cents ?? null,
       body.registration_open !== undefined ? (body.registration_open ? 1 : 0) : null,
+      settingsJson,
       now, eventId, tenant.id
     )
     .run();
@@ -118,12 +138,27 @@ eventRoutes.patch("/:eventId", async (c) => {
 eventRoutes.get("/:eventId/registrations", async (c) => {
   const tenant = c.get("tenant");
   const eventId = c.req.param("eventId");
+  const event = await first<Event>(
+    c.env.DB.prepare(
+      "SELECT * FROM events WHERE id = ? AND tenant_id = ?"
+    ).bind(eventId, tenant.id)
+  );
+  const questions = parseEventSettings(event?.settings_json).questions || [];
   const regs = await all<Registration>(
     c.env.DB.prepare(
       `SELECT * FROM event_registrations WHERE tenant_id = ? AND event_id = ? ORDER BY created_at ASC`
     ).bind(tenant.id, eventId)
   );
-  return c.json(regs);
+  return c.json({
+    questions,
+    registrations: regs.map((r) => {
+      let answers: Record<string, string> = {};
+      try {
+        answers = JSON.parse(r.custom_answers_json || "{}");
+      } catch {}
+      return { ...r, answers };
+    }),
+  });
 });
 
 eventRoutes.post("/:eventId/check-in", async (c) => {
@@ -163,9 +198,15 @@ eventRoutes.post("/:eventId/check-in", async (c) => {
 eventRoutes.get("/:eventId/registrations.csv", async (c) => {
   const tenant = c.get("tenant");
   const eventId = c.req.param("eventId");
+  const event = await first<Event>(
+    c.env.DB.prepare(
+      "SELECT settings_json FROM events WHERE id = ? AND tenant_id = ?"
+    ).bind(eventId, tenant.id)
+  );
+  const questions = parseEventSettings(event?.settings_json).questions || [];
   const regs = await all<Record<string, unknown>>(
     c.env.DB.prepare(
-      `SELECT name, email, status, ticket_code, amount_paid_cents, created_at
+      `SELECT name, email, status, ticket_code, amount_paid_cents, created_at, custom_answers_json
        FROM event_registrations WHERE event_id = ? AND tenant_id = ?
        ORDER BY created_at`
     ).bind(eventId, tenant.id)
@@ -174,12 +215,33 @@ eventRoutes.get("/:eventId/registrations.csv", async (c) => {
     const s = v == null ? "" : String(v);
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
-  const header = "name,email,status,ticket_code,amount_paid,registered_at";
-  const lines = regs.map((r) =>
-    [r.name, r.email, r.status, r.ticket_code, ((r.amount_paid_cents as number) / 100).toFixed(2), r.created_at]
+  const qHeaders = questions.map((q) => q.key);
+  const header = [
+    "name",
+    "email",
+    "status",
+    "ticket_code",
+    "amount_paid",
+    "registered_at",
+    ...qHeaders,
+  ].join(",");
+  const lines = regs.map((r) => {
+    let answers: Record<string, string> = {};
+    try {
+      answers = JSON.parse(String(r.custom_answers_json || "{}"));
+    } catch {}
+    return [
+      r.name,
+      r.email,
+      r.status,
+      r.ticket_code,
+      ((r.amount_paid_cents as number) / 100).toFixed(2),
+      r.created_at,
+      ...qHeaders.map((k) => answers[k] || ""),
+    ]
       .map(cell)
-      .join(",")
-  );
+      .join(",");
+  });
   return new Response([header, ...lines].join("\n"), {
     headers: {
       "Content-Type": "text/csv",

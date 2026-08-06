@@ -5,6 +5,7 @@ import { extractBearer, verifyJwt } from "../lib/auth";
 import { createCheckoutSession } from "../lib/stripe";
 import { activateMembership, portalUrl } from "../lib/memberships";
 import { assertCanActivateMember } from "../lib/plans";
+import { renderReceiptHtml } from "../lib/receipts";
 
 export const portalRoutes = new Hono<{ Bindings: Env }>();
 
@@ -157,6 +158,68 @@ portalRoutes.get("/:slug/invoices", async (c) => {
   );
 
   return c.json({ invoices });
+});
+
+/**
+ * GET /api/portal/:slug/receipts/:paymentId
+ * Printable receipt HTML for a payment belonging to this member.
+ */
+portalRoutes.get("/:slug/receipts/:paymentId", async (c) => {
+  // Support ?token= so printable receipts open in a new tab without custom headers
+  const token =
+    extractBearer(c.req.header("Authorization")) || c.req.query("token") || "";
+  const payload = token ? await verifyJwt(token, c.env.JWT_SECRET) : null;
+  if (!payload) return c.json({ error: "Unauthorized" }, 401);
+
+  const slug = c.req.param("slug");
+  const paymentId = c.req.param("paymentId");
+  const tenant = await getTenantBySlug(c.env.DB, slug);
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+
+  const member = await first<Member>(
+    c.env.DB.prepare(
+      "SELECT * FROM members WHERE tenant_id = ? AND email = ?"
+    ).bind(tenant.id, payload.email)
+  );
+  if (!member) return c.json({ error: "Not a member" }, 403);
+
+  const payment = await first<{
+    id: string;
+    type: string;
+    amount_cents: number;
+    currency: string;
+    status: string;
+    description: string | null;
+    created_at: string;
+    stripe_payment_intent_id: string | null;
+    member_id: string | null;
+  }>(
+    c.env.DB.prepare(
+      `SELECT * FROM payments
+       WHERE id = ? AND tenant_id = ? AND member_id = ?`
+    ).bind(paymentId, tenant.id, member.id)
+  );
+  if (!payment) return c.json({ error: "Receipt not found" }, 404);
+
+  const html = renderReceiptHtml({
+    guildName: tenant.name,
+    receiptId: payment.id,
+    date: payment.created_at,
+    type: payment.type,
+    description: payment.description || "",
+    amountCents: payment.amount_cents,
+    currency: payment.currency,
+    status: payment.status,
+    payerName: [member.first_name, member.last_name].filter(Boolean).join(" ") || null,
+    payerEmail: member.email,
+    stripeRef: payment.stripe_payment_intent_id,
+  });
+  return new Response(html, {
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store",
+    },
+  });
 });
 
 /**

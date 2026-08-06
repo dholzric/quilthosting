@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { Env, TenantVariables } from "../types";
 import { all, first } from "../lib/db";
 import { stripeRequest } from "../lib/stripe";
+import { renderReceiptHtml } from "../lib/receipts";
 
 export const statsRoutes = new Hono<{
   Bindings: Env;
@@ -143,6 +144,66 @@ paymentRoutes.get("/export.csv", async (c) => {
     headers: {
       "Content-Type": "text/csv",
       "Content-Disposition": 'attachment; filename="payments.csv"',
+    },
+  });
+});
+
+// GET /api/tenants/:tenantId/payments/:paymentId/receipt — printable HTML
+paymentRoutes.get("/:paymentId/receipt", async (c) => {
+  const tenant = c.get("tenant");
+  const paymentId = c.req.param("paymentId");
+  const payment = await first<{
+    id: string;
+    type: string;
+    amount_cents: number;
+    currency: string;
+    status: string;
+    description: string | null;
+    created_at: string;
+    stripe_payment_intent_id: string | null;
+    member_id: string | null;
+  }>(
+    c.env.DB.prepare(
+      "SELECT * FROM payments WHERE id = ? AND tenant_id = ?"
+    ).bind(paymentId, tenant.id)
+  );
+  if (!payment) return c.json({ error: "Payment not found" }, 404);
+
+  let payerName: string | null = null;
+  let payerEmail: string | null = null;
+  if (payment.member_id) {
+    const m = await first<{
+      first_name: string | null;
+      last_name: string | null;
+      email: string;
+    }>(
+      c.env.DB.prepare(
+        "SELECT first_name, last_name, email FROM members WHERE id = ?"
+      ).bind(payment.member_id)
+    );
+    if (m) {
+      payerEmail = m.email;
+      payerName = [m.first_name, m.last_name].filter(Boolean).join(" ") || null;
+    }
+  }
+
+  const html = renderReceiptHtml({
+    guildName: tenant.name,
+    receiptId: payment.id,
+    date: payment.created_at,
+    type: payment.type,
+    description: payment.description || "",
+    amountCents: payment.amount_cents,
+    currency: payment.currency,
+    status: payment.status,
+    payerName,
+    payerEmail,
+    stripeRef: payment.stripe_payment_intent_id,
+  });
+  return new Response(html, {
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store",
     },
   });
 });
