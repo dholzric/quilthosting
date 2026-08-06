@@ -1,0 +1,235 @@
+/**
+ * Rebuild AMQG + AAQG public website pages from Wild Apricot public content.
+ * Run: node scripts/rebuild-wa-websites.mjs
+ * Then: npx wrangler d1 execute quilthosting-db --remote --file=scripts/rebuild-wa-websites.sql
+ */
+import fs from "fs";
+
+const amqg = "c8f4e2a1-9b3d-4e7f-a1c2-0d5e6f7a8b9c";
+const aaqg = "a9c8b7d6-e5f4-4a3b-9c8d-7e6f5a4b3c2d";
+const esc = (s) => String(s).replace(/'/g, "''");
+const j = (html) => esc(JSON.stringify({ html }));
+
+function page(id, tid, slug, title, html, order, nav) {
+  return `INSERT INTO pages (id, tenant_id, slug, title, content_json, is_members_only, published, sort_order, page_type, show_in_nav, nav_label, created_at, updated_at) VALUES ('${id}','${tid}','${slug}','${esc(title)}','${j(html)}',0,1,${order},'page',1,'${esc(nav || title)}',datetime('now'),datetime('now'));`;
+}
+
+const lines = [];
+lines.push("-- Rebuild full public websites for AMQG + AAQG (WA public content)");
+lines.push(`DELETE FROM pages WHERE tenant_id IN ('${amqg}','${aaqg}');`);
+
+const amqgPages = [
+  [
+    "amqg-p-home",
+    "home",
+    "Home",
+    "Home",
+    `<div class="hero"><h2>The Austin Modern Quilt Guild</h2><p><strong>Supporting and encouraging the growth of modern quilting through art, education, and community since 2012.</strong></p><p>AMQG is a local guild of the <a href="https://www.modernquiltguild.com" target="_blank" rel="noopener">Modern Quilt Guild</a>. Members receive both MQG and AMQG benefits.</p><p><strong>Meetings:</strong> typically the first Wednesday · 6:30 PM · Cherrywood Center, 1605 E. 38 ½ St, Austin, TX 78722</p><p>Jump to <a href="#h-membership"><strong>Join or renew</strong></a> · <a href="#h-events">Upcoming events</a> · <a href="#page-about">About</a></p></div>`,
+  ],
+  [
+    "amqg-p-about",
+    "about",
+    "About Us",
+    "About",
+    `<h2>Welcome to the AMQG!</h2><p>The Austin MQG’s mission is to support and encourage the growth and development of modern quilting through art, education, and community. Since 2012, we have provided educational programming, exciting events, and community outreach opportunities to our members.</p><h3>In all things, our Guild strives to:</h3><ul><li>Develop and encourage the art of modern quilting.</li><li>Work with other guilds and groups with a similar purpose.</li><li>Encourage new quilters and other fiber artists interested in non-traditional and non-art fiber projects.</li><li>Offer educational opportunities through classes, workshops and sharing of information.</li><li>Support local community organizations through donation of modern quilting projects.</li></ul><h3>What we have to offer</h3><h4>Monthly meetings</h4><p>Members get free access to our monthly meetings. Learn, inspire, and show your latest project. Local, national, and international speakers present lectures and trunk shows several times a year.</p><h4>Workshops, retreats &amp; special events</h4><p>Workshops geared to modern quilters, multiple retreats each year, and special events.</p><h4>Modern quilting bees &amp; sew-ins</h4><p>Open quilting bees all over Austin (and virtually), plus one-day sew-ins.</p><h4>Swaps &amp; challenges</h4><p>Local and international swaps and challenges, including QuiltCon community outreach.</p><h4>Discounts &amp; resources</h4><p>MQG member discounts at shops and events, monthly webinars, and quarterly patterns from MQG members worldwide.</p><h4>Community</h4><p>Committees, co-host bees, community outreach, and sew-cializing — including our <a href="https://www.facebook.com/groups/austinmqg" target="_blank" rel="noopener">Facebook group</a> and <a href="https://www.instagram.com/austinmqg/" target="_blank" rel="noopener">Instagram</a>.</p><h4>QuiltCon</h4><p>Members may submit quilts to the premier modern quilting show and enjoy discounts to attend.</p><h4>Vote</h4><p>Members are eligible to vote in local and national MQG elections.</p><h3>How to join</h3><p>Membership is open to any individual interested in modern quilting — all skill levels welcome. AMQG membership runs annually, January–December. Use <strong>Join</strong> above to become a member on this site.</p>`,
+  ],
+  [
+    "amqg-p-meet",
+    "guild-meetings",
+    "Our Guild Meetings",
+    "Meetings",
+    `<h2>Monthly Guild Meetings</h2><p><strong>Each meeting includes:</strong></p><ul><li><strong>Guild business</strong> — updates and how to get involved</li><li><strong>Programming</strong> — sew-ins, speakers, and other content from our VP of Programming</li><li><strong>Sew &amp; Tell</strong> — share works-in-progress and finishes</li></ul><p><strong>Location:</strong> <a href="https://maps.google.com/?q=Cherrywood+Center+1605+E+38+1%2F2+St+Austin+TX" target="_blank" rel="noopener">Cherrywood Center</a>, 1605 E. 38 ½ Street, Austin, TX 78722</p><ul><li>Face masks optional</li><li>Stay home if you’re not feeling well — join virtually when Zoom credentials are in the reminder email</li></ul><p>Timezone: America/Chicago · See <a href="#h-events">Upcoming Events</a> for the next general meetings (e.g. Sep 2, Oct 7, Nov 4, 2026).</p>`,
+  ],
+  [
+    "amqg-p-board",
+    "our-board",
+    "Our Board",
+    "Board",
+    `<h2>Our Board</h2><p>The AMQG board leads programming, membership, events, service, and communications.</p><p>For guild inquiries: <a href="mailto:president@austinmodernquiltguild.com">president@austinmodernquiltguild.com</a></p><p>Membership: <a href="mailto:secretary@austinmodernquiltguild.com">secretary@austinmodernquiltguild.com</a> · Programming: <a href="mailto:programming@austinmodernquiltguild.com">programming@austinmodernquiltguild.com</a> · Events: <a href="mailto:events@austinmqg.com">events@austinmqg.com</a> · Service: <a href="mailto:service@austinmodernquiltguild.com">service@austinmodernquiltguild.com</a></p><p><em>Named officer roster rotates yearly; contact the emails above for the current board.</em></p>`,
+  ],
+  [
+    "amqg-p-sponsors",
+    "sponsors",
+    "Our Sponsors",
+    "Sponsors",
+    `<h2>Our Sponsors</h2><p>AMQG partners with local shops and national brands who support modern quilting in Austin. Sponsorship inquiries: <a href="mailto:treasurer@austinmodernquiltguild.com">treasurer@austinmodernquiltguild.com</a>.</p><p>Member discounts at supporting shops and events are a membership benefit (via MQG and local partners).</p>`,
+  ],
+  [
+    "amqg-p-service",
+    "giving-back",
+    "Giving Back",
+    "Giving Back",
+    `<h2>What is AMQG Service?</h2><p>As part of the larger MQG, our philanthropic mission is to support individuals and communities during transitional periods through modern quilting. Every year, members make quilts and other useful items for local charitable causes.</p><h3>How you can get involved</h3><ul><li>Make a quilt on your own with anything you have at home.</li><li>Make a quilt using guild-provided kits (pattern + fabric at meetings), batting, or fabric on request.</li><li>Make part of a quilt — blocks, tops, quilting, or binding.</li><li>Make a collaborative quilt with other members.</li><li>Participate in the yearly guild design challenge.</li></ul><p>Share finished work with <strong>#austinmqg</strong> and <strong>#amqgservice</strong>.</p><h3>Suggested sizes</h3><ul><li>Twin: 65×85″ (most needed)</li><li>Throw or kid: 60×60″ or 50×70″</li><li>Baby: 40×40″ or 36×48″</li><li>NICU: 16×16″ or 12×18″</li></ul><h3>Service awards</h3><p>Points are awarded for binding, tops, quilting, whole quilts, and committee help. Top contributors receive prizes each cycle.</p><p>Questions: <a href="mailto:service@austinmodernquiltguild.com">service@austinmodernquiltguild.com</a></p>`,
+  ],
+  [
+    "amqg-p-partners",
+    "community-partners",
+    "Community Partners",
+    "Partners",
+    `<h2>Current Community Partners</h2><p>AMQG donates modern quilts and projects to local organizations. Partner lists rotate; see guild communications for the current cycle, or email <a href="mailto:service@austinmodernquiltguild.com">service@austinmodernquiltguild.com</a>.</p><p>We also participate in MQG / QuiltCon community outreach challenges when offered.</p>`,
+  ],
+  [
+    "amqg-p-challenge",
+    "annual-challenge",
+    "Annual Design Challenge",
+    "Challenge",
+    `<h2>AMQG Annual Design Challenge</h2><p>Each year AMQG runs a design challenge for members — a fun way to stretch skills and create for service or show. Details, themes, and deadlines are announced in meetings and the newsletter.</p><p>Finished challenge pieces may support community donation or member exhibitions. Watch Upcoming Events and member email for the current year’s brief.</p>`,
+  ],
+  [
+    "amqg-p-bees",
+    "sewing-bees",
+    "Sewing Bees",
+    "Bees",
+    `<h2>Sewing Bees</h2><p>Members can join open quilting bees across Austin (and virtually). Guests may request a free first Bee attendance by emailing <a href="mailto:events@austinmqg.com">events@austinmqg.com</a>.</p><p>Bees are coordinated by volunteers. Interested in co-hosting? Contact events@austinmqg.com.</p><p>Example: <strong>NewBee</strong> at the AMQG Studio, Cherrywood Center — check Upcoming Events for dates and times.</p>`,
+  ],
+  [
+    "amqg-p-camp",
+    "quilt-camp",
+    "AMQG Quilt Camp",
+    "Quilt Camp",
+    `<h2>AMQG Quilt Camp</h2><p>Annual quilt camp weekend — sew with quilty friends away from home. Details and pricing are posted when registration opens (see Upcoming Events).</p><p>Camp is a highlight of the AMQG year for intermediate and advanced sewists as well as enthusiastic beginners ready for a full weekend of making.</p>`,
+  ],
+  [
+    "amqg-p-guidelines",
+    "event-guidelines",
+    "Event Guidelines",
+    "Guidelines",
+    `<h2>AMQG Event Guidelines</h2><ul><li>Register early for limited workshops and camp.</li><li>Members typically receive preferential pricing and early registration windows.</li><li>Guests: first meetings free; join by the third visit (per guild policy).</li><li>Stay home if ill; use hybrid/Zoom options when offered.</li></ul><p>Specific refund and transfer policies are confirmed in each event description and email.</p>`,
+  ],
+  [
+    "amqg-p-contact",
+    "contact",
+    "Contact Us",
+    "Contact",
+    `<h2>Contact Us</h2><p><strong>Guild inquiries:</strong> <a href="mailto:president@austinmodernquiltguild.com">president@austinmodernquiltguild.com</a></p><p><strong>Membership:</strong> <a href="mailto:secretary@austinmodernquiltguild.com">secretary@austinmodernquiltguild.com</a></p><p><strong>Sponsorship:</strong> <a href="mailto:treasurer@austinmodernquiltguild.com">treasurer@austinmodernquiltguild.com</a></p><p><strong>General / communications:</strong> <a href="mailto:communications@austinmodernquiltguild.com">communications@austinmodernquiltguild.com</a></p><p><strong>Programming:</strong> <a href="mailto:programming@austinmodernquiltguild.com">programming@austinmodernquiltguild.com</a></p><p><strong>Events:</strong> <a href="mailto:events@austinmqg.com">events@austinmqg.com</a></p><p><strong>Community partnerships:</strong> <a href="mailto:service@austinmodernquiltguild.com">service@austinmodernquiltguild.com</a></p><h3>Meeting place</h3><p>Cherrywood Center<br/>1605 E. 38 ½ Street<br/>Austin, TX 78722</p><p>Most meetings also offer Zoom; the link is emailed to members before the meeting.</p><p>Social: <a href="https://www.facebook.com/groups/austinmqg" target="_blank" rel="noopener">Facebook</a> · <a href="https://www.instagram.com/austinmqg/" target="_blank" rel="noopener">Instagram</a> · <a href="https://www.pinterest.com/AustinMQG/" target="_blank" rel="noopener">Pinterest</a></p>`,
+  ],
+];
+
+let o = 0;
+for (const [id, slug, title, nav, html] of amqgPages) {
+  lines.push(page(id, amqg, slug, title, html, o++, nav));
+}
+
+const aaqgPages = [
+  [
+    "aaqg-p-home",
+    "home",
+    "Home",
+    "Home",
+    `<div class="hero"><h2>Austin Area Quilt Guild</h2><p><strong>Central Texas’ largest and oldest quilting guild — founded 1978. 501(c)(3) non-profit.</strong></p><p><strong>Capital of Texas QuiltFest</strong> — Aug 20–23, 2026 at Palmer Events Center. Quilt entries closed (entry goal reached).</p><ul><li><a href="#h-membership">Join or renew</a> — Regular &amp; Senior $40; Junior free (24 &amp; under)</li><li><a href="#h-events">Meetings &amp; workshops</a> — morning &amp; evening sessions, open sew, retreats</li><li><a href="#page-quiltfest-2026">QuiltFest 2026</a></li></ul><p><strong>Be our guest:</strong> first two meetings free; join by the third.</p></div>`,
+  ],
+  [
+    "aaqg-p-about",
+    "about",
+    "About Us",
+    "About",
+    `<h2>About Us</h2><p>The Austin Area Quilt Guild (AAQG) was founded in 1978 and is dedicated to preserving the heritage of quilting and promoting excellence and education in the art of quilt-making. AAQG is a 501(c)(3) non-profit corporation. Membership is open to anyone interested in quilts — beginning, intermediate, and advanced quilters, as well as collectors and admirers. Dues are paid annually with special rates for juniors and seniors.</p><p>Monthly guild meetings are usually held the first Monday of the month at <strong>Westminster Presbyterian Church</strong>, 3208 Exposition Blvd, Austin, Texas. Meetings offer fellowship, speakers, programs, and Show and Tell. Non-members may attend twice as guests before joining.</p><p><strong>Mailing address:</strong><br/>Austin Area Quilt Guild<br/>P.O. Box 5757<br/>Austin, TX 78763</p>`,
+  ],
+  [
+    "aaqg-p-history",
+    "history",
+    "AAQG History",
+    "History",
+    `<h2>AAQG History</h2><p>The Austin Area Quilt Guild was founded in 1978 by Nancy O’Bryant Puentes, with 52 charter members. The first meeting was October 2, 1978 at the Old Quarry Branch of Austin Library. Officers were first elected in February 1979. The monthly newsletter <em>Quilting Quips</em> began in April 1979.</p><p>The Guild held its first show (40+ quilts) in 1980 at the Bank of Austin gallery. Biennial shows have continued ever since — including Palmer Auditorium, Crockett Center, and the Palmer Events Center. The 2016 raffle quilt won 1st place in Group Quilt at QuiltWeek 2017 in Paducah.</p><p>Articles of incorporation as a non-profit were filed in 1993; IRS 501(c)(3) recognition followed in 1997 (retroactive). Spring and fall retreats, a grant program (2003), and quarterly morning meetings (2006) expanded programming over the decades.</p><p>The guild launched a website in 1996 and moved most operations online with membership software in 2016 — integrating membership, payments, events, and communications.</p><p><em>Summary based on the public AAQG History page (updated Dec 2020 by Kelly Hogan).</em></p>`,
+  ],
+  [
+    "aaqg-p-meet",
+    "guild-meetings",
+    "Guild Meetings",
+    "Meetings",
+    `<h2>Guild Meetings</h2><p>Usually the first Monday of the month at Westminster Presbyterian Church, 3208 Exposition Blvd, Austin, TX 78703.</p><ul><li><strong>Morning:</strong> doors 9:00 AM · meeting 9:45 AM</li><li><strong>Evening:</strong> hybrid (Zoom + in person) · doors 6:00 PM · meeting 6:45 PM</li></ul><p>Bring Show and Tell. Evening Zoom Show and Tell photos are due to president@aaqg.org by noon, seven days before the meeting (limit 2).</p><p>See <a href="#h-events">Upcoming Events</a> for speakers (e.g. Nina Clotfelter in September, Dorene Joyce in October, Emma Jane Powell in November) and the December holiday social.</p>`,
+  ],
+  [
+    "aaqg-p-qf",
+    "quiltfest-2026",
+    "2026 QuiltFest",
+    "QuiltFest",
+    `<h2>Capital of Texas QuiltFest 2026</h2><p>AAQG’s biennial quilt show — run by guild members to support our mission. Quilts may be entered for judging or display.</p><h3>When &amp; where</h3><ul><li><strong>Friday</strong> Aug 21, 2026 · 10am–5pm</li><li><strong>Saturday</strong> Aug 22, 2026 · 10am–5pm</li><li><strong>Sunday</strong> Aug 23, 2026 · 11am–3pm</li></ul><p><strong>Palmer Event Center</strong><br/>900 Barton Springs Road, Austin, TX 78704</p><h3>Highlights</h3><ul><li>Over 300 quilts on display</li><li>Member-made raffle quilt</li><li>Vendors, special exhibits &amp; demonstrations</li><li>Boutique &amp; silent auction</li></ul><p>Quilt entries are closed for 2026 (entry goal reached). Buy raffle tickets in the store when available.</p>`,
+  ],
+  [
+    "aaqg-p-service",
+    "community-service",
+    "Community Service",
+    "Service",
+    `<h2>Community Service</h2><p>AAQG supports the community through Baby Bundles, Comfort Quilts, and volunteer roles at meetings and QuiltFest.</p><h3>Baby Bundles</h3><p>Hand-made quilts for local agencies (e.g. Healthy Families Travis County, WIC/Mom’s Place, Children’s Advocacy Center/Bastrop). In 2022–2023 the guild donated <strong>395 quilts</strong>.</p><p><strong>How members help:</strong> pick up kits at meetings, make from stash, or join the birthday-quilt tradition (one quilt a year).</p><p><strong>Guidelines:</strong> baby (~36×36″) to twin; cotton preferred; hand or machine quilted/bound or tied; no holiday-themed or poly fleece blankets. Contact <a href="mailto:babybundles@aaqg.org">babybundles@aaqg.org</a>.</p><p>Origin: state-sponsored “Baby Bundles” in the late 1970s/early 1980s called on Texas quilt guilds; AAQG continued the program after the state stepped away.</p>`,
+  ],
+  [
+    "aaqg-p-bees",
+    "bees",
+    "AAQG Bees",
+    "Bees",
+    `<h2>Quilting Bees</h2><p>AAQG supports bees so members can sew and build community. Each bee has a Beekeeper (host). “Closed” means at capacity.</p><p>Contact the Beekeeper for a visit, or email <a href="mailto:beecoordinator@aaqg.org">beecoordinator@aaqg.org</a> for a match by location and schedule. At least 50% of an AAQG bee’s members should be guild members.</p><h3>Daytime bees (examples — open)</h3><ul><li><strong>Cedar Park Sewing Room</strong> — Cedar Park Senior Center, Thu noon–4 · Cindy Glenn</li><li><strong>Dutch Dolls Bee</strong> — First Presbyterian, 8001 Mesa Dr, Tue 1pm · Ann Blasdel</li><li><strong>Happy Me Bee</strong> — Dripping Springs, 2nd Fri 9–1 · Emily Bowers</li><li><strong>Machine Embroidery Bee</strong> — Oak Hill Community Center, 2nd Fri · Mary Lorenz</li><li><strong>Match-A-Patch</strong> — Woodlawn Baptist, 1st &amp; 3rd Thu 10–noon · Carmen Vasquez</li><li><strong>Mini Retreat Bee</strong> — Oak Hill, 2nd &amp; 3rd Mon 9–5 · Cheryl Matzen</li><li><strong>Piecemakers</strong> — Bethany UMC NW, 2nd &amp; 4th Mon 10–noon · Sharon Muir</li><li><strong>Sew Be Its</strong> — Abiding Love Lutheran, 2nd &amp; 4th Wed 1–3 · Tricia Slovacek</li><li><strong>Simply Quilters</strong> — Sunset Valley City Hall, Thu 10–noon · Pam Wissemann (contact first)</li></ul><p>Additional closed and night bees are listed with the Bee Coordinator; capacity changes over time.</p>`,
+  ],
+  [
+    "aaqg-p-opensew",
+    "open-sew",
+    "Open Sew Day",
+    "Open Sew",
+    `<h2>Open Sew Day</h2><p>Just you, your project, and your quilting community. Bring your machine and a project — or handwork. New and beginning quilters welcome. Sack lunch optional.</p><p>Example: <strong>Open Sew Day, South</strong> — Travis County Oak Hill Community Center, 8656 State Hwy 71, Austin, TX 78735. Register under Upcoming Events (waitlist when full).</p>`,
+  ],
+  [
+    "aaqg-p-workshops",
+    "workshops",
+    "Workshops",
+    "Workshops",
+    `<h2>Workshops</h2><p>AAQG hosts local and national teachers throughout the year. Member pricing is typically lower, with earlier registration windows.</p><p><strong>Examples (2026):</strong></p><ul><li>Nina Clotfelter — Thread Painting; Chop It Like It’s Hot (Sep, Austin Sewing, Round Rock)</li><li>Dorene Joyce — Animal Portraiture; Stained Glass Flowers (Oct)</li><li>Emma Jane Powell — Modern Improv Vintage Soul; Ripple Effect (Nov)</li></ul><p>Class fees often about $55 members / $70 non-members plus kit fees when required. Full supply lists live under Upcoming Events.</p>`,
+  ],
+  [
+    "aaqg-p-volunteer",
+    "volunteer",
+    "Volunteer",
+    "Volunteer",
+    `<h2>Volunteer</h2><p>AAQG runs on member volunteers — meetings, QuiltFest, baby bundles, bees, board committees, and more.</p><p>Email the relevant chair (<a href="mailto:president@aaqg.org">president@aaqg.org</a>, <a href="mailto:membership@aaqg.org">membership@aaqg.org</a>, or QuiltFest leads announced in Quips) to help.</p>`,
+  ],
+  [
+    "aaqg-p-contact",
+    "contact",
+    "Contact Us",
+    "Contact",
+    `<h2>Contact Us</h2><ul><li>General: <a href="mailto:president@aaqg.org">president@aaqg.org</a></li><li>Programs: <a href="mailto:programselect@aaqg.org">programselect@aaqg.org</a></li><li>Membership: <a href="mailto:membership@aaqg.org">membership@aaqg.org</a></li><li>Quilt conservation: <a href="mailto:conservation@aaqg.org">conservation@aaqg.org</a></li><li>Advertising: <a href="mailto:advertising@aaqg.org">advertising@aaqg.org</a></li><li>Newsletter: <a href="mailto:newsletter@aaqg.org">newsletter@aaqg.org</a></li><li>Bee coordinator: <a href="mailto:beecoordinator@aaqg.org">beecoordinator@aaqg.org</a></li></ul><p><strong>Meetings:</strong> Westminster Presbyterian Church, 3208 Exposition Blvd, Austin, TX 78703</p><p><strong>Mail:</strong> P.O. Box 5757, Austin, TX 78763</p>`,
+  ],
+  [
+    "aaqg-p-hire",
+    "quilters-for-hire",
+    "Quilters for Hire",
+    "For Hire",
+    `<h2>Quilters for Hire</h2><p>AAQG maintains a member listing for longarmers, teachers, and related services. On QuiltHosting this is the public landing page; members can publish hire info via directory/profile fields as listings migrate here.</p>`,
+  ],
+  [
+    "aaqg-p-advertise",
+    "advertise",
+    "Advertise with Us",
+    "Advertise",
+    `<h2>Advertise with Us</h2><p>Reach Austin-area quilters through Quilting Quips, the website, and QuiltFest sponsorships. Contact <a href="mailto:advertising@aaqg.org">advertising@aaqg.org</a> for rates and deadlines.</p>`,
+  ],
+];
+
+o = 0;
+for (const [id, slug, title, nav, html] of aaqgPages) {
+  lines.push(page(id, aaqg, slug, title, html, o++, nav));
+}
+
+// Theme + external nav (profile/logo preserved via json_set)
+const amqgTheme = JSON.stringify({ primary: "#2c5f6e", font: "modern", style: "modern" });
+const amqgNav = JSON.stringify([
+  { label: "Join", href: "#h-membership" },
+  { label: "Events", href: "#h-events" },
+  { label: "Facebook", href: "https://www.facebook.com/groups/austinmqg", external: true },
+  { label: "Instagram", href: "https://www.instagram.com/austinmqg/", external: true },
+]);
+const aaqgTheme = JSON.stringify({ primary: "#5c3d2e", font: "serif", style: "classic" });
+const aaqgNav = JSON.stringify([
+  { label: "Join", href: "#h-membership" },
+  { label: "Events", href: "#h-events" },
+  { label: "QuiltFest", href: "#page-quiltfest-2026" },
+]);
+
+lines.push(
+  `UPDATE tenants SET settings_json = json_set(settings_json, '$.theme', json('${esc(amqgTheme)}')), settings_json = json_set(settings_json, '$.nav', json('${esc(amqgNav)}')), settings_json = json_set(settings_json, '$.profile.description', 'Austin MQG — modern quilting through art, education, and community since 2012. Local chapter of the Modern Quilt Guild.'), settings_json = json_set(settings_json, '$.profile.meeting_info', 'First Wednesday, 6:30 PM'), settings_json = json_set(settings_json, '$.profile.location', 'Cherrywood Center, 1605 E. 38 1/2 St, Austin, TX 78722'), settings_json = json_set(settings_json, '$.profile.contact_email', 'communications@austinmodernquiltguild.com'), settings_json = json_set(settings_json, '$.profile.website', 'https://austinmodernquiltguild.wildapricot.org'), settings_json = json_set(settings_json, '$.profile.facebook', 'https://www.facebook.com/groups/austinmqg'), settings_json = json_set(settings_json, '$.profile.instagram', 'https://www.instagram.com/austinmqg/'), updated_at = datetime('now') WHERE id = '${amqg}';`
+);
+lines.push(
+  `UPDATE tenants SET settings_json = json_set(settings_json, '$.theme', json('${esc(aaqgTheme)}')), settings_json = json_set(settings_json, '$.nav', json('${esc(aaqgNav)}')), settings_json = json_set(settings_json, '$.profile.description', 'Founded 1978. Central Texas largest and oldest quilting guild. 501(c)(3). Biennial Capital of Texas QuiltFest.'), settings_json = json_set(settings_json, '$.profile.meeting_info', 'Usually first Monday: morning 9:00 / evening 6:00 hybrid'), settings_json = json_set(settings_json, '$.profile.location', 'Westminster Presbyterian Church, 3208 Exposition Blvd, Austin, TX 78703'), settings_json = json_set(settings_json, '$.profile.contact_email', 'membership@aaqg.org'), settings_json = json_set(settings_json, '$.profile.website', 'https://www.aaqg.org'), updated_at = datetime('now') WHERE id = '${aaqg}';`
+);
+
+fs.writeFileSync("scripts/rebuild-wa-websites.sql", lines.join("\n") + "\n");
+console.log("Wrote scripts/rebuild-wa-websites.sql with", lines.length, "statements");
