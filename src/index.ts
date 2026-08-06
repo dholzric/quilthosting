@@ -33,6 +33,8 @@ import { apiKeyRoutes } from "./routes/apiKeys";
 import { smsRoutes } from "./routes/sms";
 import { chapterRoutes } from "./routes/chapters";
 import { v1Routes } from "./routes/v1";
+import { outboundWebhookRoutes } from "./routes/outboundWebhooks";
+import { qboRoutes } from "./routes/qbo";
 import { runAutomationJob } from "./lib/automations";
 import { processQueuedBlasts } from "./lib/blastSend";
 import { generateId } from "./lib/utils/id";
@@ -60,7 +62,7 @@ app.get("/", (c) => {
   }
   return c.json({
     name: "QuiltHosting API",
-    version: "0.21.0",
+    version: "0.22.0",
     status: "ok",
     environment: c.env.ENVIRONMENT,
     admin: "/admin",
@@ -234,6 +236,8 @@ tenantApp.route("/forum", forumAdminRoutes);
 tenantApp.route("/api-keys", apiKeyRoutes);
 tenantApp.route("/sms", smsRoutes);
 tenantApp.route("/chapters", chapterRoutes);
+tenantApp.route("/webhooks", outboundWebhookRoutes);
+tenantApp.route("/qbo", qboRoutes);
 app.route("/api/tenants/:tenantId", tenantApp);
 
 app.route("/public", publicRoutes);

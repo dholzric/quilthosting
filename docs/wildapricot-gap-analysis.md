@@ -4,7 +4,7 @@
 > /features/membership-management).
 >
 > **QuiltHosting baseline in original draft:** v0.11.0  
-> **Updated against deployed code:** v0.20.0 (2026-08-06)
+> **Updated against deployed code:** v0.22.0 (2026-08-06)
 
 ## Wild Apricot quick profile
 
@@ -52,16 +52,16 @@
 
 | Area | Wild Apricot | QuiltHosting v0.20 | Notes |
 |---|---|---|---|
-| Website builder | Full drag-and-drop site, themes, embed widgets | **Blocks editor** + themes + nav + embeds | Not full WA DnD; good enough for guild microsites |
+| Website builder | Full drag-and-drop site, themes, embed widgets | **Visual block editor** (drag reorder) + themes + nav + embeds | Lite DnD, not WA full CMS |
 | Custom forms | Applications, events, surveys; conditionals | **Surveys + show_if conditionals** + event questions | |
-| Recurring payments | Saved cards, mature auto-renew | Auto-renew + **E2E** + portal **cancel** + **update card** | |
-| Financial exports | Excel + **QuickBooks** | CSV + **IIF** | |
+| Recurring payments | Saved cards, mature auto-renew | Auto-renew + E2E + cancel + **card brand/last4 + update flow** | |
+| Financial exports | Excel + **QuickBooks** | CSV + **IIF** + **QBO OAuth export/push** | Needs `QBO_CLIENT_*` secrets |
 | Directory | Public OR members-only, showcases, opt-out | Directory + **photos / bio / showcase** | |
 | Invoicing | Auto invoices + PDF documents | **Numbered multi-line invoices** + print | |
 | Automation | Sequences beyond renewals | **Multi-step welcome** + open + **click tracking** | |
 | Onboarding / trial | 60-day trial + coach | Trial + checklist + **coach/webinar links** | |
-| Mobile | Native admin + member apps | **PWA** admin + portal offline shell | Native apps still deferred |
-| Recurring dues | Mature saved-card UX | Cancel + **Stripe portal card update** | |
+| Mobile | Native admin + member apps | **PWA** + **Expo iOS/Android apps** (`apps/mobile`) | Store submit when launching |
+| Recurring dues | Mature saved-card UX | Cancel + **payment-method panel** + Stripe portal | |
 
 ### ❌ Missing entirely (quilt-guild relevance)
 
@@ -69,13 +69,13 @@
 |---|---|---|
 | **Online store** | Products, inventory, tax, orders | **v0.20** — multi-SKU cart + tax rate BPS + SKU |
 | **Embeddable widgets** | Join/event widgets on external sites | **Shipped v0.18** |
-| **Public API + Zapier** | Large ecosystem | **v0.20** — `/api/v1` + API keys + docs |
-| **Saved payment methods UX** | Cards on file | **v0.20** — portal update-card (Stripe Billing Portal) |
+| **Public API + Zapier** | Large ecosystem | **v0.20 REST** + **v0.22 outbound webhooks** (Zapier Catch Hook) |
+| **Saved payment methods UX** | Cards on file | **v0.22** — last4/brand + update-card flow |
 | **Members-only forums** | Forums / CommUnity | **v0.20** — topics/replies in portal |
 | **Blogs** | Blog pages | **v0.20** — `page_type=blog_post` |
 | **SMS** | Paid add-on | **v0.20** — Twilio optional + log |
 | **Job board** | Paid add-on | Irrelevant — skipped |
-| **Native mobile apps** | iOS/Android | Deferred — PWA first |
+| **Native mobile apps** | iOS/Android | **v0.22** — Expo app (member + admin check-in) |
 | **Multi-chapter product** | Volume / chapter pricing | **v0.20** — parent/child chapters |
 
 ---
@@ -116,14 +116,14 @@ For **quilt guilds**, sales-blocking gaps **remaining** (priority order):
 | 7 | PWA check-in | **Shipped v0.18** |
 | 8 | Open tracking / win-back / public directory / QBO | **Shipped v0.19** |
 
-### Remaining optional (not quilt-sale blockers)
+### Remaining (launch / intentional)
 
-- Native iOS/Android apps (PWA covers install + offline check-in)
+- **Public launch** — drop site gate (blocked until you say go)
 - Job board (irrelevant for quilt guilds)
-- Full drag-drop CMS parity with WA
-- Zapier *native* app listing (REST + docs ship; marketplace listing later)
+- Zapier *marketplace* app listing (outbound webhooks + REST cover Catch Hook Zaps)
+- Full WA-grade marketing CMS (we ship visual blocks, not page-layout DnD)
 
-Noise for this buyer: job board, 1,600 integrations, native apps before PWA.
+Noise for this buyer: job board, 1,600 marketplace integrations.
 
 ---
 

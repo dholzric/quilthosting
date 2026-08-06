@@ -615,9 +615,98 @@ portalRoutes.post("/:slug/update-card", async (c) => {
       customerId,
       returnUrl: portalUrl(c.env.APP_URL, tenant.slug, { card: "updated" }),
     });
-    return c.json({ url });
+    return c.json({ url, flow: "payment_method_update" });
   } catch (e: any) {
     return c.json({ error: e.message || "Could not open card update portal" }, 502);
+  }
+});
+
+/**
+ * GET /api/portal/:slug/payment-method — card summary for mature saved-card UX
+ */
+portalRoutes.get("/:slug/payment-method", async (c) => {
+  const user = await requirePortalUser(c);
+  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  const member = await first<Member & { stripe_customer_id?: string | null }>(
+    c.env.DB.prepare(
+      "SELECT * FROM members WHERE tenant_id = ? AND email = ?"
+    ).bind(tenant.id, user.email)
+  );
+  if (!member) return c.json({ error: "Not a member" }, 404);
+
+  const membership = await first<{
+    id: string;
+    auto_renew: number;
+    end_date: string | null;
+    stripe_subscription_id: string | null;
+  }>(
+    c.env.DB.prepare(
+      `SELECT id, auto_renew, end_date, stripe_subscription_id FROM memberships
+       WHERE member_id = ? AND tenant_id = ? AND status = 'active'
+       ORDER BY created_at DESC LIMIT 1`
+    ).bind(member.id, tenant.id)
+  );
+
+  if (!membership?.stripe_subscription_id) {
+    return c.json({
+      has_subscription: false,
+      auto_renew: false,
+      card: null,
+      end_date: membership?.end_date || null,
+    });
+  }
+
+  const { retrieveSubscription, stripeRequest } = await import("../lib/stripe");
+  try {
+    const sub = await retrieveSubscription(c.env, membership.stripe_subscription_id);
+    const customerId =
+      (typeof sub.customer === "string" && sub.customer) ||
+      member.stripe_customer_id ||
+      null;
+    let card: {
+      brand: string | null;
+      last4: string | null;
+      exp_month: number | null;
+      exp_year: number | null;
+    } | null = null;
+    if (customerId) {
+      try {
+        const pms = await stripeRequest(
+          c.env,
+          "GET",
+          `/customers/${customerId}/payment_methods?type=card&limit=1`
+        );
+        const pm = pms?.data?.[0];
+        if (pm?.card) {
+          card = {
+            brand: pm.card.brand || null,
+            last4: pm.card.last4 || null,
+            exp_month: pm.card.exp_month || null,
+            exp_year: pm.card.exp_year || null,
+          };
+        }
+      } catch {
+        /* optional */
+      }
+    }
+    return c.json({
+      has_subscription: true,
+      auto_renew: !!membership.auto_renew,
+      subscription_status: sub.status || null,
+      end_date: membership.end_date,
+      card,
+      customer_id: customerId,
+    });
+  } catch (e: any) {
+    return c.json({
+      has_subscription: true,
+      auto_renew: !!membership.auto_renew,
+      end_date: membership.end_date,
+      card: null,
+      error: e.message,
+    });
   }
 });
 

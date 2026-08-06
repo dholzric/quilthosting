@@ -27,6 +27,8 @@ Source HTML: `public/docs/*` (deployed with the Worker assets binding).
 | [wildapricot-gap-analysis.md](./wildapricot-gap-analysis.md) | WA parity audit |
 | [competition-wild-apricot-alternatives.md](./competition-wild-apricot-alternatives.md) | Competitive notes |
 | [scaling.md](./scaling.md) | Pagination, queued blasts, 50k-member design |
+| [native-apps.md](./native-apps.md) | Expo iOS/Android apps |
+| [zapier-webhooks.md](./zapier-webhooks.md) | Outbound Zapier/Make webhooks |
 
 ## Operator quick links
 
@@ -34,3 +36,4 @@ Source HTML: `public/docs/*` (deployed with the Worker assets binding).
 - Member portal: `/portal?slug=…`
 - Public guild: `/g/…`
 - Embeds: `/embed/:slug/join|events|store`
+- Mobile: `apps/mobile/` (Expo)

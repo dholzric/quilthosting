@@ -21,6 +21,9 @@ export type Env = {
   JWT_SECRET: string;
   ENVIRONMENT: string;
   APP_URL: string;
+  /** Intuit QuickBooks Online app (optional) */
+  QBO_CLIENT_ID?: string;
+  QBO_CLIENT_SECRET?: string;
 };
 
 export type Plan = "free" | "starter" | "pro";

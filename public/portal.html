@@ -651,12 +651,15 @@
             <span id="p-photo-msg" class="muted" style="margin-left:0.5rem;font-size:0.85rem"></span>
             ${data.membership && data.membership.status === "active" ? `
             <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border)">
-              <h3 style="font-size:1rem;margin:0 0 0.5rem">Membership</h3>
+              <h3 style="font-size:1rem;margin:0 0 0.5rem">Membership &amp; payment method</h3>
               <p class="muted" style="font-size:0.9rem">${esc(data.membership.level_name || "")}
                 ${data.membership.end_date ? " · ends " + new Date(data.membership.end_date).toLocaleDateString() : ""}</p>
-              <button class="secondary" onclick="updateCard()">Update payment card</button>
-              <button class="secondary" onclick="cancelAutoRenew()">Cancel auto-renew</button>
-              <span id="p-renew-msg" class="muted" style="margin-left:0.5rem;font-size:0.85rem"></span>
+              <div id="p-card-box" class="muted" style="font-size:0.9rem;margin:0.5rem 0">Loading card…</div>
+              <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.5rem">
+                <button class="secondary" onclick="updateCard()">Update card on file</button>
+                <button class="secondary" onclick="cancelAutoRenew()">Cancel auto-renew</button>
+              </div>
+              <span id="p-renew-msg" class="muted" style="margin-left:0.15rem;font-size:0.85rem"></span>
             </div>` : ""}
             <label>Email</label>
             <input value="${esc(m.email)}" disabled />
@@ -693,6 +696,7 @@
             box.appendChild(input);
           }
         } catch {}
+        loadPaymentMethod();
       } catch (e) {
         el.innerHTML = `<p class="error">${esc(e.message)}</p>`;
       }
@@ -740,6 +744,31 @@
         if (msg) msg.textContent = "Photo updated.";
       } catch (e) {
         if (msg) msg.textContent = e.message;
+      }
+    }
+    async function loadPaymentMethod() {
+      const box = document.getElementById("p-card-box");
+      if (!box) return;
+      try {
+        const r = await api(`/api/portal/${slug}/payment-method`);
+        if (!r.has_subscription) {
+          box.textContent = "No auto-renew subscription on file. Renew with auto-renew to save a card.";
+          return;
+        }
+        if (r.card && r.card.last4) {
+          const brand = (r.card.brand || "Card").replace(/^./, (c) => c.toUpperCase());
+          box.innerHTML = `<strong>${esc(brand)}</strong> ending in <strong>${esc(r.card.last4)}</strong>`
+            + (r.card.exp_month && r.card.exp_year
+              ? ` · exp ${esc(String(r.card.exp_month).padStart(2,"0"))}/${esc(String(r.card.exp_year).slice(-2))}`
+              : "")
+            + (r.auto_renew ? " · auto-renew on" : " · auto-renew off");
+        } else {
+          box.textContent = r.auto_renew
+            ? "Auto-renew is on — update card to manage the payment method on file."
+            : "Subscription found; card details unavailable.";
+        }
+      } catch (e) {
+        box.textContent = e.message || "Could not load card.";
       }
     }
     async function updateCard() {

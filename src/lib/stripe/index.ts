@@ -303,13 +303,34 @@ export async function createConnectLoginLink(
 
 export async function createBillingPortalSession(
   env: Env,
-  params: { customerId: string; returnUrl: string }
+  params: {
+    customerId: string;
+    returnUrl: string;
+    /** Deep-link into payment method update when supported by portal configuration */
+    flow?: "payment_method_update";
+  }
 ): Promise<string> {
-  const session = await stripeRequest(env, "POST", "/billing_portal/sessions", {
+  const body: Record<string, string | number | undefined> = {
     customer: params.customerId,
     return_url: params.returnUrl,
-  });
-  return session.url as string;
+  };
+  if (params.flow === "payment_method_update") {
+    body["flow_data[type]"] = "payment_method_update";
+  }
+  try {
+    const session = await stripeRequest(env, "POST", "/billing_portal/sessions", body);
+    return session.url as string;
+  } catch (e) {
+    // Portal config may not allow flow_data — fall back to default portal
+    if (params.flow) {
+      const session = await stripeRequest(env, "POST", "/billing_portal/sessions", {
+        customer: params.customerId,
+        return_url: params.returnUrl,
+      });
+      return session.url as string;
+    }
+    throw e;
+  }
 }
 
 export async function cancelSubscription(
@@ -330,9 +351,16 @@ export async function retrieveSubscription(
 /** Create Stripe Billing Portal session focused on payment method update. */
 export async function createCustomerPortalSession(
   env: Env,
-  params: { customerId: string; returnUrl: string }
+  params: {
+    customerId: string;
+    returnUrl: string;
+    flow?: "payment_method_update";
+  }
 ): Promise<string> {
-  return createBillingPortalSession(env, params);
+  return createBillingPortalSession(env, {
+    ...params,
+    flow: params.flow ?? "payment_method_update",
+  });
 }
 
 const WEBHOOK_TOLERANCE_SECONDS = 300;

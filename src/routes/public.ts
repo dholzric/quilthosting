@@ -1060,6 +1060,15 @@ publicRoutes.post("/:slug/forms/:formSlug", async (c) => {
       now
     )
     .run();
+  try {
+    const { emitTenantEvent } = await import("../lib/outboundWebhooks");
+    await emitTenantEvent(c.env, tenant.id, "form.response", {
+      form_id: form.id,
+      response_id: id,
+      email: email || null,
+      answers: validated.answers,
+    });
+  } catch { /* optional */ }
   return c.json({ ok: true, id }, 201);
 });
 
