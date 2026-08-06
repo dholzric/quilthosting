@@ -1,9 +1,10 @@
 import { Hono } from "hono";
-import type { Env, Member, MembershipLevel, Event } from "../types";
+import type { Env, Member, MembershipLevel, Event, Plan } from "../types";
 import { all, first } from "../lib/db";
 import { extractBearer, verifyJwt } from "../lib/auth";
 import { createCheckoutSession } from "../lib/stripe";
 import { activateMembership, portalUrl } from "../lib/memberships";
+import { assertCanActivateMember } from "../lib/plans";
 
 export const portalRoutes = new Hono<{ Bindings: Env }>();
 
@@ -204,8 +205,30 @@ portalRoutes.post("/:slug/renew", async (c) => {
   );
   if (!level) return c.json({ error: "Level not found" }, 404);
 
+  // Need full tenant for stripe_account_id + plan
+  const fullTenant = await first<{
+    id: string;
+    slug: string;
+    name: string;
+    plan: Plan;
+    stripe_account_id: string | null;
+  }>(
+    c.env.DB.prepare(
+      "SELECT id, slug, name, plan, stripe_account_id FROM tenants WHERE id = ?"
+    ).bind(tenant.id)
+  );
+  if (!fullTenant) return c.json({ error: "Guild not found" }, 404);
+
   if (level.price_cents === 0) {
     const now = new Date().toISOString();
+    try {
+      await assertCanActivateMember(c.env.DB, fullTenant, member.id);
+    } catch (e: any) {
+      return c.json(
+        { error: e.message || "Plan limit reached", code: e.code || "plan_limit" },
+        e.status || 402
+      );
+    }
     const membershipId = await activateMembership(c.env.DB, {
       tenantId: tenant.id,
       memberId: member.id,
@@ -218,6 +241,15 @@ portalRoutes.post("/:slug/renew", async (c) => {
 
   if (!c.env.STRIPE_SECRET_KEY) {
     return c.json({ error: "Payments not configured" }, 503);
+  }
+
+  try {
+    await assertCanActivateMember(c.env.DB, fullTenant, member.id);
+  } catch (e: any) {
+    return c.json(
+      { error: e.message || "Plan limit reached", code: e.code || "plan_limit" },
+      e.status || 402
+    );
   }
 
   const session = await createCheckoutSession(c.env, {
@@ -234,6 +266,7 @@ portalRoutes.post("/:slug/renew", async (c) => {
     cancelUrl: portalUrl(c.env.APP_URL, tenant.slug, { cancelled: "1" }),
     mode: level.renewal_type === "auto" ? "subscription" : "payment",
     interval: level.duration_months >= 12 ? "year" : "month",
+    stripeAccountId: fullTenant.stripe_account_id,
   });
 
   return c.json({

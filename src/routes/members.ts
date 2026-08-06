@@ -3,6 +3,12 @@ import type { Env, Member, MembershipLevel, TenantVariables } from "../types";
 import { generateId } from "../lib/utils/id";
 import { all, first } from "../lib/db";
 import { activateMembership } from "../lib/memberships";
+import {
+  assertCanActivateMember,
+  countActiveMembers,
+  FREE_ACTIVE_MEMBER_LIMIT,
+  isPaidPlan,
+} from "../lib/plans";
 
 export const memberRoutes = new Hono<{
   Bindings: Env;
@@ -51,6 +57,20 @@ memberRoutes.post("/", async (c) => {
   if (existing) {
     return c.json({ error: "Member with this email already exists" }, 409);
   }
+  const status = body.status ?? "pending";
+  if (status === "active") {
+    try {
+      await assertCanActivateMember(c.env.DB, tenant, null);
+    } catch (e: any) {
+      return c.json(
+        {
+          error: e.message || "Plan limit reached",
+          code: e.code || "plan_limit",
+        },
+        e.status || 402
+      );
+    }
+  }
   const id = generateId();
   const now = new Date().toISOString();
   await c.env.DB.prepare(
@@ -65,7 +85,7 @@ memberRoutes.post("/", async (c) => {
       body.first_name ?? null,
       body.last_name ?? null,
       body.phone ?? null,
-      body.status ?? "pending",
+      status,
       now,
       now,
       now
@@ -199,6 +219,15 @@ memberRoutes.post("/:memberId/memberships", async (c) => {
   );
   if (!level) return c.json({ error: "Level not found" }, 404);
 
+  try {
+    await assertCanActivateMember(c.env.DB, tenant, memberId);
+  } catch (e: any) {
+    return c.json(
+      { error: e.message || "Plan limit reached", code: e.code || "plan_limit" },
+      e.status || 402
+    );
+  }
+
   const now = new Date().toISOString();
   const amount =
     body.amount_paid_cents !== undefined
@@ -291,6 +320,19 @@ memberRoutes.patch("/:memberId", async (c) => {
 
   if (body.status && !MEMBER_STATUSES.includes(body.status)) {
     return c.json({ error: "Invalid status" }, 400);
+  }
+  if (body.status === "active" && existing.status !== "active") {
+    try {
+      await assertCanActivateMember(c.env.DB, tenant, memberId);
+    } catch (e: any) {
+      return c.json(
+        {
+          error: e.message || "Plan limit reached",
+          code: e.code || "plan_limit",
+        },
+        e.status || 402
+      );
+    }
   }
   if (body.email !== undefined) {
     const email = body.email.toLowerCase().trim();
@@ -387,11 +429,19 @@ memberRoutes.post("/import", async (c) => {
     levels.map((l) => [l.name.toLowerCase().trim(), l])
   );
 
+  // Free plan: stop assigning new actives once the limit would be exceeded
+  let activeSlotsLeft: number | null = null;
+  if (!isPaidPlan(tenant.plan)) {
+    const active = await countActiveMembers(c.env.DB, tenant.id);
+    activeSlotsLeft = Math.max(0, FREE_ACTIVE_MEMBER_LIMIT - active);
+  }
+
   const now = new Date().toISOString();
   let created = 0,
     updated = 0,
     skipped = 0,
-    membershipsAssigned = 0;
+    membershipsAssigned = 0,
+    planLimited = 0;
   const stmts: D1PreparedStatement[] = [];
   const seen = new Set<string>();
   // After batch inserts, assign memberships (need member ids)
@@ -424,6 +474,31 @@ memberRoutes.post("/import", async (c) => {
       if (!Number.isNaN(d.getTime())) endDate = d.toISOString();
     }
 
+    // Cap free-plan actives when importing status=active without a level
+    let importStatus = level ? "pending" : status;
+    if (
+      !level &&
+      importStatus === "active" &&
+      activeSlotsLeft != null
+    ) {
+      if (activeSlotsLeft <= 0) {
+        importStatus = "pending";
+        planLimited++;
+      } else {
+        const existingId = byEmail.get(email);
+        let wasActive = false;
+        if (existingId) {
+          const cur = await first<{ status: string }>(
+            c.env.DB.prepare("SELECT status FROM members WHERE id = ?").bind(
+              existingId
+            )
+          );
+          wasActive = cur?.status === "active";
+        }
+        if (!wasActive) activeSlotsLeft--;
+      }
+    }
+
     let memberId = byEmail.get(email);
     if (memberId) {
       stmts.push(
@@ -439,7 +514,7 @@ memberRoutes.post("/import", async (c) => {
           row.phone || null,
           row.notes || null,
           // Only force status when no level will set active via membership
-          level ? null : status,
+          level ? null : importStatus,
           now,
           memberId
         )
@@ -460,7 +535,7 @@ memberRoutes.post("/import", async (c) => {
           row.last_name || null,
           row.phone || null,
           row.notes || null,
-          level ? "pending" : status, // activateMembership flips to active when level set
+          importStatus, // activateMembership flips to active when level set
           row.joined_at || now,
           now,
           now
@@ -470,6 +545,21 @@ memberRoutes.post("/import", async (c) => {
     }
 
     if (level && memberId) {
+      if (activeSlotsLeft != null) {
+        // Count only members who aren't already active toward the free limit
+        const alreadyActive = await first<{ status: string }>(
+          c.env.DB.prepare(
+            "SELECT status FROM members WHERE id = ?"
+          ).bind(memberId)
+        );
+        if (alreadyActive?.status !== "active") {
+          if (activeSlotsLeft <= 0) {
+            planLimited++;
+            continue;
+          }
+          activeSlotsLeft--;
+        }
+      }
       pendingMemberships.push({
         memberId,
         level,
@@ -507,5 +597,6 @@ memberRoutes.post("/import", async (c) => {
     updated,
     skipped,
     memberships_assigned: membershipsAssigned,
+    plan_limited: planLimited,
   });
 });

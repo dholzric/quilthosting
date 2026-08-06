@@ -46,6 +46,9 @@ Single Worker entry point `src/index.ts` exports `fetch` (Hono app) and `schedul
 
 - Env vars: `ENVIRONMENT`, `APP_URL` in `wrangler.toml` `[vars]` (production `APP_URL` = https://quilthosting.com).
 - Secrets (never in the repo): `JWT_SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `RESEND_API_KEY`, `SITE_ACCESS_PASSWORD`. Locally in `.dev.vars` (gitignored); production via `wrangler secret put`.
+Optional vars: `STRIPE_PLATFORM_FEE_BPS` (Connect application fee in basis points; default 0), `STRIPE_GUILD_PRICE_ID` (Stripe Price for $24 Guild plan; else ad-hoc price_data).
+
+**Billing:** Free plan ≤30 active members (`src/lib/plans.ts`). Guild plan = `plan=starter` via platform Stripe subscription. Guild payouts use Stripe Connect Express (`tenants.stripe_account_id`); Checkout uses destination charges when connected.
 - **Site gate (stealth mode):** `src/middleware/siteGate.ts` password-gates the entire site behind a signed cookie — the product is not public yet and must stay invisible to competitors. Exempt: `/api/webhooks/*` (Stripe signature-verified), `/robots.txt` (deny-all), OPTIONS. Fails closed in production if `SITE_ACCESS_PASSWORD` is unset; open in `ENVIRONMENT=development` without it. Do not remove without asking. Assets use `run_worker_first` so the gate covers the HTML UIs too.
 - After changing bindings in `wrangler.toml`, run `npm run cf-typegen`.
 

@@ -660,7 +660,8 @@
           body: JSON.stringify({ rows: payload }),
         });
         const mem = r.memberships_assigned ? `, ${r.memberships_assigned} memberships assigned` : "";
-        out.textContent = `Imported: ${r.created} new, ${r.updated} updated, ${r.skipped} skipped${mem}.`;
+        const lim = r.plan_limited ? `, ${r.plan_limited} held at free-plan limit` : "";
+        out.textContent = `Imported: ${r.created} new, ${r.updated} updated, ${r.skipped} skipped${mem}${lim}.`;
         setTimeout(() => navigate("members"), 1200);
       } catch (e) {
         out.textContent = e.message;
@@ -1268,6 +1269,12 @@
           <button onclick="saveTenantName()" style="margin-top:0.5rem">Save</button>
           <span id="set-saved" class="hidden" style="color:var(--success);margin-left:0.5rem">Saved ✓</span>
         </div>
+        <div class="card" id="billing-card">
+          <h3 style="margin-bottom:0.75rem">Billing &amp; payouts</h3>
+          <p class="muted" style="font-size:0.85rem;margin-bottom:0.75rem">Connect your guild's bank account so dues, events, and donations land with you — not QuiltHosting. Upgrade for unlimited active members.</p>
+          <div id="billing-status" style="font-size:0.9rem">Loading…</div>
+          <div class="row" style="margin-top:0.75rem;flex-wrap:wrap;gap:0.5rem" id="billing-actions"></div>
+        </div>
         <div class="card">
           <h3 style="margin-bottom:0.75rem">Public profile</h3>
           <p style="color:var(--muted);font-size:0.85rem;margin-bottom:0.5rem">Shown on your public guild page.</p>
@@ -1325,6 +1332,81 @@
         </div>
       `;
       renderCustomFieldList();
+      loadBilling();
+    }
+    async function loadBilling() {
+      const box = document.getElementById("billing-status");
+      const actions = document.getElementById("billing-actions");
+      if (!box || !actions) return;
+      try {
+        const b = await api(`/api/tenants/${tenantId}/billing`);
+        const limitTxt = b.active_member_limit == null
+          ? "unlimited active members"
+          : `${b.active_members} / ${b.active_member_limit} active members`;
+        const connect = b.connect || {};
+        let payout = "Not connected";
+        if (connect.charges_enabled && connect.payouts_enabled) {
+          payout = "Ready — payouts enabled";
+        } else if (connect.account_id && connect.details_submitted) {
+          payout = "Onboarding submitted — awaiting Stripe verification";
+        } else if (connect.account_id) {
+          payout = "Onboarding started — finish setup in Stripe";
+        }
+        const modeNote = b.payments_mode === "connected"
+          ? "Member payments go to your connected Stripe account."
+          : "Until Connect is ready, card payments use the platform Stripe account (sandbox/testing).";
+        box.innerHTML = `
+          <p><strong>Plan:</strong> ${esc(b.plan_label)} · ${esc(limitTxt)}
+            ${b.at_limit ? ' <span class="badge" style="background:#fde8e8;color:#9b2226">At free limit</span>' : ""}</p>
+          <p style="margin-top:0.35rem"><strong>Payouts:</strong> ${esc(payout)}</p>
+          <p class="muted" style="margin-top:0.35rem;font-size:0.8rem">${esc(modeNote)}</p>
+          <p class="muted" style="margin-top:0.35rem;font-size:0.8rem">Guild plan: $${(b.guild_price_cents / 100).toFixed(0)}/month · cancel anytime</p>
+        `;
+        actions.replaceChildren();
+        const btn = (label, fn, secondary) => {
+          const el = document.createElement("button");
+          if (secondary) el.className = "secondary";
+          el.textContent = label;
+          el.onclick = fn;
+          actions.appendChild(el);
+        };
+        if (!connect.charges_enabled) {
+          btn(connect.account_id ? "Continue Stripe setup" : "Connect bank account (Stripe)", connectStripe);
+        } else {
+          btn("Open Stripe Express dashboard", openStripeDashboard, true);
+        }
+        if (b.plan === "free") {
+          btn(`Upgrade to Guild ($${(b.guild_price_cents / 100).toFixed(0)}/mo)`, upgradePlan);
+        } else if (b.stripe_customer_id) {
+          btn("Manage subscription", openBillingPortal, true);
+        }
+      } catch (e) {
+        box.textContent = e.message || "Could not load billing";
+      }
+    }
+    async function connectStripe() {
+      try {
+        const r = await api(`/api/tenants/${tenantId}/billing/connect`, { method: "POST" });
+        if (r.url) location.href = r.url;
+      } catch (e) { alert(e.message); }
+    }
+    async function openStripeDashboard() {
+      try {
+        const r = await api(`/api/tenants/${tenantId}/billing/connect/dashboard`, { method: "POST" });
+        if (r.url) window.open(r.url, "_blank");
+      } catch (e) { alert(e.message); }
+    }
+    async function upgradePlan() {
+      try {
+        const r = await api(`/api/tenants/${tenantId}/billing/upgrade`, { method: "POST" });
+        if (r.checkout_url) location.href = r.checkout_url;
+      } catch (e) { alert(e.message); }
+    }
+    async function openBillingPortal() {
+      try {
+        const r = await api(`/api/tenants/${tenantId}/billing/portal`, { method: "POST" });
+        if (r.url) location.href = r.url;
+      } catch (e) { alert(e.message); }
     }
     async function saveTenantName() {
       const name = document.getElementById("set-name").value.trim();

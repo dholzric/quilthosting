@@ -6,6 +6,7 @@ import { createCheckoutSession } from "../lib/stripe";
 import { sendEmail, welcomeEmail, eventConfirmationEmail } from "../lib/email";
 import { formatMoney } from "../lib/utils/money";
 import { activateMembership, portalUrl } from "../lib/memberships";
+import { assertCanActivateMember } from "../lib/plans";
 
 export const publicRoutes = new Hono<{ Bindings: Env }>();
 
@@ -185,6 +186,14 @@ publicRoutes.post("/:slug/join", async (c) => {
 
   // Free membership — activate immediately
   if (level.price_cents === 0) {
+    try {
+      await assertCanActivateMember(c.env.DB, tenant, member.id);
+    } catch (e: any) {
+      return c.json(
+        { error: e.message || "Plan limit reached", code: e.code || "plan_limit" },
+        e.status || 402
+      );
+    }
     const membershipId = await activateMembership(c.env.DB, {
       tenantId: tenant.id,
       memberId: member.id,
@@ -208,11 +217,20 @@ publicRoutes.post("/:slug/join", async (c) => {
     });
   }
 
-  // Paid — Stripe Checkout
+  // Paid — Stripe Checkout (Connect destination when guild has linked account)
   if (!c.env.STRIPE_SECRET_KEY) {
     return c.json(
       { error: "Payments not configured. Set STRIPE_SECRET_KEY." },
       503
+    );
+  }
+
+  try {
+    await assertCanActivateMember(c.env.DB, tenant, member.id);
+  } catch (e: any) {
+    return c.json(
+      { error: e.message || "Plan limit reached", code: e.code || "plan_limit" },
+      e.status || 402
     );
   }
 
@@ -232,6 +250,7 @@ publicRoutes.post("/:slug/join", async (c) => {
     cancelUrl: `${baseUrl}/g/${tenant.slug}?cancelled=1`,
     mode: level.renewal_type === "auto" ? "subscription" : "payment",
     interval: level.duration_months >= 12 ? "year" : "month",
+    stripeAccountId: tenant.stripe_account_id,
   });
 
   return c.json({
@@ -432,6 +451,7 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
       successUrl: `${baseUrl}/g/${tenant.slug}?registered=1`,
       cancelUrl: `${baseUrl}/g/${tenant.slug}?cancelled=1`,
       mode: "payment",
+      stripeAccountId: tenant.stripe_account_id,
     });
   } catch (err) {
     await c.env.DB.prepare(
@@ -513,6 +533,7 @@ publicRoutes.post("/:slug/donate", async (c) => {
       successUrl: `${baseUrl}/g/${tenant.slug}?donated=1`,
       cancelUrl: `${baseUrl}/g/${tenant.slug}?cancelled=1`,
       mode: "payment",
+      stripeAccountId: tenant.stripe_account_id,
     });
   } catch (err) {
     console.error("Donation checkout failed", err);

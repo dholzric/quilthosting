@@ -11,6 +11,10 @@ export type Env = {
   GOOGLE_AUTH_REQUIRED?: string;
   STRIPE_SECRET_KEY: string;
   STRIPE_WEBHOOK_SECRET: string;
+  /** Optional: basis points platform fee on Connect destination charges (0 = no fee). */
+  STRIPE_PLATFORM_FEE_BPS?: string;
+  /** Optional: pre-created Stripe Price id for Guild plan; else ad-hoc $24/mo. */
+  STRIPE_GUILD_PRICE_ID?: string;
   RESEND_API_KEY: string;
   JWT_SECRET: string;
   ENVIRONMENT: string;
@@ -31,6 +35,9 @@ export interface Tenant {
   slug: string;
   custom_domain: string | null;
   stripe_account_id: string | null;
+  /** Platform billing (guild pays QuiltHosting) */
+  stripe_customer_id?: string | null;
+  stripe_subscription_id?: string | null;
   plan: Plan;
   status: string;
   settings_json: string;

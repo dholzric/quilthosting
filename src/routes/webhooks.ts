@@ -56,6 +56,29 @@ webhookRoutes.post("/stripe", async (c) => {
     const memberId = meta.member_id as string | undefined;
     const relatedId = meta.related_id as string | undefined;
     const paymentType = meta.type as string | undefined;
+    const now = new Date().toISOString();
+
+    // Platform billing: guild pays QuiltHosting (not member dues)
+    if (paymentType === "platform" && tenantId) {
+      const customerId =
+        (typeof session.customer === "string" && session.customer) || null;
+      const subId =
+        (typeof session.subscription === "string" && session.subscription) ||
+        null;
+      const plan = (meta.plan as string) || "starter";
+      await c.env.DB.prepare(
+        `UPDATE tenants SET
+           plan = ?,
+           stripe_customer_id = coalesce(?, stripe_customer_id),
+           stripe_subscription_id = coalesce(?, stripe_subscription_id),
+           updated_at = ?
+         WHERE id = ?`
+      )
+        .bind(plan === "pro" ? "pro" : "starter", customerId, subId, now, tenantId)
+        .run();
+      console.log("Platform plan activated", { tenantId, plan, subId });
+      return c.json({ received: true });
+    }
 
     // member_id is optional: non-member event registrations have none
     if (!tenantId || (paymentType === "dues" && !memberId)) {
@@ -78,8 +101,6 @@ webhookRoutes.post("/stripe", async (c) => {
     ) {
       return c.json({ received: true });
     }
-
-    const now = new Date().toISOString();
 
     const paymentId = generateId();
     await c.env.DB.prepare(
@@ -204,7 +225,50 @@ webhookRoutes.post("/stripe", async (c) => {
     }
   }
 
-  // Subscription renewals (and first invoice if checkout webhook was missed)
+  // Platform subscription ended (cancel / payment failure end)
+  if (
+    type === "customer.subscription.deleted" ||
+    type === "customer.subscription.updated"
+  ) {
+    const sub = data;
+    const subId = sub?.id as string | undefined;
+    const meta = sub?.metadata || {};
+    const tenantId = meta.tenant_id as string | undefined;
+    const now = new Date().toISOString();
+
+    if (meta.type === "platform" && tenantId) {
+      if (type === "customer.subscription.deleted" || sub.status === "canceled") {
+        await c.env.DB.prepare(
+          `UPDATE tenants SET plan = 'free', stripe_subscription_id = null, updated_at = ?
+           WHERE id = ?`
+        )
+          .bind(now, tenantId)
+          .run();
+        console.log("Platform plan cancelled", tenantId);
+      } else if (sub.status === "active" || sub.status === "trialing") {
+        await c.env.DB.prepare(
+          `UPDATE tenants SET plan = 'starter', stripe_subscription_id = ?, updated_at = ?
+           WHERE id = ?`
+        )
+          .bind(subId, now, tenantId)
+          .run();
+      }
+      return c.json({ received: true });
+    }
+  }
+
+  // Account.updated — keep stripe_account_id; status is read live from Stripe in billing API
+  if (type === "account.updated") {
+    const acctId = data?.id as string | undefined;
+    if (acctId) {
+      console.log("Connect account.updated", acctId, {
+        charges: data.charges_enabled,
+        payouts: data.payouts_enabled,
+      });
+    }
+  }
+
+  // Subscription renewals (member dues) — and first invoice if checkout webhook was missed
   if (type === "invoice.paid") {
     const invoice = data;
     const invoiceId = invoice?.id as string | undefined;
@@ -214,6 +278,39 @@ webhookRoutes.post("/stripe", async (c) => {
     const billingReason = invoice?.billing_reason as string | undefined;
     const amountPaid = Number(invoice?.amount_paid || 0);
     const now = new Date().toISOString();
+    const invMeta = invoice?.subscription_details?.metadata || invoice?.metadata || {};
+
+    // Platform plan invoice — keep plan active; no member payment row
+    if (invMeta.type === "platform" || invoice?.lines?.data?.[0]?.metadata?.type === "platform") {
+      const tenantId = (invMeta.tenant_id ||
+        invoice?.lines?.data?.[0]?.metadata?.tenant_id) as string | undefined;
+      if (tenantId && subscriptionId) {
+        await c.env.DB.prepare(
+          `UPDATE tenants SET plan = 'starter', stripe_subscription_id = ?, updated_at = ?
+           WHERE id = ?`
+        )
+          .bind(subscriptionId, now, tenantId)
+          .run();
+      }
+      return c.json({ received: true });
+    }
+
+    // Also match platform by tenant stripe_subscription_id
+    if (subscriptionId) {
+      const platformTenant = await first<{ id: string }>(
+        c.env.DB.prepare(
+          "SELECT id FROM tenants WHERE stripe_subscription_id = ?"
+        ).bind(subscriptionId)
+      );
+      if (platformTenant) {
+        await c.env.DB.prepare(
+          `UPDATE tenants SET plan = 'starter', updated_at = ? WHERE id = ?`
+        )
+          .bind(now, platformTenant.id)
+          .run();
+        return c.json({ received: true });
+      }
+    }
 
     if (!invoiceId) {
       return c.json({ received: true });
