@@ -16,7 +16,9 @@
       "infoPlist": {
         "CFBundleURLTypes": [
           {
-            "CFBundleURLSchemes": ["quilthosting"]
+            "CFBundleURLSchemes": [
+              "quilthosting"
+            ]
           }
         ]
       }
@@ -29,12 +31,23 @@
       "intentFilters": [
         {
           "action": "VIEW",
-          "data": [{ "scheme": "quilthosting" }],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "data": [
+            {
+              "scheme": "quilthosting"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
-    "plugins": ["expo-router", "expo-secure-store"],
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-asset"
+    ],
     "extra": {
       "apiUrl": "https://quilthosting.com",
       "eas": {
