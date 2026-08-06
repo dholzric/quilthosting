@@ -81,16 +81,6 @@ app.use("*", async (c, next) => {
   const tenant = await getTenantByHost(c.env.DB, host, c.env.APP_URL);
   if (!tenant) return next();
 
-  // Canonical public site at /
-  if (path === "/" || path === "") {
-    const url = new URL(c.req.url);
-    url.pathname = "/guild";
-    return c.env.ASSETS.fetch(new Request(url.toString(), c.req.raw));
-  }
-  // /g/:anything on custom host → home
-  if (path.startsWith("/g/")) {
-    return c.redirect("/", 302);
-  }
   // Portal: ensure slug query so portal.js finds the tenant
   if (path === "/portal" || path === "/portal.html") {
     const url = new URL(c.req.url);
@@ -98,8 +88,35 @@ app.use("*", async (c, next) => {
       url.searchParams.set("slug", tenant.slug);
       return c.redirect(url.pathname + url.search + url.hash, 302);
     }
+    return next();
   }
-  return next();
+  // Known platform/admin paths on a tenant host → leave alone
+  if (
+    path.startsWith("/admin") ||
+    path.startsWith("/docs") ||
+    path.startsWith("/embed") ||
+    path === "/privacy" ||
+    path === "/terms" ||
+    path === "/qh.css" ||
+    path === "/guild" ||
+    path === "/guild.html" ||
+    path === "/sw.js" ||
+    path === "/manifest.webmanifest" ||
+    path === "/icon.svg" ||
+    path.startsWith("/assets")
+  ) {
+    return next();
+  }
+  // /g/* on custom host → strip and use site-root paths
+  if (path.startsWith("/g/")) {
+    return c.redirect("/" + path.split("/").slice(3).join("/"), 302);
+  }
+  // Any other path on a tenant host is the public guild multi-page site
+  {
+    const url = new URL(c.req.url);
+    url.pathname = "/guild";
+    return c.env.ASSETS.fetch(new Request(url.toString(), c.req.raw));
+  }
 });
 
 // Landing page for browsers on the platform host; JSON status for API clients
@@ -142,10 +159,15 @@ app.get("/auth/verify", async (c) => {
   return c.redirect(dest);
 });
 
-// Public guild page: /g/:slug — static shell reads the slug client-side
+// Public guild multi-page site: /g/:slug and /g/:slug/:pageSlug…
 app.get("/g/:slug", (c) => {
   const url = new URL(c.req.url);
-  url.pathname = "/guild"; // canonical asset path for guild.html
+  url.pathname = "/guild";
+  return c.env.ASSETS.fetch(new Request(url.toString(), c.req.raw));
+});
+app.get("/g/:slug/*", (c) => {
+  const url = new URL(c.req.url);
+  url.pathname = "/guild";
   return c.env.ASSETS.fetch(new Request(url.toString(), c.req.raw));
 });
 
