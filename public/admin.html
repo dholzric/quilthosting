@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>QuiltHosting Admin</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23b5501f'/%3E%3Ctext x='32' y='44' font-size='36' text-anchor='middle' fill='%23faf7f2'%3E%E2%9C%A6%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="/qh.css" />
   <style>
     /* Aliases for legacy inline styles in page scripts */
@@ -45,6 +46,9 @@
     <h1>Your Guilds</h1>
     <div id="guild-error" class="error hidden"></div>
     <div id="guild-list"></div>
+    <p id="guild-create-toggle" class="hidden" style="margin:0.75rem 0 0">
+      <a href="#" onclick="show(document.getElementById('guild-create'));hide(document.getElementById('guild-create-toggle'));return false" style="font-size:0.9rem">+ Create a new guild</a>
+    </p>
     <div id="guild-create">
       <p style="margin:0.75rem 0;color:var(--muted);font-size:0.9rem" id="guild-create-intro">
         Create a guild to get started.
@@ -167,8 +171,16 @@
         listEl.appendChild(btn);
       }
       document.getElementById("guild-create-intro").textContent = guilds.length
-        ? "Or create another guild:"
+        ? "Create another guild:"
         : "Create a guild to get started.";
+      // Existing guilds: pick is the main action, creation tucked behind a link
+      if (guilds.length) {
+        hide(document.getElementById("guild-create"));
+        show(document.getElementById("guild-create-toggle"));
+      } else {
+        show(document.getElementById("guild-create"));
+        hide(document.getElementById("guild-create-toggle"));
+      }
       show(document.getElementById("guild-view"));
     }
 
@@ -837,7 +849,11 @@
     }
 
     async function renderComms(el) {
-      const log = await api(`/api/tenants/${tenantId}/emails`);
+      const [log, blasts] = await Promise.all([
+        api(`/api/tenants/${tenantId}/emails`),
+        api(`/api/tenants/${tenantId}/emails/blasts`),
+      ]);
+      window._blasts = blasts;
       el.innerHTML = `
         <h2>Email</h2>
         <div class="card">
@@ -862,6 +878,32 @@
           <span id="c-result" style="margin-left:0.75rem;color:var(--muted)"></span>
         </div>
         <div class="card">
+          <h3 style="margin-bottom:0.75rem">Past newsletters &amp; announcements</h3>
+          ${blasts.length === 0 ? "<p style='color:var(--muted)'>Nothing sent yet — sent emails are archived here and readable online by members.</p>" : `
+            <table>
+              <thead><tr><th>Sent</th><th>Subject</th><th>To</th><th>Delivered</th><th></th></tr></thead>
+              <tbody>
+                ${blasts.map((b) => `
+                  <tr>
+                    <td>${new Date(b.created_at).toLocaleDateString()}</td>
+                    <td>${esc(b.subject)}</td>
+                    <td>${esc(b.segment)}</td>
+                    <td>${b.sent_count}/${b.recipients}</td>
+                    <td><button class="secondary" onclick='viewBlast(${JSON.stringify(b.id)})'>View</button></td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          `}
+          <div id="blast-preview" class="hidden" style="margin-top:1rem;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+            <div style="display:flex;justify-content:space-between;align-items:center;background:var(--surface-2);padding:0.5rem 0.9rem">
+              <strong id="blast-preview-title" style="font-size:0.9rem"></strong>
+              <button class="secondary" onclick="hide(document.getElementById('blast-preview'))">Close</button>
+            </div>
+            <iframe id="blast-frame" sandbox="" style="width:100%;height:420px;border:none;background:#fff"></iframe>
+          </div>
+        </div>
+        <div class="card">
           <h3 style="margin-bottom:0.75rem">Recent emails</h3>
           ${log.length === 0 ? "<p style='color:var(--muted)'>Nothing sent yet</p>" : `
             <table>
@@ -880,6 +922,14 @@
           `}
         </div>
       `;
+    }
+    function viewBlast(id) {
+      const b = (window._blasts || []).find((x) => x.id === id);
+      if (!b) return;
+      document.getElementById("blast-preview-title").textContent = b.subject;
+      document.getElementById("blast-frame").srcdoc = b.body_html;
+      show(document.getElementById("blast-preview"));
+      document.getElementById("blast-preview").scrollIntoView({ behavior: "smooth" });
     }
     async function sendBlast() {
       const subject = document.getElementById("c-subject").value.trim();

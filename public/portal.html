@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Member Portal – QuiltHosting</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23b5501f'/%3E%3Ctext x='32' y='44' font-size='36' text-anchor='middle' fill='%23faf7f2'%3E%E2%9C%A6%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="/qh.css" />
   <style>
     :root {
@@ -23,6 +24,7 @@
       <h1><a href="/" style="color:inherit;text-decoration:none" title="QuiltHosting home"><span style="color:var(--gold)">✦</span></a> <span id="guild-title">Member Portal</span></h1>
       <div class="row" style="justify-content:flex-end">
         <span id="user-email" style="color:#a89a83;font-size:0.85rem"></span>
+        <a href="#" id="switch-guild-btn" class="hidden" onclick="switchGuild();return false">Switch guild</a>
         <a href="#" id="logout-btn" class="hidden">Sign out</a>
       </div>
     </div>
@@ -156,6 +158,11 @@
       }
     }
 
+    function switchGuild() {
+      localStorage.removeItem("gb_portal_slug");
+      location.href = "/portal";
+    }
+
     document.getElementById("logout-btn").addEventListener("click", (e) => {
       e.preventDefault();
       localStorage.removeItem("gb_token");
@@ -194,9 +201,55 @@
       const el = document.getElementById("tab-documents");
       el.replaceChildren(elBuild("p", "muted", "Loading…"));
       try {
-        const files = await api(`/api/portal/${slug}/files`);
-        if (!files.length) { el.replaceChildren(elBuild("p", "muted", "No documents shared yet.")); return; }
+        const [files, newsletters] = await Promise.all([
+          api(`/api/portal/${slug}/files`),
+          api(`/api/portal/${slug}/newsletters`).catch(() => []),
+        ]);
+        el.replaceChildren();
+
+        // Newsletters, readable online
+        if (newsletters.length) {
+          const nCard = elBuild("div", "card");
+          nCard.appendChild(elBuild("h3", "", "Newsletters"));
+          for (const n of newsletters) {
+            const row = elBuild("div");
+            row.style.cssText = "display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:0.55rem 0;border-bottom:1px solid var(--border)";
+            const left = elBuild("div");
+            left.appendChild(elBuild("strong", "", n.subject));
+            left.appendChild(elBuild("div", "muted", new Date(n.created_at).toLocaleDateString(undefined, { dateStyle: "long" })));
+            const btn = elBuild("button", "secondary", "Read");
+            btn.addEventListener("click", () => {
+              let frameWrap = row.nextElementSibling;
+              if (frameWrap && frameWrap.dataset.frameFor === n.id) {
+                frameWrap.remove();
+                btn.textContent = "Read";
+                return;
+              }
+              document.querySelectorAll("[data-frame-for]").forEach((x) => x.remove());
+              frameWrap = elBuild("div");
+              frameWrap.dataset.frameFor = n.id;
+              frameWrap.style.cssText = "border:1px solid var(--border);border-radius:8px;overflow:hidden;margin:0.5rem 0 0.75rem";
+              const frame = document.createElement("iframe");
+              frame.setAttribute("sandbox", "");
+              frame.srcdoc = n.body_html;
+              frame.style.cssText = "width:100%;height:420px;border:none;background:#fff";
+              frameWrap.appendChild(frame);
+              row.after(frameWrap);
+              btn.textContent = "Close";
+            });
+            row.append(left, btn);
+            nCard.appendChild(row);
+          }
+          el.appendChild(nCard);
+        }
+
+        if (!files.length && !newsletters.length) {
+          el.replaceChildren(elBuild("p", "muted", "No documents shared yet."));
+          return;
+        }
+        if (!files.length) return;
         const card = elBuild("div", "card");
+        card.appendChild(elBuild("h3", "", "Documents"));
         const table = elBuild("table");
         const thead = elBuild("thead");
         const hr = elBuild("tr");
@@ -216,7 +269,7 @@
         }
         table.append(thead, tbody);
         card.appendChild(table);
-        el.replaceChildren(card);
+        el.appendChild(card);
       } catch (e) {
         el.replaceChildren(elBuild("p", "muted", e.message));
       }
@@ -286,6 +339,7 @@
         hide(document.getElementById("login-view"));
         show(document.getElementById("portal-view"));
         show(document.getElementById("logout-btn"));
+        show(document.getElementById("switch-guild-btn"));
         document.getElementById("guild-title").textContent = data.tenant.name;
         document.getElementById("user-email").textContent = data.user?.email || "";
 
@@ -294,8 +348,11 @@
           home.innerHTML = `
             <div class="card">
               <h2>Welcome</h2>
-              <p>You're signed in but not yet a member of <strong>${esc(data.tenant.name)}</strong>.</p>
-              <p class="muted" style="margin-top:0.5rem">Ask the guild for a join link, or visit their public membership page.</p>
+              <p>You're signed in as <strong>${esc(data.user?.email || "")}</strong>, but you're not a member of <strong>${esc(data.tenant.name)}</strong> yet.</p>
+              <div class="row" style="margin-top:1rem;justify-content:flex-start">
+                <a class="btn" href="/g/${esc(slug)}">Join ${esc(data.tenant.name)}</a>
+                <button class="secondary" onclick="switchGuild()">Choose a different guild</button>
+              </div>
             </div>`;
           return;
         }
@@ -326,8 +383,27 @@
           location.reload();
           return;
         }
-        document.getElementById("login-error").textContent = e.message;
-        show(document.getElementById("login-error"));
+        // Signed in, but this guild doesn't work for them (wrong or missing
+        // web address, not a member, etc.) — never show the login form.
+        hide(document.getElementById("login-view"));
+        hide(document.getElementById("portal-view"));
+        show(document.getElementById("logout-btn"));
+        show(document.getElementById("switch-guild-btn"));
+        let box = document.getElementById("portal-problem");
+        if (!box) {
+          box = document.createElement("div");
+          box.id = "portal-problem";
+          box.className = "card";
+          document.querySelector(".wrap").appendChild(box);
+        }
+        box.innerHTML = `
+          <h2>Hmm, we couldn't open that guild</h2>
+          <p class="muted">${esc(e.message)} — the guild web address saved on this device may be wrong.</p>
+          <div class="row" style="margin-top:1rem;justify-content:flex-start">
+            <button onclick="switchGuild()">Choose your guild</button>
+            <button class="secondary" onclick="localStorage.removeItem('gb_token');location.reload()">Sign out</button>
+          </div>`;
+        box.classList.remove("hidden");
       }
     }
 

@@ -55,6 +55,7 @@ commsRoutes.post("/", async (c) => {
       .join("")}</div>`;
 
   const now = new Date().toISOString();
+  const blastId = generateId();
   let sent = 0;
   const errors: string[] = [];
 
@@ -92,14 +93,35 @@ commsRoutes.post("/", async (c) => {
     await c.env.DB.batch(logInserts);
   }
 
+  // Archive so members can read it online later
+  await c.env.DB.prepare(
+    `INSERT INTO blasts (id, tenant_id, subject, body_html, segment, recipients, sent_count, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  )
+    .bind(blastId, tenant.id, body.subject, html, segment, members.length, sent, now)
+    .run();
+
   return c.json({
     ok: true,
+    blast_id: blastId,
     segment,
     recipients: members.length,
     sent,
     failed: errors.length,
     errors: errors.slice(0, 5),
   });
+});
+
+// GET /api/tenants/:tenantId/emails/blasts — past newsletters/announcements
+commsRoutes.get("/blasts", async (c) => {
+  const tenant = c.get("tenant");
+  const rows = await all(
+    c.env.DB.prepare(
+      `SELECT id, subject, segment, recipients, sent_count, created_at, body_html
+       FROM blasts WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 100`
+    ).bind(tenant.id)
+  );
+  return c.json(rows);
 });
 
 // GET /api/tenants/:tenantId/emails — recent email log

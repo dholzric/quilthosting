@@ -422,3 +422,16 @@ portalRoutes.get("/guilds", async (c) => {
   );
   return c.json({ guilds: rows });
 });
+
+// GET /api/portal/:slug/newsletters — read past blasts online
+portalRoutes.get("/:slug/newsletters", async (c) => {
+  const ctx = await requireGuildMember(c, c.req.param("slug"));
+  if ("error" in ctx) return ctx.error;
+  const rows = await all<{ id: string; subject: string; created_at: string; body_html: string }>(
+    c.env.DB.prepare(
+      `SELECT id, subject, created_at, body_html FROM blasts
+       WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 50`
+    ).bind(ctx.tenant.id)
+  );
+  return c.json(rows);
+});

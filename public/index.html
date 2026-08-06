@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex, nofollow" />
   <title>QuiltHosting — Membership software for quilt guilds</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23b5501f'/%3E%3Ctext x='32' y='44' font-size='36' text-anchor='middle' fill='%23faf7f2'%3E%E2%9C%A6%3C/text%3E%3C/svg%3E" />
+  <meta name="description" content="Membership, dues, events, and renewals for quilt and craft guilds. Honest pricing, one-click refunds, and reports without spreadsheets." />
   <link rel="stylesheet" href="/qh.css" />
   <style>
     .site-header {
@@ -63,6 +65,52 @@
     }
     .feature h3 { margin-bottom: 0.35rem; }
     .feature p { color: var(--ink-2); font-size: 0.93rem; margin: 0; }
+
+    .how { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .how .inner { max-width: 1080px; margin: 0 auto; padding: 4rem 1.5rem; }
+    .how .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+    .step { position: relative; padding: 0 0.5rem; }
+    .step .num {
+      font-family: var(--font-display); font-size: 2.6rem; font-weight: 700;
+      color: var(--brand-soft); -webkit-text-stroke: 1.5px var(--brand); line-height: 1; margin-bottom: 0.6rem;
+    }
+    .step h3 { margin-bottom: 0.3rem; }
+    .step p { color: var(--ink-2); font-size: 0.93rem; }
+
+    .showcase { max-width: 1080px; margin: 0 auto; padding: 4rem 1.5rem; display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 3rem; align-items: center; }
+    .showcase.flip { direction: rtl; }
+    .showcase.flip > * { direction: ltr; }
+    .showcase h2 { font-size: 1.8rem; }
+    .showcase p { color: var(--ink-2); }
+    .showcase ul { padding-left: 1.2rem; color: var(--ink-2); margin: 0.75rem 0 0; }
+    .showcase li { margin-bottom: 0.4rem; }
+    @media (max-width: 860px) { .showcase { grid-template-columns: 1fr; } }
+
+    .pricing { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .pricing .inner { max-width: 1080px; margin: 0 auto; padding: 4rem 1.5rem; text-align: center; }
+    .plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.1rem; margin-top: 2.25rem; text-align: left; max-width: 920px; margin-left: auto; margin-right: auto; }
+    .plan { background: var(--paper); border: 1px solid var(--border); border-radius: var(--r-md); padding: 1.75rem 1.6rem; position: relative; }
+    .plan.featured { background: #fff; border-color: var(--brand); box-shadow: var(--shadow-md); }
+    .plan .flag {
+      position: absolute; top: -0.7rem; left: 1.25rem; background: var(--brand); color: #fff;
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+      padding: 0.2rem 0.6rem; border-radius: 999px;
+    }
+    .plan h3 { margin-bottom: 0.1rem; }
+    .plan .price { font-family: var(--font-display); font-size: 2rem; font-weight: 700; margin: 0.4rem 0 0.1rem; }
+    .plan .price span { font-family: var(--font-ui); font-size: 0.85rem; font-weight: 500; color: var(--ink-3); }
+    .plan ul { list-style: none; padding: 0; margin: 1rem 0 1.25rem; }
+    .plan li { padding: 0.3rem 0; color: var(--ink-2); font-size: 0.9rem; }
+    .plan li::before { content: "✓  "; color: var(--ok); font-weight: 700; }
+    .pricing .fineprint { color: var(--ink-3); font-size: 0.85rem; margin-top: 1.5rem; }
+
+    .faq { max-width: 720px; margin: 0 auto; padding: 4rem 1.5rem 2rem; }
+    .faq details {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md);
+      padding: 1rem 1.35rem; margin-bottom: 0.7rem;
+    }
+    .faq summary { font-weight: 600; cursor: pointer; color: var(--ink); }
+    .faq details p { color: var(--ink-2); margin: 0.75rem 0 0.25rem; font-size: 0.95rem; }
 
     .compare { max-width: 800px; margin: 0 auto; padding: 1rem 1.5rem 4.5rem; }
     .compare .card { padding: 2rem; }
@@ -188,6 +236,123 @@
         <p>Import your existing member list — including Wild Apricot exports — and keep every name, status, and note.</p>
       </div>
     </div>
+  </section>
+
+  <section class="how">
+    <div class="inner">
+      <h2 style="text-align:center">Up and running before your next meeting</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="num">1</div>
+          <h3>Create your guild</h3>
+          <p>Sign in with Google, name your guild, and set your membership levels and dues. No contracts, no sales call.</p>
+        </div>
+        <div class="step">
+          <div class="num">2</div>
+          <h3>Bring your members</h3>
+          <p>Import your existing list — Wild Apricot exports work as-is — or add members one at a time. Names, statuses, and notes come along.</p>
+        </div>
+        <div class="step">
+          <div class="num">3</div>
+          <h3>Share your page</h3>
+          <p>Every guild gets a public page where new members join, guests register for events, and supporters donate — payments included.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="showcase">
+    <div>
+      <h2>Your members get a portal they'll actually use</h2>
+      <p>No passwords to reset, no software to learn. Members click a link in their email and they're in.</p>
+      <ul>
+        <li>Renew their membership in two clicks</li>
+        <li>Register for workshops and shows at member pricing</li>
+        <li>Browse the member directory and guild documents</li>
+        <li>Read newsletters and update their own info</li>
+      </ul>
+    </div>
+    <div class="preview" aria-hidden="true" style="transform:rotate(-0.5deg)">
+      <div class="bar"><span></span><span></span><span></span></div>
+      <div class="body">
+        <div class="prow" style="border:none;font-weight:600;color:var(--ink)"><span>Cedar Valley Quilt Guild</span><span style="color:var(--ok)">Member through May 2027</span></div>
+        <div class="prow"><span>🎟 Fall Quilt Show &amp; Tell</span><span>Registered · QH-K4TB2N</span></div>
+        <div class="prow"><span>📄 October newsletter</span><span>Read online</span></div>
+        <div class="prow"><span>🧵 Member directory</span><span>148 members</span></div>
+        <div class="prow"><span>🧾 Dues receipt · 2026</span><span>$35.00</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="pricing" id="pricing">
+    <div class="inner">
+      <h2>Simple pricing, priced on <em style="color:var(--brand)">active members</em></h2>
+      <p class="muted" style="max-width:520px;margin:0.25rem auto 0">
+        Lapsed members, past contacts, and prospects never count against you. Every plan includes every feature.
+      </p>
+      <div class="plans">
+        <div class="plan">
+          <h3>Starter</h3>
+          <div class="price">Free</div>
+          <p class="muted">For small circles getting organized</p>
+          <ul>
+            <li>Up to 30 active members</li>
+            <li>All features included</li>
+            <li>Community support</li>
+          </ul>
+          <a class="btn secondary" href="/admin" style="width:100%">Start free</a>
+        </div>
+        <div class="plan featured">
+          <div class="flag">Early access</div>
+          <h3>Guild</h3>
+          <div class="price">$24<span> / month</span></div>
+          <p class="muted">For active guilds of any size</p>
+          <ul>
+            <li>Unlimited active members</li>
+            <li>All features included</li>
+            <li>Email support from real people</li>
+            <li>Free migration help</li>
+          </ul>
+          <a class="btn" href="/admin" style="width:100%">Start your guild</a>
+        </div>
+        <div class="plan">
+          <h3>Council</h3>
+          <div class="price">Let's talk</div>
+          <p class="muted">For state guilds &amp; multi-chapter organizations</p>
+          <ul>
+            <li>Multiple guilds, one roof</li>
+            <li>Consolidated reporting</li>
+            <li>Priority support</li>
+          </ul>
+          <a class="btn secondary" href="mailto:hello@quilthosting.com" style="width:100%">Contact us</a>
+        </div>
+      </div>
+      <p class="fineprint">Early-access pricing, locked in for founding guilds. Card processing fees are Stripe's standard rates — we don't add a markup.</p>
+    </div>
+  </section>
+
+  <section class="faq">
+    <h2 style="text-align:center">Questions guilds ask us</h2>
+    <details>
+      <summary>Can we move over from Wild Apricot?</summary>
+      <p>Yes — export your contacts from Wild Apricot as CSV and import them here. Names, emails, phones, statuses, and notes map automatically. Most guilds are done in an afternoon, and we'll help if you get stuck.</p>
+    </details>
+    <details>
+      <summary>How do payments work?</summary>
+      <p>Dues, event fees, and donations are paid by card through Stripe, the same processor used by millions of businesses. Money goes to your guild's account, and you can issue refunds yourself with one click.</p>
+    </details>
+    <details>
+      <summary>Our members aren't tech-savvy. Will they manage?</summary>
+      <p>That's exactly who we design for. Members never create a password — they click a sign-in link sent to their email. Joining and registering for events is a single short form.</p>
+    </details>
+    <details>
+      <summary>Who owns our member data?</summary>
+      <p>Your guild does. Export your full member list and payment history as CSV any time, no questions asked.</p>
+    </details>
+    <details>
+      <summary>What counts as an "active member" for pricing?</summary>
+      <p>Only members with a current membership. Lapsed members, cancelled memberships, guests, and event attendees don't count toward your plan — ever.</p>
+    </details>
   </section>
 
   <section class="compare">
