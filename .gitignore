@@ -12,7 +12,7 @@ dist/
 *.tgz
 *.zip
 
-# stray media drops
-*.jpg
-*.jpeg
-*.png.bak
+# stray media drops in repo root (public/ images are still tracked)
+/*.jpg
+/*.jpeg
+/*.png
