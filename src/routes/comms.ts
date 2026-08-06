@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import type { Env, Member, TenantVariables } from "../types";
-import { all } from "../lib/db";
+import { all, first } from "../lib/db";
 import { generateId } from "../lib/utils/id";
 import { sendEmail } from "../lib/email";
 
@@ -9,31 +9,51 @@ export const commsRoutes = new Hono<{
   Variables: TenantVariables;
 }>();
 
-const SEGMENTS = ["all", "active", "pending", "lapsed"] as const;
+const STATUS_SEGMENTS = ["all", "active", "pending", "lapsed"] as const;
 
-/**
- * POST /api/tenants/:tenantId/emails
- * Send an email blast to a member segment. Logged to email_logs.
- */
-commsRoutes.post("/", async (c) => {
-  const tenant = c.get("tenant");
-  const body = await c.req.json<{
-    subject: string;
-    body_html?: string;
-    body_text?: string;
-    segment?: (typeof SEGMENTS)[number];
-  }>();
+type Audience = {
+  label: string;
+  members: Pick<Member, "id" | "email" | "first_name">[];
+};
 
-  if (!body.subject || (!body.body_html && !body.body_text)) {
-    return c.json({ error: "subject and body are required" }, 400);
+async function resolveAudience(
+  db: D1Database,
+  tenantId: string,
+  segment: string
+): Promise<Audience | { error: string; status: number }> {
+  // group:<uuid>
+  if (segment.startsWith("group:")) {
+    const groupId = segment.slice("group:".length);
+    const group = await first<{ id: string; name: string }>(
+      db
+        .prepare(
+          "SELECT id, name FROM member_groups WHERE id = ? AND tenant_id = ?"
+        )
+        .bind(groupId, tenantId)
+    );
+    if (!group) return { error: "Group not found", status: 404 };
+
+    const members = await all<Pick<Member, "id" | "email" | "first_name">>(
+      db
+        .prepare(
+          `SELECT m.id, m.email, m.first_name
+           FROM member_group_members mgm
+           JOIN members m ON m.id = mgm.member_id
+           WHERE mgm.group_id = ? AND mgm.tenant_id = ?
+             AND m.status != 'cancelled'
+           ORDER BY m.email`
+        )
+        .bind(groupId, tenantId)
+    );
+    return { label: `group:${group.name}`, members };
   }
-  const segment = body.segment || "active";
-  if (!SEGMENTS.includes(segment)) {
-    return c.json({ error: "Invalid segment" }, 400);
+
+  if (!(STATUS_SEGMENTS as readonly string[]).includes(segment)) {
+    return { error: "Invalid segment", status: 400 };
   }
 
   let query = "SELECT id, email, first_name FROM members WHERE tenant_id = ?";
-  const params: any[] = [tenant.id];
+  const params: string[] = [tenantId];
   if (segment !== "all") {
     query += " AND status = ?";
     params.push(segment);
@@ -41,10 +61,39 @@ commsRoutes.post("/", async (c) => {
     query += " AND status != 'cancelled'";
   }
   const members = await all<Pick<Member, "id" | "email" | "first_name">>(
-    c.env.DB.prepare(query).bind(...params)
+    db.prepare(query).bind(...params)
   );
-  if (!members.length) {
-    return c.json({ error: "No members in that segment" }, 400);
+  return { label: segment, members };
+}
+
+/**
+ * POST /api/tenants/:tenantId/emails
+ * Send an email blast to a status segment or group.
+ * segment: active | pending | lapsed | all | group:<groupId>
+ */
+commsRoutes.post("/", async (c) => {
+  const tenant = c.get("tenant");
+  const body = await c.req.json<{
+    subject: string;
+    body_html?: string;
+    body_text?: string;
+    segment?: string;
+    group_id?: string;
+  }>();
+
+  if (!body.subject || (!body.body_html && !body.body_text)) {
+    return c.json({ error: "subject and body are required" }, 400);
+  }
+
+  let segment = body.segment || "active";
+  if (body.group_id) segment = `group:${body.group_id}`;
+
+  const audience = await resolveAudience(c.env.DB, tenant.id, segment);
+  if ("error" in audience) {
+    return c.json({ error: audience.error }, audience.status as 400);
+  }
+  if (!audience.members.length) {
+    return c.json({ error: "No members in that audience" }, 400);
   }
 
   const html =
@@ -59,10 +108,9 @@ commsRoutes.post("/", async (c) => {
   let sent = 0;
   const errors: string[] = [];
 
-  // Send in small chunks to stay within subrequest limits
   const CHUNK = 10;
-  for (let i = 0; i < members.length; i += CHUNK) {
-    const chunk = members.slice(i, i + CHUNK);
+  for (let i = 0; i < audience.members.length; i += CHUNK) {
+    const chunk = audience.members.slice(i, i + CHUNK);
     const results = await Promise.all(
       chunk.map(async (m) => {
         const res = await sendEmail(c.env, {
@@ -93,26 +141,34 @@ commsRoutes.post("/", async (c) => {
     await c.env.DB.batch(logInserts);
   }
 
-  // Archive so members can read it online later
   await c.env.DB.prepare(
     `INSERT INTO blasts (id, tenant_id, subject, body_html, segment, recipients, sent_count, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
   )
-    .bind(blastId, tenant.id, body.subject, html, segment, members.length, sent, now)
+    .bind(
+      blastId,
+      tenant.id,
+      body.subject,
+      html,
+      audience.label,
+      audience.members.length,
+      sent,
+      now
+    )
     .run();
 
   return c.json({
     ok: true,
     blast_id: blastId,
-    segment,
-    recipients: members.length,
+    segment: audience.label,
+    recipients: audience.members.length,
     sent,
     failed: errors.length,
     errors: errors.slice(0, 5),
   });
 });
 
-// GET /api/tenants/:tenantId/emails/blasts — past newsletters/announcements
+// GET /api/tenants/:tenantId/emails/blasts
 commsRoutes.get("/blasts", async (c) => {
   const tenant = c.get("tenant");
   const rows = await all(
@@ -138,4 +194,19 @@ commsRoutes.get("/", async (c) => {
     ).bind(tenant.id)
   );
   return c.json(rows);
+});
+
+// Preview audience size without sending
+// GET /api/tenants/:tenantId/emails/audience?segment=active|group:<id>
+commsRoutes.get("/audience", async (c) => {
+  const tenant = c.get("tenant");
+  const segment = c.req.query("segment") || "active";
+  const audience = await resolveAudience(c.env.DB, tenant.id, segment);
+  if ("error" in audience) {
+    return c.json({ error: audience.error }, audience.status as 400);
+  }
+  return c.json({
+    segment: audience.label,
+    count: audience.members.length,
+  });
 });

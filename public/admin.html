@@ -399,6 +399,10 @@
             <div><label>Notes</label><input id="em-notes" /></div>
           </div>
           <div id="em-custom"></div>
+          <div id="em-groups" style="margin:1rem 0;padding-top:0.75rem;border-top:1px solid var(--border)">
+            <p style="font-size:0.85rem;font-weight:600;margin:0 0 0.35rem">Email groups</p>
+            <div id="em-groups-list" class="muted" style="font-size:0.85rem">Loading…</div>
+          </div>
           <div id="em-memberships" style="margin:1rem 0;padding-top:0.75rem;border-top:1px solid var(--border)"></div>
           <div id="em-assign" class="card" style="margin:0.75rem 0;background:var(--bg)">
             <h3 style="margin:0 0 0.5rem;font-size:0.95rem">Assign / renew membership</h3>
@@ -488,6 +492,27 @@
           if (o) document.getElementById("em-amount").value = o.dataset.price || 0;
         };
       } catch {}
+      // Email groups
+      try {
+        const [allGroups, memberGroups] = await Promise.all([
+          api(`/api/tenants/${tenantId}/groups`),
+          api(`/api/tenants/${tenantId}/groups/for-member/${id}`),
+        ]);
+        const selected = new Set(memberGroups.map((g) => g.id));
+        const glist = document.getElementById("em-groups-list");
+        if (!allGroups.length) {
+          glist.innerHTML = `No groups yet — create them under <a href="#" onclick="navigate('comms');return false">Email</a>.`;
+        } else {
+          glist.innerHTML = allGroups.map((g) => `
+            <label style="display:inline-flex;align-items:center;gap:0.35rem;margin:0.25rem 0.75rem 0.25rem 0;font-weight:400">
+              <input type="checkbox" data-group-id="${esc(g.id)}" ${selected.has(g.id) ? "checked" : ""} style="width:auto" />
+              ${esc(g.name)}
+            </label>
+          `).join("");
+        }
+      } catch {
+        document.getElementById("em-groups-list").textContent = "Could not load groups";
+      }
       // Membership history
       try {
         const hist = await api(`/api/tenants/${tenantId}/members/${id}/memberships`);
@@ -553,6 +578,19 @@
           custom_fields: custom,
         }),
       });
+      // Save email group membership
+      const groupIds = [];
+      document.querySelectorAll("#em-groups-list [data-group-id]").forEach((cb) => {
+        if (cb.checked) groupIds.push(cb.dataset.groupId);
+      });
+      try {
+        await api(`/api/tenants/${tenantId}/groups/for-member/${id}`, {
+          method: "PUT",
+          body: JSON.stringify({ group_ids: groupIds }),
+        });
+      } catch (e) {
+        console.warn("group save failed", e);
+      }
       navigate("members");
     }
     async function cancelMember() {
@@ -945,11 +983,16 @@
     }
 
     async function renderComms(el) {
-      const [log, blasts] = await Promise.all([
+      const [log, blasts, groups] = await Promise.all([
         api(`/api/tenants/${tenantId}/emails`),
         api(`/api/tenants/${tenantId}/emails/blasts`),
+        api(`/api/tenants/${tenantId}/groups`),
       ]);
       window._blasts = blasts;
+      window._groups = groups;
+      const groupOpts = groups.map((g) =>
+        `<option value="group:${g.id}">Group: ${esc(g.name)} (${g.member_count || 0})</option>`
+      ).join("");
       el.innerHTML = `
         <h2>Email</h2>
         <div class="card">
@@ -962,9 +1005,11 @@
                 <option value="pending">Pending members</option>
                 <option value="lapsed">Lapsed members</option>
                 <option value="all">Everyone (except cancelled)</option>
+                ${groupOpts ? `<optgroup label="Groups">${groupOpts}</optgroup>` : ""}
               </select>
             </div>
           </div>
+          <p id="c-audience" class="muted" style="font-size:0.85rem;margin:0.25rem 0 0.5rem"></p>
           <label>Message</label>
           <textarea id="c-body" rows="8" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px;font:inherit"></textarea>
           <label style="display:flex;align-items:center;gap:0.4rem;margin-top:0.4rem">
@@ -972,6 +1017,36 @@
           </label>
           <button onclick="sendBlast()" style="margin-top:0.5rem">Send</button>
           <span id="c-result" style="margin-left:0.75rem;color:var(--muted)"></span>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:0.75rem">Groups</h3>
+          <p class="muted" style="font-size:0.85rem;margin-bottom:0.75rem">Named lists for board, longarmers, newsletter-only, etc. Assign members from the Members screen or below.</p>
+          <div class="form-row">
+            <div><label>New group name</label><input id="g-name" placeholder="Board" /></div>
+            <div><label>Description</label><input id="g-desc" placeholder="Optional" /></div>
+          </div>
+          <button onclick="createGroup()">Create group</button>
+          <span id="g-result" style="margin-left:0.75rem;color:var(--muted)"></span>
+          <div style="margin-top:1rem">
+            ${groups.length === 0 ? "<p class='muted'>No groups yet.</p>" : `
+              <table>
+                <thead><tr><th>Name</th><th>Members</th><th></th></tr></thead>
+                <tbody>
+                  ${groups.map((g) => `
+                    <tr>
+                      <td><strong>${esc(g.name)}</strong>${g.description ? `<br><span class="muted" style="font-size:0.8rem">${esc(g.description)}</span>` : ""}</td>
+                      <td>${g.member_count || 0}</td>
+                      <td>
+                        <button class="secondary" onclick='viewGroup(${JSON.stringify(g.id)})'>Manage</button>
+                        <button class="secondary" onclick='deleteGroup(${JSON.stringify(g.id)}, ${JSON.stringify(g.name)})'>Delete</button>
+                      </td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+            `}
+          </div>
+          <div id="group-detail" class="hidden" style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)"></div>
         </div>
         <div class="card">
           <h3 style="margin-bottom:0.75rem">Past newsletters &amp; announcements</h3>
@@ -1018,6 +1093,99 @@
           `}
         </div>
       `;
+      const seg = document.getElementById("c-segment");
+      if (seg) {
+        seg.addEventListener("change", previewAudience);
+        previewAudience();
+      }
+    }
+    async function previewAudience() {
+      const seg = document.getElementById("c-segment");
+      const out = document.getElementById("c-audience");
+      if (!seg || !out) return;
+      try {
+        const r = await api(`/api/tenants/${tenantId}/emails/audience?segment=${encodeURIComponent(seg.value)}`);
+        out.textContent = `${r.count} recipient${r.count === 1 ? "" : "s"}`;
+      } catch {
+        out.textContent = "";
+      }
+    }
+    async function createGroup() {
+      const name = document.getElementById("g-name").value.trim();
+      const description = document.getElementById("g-desc").value.trim();
+      const out = document.getElementById("g-result");
+      if (!name) { out.textContent = "Name required"; return; }
+      try {
+        await api(`/api/tenants/${tenantId}/groups`, {
+          method: "POST",
+          body: JSON.stringify({ name, description: description || undefined }),
+        });
+        navigate("comms");
+      } catch (e) { out.textContent = e.message; }
+    }
+    async function deleteGroup(id, name) {
+      if (!confirm(`Delete group "${name}"? Members are not deleted.`)) return;
+      await api(`/api/tenants/${tenantId}/groups/${id}`, { method: "DELETE" });
+      navigate("comms");
+    }
+    async function viewGroup(id) {
+      const panel = document.getElementById("group-detail");
+      show(panel);
+      panel.innerHTML = "<p class='muted'>Loading…</p>";
+      try {
+        const data = await api(`/api/tenants/${tenantId}/groups/${id}/members`);
+        const members = await api(`/api/tenants/${tenantId}/members`);
+        const inGroup = new Set(data.members.map((m) => m.id));
+        panel.innerHTML = `
+          <h3 style="margin-bottom:0.5rem">${esc(data.group.name)}</h3>
+          <p class="muted" style="font-size:0.85rem;margin-bottom:0.5rem">${data.members.length} members</p>
+          <div class="form-row">
+            <div>
+              <label>Add member</label>
+              <select id="g-add-member">
+                <option value="">— Select —</option>
+                ${members.filter((m) => m.status !== "cancelled" && !inGroup.has(m.id)).map((m) =>
+                  `<option value="${esc(m.id)}">${esc([m.first_name, m.last_name].filter(Boolean).join(" ") || m.email)} (${esc(m.email)})</option>`
+                ).join("")}
+              </select>
+            </div>
+            <div style="display:flex;align-items:end">
+              <button onclick="addToGroup(${JSON.stringify(id)})">Add</button>
+            </div>
+          </div>
+          ${data.members.length === 0 ? "<p class='muted'>No one in this group yet.</p>" : `
+            <table style="margin-top:0.75rem">
+              <thead><tr><th>Name</th><th>Email</th><th>Status</th><th></th></tr></thead>
+              <tbody>
+                ${data.members.map((m) => `
+                  <tr>
+                    <td>${esc([m.first_name, m.last_name].filter(Boolean).join(" ") || "—")}</td>
+                    <td>${esc(m.email)}</td>
+                    <td><span class="badge ${m.status}">${esc(m.status)}</span></td>
+                    <td><button class="secondary" onclick='removeFromGroup(${JSON.stringify(id)}, ${JSON.stringify(m.id)})'>Remove</button></td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          `}
+        `;
+        panel.scrollIntoView({ behavior: "smooth" });
+      } catch (e) {
+        panel.innerHTML = `<p class="error">${esc(e.message)}</p>`;
+      }
+    }
+    async function addToGroup(groupId) {
+      const mid = document.getElementById("g-add-member").value;
+      if (!mid) return;
+      await api(`/api/tenants/${tenantId}/groups/${groupId}/members`, {
+        method: "POST",
+        body: JSON.stringify({ member_ids: [mid] }),
+      });
+      viewGroup(groupId);
+    }
+    async function removeFromGroup(groupId, memberId) {
+      await api(`/api/tenants/${tenantId}/groups/${groupId}/members/${memberId}`, { method: "DELETE" });
+      viewGroup(groupId);
     }
     function viewBlast(id) {
       const b = (window._blasts || []).find((x) => x.id === id);
@@ -1033,7 +1201,8 @@
       const segment = document.getElementById("c-segment").value;
       const out = document.getElementById("c-result");
       if (!subject || !text) { out.textContent = "Subject and message are required."; return; }
-      if (!confirm(`Send "${subject}" to ${segment} members?`)) return;
+      const label = document.getElementById("c-segment").selectedOptions[0]?.textContent || segment;
+      if (!confirm(`Send "${subject}" to ${label}?`)) return;
       out.textContent = "Sending…";
       try {
         const isHtml = document.getElementById("c-html").checked;

@@ -22,6 +22,7 @@ import { publicRoutes } from "./routes/public";
 import { webhookRoutes } from "./routes/webhooks";
 import { portalRoutes } from "./routes/portal";
 import { billingRoutes } from "./routes/billing";
+import { groupRoutes } from "./routes/groups";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -46,7 +47,7 @@ app.get("/", (c) => {
   }
   return c.json({
     name: "QuiltHosting API",
-    version: "0.13.0",
+    version: "0.14.0",
     status: "ok",
     environment: c.env.ENVIRONMENT,
     admin: "/admin",
@@ -99,6 +100,7 @@ tenantApp.route("/events", eventRoutes);
 tenantApp.route("/stats", statsRoutes);
 tenantApp.route("/payments", paymentRoutes);
 tenantApp.route("/emails", commsRoutes);
+tenantApp.route("/groups", groupRoutes);
 tenantApp.route("/team", teamRoutes);
 tenantApp.route("/pages", pageRoutes);
 tenantApp.route("/files", fileRoutes);
