@@ -9,8 +9,13 @@ import {
   verifyJwt,
 } from "../lib/auth";
 import { sendEmail, magicLinkEmail } from "../lib/email";
+import { rateLimit } from "../middleware/rateLimit";
 
 export const authRoutes = new Hono<{ Bindings: Env }>();
+
+authRoutes.use("/magic-link", rateLimit({ keyPrefix: "magic", limit: 10, windowSeconds: 600 }));
+authRoutes.use("/login", rateLimit({ keyPrefix: "login", limit: 30, windowSeconds: 600 }));
+authRoutes.use("/register", rateLimit({ keyPrefix: "register", limit: 10, windowSeconds: 600 }));
 
 type UserRow = {
   id: string;

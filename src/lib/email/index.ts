@@ -179,3 +179,54 @@ export function magicLinkEmail(opts: {
     `,
   };
 }
+
+export function paymentReceiptEmail(opts: {
+  guildName: string;
+  firstName?: string;
+  description: string;
+  amountFormatted: string;
+  typeLabel: string;
+}): { subject: string; html: string } {
+  const name = opts.firstName || "there";
+  return {
+    subject: `Receipt: ${opts.description}`,
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 560px; margin: 0 auto;">
+        <h1 style="color: #1a1a1a;">Payment received</h1>
+        <p>Hi ${name},</p>
+        <p>Thank you for your ${opts.typeLabel} to <strong>${opts.guildName}</strong>.</p>
+        <p style="font-size: 18px; font-weight: 600;">${opts.amountFormatted}</p>
+        <p>${opts.description}</p>
+        <p style="color: #666; font-size: 14px;">— ${opts.guildName}</p>
+      </div>
+    `,
+  };
+}
+
+export function waitlistPromotedEmail(opts: {
+  guildName: string;
+  firstName?: string;
+  eventTitle: string;
+  eventDate: string;
+  eventLocation?: string;
+  ticketCode?: string;
+}): { subject: string; html: string } {
+  const name = opts.firstName || "there";
+  return {
+    subject: `You're in! Spot opened for ${opts.eventTitle}`,
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 560px; margin: 0 auto;">
+        <h1 style="color: #1a1a1a;">You're off the waitlist</h1>
+        <p>Hi ${name},</p>
+        <p>Good news — a spot opened and you're now registered for:</p>
+        <p style="font-size: 18px; font-weight: 600;">${opts.eventTitle}</p>
+        <p>
+          <strong>When:</strong> ${opts.eventDate}<br/>
+          ${opts.eventLocation ? `<strong>Where:</strong> ${opts.eventLocation}<br/>` : ""}
+          ${opts.ticketCode ? `<strong>Ticket:</strong> ${opts.ticketCode}` : ""}
+        </p>
+        <p style="color: #666; font-size: 14px;">— ${opts.guildName}</p>
+      </div>
+    `,
+  };
+}

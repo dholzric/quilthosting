@@ -108,3 +108,17 @@ levelRoutes.patch("/:levelId", async (c) => {
   );
   return c.json(updated);
 });
+
+// Soft-archive level (hide from public/join; keep history)
+levelRoutes.delete("/:levelId", async (c) => {
+  const tenant = c.get("tenant");
+  const levelId = c.req.param("levelId");
+  const res = await c.env.DB.prepare(
+    `UPDATE membership_levels SET status = 'archived', updated_at = ?
+     WHERE id = ? AND tenant_id = ? AND status = 'active'`
+  )
+    .bind(new Date().toISOString(), levelId, tenant.id)
+    .run();
+  if (!res.meta.changes) return c.json({ error: "Level not found" }, 404);
+  return c.json({ ok: true, status: "archived" });
+});

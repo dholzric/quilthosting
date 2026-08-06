@@ -7,6 +7,7 @@ import {
   sendEmail,
   welcomeEmail,
   eventConfirmationEmail,
+  paymentReceiptEmail,
 } from "../lib/email";
 import { formatMoney } from "../lib/utils/money";
 import {
@@ -122,6 +123,27 @@ webhookRoutes.post("/stripe", async (c) => {
         now
       )
       .run();
+
+    if (paymentType === "donation") {
+      const email =
+        (meta.email as string) ||
+        (typeof session.customer_email === "string"
+          ? session.customer_email
+          : "") ||
+        "";
+      const tenant = await first<{ name: string }>(
+        c.env.DB.prepare("SELECT name FROM tenants WHERE id = ?").bind(tenantId)
+      );
+      if (email && tenant) {
+        const { subject, html } = paymentReceiptEmail({
+          guildName: tenant.name,
+          description: `Donation to ${tenant.name}`,
+          amountFormatted: formatMoney(session.amount_total || 0),
+          typeLabel: "donation",
+        });
+        await sendEmail(c.env, { to: email, subject, html });
+      }
+    }
 
     if (paymentType === "event" && relatedId) {
       await c.env.DB.prepare(

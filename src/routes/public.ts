@@ -7,8 +7,16 @@ import { sendEmail, welcomeEmail, eventConfirmationEmail } from "../lib/email";
 import { formatMoney } from "../lib/utils/money";
 import { activateMembership, portalUrl } from "../lib/memberships";
 import { assertCanActivateMember } from "../lib/plans";
+import { rateLimit } from "../middleware/rateLimit";
 
 export const publicRoutes = new Hono<{ Bindings: Env }>();
+
+publicRoutes.use("/:slug/join", rateLimit({ keyPrefix: "join", limit: 30, windowSeconds: 600 }));
+publicRoutes.use("/:slug/donate", rateLimit({ keyPrefix: "donate", limit: 20, windowSeconds: 600 }));
+publicRoutes.use(
+  "/:slug/events/:eventId/register",
+  rateLimit({ keyPrefix: "ereg", limit: 40, windowSeconds: 600 })
+);
 
 async function getTenantBySlug(db: D1Database, slug: string) {
   return first<Tenant>(

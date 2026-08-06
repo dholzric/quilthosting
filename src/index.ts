@@ -8,7 +8,7 @@ import { requireAuth, requireTenantAccess } from "./middleware/auth";
 import { siteGate } from "./middleware/siteGate";
 import { runRenewalJob } from "./lib/renewals";
 import { runEventReminderJob } from "./lib/eventReminders";
-
+import { runScheduledBlasts } from "./lib/scheduledBlasts";
 import { authRoutes } from "./routes/auth";
 import { tenantRoutes } from "./routes/tenants";
 import { levelRoutes } from "./routes/levels";
@@ -48,7 +48,7 @@ app.get("/", (c) => {
   }
   return c.json({
     name: "QuiltHosting API",
-    version: "0.15.0",
+    version: "0.16.0",
     status: "ok",
     environment: c.env.ENVIRONMENT,
     admin: "/admin",
@@ -87,6 +87,7 @@ app.get("/g/:slug", (c) => {
 });
 
 app.route("/api/webhooks", webhookRoutes);
+
 app.route("/api/auth", authRoutes);
 app.route("/api/tenants", tenantRoutes);
 app.route("/api/portal", portalRoutes);
@@ -124,7 +125,8 @@ function authorizeScheduled(c: { req: { header: (n: string) => string | undefine
 async function runDailyJobs(env: Env) {
   const renewals = await runRenewalJob(env);
   const events = await runEventReminderJob(env);
-  return { renewals, events };
+  const blasts = await runScheduledBlasts(env);
+  return { renewals, events, blasts };
 }
 
 app.get("/__scheduled", async (c) => {

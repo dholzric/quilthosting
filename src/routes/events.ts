@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { Env, Event, TenantVariables } from "../types";
 import { generateId, generateTicketCode } from "../lib/utils/id";
 import { all, first } from "../lib/db";
+import { sendEmail, waitlistPromotedEmail } from "../lib/email";
 
 export const eventRoutes = new Hono<{
   Bindings: Env;
@@ -187,6 +188,27 @@ eventRoutes.get("/:eventId/registrations.csv", async (c) => {
   });
 });
 
+// DELETE /api/tenants/:tenantId/events/:eventId
+eventRoutes.delete("/:eventId", async (c) => {
+  const tenant = c.get("tenant");
+  const eventId = c.req.param("eventId");
+  const existing = await first(
+    c.env.DB.prepare(
+      "SELECT id FROM events WHERE id = ? AND tenant_id = ?"
+    ).bind(eventId, tenant.id)
+  );
+  if (!existing) return c.json({ error: "Not found" }, 404);
+  await c.env.DB.batch([
+    c.env.DB.prepare(
+      "DELETE FROM event_registrations WHERE event_id = ? AND tenant_id = ?"
+    ).bind(eventId, tenant.id),
+    c.env.DB.prepare(
+      "DELETE FROM events WHERE id = ? AND tenant_id = ?"
+    ).bind(eventId, tenant.id),
+  ]);
+  return c.json({ ok: true });
+});
+
 // PATCH /api/tenants/:tenantId/events/:eventId/registrations/:regId
 // Promote from waitlist, cancel, or un-cancel a registration.
 eventRoutes.patch("/:eventId/registrations/:regId", async (c) => {
@@ -197,6 +219,20 @@ eventRoutes.patch("/:eventId/registrations/:regId", async (c) => {
   if (!["registered", "waitlist", "cancelled", "checked_in"].includes(body.status)) {
     return c.json({ error: "Invalid status" }, 400);
   }
+
+  const prev = await first<{
+    status: string;
+    email: string;
+    name: string | null;
+    ticket_code: string | null;
+  }>(
+    c.env.DB.prepare(
+      `SELECT status, email, name, ticket_code FROM event_registrations
+       WHERE id = ? AND event_id = ? AND tenant_id = ?`
+    ).bind(regId, eventId, tenant.id)
+  );
+  if (!prev) return c.json({ error: "Registration not found" }, 404);
+
   const res = await c.env.DB.prepare(
     `UPDATE event_registrations SET status = ?, updated_at = ?
      WHERE id = ? AND event_id = ? AND tenant_id = ?`
@@ -204,5 +240,34 @@ eventRoutes.patch("/:eventId/registrations/:regId", async (c) => {
     .bind(body.status, new Date().toISOString(), regId, eventId, tenant.id)
     .run();
   if (!res.meta.changes) return c.json({ error: "Registration not found" }, 404);
+
+  // Notify when promoted off the waitlist
+  if (prev.status === "waitlist" && body.status === "registered") {
+    const event = await first<{
+      title: string;
+      start_at: string;
+      location: string | null;
+    }>(
+      c.env.DB.prepare(
+        "SELECT title, start_at, location FROM events WHERE id = ? AND tenant_id = ?"
+      ).bind(eventId, tenant.id)
+    );
+    if (event) {
+      const eventDate = new Date(event.start_at).toLocaleString("en-US", {
+        dateStyle: "full",
+        timeStyle: "short",
+      });
+      const { subject, html } = waitlistPromotedEmail({
+        guildName: tenant.name,
+        firstName: prev.name?.split(" ")[0],
+        eventTitle: event.title,
+        eventDate,
+        eventLocation: event.location ?? undefined,
+        ticketCode: prev.ticket_code ?? undefined,
+      });
+      await sendEmail(c.env, { to: prev.email, subject, html });
+    }
+  }
+
   return c.json({ ok: true, status: body.status });
 });

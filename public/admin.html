@@ -96,6 +96,7 @@
     let tenantId = localStorage.getItem("gb_tenant_id");
     let tenantSlug = localStorage.getItem("gb_tenant_slug") || "";
     let tenantName = localStorage.getItem("gb_tenant_name") || "";
+    let tenantRole = localStorage.getItem("gb_tenant_role") || "admin";
 
     async function api(path, opts = {}) {
       const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
@@ -128,15 +129,38 @@
       }
     }
 
-    function selectGuild(t) {
+    function selectGuild(t, isNew) {
       tenantId = t.id;
       tenantSlug = t.slug;
       tenantName = t.name;
+      tenantRole = t.role || "admin";
       localStorage.setItem("gb_tenant_id", t.id);
       localStorage.setItem("gb_tenant_slug", t.slug);
       localStorage.setItem("gb_tenant_name", t.name);
+      localStorage.setItem("gb_tenant_role", tenantRole);
+      if (isNew) localStorage.setItem("gb_onboarding", tenantId);
       hide(document.getElementById("guild-view"));
+      applyRoleNav();
       initApp();
+    }
+    function applyRoleNav() {
+      const role = tenantRole || "admin";
+      // viewer: dashboard + members + events view; membership: + levels; events role: events; owner/admin: all
+      const map = {
+        viewer: ["dashboard", "members", "events", "pages"],
+        membership: ["dashboard", "members", "levels", "payments", "comms", "pages", "settings"],
+        events: ["dashboard", "members", "events", "comms", "pages", "settings"],
+        admin: null,
+        owner: null,
+      };
+      const allowed = map[role] === undefined ? null : map[role];
+      document.querySelectorAll(".sidebar nav a[data-page]").forEach((a) => {
+        if (!allowed) {
+          a.style.display = "";
+          return;
+        }
+        a.style.display = allowed.includes(a.dataset.page) ? "" : "none";
+      });
     }
 
     // After sign-in: auto-select the only guild, or show a picker /
@@ -199,7 +223,7 @@
           method: "POST",
           body: JSON.stringify({ name, slug }),
         });
-        selectGuild(t);
+        selectGuild({ ...t, role: "owner" }, true);
       } catch (e) {
         errEl.textContent = e.message;
         show(errEl);
@@ -215,6 +239,7 @@
       hide(document.getElementById("login-view"));
       show(document.getElementById("app-view"));
       document.getElementById("tenant-label").textContent = tenantName || tenantSlug || "";
+      applyRoleNav();
       navigate("dashboard");
     }
 
@@ -247,13 +272,44 @@
     }
 
     async function renderDashboard(el) {
-      const [stats, events] = await Promise.all([
+      const [stats, events, levels, members, billing] = await Promise.all([
         api(`/api/tenants/${tenantId}/stats`),
         api(`/api/tenants/${tenantId}/events?upcoming=1`),
+        api(`/api/tenants/${tenantId}/levels`).catch(() => []),
+        api(`/api/tenants/${tenantId}/members`).catch(() => []),
+        api(`/api/tenants/${tenantId}/billing`).catch(() => null),
       ]);
       const m = stats.members;
+      const steps = [
+        { done: levels.length > 0, label: "Add a membership level", page: "levels" },
+        { done: members.length > 0, label: "Add or import members", page: "members" },
+        { done: true, label: "Share your public guild page", href: `/g/${tenantSlug}` },
+        { done: !!(billing && billing.connect && billing.connect.charges_enabled), label: "Connect Stripe for dues payouts", page: "settings" },
+        { done: localStorage.getItem("gb_onboarding") !== tenantId, label: "You're ready — explore the rest", page: null },
+      ];
+      // last step done when others done
+      const coreDone = steps[0].done && steps[1].done;
+      if (coreDone) localStorage.removeItem("gb_onboarding");
+      const showWizard = localStorage.getItem("gb_onboarding") === tenantId || !coreDone;
       el.innerHTML = `
         <h2>Dashboard</h2>
+        ${showWizard ? `
+        <div class="card" style="border-color:var(--brand);background:var(--brand-soft)">
+          <h3 style="margin-bottom:0.5rem">Get your guild ready</h3>
+          <p class="muted" style="font-size:0.9rem;margin-bottom:0.75rem">A short checklist — most guilds finish before their next meeting.</p>
+          <ol style="margin:0;padding-left:1.2rem;line-height:1.8">
+            ${steps.slice(0, 4).map((s) => `
+              <li style="${s.done ? "color:var(--ok)" : ""}">
+                ${s.done ? "✓ " : ""}${esc(s.label)}
+                ${!s.done && s.page ? ` — <a href="#" onclick="navigate('${s.page}');return false">do this</a>` : ""}
+                ${s.href ? ` — <a href="${esc(s.href)}" target="_blank">open page</a>` : ""}
+              </li>
+            `).join("")}
+          </ol>
+          <p style="margin-top:0.75rem">
+            <button class="secondary" onclick="localStorage.removeItem('gb_onboarding');navigate('dashboard')">Dismiss checklist</button>
+          </p>
+        </div>` : ""}
         <div class="stats">
           <div class="stat"><div class="label">Active Members</div><div class="value">${m.active}</div></div>
           <div class="stat"><div class="label">New This Month</div><div class="value">${m.new_this_month}</div></div>
@@ -772,7 +828,10 @@
                   <td>$${(l.price_cents / 100).toFixed(2)}</td>
                   <td>${l.duration_months} mo</td>
                   <td>${l.renewal_type}</td>
-                  <td><button class="secondary" onclick='editLevel(${JSON.stringify(l.id)})'>Edit</button></td>
+                  <td>
+                    <button class="secondary" onclick='editLevel(${JSON.stringify(l.id)})'>Edit</button>
+                    <button class="secondary" onclick='archiveLevel(${JSON.stringify(l.id)}, ${JSON.stringify(l.name)})'>Archive</button>
+                  </td>
                 </tr>
               `).join("")}
             </tbody>
@@ -805,6 +864,11 @@
       navigate("levels");
     }
     function showAddLevel() { show(document.getElementById("add-level-form")); }
+    async function archiveLevel(id, name) {
+      if (!confirm(`Archive level "${name}"? Existing memberships keep their history.`)) return;
+      await api(`/api/tenants/${tenantId}/levels/${id}`, { method: "DELETE" });
+      navigate("levels");
+    }
     async function addLevel() {
       await api(`/api/tenants/${tenantId}/levels`, {
         method: "POST",
@@ -860,6 +924,7 @@
                     <button class="secondary" onclick='toggleRegistration(${JSON.stringify(e.id)}, ${e.registration_open ? 0 : 1})'>
                       ${e.registration_open ? "Close reg" : "Open reg"}
                     </button>
+                    <button class="secondary" onclick='deleteEvent(${JSON.stringify(e.id)}, ${JSON.stringify(e.title)})'>Delete</button>
                   </td>
                 </tr>
               `).join("")}
@@ -974,6 +1039,11 @@
       });
       navigate("events");
     }
+    async function deleteEvent(id, title) {
+      if (!confirm(`Delete event "${title}" and all registrations?`)) return;
+      await api(`/api/tenants/${tenantId}/events/${id}`, { method: "DELETE" });
+      navigate("events");
+    }
     async function checkIn(eventId, regId) {
       await api(`/api/tenants/${tenantId}/events/${eventId}/check-in`, {
         method: "POST",
@@ -1042,8 +1112,14 @@
           <label style="display:flex;align-items:center;gap:0.4rem;margin-top:0.5rem">
             <input type="checkbox" id="c-html" style="width:auto" /> Message is raw HTML (skip auto-paragraphs)
           </label>
-          <button onclick="sendBlast()" style="margin-top:0.5rem">Send</button>
-          <span id="c-result" style="margin-left:0.75rem;color:var(--muted)"></span>
+          <div class="form-row" style="margin-top:0.5rem">
+            <div><label>Schedule (optional)</label><input id="c-send-at" type="datetime-local" /></div>
+            <div style="display:flex;align-items:end;gap:0.5rem">
+              <button onclick="sendBlast()">Send now</button>
+              <button class="secondary" onclick="sendBlast(true)">Schedule</button>
+            </div>
+          </div>
+          <span id="c-result" style="margin-left:0;margin-top:0.5rem;display:block;color:var(--muted)"></span>
         </div>
         <div class="card">
           <h3 style="margin-bottom:0.5rem">Automated emails (always on)</h3>
@@ -1093,11 +1169,14 @@
               <tbody>
                 ${blasts.map((b) => `
                   <tr>
-                    <td>${new Date(b.created_at).toLocaleDateString()}</td>
-                    <td>${esc(b.subject)}</td>
+                    <td>${b.status === "scheduled" && b.send_at ? "Sched " + new Date(b.send_at).toLocaleString() : new Date(b.created_at).toLocaleDateString()}</td>
+                    <td>${esc(b.subject)}${b.status === "scheduled" ? ' <span class="badge pending">scheduled</span>' : ""}</td>
                     <td>${esc(b.segment)}</td>
-                    <td>${b.sent_count}/${b.recipients}</td>
-                    <td><button class="secondary" onclick='viewBlast(${JSON.stringify(b.id)})'>View</button></td>
+                    <td>${b.status === "scheduled" ? "—" : `${b.sent_count}/${b.recipients}`}</td>
+                    <td>
+                      <button class="secondary" onclick='viewBlast(${JSON.stringify(b.id)})'>View</button>
+                      ${b.status === "scheduled" ? `<button class="secondary" onclick='cancelScheduled(${JSON.stringify(b.id)})'>Cancel</button>` : ""}
+                    </td>
                   </tr>
                 `).join("")}
               </tbody>
@@ -1261,27 +1340,43 @@
       document.getElementById("c-html").checked = false;
       document.getElementById("c-template").value = "";
     }
-    async function sendBlast() {
+    async function cancelScheduled(id) {
+      if (!confirm("Cancel this scheduled email?")) return;
+      await api(`/api/tenants/${tenantId}/emails/blasts/${id}`, { method: "DELETE" });
+      navigate("comms");
+    }
+    async function sendBlast(schedule) {
       const subject = document.getElementById("c-subject").value.trim();
       const text = document.getElementById("c-body").value.trim();
       const segment = document.getElementById("c-segment").value;
       const layout = document.getElementById("c-layout")?.value || "newsletter";
+      const sendAtLocal = document.getElementById("c-send-at")?.value;
       const out = document.getElementById("c-result");
       if (!subject || !text) { out.textContent = "Subject and message are required."; return; }
       const label = document.getElementById("c-segment").selectedOptions[0]?.textContent || segment;
-      if (!confirm(`Send "${subject}" to ${label}?`)) return;
-      out.textContent = "Sending…";
+      const payload = document.getElementById("c-html").checked
+        ? { subject, body_html: text, segment, layout }
+        : { subject, body_text: text, segment, layout };
+      if (schedule) {
+        if (!sendAtLocal) { out.textContent = "Pick a date/time to schedule."; return; }
+        payload.send_at = new Date(sendAtLocal).toISOString();
+        if (!confirm(`Schedule "${subject}" to ${label}?`)) return;
+        out.textContent = "Scheduling…";
+      } else {
+        if (!confirm(`Send "${subject}" to ${label}?`)) return;
+        out.textContent = "Sending…";
+      }
       try {
-        const isHtml = document.getElementById("c-html").checked;
         const r = await api(`/api/tenants/${tenantId}/emails`, {
           method: "POST",
-          body: JSON.stringify(
-            isHtml
-              ? { subject, body_html: text, segment, layout }
-              : { subject, body_text: text, segment, layout }
-          ),
+          body: JSON.stringify(payload),
         });
-        out.textContent = `Sent to ${r.sent} of ${r.recipients} recipients.`;
+        if (r.scheduled) {
+          out.textContent = `Scheduled for ${new Date(r.send_at).toLocaleString()} (${r.recipients} recipients).`;
+        } else {
+          out.textContent = `Sent to ${r.sent} of ${r.recipients} recipients.`;
+        }
+        setTimeout(() => navigate("comms"), 1200);
       } catch (e) {
         out.textContent = e.message;
       }
@@ -1793,7 +1888,7 @@
       <a href="/privacy">Privacy</a>
       <a href="/terms">Terms</a>
     </nav>
-    <span class="legal"><span class="prerelease" title="QuiltHosting is in private preview">PRE-RELEASE</span> © 2026 QuiltMap LLC · 5900 Balcones Drive STE 100, Austin, TX 78731 · v0.15.0</span>
+    <span class="legal"><span class="prerelease" title="QuiltHosting is in private preview">PRE-RELEASE</span> © 2026 QuiltMap LLC · 5900 Balcones Drive STE 100, Austin, TX 78731 · v0.16.0</span>
   </footer>
 </body>
 </html>

@@ -152,6 +152,7 @@ function memberMergeCtx(
  * POST /api/tenants/:tenantId/emails
  * segment: active | pending | lapsed | all | group:<id> | level:<id>
  * layout: plain | newsletter | announcement
+ * send_at: ISO datetime — schedule instead of send now
  * Merge fields: {{first_name}} {{last_name}} {{email}} {{guild_name}} {{level_name}} {{end_date}}
  */
 commsRoutes.post("/", async (c) => {
@@ -164,6 +165,7 @@ commsRoutes.post("/", async (c) => {
     group_id?: string;
     level_id?: string;
     layout?: EmailLayout;
+    send_at?: string;
   }>();
 
   if (!body.subject || (!body.body_html && !body.body_text)) {
@@ -188,15 +190,56 @@ commsRoutes.post("/", async (c) => {
   }
 
   const rawBody = bodyToHtml(body.body_html, body.body_text);
-  // Archive stores the unmerged template (with layout + merge tokens)
+  const now = new Date().toISOString();
+  const blastId = generateId();
+
+  // Schedule for later
+  if (body.send_at) {
+    const when = new Date(body.send_at);
+    if (Number.isNaN(when.getTime()) || when.getTime() <= Date.now() - 60_000) {
+      return c.json({ error: "send_at must be a future datetime" }, 400);
+    }
+    try {
+      await c.env.DB.prepare(
+        `INSERT INTO blasts
+         (id, tenant_id, subject, body_html, segment, recipients, sent_count, created_at, status, send_at, layout)
+         VALUES (?, ?, ?, ?, ?, ?, 0, ?, 'scheduled', ?, ?)`
+      )
+        .bind(
+          blastId,
+          tenant.id,
+          body.subject,
+          rawBody,
+          segment,
+          audience.members.length,
+          now,
+          when.toISOString(),
+          layout
+        )
+        .run();
+    } catch (e) {
+      console.error(e);
+      return c.json(
+        { error: "Scheduling requires migration 0005 — run db:migrate" },
+        503
+      );
+    }
+    return c.json({
+      ok: true,
+      scheduled: true,
+      blast_id: blastId,
+      segment: audience.label,
+      send_at: when.toISOString(),
+      recipients: audience.members.length,
+    });
+  }
+
   const archiveHtml = wrapEmailLayout(layout, {
     guildName: tenant.name,
     subject: body.subject,
     bodyHtml: rawBody,
   });
 
-  const now = new Date().toISOString();
-  const blastId = generateId();
   let sent = 0;
   const errors: string[] = [];
 
@@ -244,21 +287,42 @@ commsRoutes.post("/", async (c) => {
     await c.env.DB.batch(logInserts);
   }
 
-  await c.env.DB.prepare(
-    `INSERT INTO blasts (id, tenant_id, subject, body_html, segment, recipients, sent_count, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-  )
-    .bind(
-      blastId,
-      tenant.id,
-      body.subject,
-      archiveHtml,
-      audience.label,
-      audience.members.length,
-      sent,
-      now
+  try {
+    await c.env.DB.prepare(
+      `INSERT INTO blasts
+       (id, tenant_id, subject, body_html, segment, recipients, sent_count, created_at, status, send_at, layout)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'sent', null, ?)`
     )
-    .run();
+      .bind(
+        blastId,
+        tenant.id,
+        body.subject,
+        archiveHtml,
+        audience.label,
+        audience.members.length,
+        sent,
+        now,
+        layout
+      )
+      .run();
+  } catch {
+    // Pre-migration schema
+    await c.env.DB.prepare(
+      `INSERT INTO blasts (id, tenant_id, subject, body_html, segment, recipients, sent_count, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+      .bind(
+        blastId,
+        tenant.id,
+        body.subject,
+        archiveHtml,
+        audience.label,
+        audience.members.length,
+        sent,
+        now
+      )
+      .run();
+  }
 
   return c.json({
     ok: true,
@@ -275,13 +339,39 @@ commsRoutes.post("/", async (c) => {
 // GET /api/tenants/:tenantId/emails/blasts
 commsRoutes.get("/blasts", async (c) => {
   const tenant = c.get("tenant");
-  const rows = await all(
-    c.env.DB.prepare(
-      `SELECT id, subject, segment, recipients, sent_count, created_at, body_html
-       FROM blasts WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 100`
-    ).bind(tenant.id)
-  );
-  return c.json(rows);
+  try {
+    const rows = await all(
+      c.env.DB.prepare(
+        `SELECT id, subject, segment, recipients, sent_count, created_at, body_html,
+                status, send_at, layout
+         FROM blasts WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 100`
+      ).bind(tenant.id)
+    );
+    return c.json(rows);
+  } catch {
+    const rows = await all(
+      c.env.DB.prepare(
+        `SELECT id, subject, segment, recipients, sent_count, created_at, body_html
+         FROM blasts WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 100`
+      ).bind(tenant.id)
+    );
+    return c.json(rows);
+  }
+});
+
+// DELETE scheduled blast
+commsRoutes.delete("/blasts/:blastId", async (c) => {
+  const tenant = c.get("tenant");
+  const blastId = c.req.param("blastId");
+  const res = await c.env.DB.prepare(
+    `DELETE FROM blasts WHERE id = ? AND tenant_id = ? AND status = 'scheduled'`
+  )
+    .bind(blastId, tenant.id)
+    .run();
+  if (!res.meta.changes) {
+    return c.json({ error: "Scheduled blast not found" }, 404);
+  }
+  return c.json({ ok: true });
 });
 
 // GET /api/tenants/:tenantId/emails — recent email log
