@@ -80,9 +80,17 @@
         <a href="#" data-page="events">Events</a>
         <a href="#" data-page="store">Store</a>
         <a href="#" data-page="payments">Payments</a>
+        <a href="#" data-page="invoices">Invoices</a>
         <a href="#" data-page="comms">Email</a>
-        <a href="#" data-page="pages">Pages</a>
+        <a href="#" data-page="automations">Automations</a>
+        <a href="#" data-page="forms">Forms</a>
+        <a href="#" data-page="pages">Website</a>
+        <a href="#" data-page="blog">Blog</a>
+        <a href="#" data-page="forum">Forum</a>
         <a href="#" data-page="files">Documents</a>
+        <a href="#" data-page="sms">SMS</a>
+        <a href="#" data-page="chapters">Chapters</a>
+        <a href="#" data-page="api">API</a>
         <a href="#" data-page="team">Team</a>
         <a href="#" data-page="settings">Settings</a>
       </nav>
@@ -265,9 +273,17 @@
         else if (page === "events") await renderEvents(el);
         else if (page === "store") await renderStore(el);
         else if (page === "payments") await renderPayments(el);
+        else if (page === "invoices") await renderInvoices(el);
         else if (page === "comms") await renderComms(el);
+        else if (page === "automations") await renderAutomations(el);
+        else if (page === "forms") await renderForms(el);
         else if (page === "pages") await renderPagesAdmin(el);
+        else if (page === "blog") await renderBlogAdmin(el);
+        else if (page === "forum") await renderForumAdmin(el);
         else if (page === "files") await renderFiles(el);
+        else if (page === "sms") await renderSms(el);
+        else if (page === "chapters") await renderChapters(el);
+        else if (page === "api") await renderApiKeys(el);
         else if (page === "team") await renderTeam(el);
         else if (page === "settings") renderSettings(el);
       } catch (e) {
@@ -1217,7 +1233,16 @@
       }
       el.innerHTML = `
         <h2>Store</h2>
-        <p class="muted" style="margin-bottom:1rem">Sell patterns, kits, raffle tickets, or show merch. Buyers pay by card on your public page.</p>
+        <p class="muted" style="margin-bottom:1rem">Sell patterns, kits, raffle tickets, or show merch. Multi-item cart + sales tax on the public page.</p>
+        <div class="card">
+          <h3 style="margin-bottom:0.75rem">Tax settings</h3>
+          <div class="form-row">
+            <div><label>Tax rate (basis points, 700 = 7%)</label><input id="tax-bps" type="number" value="${esc(String((JSON.parse(localStorage.getItem('qh_tax_'+tenantId)||'{}').tax_rate_bps)||0))}" placeholder="0" /></div>
+            <div><label>Tax label</label><input id="tax-label" value="Sales tax" /></div>
+          </div>
+          <button class="secondary" onclick="saveTaxSettings()">Save tax</button>
+          <span id="tax-msg" class="muted" style="margin-left:0.5rem"></span>
+        </div>
         <div class="card">
           <h3 style="margin-bottom:0.75rem">Add product</h3>
           <div class="form-row">
@@ -1226,7 +1251,15 @@
           </div>
           <div class="form-row">
             <div><label>Inventory (blank = unlimited)</label><input id="p-inv" type="number" placeholder="unlimited" /></div>
+            <div><label>SKU</label><input id="p-sku" placeholder="KIT-001" /></div>
+          </div>
+          <div class="form-row">
             <div><label>Description</label><input id="p-desc" placeholder="Optional" /></div>
+            <div style="display:flex;align-items:end;padding-bottom:0.4rem">
+              <label style="display:flex;align-items:center;gap:0.4rem;margin:0">
+                <input type="checkbox" id="p-taxable" checked style="width:auto" /> Taxable
+              </label>
+            </div>
           </div>
           <button onclick="addProduct()">Save product</button>
         </div>
@@ -1258,6 +1291,20 @@
         </div>
       `;
     }
+    async function saveTaxSettings() {
+      const tax_rate_bps = Number(document.getElementById("tax-bps").value) || 0;
+      const tax_label = document.getElementById("tax-label").value || "Sales tax";
+      localStorage.setItem("qh_tax_" + tenantId, JSON.stringify({ tax_rate_bps }));
+      const tenant = await api(`/api/tenants/${tenantId}`);
+      let settings = {};
+      try { settings = JSON.parse(tenant.settings_json || "{}"); } catch {}
+      settings.store = { ...(settings.store || {}), tax_rate_bps, tax_label };
+      await api(`/api/tenants/${tenantId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ settings }),
+      });
+      document.getElementById("tax-msg").textContent = "Saved.";
+    }
     async function addProduct() {
       const inv = document.getElementById("p-inv").value;
       await api(`/api/tenants/${tenantId}/products`, {
@@ -1267,6 +1314,8 @@
           price_cents: Number(document.getElementById("p-price").value),
           description: document.getElementById("p-desc").value || undefined,
           inventory: inv === "" ? null : Number(inv),
+          sku: document.getElementById("p-sku")?.value || undefined,
+          taxable: document.getElementById("p-taxable")?.checked !== false,
         }),
       });
       navigate("store");
@@ -1698,22 +1747,54 @@
     }
 
     async function renderPagesAdmin(el) {
-      const pages = await api(`/api/tenants/${tenantId}/pages`);
+      const pages = (await api(`/api/tenants/${tenantId}/pages`)).filter((p) => (p.page_type || "page") !== "blog_post");
+      let site = { theme: {}, nav: [] };
+      try { site = await api(`/api/tenants/${tenantId}/pages/site/settings`); } catch {}
       el.innerHTML = `
-        <h2>Pages</h2>
-        <p style="color:var(--muted);font-size:0.9rem;margin-bottom:1rem">Content pages shown on your public guild page. Members-only pages appear in the member portal instead.</p>
+        <h2>Website builder</h2>
+        <p style="color:var(--muted);font-size:0.9rem;margin-bottom:1rem">Block pages, theme colors, and navigation for your public guild site.</p>
+        <div class="card">
+          <h3 style="margin-bottom:0.75rem">Theme</h3>
+          <div class="form-row">
+            <div><label>Primary color</label><input id="th-primary" type="color" value="${esc(site.theme?.primary || "#b5501f")}" /></div>
+            <div><label>Style</label>
+              <select id="th-style">
+                <option value="classic" ${site.theme?.style==="classic"?"selected":""}>Classic</option>
+                <option value="modern" ${site.theme?.style==="modern"?"selected":""}>Modern</option>
+                <option value="warm" ${site.theme?.style==="warm"?"selected":""}>Warm</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div><label>Font</label>
+              <select id="th-font">
+                <option value="system" ${!site.theme?.font||site.theme?.font==="system"?"selected":""}>System</option>
+                <option value="serif" ${site.theme?.font==="serif"?"selected":""}>Serif</option>
+                <option value="rounded" ${site.theme?.font==="rounded"?"selected":""}>Rounded</option>
+              </select>
+            </div>
+            <div><label>Custom nav links (JSON array of {label,href})</label>
+              <input id="th-nav" value="${esc(JSON.stringify(site.nav||[]))}" placeholder='[{"label":"QuiltMap","href":"https://…"}]' />
+            </div>
+          </div>
+          <button onclick="saveSiteTheme()">Save theme &amp; nav</button>
+          <span id="th-msg" class="muted" style="margin-left:0.5rem"></span>
+        </div>
         <div class="card">
           <h3 style="margin-bottom:0.75rem" id="pg-form-title">New page</h3>
           <input type="hidden" id="pg-id" />
           <div class="form-row">
             <div><label>Title</label><input id="pg-title" placeholder="About Our Guild" /></div>
-            <div style="display:flex;gap:1.25rem;align-items:end;padding-bottom:0.35rem">
+            <div style="display:flex;gap:1rem;align-items:end;padding-bottom:0.35rem;flex-wrap:wrap">
               <label style="display:flex;align-items:center;gap:0.35rem;margin:0"><input type="checkbox" id="pg-members" style="width:auto" /> Members only</label>
               <label style="display:flex;align-items:center;gap:0.35rem;margin:0"><input type="checkbox" id="pg-published" checked style="width:auto" /> Published</label>
+              <label style="display:flex;align-items:center;gap:0.35rem;margin:0"><input type="checkbox" id="pg-nav" checked style="width:auto" /> Show in nav</label>
             </div>
           </div>
-          <label>Content (HTML allowed)</label>
-          <textarea id="pg-content" rows="8" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px;font:inherit"></textarea>
+          <label>Blocks (JSON) — types: heading, text, image, button, divider, html, join_cta, events_list, store_list, spacer</label>
+          <textarea id="pg-blocks" rows="4" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px;font:inherit;font-family:ui-monospace,monospace;font-size:0.85rem" placeholder='[{"type":"heading","text":"Welcome","level":2},{"type":"text","html":"<p>Hello guild!</p>"}]'></textarea>
+          <label style="margin-top:0.5rem">Or plain HTML content</label>
+          <textarea id="pg-content" rows="5" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px;font:inherit"></textarea>
           <button onclick="savePage()" style="margin-top:0.5rem">Save</button>
           <button class="secondary" onclick="resetPageForm()">Clear</button>
           <span id="pg-result" style="margin-left:0.75rem;color:var(--muted)"></span>
@@ -1744,8 +1825,10 @@
       document.getElementById("pg-id").value = "";
       document.getElementById("pg-title").value = "";
       document.getElementById("pg-content").value = "";
+      if (document.getElementById("pg-blocks")) document.getElementById("pg-blocks").value = "";
       document.getElementById("pg-members").checked = false;
       document.getElementById("pg-published").checked = true;
+      if (document.getElementById("pg-nav")) document.getElementById("pg-nav").checked = true;
       document.getElementById("pg-form-title").textContent = "New page";
     }
     function editPage(id) {
@@ -1754,19 +1837,50 @@
       document.getElementById("pg-id").value = p.id;
       document.getElementById("pg-title").value = p.title;
       document.getElementById("pg-content").value = (JSON.parse(p.content_json || "{}").html) || "";
+      if (document.getElementById("pg-blocks")) {
+        try { document.getElementById("pg-blocks").value = p.blocks_json ? JSON.stringify(JSON.parse(p.blocks_json), null, 2) : ""; } catch { document.getElementById("pg-blocks").value = p.blocks_json || ""; }
+      }
       document.getElementById("pg-members").checked = !!p.is_members_only;
       document.getElementById("pg-published").checked = !!p.published;
+      if (document.getElementById("pg-nav")) document.getElementById("pg-nav").checked = p.show_in_nav !== 0;
       document.getElementById("pg-form-title").textContent = "Edit page";
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
+    async function saveSiteTheme() {
+      let nav = [];
+      try { nav = JSON.parse(document.getElementById("th-nav").value || "[]"); } catch { document.getElementById("th-msg").textContent = "Invalid nav JSON"; return; }
+      const theme = {
+        primary: document.getElementById("th-primary").value,
+        style: document.getElementById("th-style").value,
+        font: document.getElementById("th-font").value,
+      };
+      try {
+        await api(`/api/tenants/${tenantId}/pages/site/settings`, {
+          method: "PATCH",
+          body: JSON.stringify({ theme, nav }),
+        });
+        document.getElementById("th-msg").textContent = "Saved.";
+      } catch (e) { document.getElementById("th-msg").textContent = e.message; }
+    }
     async function savePage() {
       const id = document.getElementById("pg-id").value;
+      let blocks;
+      const blocksRaw = document.getElementById("pg-blocks")?.value?.trim();
+      if (blocksRaw) {
+        try { blocks = JSON.parse(blocksRaw); } catch (e) {
+          document.getElementById("pg-result").textContent = "Invalid blocks JSON";
+          return;
+        }
+      }
       const payload = {
         title: document.getElementById("pg-title").value,
         content_html: document.getElementById("pg-content").value,
         is_members_only: document.getElementById("pg-members").checked,
         published: document.getElementById("pg-published").checked,
+        show_in_nav: document.getElementById("pg-nav")?.checked !== false,
+        page_type: "page",
       };
+      if (blocks) payload.blocks = blocks;
       const out = document.getElementById("pg-result");
       try {
         if (id) await api(`/api/tenants/${tenantId}/pages/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
@@ -1927,7 +2041,16 @@
         </div>
         <div class="card">
           <h3 style="margin-bottom:0.5rem">Install as app (PWA)</h3>
-          <p class="muted" style="font-size:0.85rem">On a phone, use “Add to Home Screen” for this admin dashboard. Event check-in works offline and syncs when you reconnect.</p>
+          <p class="muted" style="font-size:0.85rem">On a phone, use “Add to Home Screen” for this admin dashboard. Event check-in works offline and syncs when you reconnect. Members can install the portal the same way.</p>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:0.5rem">Onboarding coach &amp; webinars</h3>
+          <p class="muted" style="font-size:0.9rem;margin-bottom:0.5rem">Human help when you launch (QuiltMap team resources).</p>
+          <ul style="font-size:0.9rem;line-height:1.7;margin:0;padding-left:1.2rem">
+            <li><a href="mailto:hello@quiltmap.com?subject=QuiltHosting%20onboarding">Book a setup call</a> (hello@quiltmap.com)</li>
+            <li><a href="https://quiltmap.com" target="_blank" rel="noopener">QuiltMap community &amp; webinars</a></li>
+            <li>Checklist: levels → import members → Connect Stripe → first event → first email</li>
+          </ul>
         </div>
         <div class="card">
           <p style="color:var(--muted);font-size:0.9rem">
@@ -1937,6 +2060,11 @@
         </div>
       `;
       renderCustomFieldList();
+      // Prefill tax from tenant settings if store card not open
+      try {
+        const st = settings.store || {};
+        if (st.tax_rate_bps != null) localStorage.setItem("qh_tax_" + tenantId, JSON.stringify({ tax_rate_bps: st.tax_rate_bps }));
+      } catch {}
       loadBilling();
     }
     async function loadBilling() {
@@ -2098,6 +2226,504 @@
       document.getElementById("cf-options").value = "";
       renderCustomFieldList();
     }
+    /* —— WA parity admin panels —— */
+    async function renderInvoices(el) {
+      let rows = [];
+      try { rows = await api(`/api/tenants/${tenantId}/invoices`); } catch (e) {
+        el.innerHTML = `<h2>Invoices</h2><p class="error">${esc(e.message)}. Run migration 0008.</p>`;
+        return;
+      }
+      const members = await api(`/api/tenants/${tenantId}/members`).catch(() => []);
+      el.innerHTML = `
+        <h2>Invoices</h2>
+        <p class="muted" style="margin-bottom:1rem">Numbered multi-line invoices (INV-YYYY-00001). Printable PDF via browser print.</p>
+        <div class="card">
+          <h3 style="margin-bottom:0.75rem">New invoice</h3>
+          <div class="form-row">
+            <div><label>Member</label>
+              <select id="inv-member"><option value="">— optional —</option>
+                ${members.map((m) => `<option value="${esc(m.id)}">${esc((m.first_name||"")+" "+(m.last_name||"")+" · "+m.email)}</option>`).join("")}
+              </select>
+            </div>
+            <div><label>Tax (cents)</label><input id="inv-tax" type="number" value="0" /></div>
+          </div>
+          <label>Lines (one per line: description | qty | unit cents)</label>
+          <textarea id="inv-lines" rows="4" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px;font:inherit" placeholder="Annual booth fee | 1 | 7500&#10;Extra table | 2 | 1500"></textarea>
+          <label>Notes</label>
+          <input id="inv-notes" placeholder="Optional" />
+          <button onclick="createInvoice()" style="margin-top:0.5rem">Create &amp; issue</button>
+          <span id="inv-msg" class="muted" style="margin-left:0.5rem"></span>
+        </div>
+        <div class="card">
+          <table>
+            <thead><tr><th>Number</th><th>Member</th><th>Total</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              ${rows.length === 0 ? "<tr><td colspan='5' class='muted'>No invoices yet</td></tr>" : rows.map((r) => `
+                <tr>
+                  <td><strong>${esc(r.invoice_number)}</strong></td>
+                  <td>${esc(r.member_name || r.member_email || "—")}</td>
+                  <td>$${(r.total_cents/100).toFixed(2)}</td>
+                  <td><span class="badge">${esc(r.status)}</span></td>
+                  <td>
+                    <button class="secondary" onclick='printInvoice(${JSON.stringify(r.id)})'>Print</button>
+                    ${r.status !== "paid" ? `<button class="secondary" onclick='markInvoicePaid(${JSON.stringify(r.id)})'>Mark paid</button>` : ""}
+                  </td>
+                </tr>`).join("")}
+            </tbody>
+          </table>
+        </div>`;
+    }
+    async function createInvoice() {
+      const lines = document.getElementById("inv-lines").value.split("\n").map((line) => {
+        const parts = line.split("|").map((s) => s.trim());
+        if (parts.length < 3) return null;
+        return { description: parts[0], quantity: Number(parts[1]) || 1, unit_cents: Number(parts[2]) || 0 };
+      }).filter(Boolean);
+      if (!lines.length) { document.getElementById("inv-msg").textContent = "Add at least one line"; return; }
+      try {
+        await api(`/api/tenants/${tenantId}/invoices`, {
+          method: "POST",
+          body: JSON.stringify({
+            member_id: document.getElementById("inv-member").value || undefined,
+            tax_cents: Number(document.getElementById("inv-tax").value) || 0,
+            notes: document.getElementById("inv-notes").value || undefined,
+            lines,
+            status: "sent",
+          }),
+        });
+        navigate("invoices");
+      } catch (e) { document.getElementById("inv-msg").textContent = e.message; }
+    }
+    async function markInvoicePaid(id) {
+      await api(`/api/tenants/${tenantId}/invoices/${id}`, { method: "PATCH", body: JSON.stringify({ status: "paid" }) });
+      navigate("invoices");
+    }
+    async function printInvoice(id) {
+      const res = await fetch(`${API}/api/tenants/${tenantId}/invoices/${id}/print`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) { alert("Could not open invoice"); return; }
+      const html = await res.text();
+      const w = window.open("", "_blank");
+      if (w) { w.document.write(html); w.document.close(); }
+    }
+
+    async function renderAutomations(el) {
+      let rows = [];
+      try { rows = await api(`/api/tenants/${tenantId}/automations`); } catch (e) {
+        el.innerHTML = `<h2>Automations</h2><p class="error">${esc(e.message)}</p>`; return;
+      }
+      el.innerHTML = `
+        <h2>Email automations</h2>
+        <p class="muted" style="margin-bottom:1rem">Multi-step welcome series after a member activates. Merge fields: {{first_name}}, {{guild_name}}, {{email}}.</p>
+        <div class="card">
+          <h3 style="margin-bottom:0.75rem">New welcome sequence</h3>
+          <label>Name</label><input id="auto-name" placeholder="New member welcome" />
+          <label>Steps JSON (delay_days, subject, body_html)</label>
+          <textarea id="auto-steps" rows="6" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px;font:ui-monospace,monospace;font-size:0.85rem">[
+  {"delay_days":0,"subject":"Welcome to {{guild_name}}!","body_html":"<p>Hi {{first_name}}, we're glad you're here.</p>"},
+  {"delay_days":3,"subject":"Getting started","body_html":"<p>Here's how to renew and find events…</p>"}
+]</textarea>
+          <button onclick="saveAutomation()" style="margin-top:0.5rem">Create sequence</button>
+          <span id="auto-msg" class="muted" style="margin-left:0.5rem"></span>
+        </div>
+        <div class="card">
+          <table>
+            <thead><tr><th>Name</th><th>Trigger</th><th>Active</th><th></th></tr></thead>
+            <tbody>
+              ${rows.length===0?"<tr><td colspan='4' class='muted'>No sequences yet</td></tr>":rows.map((r)=>{
+                let steps=[]; try{steps=JSON.parse(r.steps_json||"[]");}catch{}
+                return `<tr>
+                  <td><strong>${esc(r.name)}</strong><br><span class="muted" style="font-size:0.8rem">${steps.length} step(s)</span></td>
+                  <td>${esc(r.trigger_event)}</td>
+                  <td>${r.is_active?"yes":"no"}</td>
+                  <td>
+                    <button class="secondary" onclick='toggleAutomation(${JSON.stringify(r.id)}, ${r.is_active?0:1})'>${r.is_active?"Pause":"Activate"}</button>
+                    <button class="secondary" onclick='deleteAutomation(${JSON.stringify(r.id)})'>Delete</button>
+                  </td>
+                </tr>`;
+              }).join("")}
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <p class="muted" style="font-size:0.85rem">Email blasts also get <strong>click tracking</strong> (links rewritten) and open pixels. Daily cron sends due automation steps.</p>
+        </div>`;
+    }
+    async function saveAutomation() {
+      let steps;
+      try { steps = JSON.parse(document.getElementById("auto-steps").value); } catch {
+        document.getElementById("auto-msg").textContent = "Invalid JSON"; return;
+      }
+      try {
+        await api(`/api/tenants/${tenantId}/automations`, {
+          method: "POST",
+          body: JSON.stringify({ name: document.getElementById("auto-name").value, steps }),
+        });
+        navigate("automations");
+      } catch (e) { document.getElementById("auto-msg").textContent = e.message; }
+    }
+    async function toggleAutomation(id, active) {
+      await api(`/api/tenants/${tenantId}/automations/${id}`, { method: "PATCH", body: JSON.stringify({ is_active: !!active }) });
+      navigate("automations");
+    }
+    async function deleteAutomation(id) {
+      if (!confirm("Delete this sequence?")) return;
+      await api(`/api/tenants/${tenantId}/automations/${id}`, { method: "DELETE" });
+      navigate("automations");
+    }
+
+    async function renderForms(el) {
+      let rows = [];
+      try { rows = await api(`/api/tenants/${tenantId}/forms`); } catch (e) {
+        el.innerHTML = `<h2>Forms</h2><p class="error">${esc(e.message)}</p>`; return;
+      }
+      el.innerHTML = `
+        <h2>Forms &amp; surveys</h2>
+        <p class="muted" style="margin-bottom:1rem">Surveys with conditional fields (show_if). Public at /g/${esc(tenantSlug)}#form=slug or API.</p>
+        <div class="card">
+          <h3 style="margin-bottom:0.75rem">New form</h3>
+          <div class="form-row">
+            <div><label>Name</label><input id="fm-name" placeholder="Show-and-tell survey" /></div>
+            <div><label>Type</label>
+              <select id="fm-type"><option value="survey">Survey</option><option value="application">Application</option><option value="general">General</option></select>
+            </div>
+          </div>
+          <label>Fields JSON (optional show_if: {field, op, value})</label>
+          <textarea id="fm-fields" rows="7" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px;font:ui-monospace,monospace;font-size:0.85rem">[
+  {"key":"years","label":"Years quilting","type":"select","required":true,"options":["0-5","5-10","10+"]},
+  {"key":"longarm","label":"Do you own a longarm?","type":"select","options":["Yes","No"]},
+  {"key":"brand","label":"Longarm brand","type":"text","show_if":{"field":"longarm","op":"equals","value":"Yes"}}
+]</textarea>
+          <button onclick="saveForm()" style="margin-top:0.5rem">Create form</button>
+          <span id="fm-msg" class="muted" style="margin-left:0.5rem"></span>
+        </div>
+        <div class="card">
+          <table>
+            <thead><tr><th>Name</th><th>Slug</th><th>Type</th><th></th></tr></thead>
+            <tbody>
+              ${rows.length===0?"<tr><td colspan='4' class='muted'>No forms yet</td></tr>":rows.map((f)=>`
+                <tr>
+                  <td><strong>${esc(f.name)}</strong></td>
+                  <td><code>${esc(f.slug)}</code></td>
+                  <td>${esc(f.form_type)}</td>
+                  <td>
+                    <button class="secondary" onclick='viewFormResponses(${JSON.stringify(f.id)}, ${JSON.stringify(f.name)})'>Responses</button>
+                    <button class="secondary" onclick='deleteForm(${JSON.stringify(f.id)})'>Delete</button>
+                  </td>
+                </tr>`).join("")}
+            </tbody>
+          </table>
+          <div id="fm-responses" style="margin-top:1rem"></div>
+        </div>`;
+    }
+    async function saveForm() {
+      let fields;
+      try { fields = JSON.parse(document.getElementById("fm-fields").value); } catch {
+        document.getElementById("fm-msg").textContent = "Invalid fields JSON"; return;
+      }
+      try {
+        await api(`/api/tenants/${tenantId}/forms`, {
+          method: "POST",
+          body: JSON.stringify({
+            name: document.getElementById("fm-name").value,
+            form_type: document.getElementById("fm-type").value,
+            fields,
+          }),
+        });
+        navigate("forms");
+      } catch (e) { document.getElementById("fm-msg").textContent = e.message; }
+    }
+    async function viewFormResponses(id, name) {
+      const rows = await api(`/api/tenants/${tenantId}/forms/${id}/responses`);
+      const box = document.getElementById("fm-responses");
+      box.innerHTML = `<h3>Responses — ${esc(name)}</h3>
+        <table><thead><tr><th>When</th><th>Email</th><th>Answers</th></tr></thead>
+        <tbody>${rows.length===0?"<tr><td colspan='3' class='muted'>None yet</td></tr>":rows.map((r)=>`
+          <tr><td>${new Date(r.created_at).toLocaleString()}</td>
+          <td>${esc(r.email||"—")}</td>
+          <td style="font-size:0.85rem">${esc(r.answers_json)}</td></tr>`).join("")}</tbody></table>`;
+    }
+    async function deleteForm(id) {
+      if (!confirm("Delete form?")) return;
+      await api(`/api/tenants/${tenantId}/forms/${id}`, { method: "DELETE" });
+      navigate("forms");
+    }
+
+    async function renderBlogAdmin(el) {
+      let posts = [];
+      try {
+        const all = await api(`/api/tenants/${tenantId}/pages?type=blog_post`);
+        posts = all;
+      } catch {
+        posts = (await api(`/api/tenants/${tenantId}/pages`)).filter((p) => p.page_type === "blog_post");
+      }
+      el.innerHTML = `
+        <h2>Blog</h2>
+        <p class="muted" style="margin-bottom:1rem">Public posts on your guild page (page_type = blog_post).</p>
+        <div class="card">
+          <div class="form-row">
+            <div><label>Title</label><input id="blog-title" placeholder="Spring retreat recap" /></div>
+            <div style="display:flex;align-items:end;padding-bottom:0.4rem">
+              <label style="display:flex;align-items:center;gap:0.35rem;margin:0"><input type="checkbox" id="blog-pub" checked style="width:auto" /> Published</label>
+            </div>
+          </div>
+          <label>Body (HTML)</label>
+          <textarea id="blog-body" rows="6" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px;font:inherit"></textarea>
+          <button onclick="saveBlogPost()" style="margin-top:0.5rem">Publish post</button>
+        </div>
+        <div class="card">
+          <table>
+            <thead><tr><th>Title</th><th>Status</th><th>Updated</th><th></th></tr></thead>
+            <tbody>
+              ${posts.length===0?"<tr><td colspan='4' class='muted'>No posts yet</td></tr>":posts.map((p)=>`
+                <tr>
+                  <td>${esc(p.title)}</td>
+                  <td>${p.published?"Published":"Draft"}</td>
+                  <td>${new Date(p.updated_at).toLocaleDateString()}</td>
+                  <td><button class="secondary" onclick='deletePage(${JSON.stringify(p.id)}, ${JSON.stringify(p.title)})'>Delete</button></td>
+                </tr>`).join("")}
+            </tbody>
+          </table>
+        </div>`;
+    }
+    async function saveBlogPost() {
+      await api(`/api/tenants/${tenantId}/pages`, {
+        method: "POST",
+        body: JSON.stringify({
+          title: document.getElementById("blog-title").value,
+          content_html: document.getElementById("blog-body").value,
+          page_type: "blog_post",
+          published: document.getElementById("blog-pub").checked,
+          show_in_nav: false,
+        }),
+      });
+      navigate("blog");
+    }
+
+    async function renderForumAdmin(el) {
+      let topics = [];
+      try { topics = await api(`/api/tenants/${tenantId}/forum/topics`); } catch (e) {
+        el.innerHTML = `<h2>Forum</h2><p class="error">${esc(e.message)}</p>`; return;
+      }
+      el.innerHTML = `
+        <h2>Member forum</h2>
+        <p class="muted" style="margin-bottom:1rem">Members post topics in the portal. Moderate here (pin / delete).</p>
+        <div class="card">
+          <table>
+            <thead><tr><th>Topic</th><th>Author</th><th>Replies</th><th></th></tr></thead>
+            <tbody>
+              ${topics.length===0?"<tr><td colspan='4' class='muted'>No topics yet</td></tr>":topics.map((t)=>`
+                <tr>
+                  <td><strong>${esc(t.title)}</strong>${t.is_pinned?" 📌":""}<br><span class="muted" style="font-size:0.85rem">${esc((t.body||"").slice(0,80))}</span></td>
+                  <td>${esc((t.first_name||"")+" "+(t.last_name||""))}</td>
+                  <td>${t.reply_count||0}</td>
+                  <td>
+                    <button class="secondary" onclick='pinTopic(${JSON.stringify(t.id)}, ${t.is_pinned?0:1})'>${t.is_pinned?"Unpin":"Pin"}</button>
+                    <button class="secondary" onclick='deleteTopic(${JSON.stringify(t.id)})'>Delete</button>
+                  </td>
+                </tr>`).join("")}
+            </tbody>
+          </table>
+        </div>`;
+    }
+    async function pinTopic(id, pinned) {
+      await api(`/api/tenants/${tenantId}/forum/topics/${id}`, { method: "PATCH", body: JSON.stringify({ is_pinned: !!pinned }) });
+      navigate("forum");
+    }
+    async function deleteTopic(id) {
+      if (!confirm("Delete topic and replies?")) return;
+      await api(`/api/tenants/${tenantId}/forum/topics/${id}`, { method: "DELETE" });
+      navigate("forum");
+    }
+
+    async function renderSms(el) {
+      let logs = [], cfg = { configured: false };
+      try {
+        logs = await api(`/api/tenants/${tenantId}/sms/logs`);
+        cfg = await api(`/api/tenants/${tenantId}/sms/config`);
+      } catch (e) {
+        el.innerHTML = `<h2>SMS</h2><p class="error">${esc(e.message)}</p>`; return;
+      }
+      const members = await api(`/api/tenants/${tenantId}/members`).catch(() => []);
+      el.innerHTML = `
+        <h2>SMS</h2>
+        <p class="muted" style="margin-bottom:1rem">Optional Twilio send. Status: <strong>${cfg.configured ? "configured ("+esc(cfg.from_number||"")+")" : "not configured — set twilio in settings_json"}</strong></p>
+        <div class="card">
+          <h3 style="margin-bottom:0.75rem">Twilio credentials</h3>
+          <p class="muted" style="font-size:0.85rem">Stored in guild settings (not platform secrets). Account SID, Auth Token, From number.</p>
+          <div class="form-row">
+            <div><label>Account SID</label><input id="tw-sid" placeholder="AC…" /></div>
+            <div><label>From number</label><input id="tw-from" placeholder="+1…" /></div>
+          </div>
+          <label>Auth token</label><input id="tw-token" type="password" placeholder="••••" />
+          <button onclick="saveTwilio()" style="margin-top:0.5rem">Save Twilio</button>
+          <span id="tw-msg" class="muted" style="margin-left:0.5rem"></span>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:0.75rem">Send SMS</h3>
+          <div class="form-row">
+            <div><label>Member</label>
+              <select id="sms-member"><option value="">— or enter phone —</option>
+                ${members.filter(m=>m.phone).map(m=>`<option value="${esc(m.id)}" data-phone="${esc(m.phone)}">${esc((m.first_name||"")+" "+(m.last_name||"")+" · "+m.phone)}</option>`).join("")}
+              </select>
+            </div>
+            <div><label>Phone</label><input id="sms-phone" placeholder="+1…" /></div>
+          </div>
+          <label>Message</label>
+          <textarea id="sms-body" rows="3" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px;font:inherit" maxlength="1600"></textarea>
+          <button onclick="sendSms()" style="margin-top:0.5rem">Send</button>
+          <span id="sms-msg" class="muted" style="margin-left:0.5rem"></span>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:0.5rem">Recent SMS</h3>
+          <table>
+            <thead><tr><th>When</th><th>To</th><th>Status</th><th>Body</th></tr></thead>
+            <tbody>
+              ${logs.length===0?"<tr><td colspan='4' class='muted'>No messages yet</td></tr>":logs.map(l=>`
+                <tr><td>${new Date(l.created_at).toLocaleString()}</td>
+                <td>${esc(l.phone)}</td><td>${esc(l.status)}</td>
+                <td style="font-size:0.85rem">${esc((l.body||"").slice(0,80))}</td></tr>`).join("")}
+            </tbody>
+          </table>
+        </div>`;
+      document.getElementById("sms-member")?.addEventListener("change", (e) => {
+        const opt = e.target.selectedOptions[0];
+        if (opt?.dataset?.phone) document.getElementById("sms-phone").value = opt.dataset.phone;
+      });
+    }
+    async function saveTwilio() {
+      const tenant = await api(`/api/tenants/${tenantId}`);
+      let settings = {};
+      try { settings = JSON.parse(tenant.settings_json || "{}"); } catch {}
+      settings.twilio = {
+        account_sid: document.getElementById("tw-sid").value.trim(),
+        auth_token: document.getElementById("tw-token").value.trim(),
+        from_number: document.getElementById("tw-from").value.trim(),
+      };
+      await api(`/api/tenants/${tenantId}`, { method: "PATCH", body: JSON.stringify({ settings }) });
+      document.getElementById("tw-msg").textContent = "Saved.";
+    }
+    async function sendSms() {
+      try {
+        const r = await api(`/api/tenants/${tenantId}/sms/send`, {
+          method: "POST",
+          body: JSON.stringify({
+            member_id: document.getElementById("sms-member").value || undefined,
+            phone: document.getElementById("sms-phone").value || undefined,
+            body: document.getElementById("sms-body").value,
+          }),
+        });
+        document.getElementById("sms-msg").textContent = r.message || r.status;
+        setTimeout(() => navigate("sms"), 800);
+      } catch (e) { document.getElementById("sms-msg").textContent = e.message; }
+    }
+
+    async function renderChapters(el) {
+      let data = { chapters: [] };
+      try { data = await api(`/api/tenants/${tenantId}/chapters`); } catch (e) {
+        el.innerHTML = `<h2>Chapters</h2><p class="error">${esc(e.message)}</p>`; return;
+      }
+      el.innerHTML = `
+        <h2>Multi-chapter (Council)</h2>
+        <p class="muted" style="margin-bottom:1rem">Create child guilds under this organization. Each chapter has its own members, events, and billing.</p>
+        <div class="card">
+          <div class="form-row">
+            <div><label>Chapter name</label><input id="ch-name" placeholder="Northside Quilt Guild" /></div>
+            <div><label>Slug (optional)</label><input id="ch-slug" placeholder="northside-qg" /></div>
+          </div>
+          <button onclick="createChapter()">Create chapter</button>
+          <span id="ch-msg" class="muted" style="margin-left:0.5rem"></span>
+        </div>
+        <div class="card">
+          <table>
+            <thead><tr><th>Name</th><th>Slug</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              ${(data.chapters||[]).length===0?"<tr><td colspan='4' class='muted'>No chapters yet</td></tr>":data.chapters.map(c=>`
+                <tr>
+                  <td>${esc(c.name)}</td>
+                  <td><a href="/g/${esc(c.slug)}" target="_blank"><code>${esc(c.slug)}</code></a></td>
+                  <td>${esc(c.status)}</td>
+                  <td><button class="secondary" onclick='archiveChapter(${JSON.stringify(c.id)})'>Archive</button></td>
+                </tr>`).join("")}
+            </tbody>
+          </table>
+        </div>`;
+    }
+    async function createChapter() {
+      try {
+        await api(`/api/tenants/${tenantId}/chapters`, {
+          method: "POST",
+          body: JSON.stringify({
+            name: document.getElementById("ch-name").value,
+            slug: document.getElementById("ch-slug").value || undefined,
+          }),
+        });
+        navigate("chapters");
+      } catch (e) { document.getElementById("ch-msg").textContent = e.message; }
+    }
+    async function archiveChapter(id) {
+      if (!confirm("Archive this chapter?")) return;
+      await api(`/api/tenants/${tenantId}/chapters/${id}`, { method: "DELETE" });
+      navigate("chapters");
+    }
+
+    async function renderApiKeys(el) {
+      let keys = [];
+      try { keys = await api(`/api/tenants/${tenantId}/api-keys`); } catch (e) {
+        el.innerHTML = `<h2>API</h2><p class="error">${esc(e.message)}</p>`; return;
+      }
+      el.innerHTML = `
+        <h2>Public API &amp; Zapier</h2>
+        <p class="muted" style="margin-bottom:1rem">REST at <code>/api/v1/*</code> with <code>Authorization: Bearer qh_…</code>. See <a href="/docs/api.html" target="_blank">API docs</a>.</p>
+        <div class="card">
+          <label>Key name</label>
+          <input id="ak-name" placeholder="Zapier production" style="max-width:280px" />
+          <button onclick="createApiKey()" style="margin-left:0.5rem">Create key</button>
+          <div id="ak-once" style="margin-top:0.75rem"></div>
+        </div>
+        <div class="card">
+          <table>
+            <thead><tr><th>Name</th><th>Prefix</th><th>Created</th><th>Last used</th><th></th></tr></thead>
+            <tbody>
+              ${keys.length===0?"<tr><td colspan='5' class='muted'>No keys yet</td></tr>":keys.map(k=>`
+                <tr>
+                  <td>${esc(k.name)}${k.revoked_at?" <span class='badge cancelled'>revoked</span>":""}</td>
+                  <td><code>${esc(k.key_prefix)}…</code></td>
+                  <td>${new Date(k.created_at).toLocaleDateString()}</td>
+                  <td>${k.last_used_at ? new Date(k.last_used_at).toLocaleString() : "—"}</td>
+                  <td>${k.revoked_at?"":`<button class="secondary" onclick='revokeApiKey(${JSON.stringify(k.id)})'>Revoke</button>`}</td>
+                </tr>`).join("")}
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:0.5rem">Endpoints</h3>
+          <ul style="font-size:0.9rem;line-height:1.6">
+            <li><code>GET /api/v1/me</code></li>
+            <li><code>GET /api/v1/members?status=active</code></li>
+            <li><code>GET /api/v1/events</code></li>
+            <li><code>GET /api/v1/payments</code></li>
+            <li><code>GET /api/v1/levels</code></li>
+          </ul>
+          <p class="muted" style="font-size:0.85rem">Zapier: Webhooks by Zapier + Code by Zapier, or custom integration using these endpoints.</p>
+        </div>`;
+    }
+    async function createApiKey() {
+      const r = await api(`/api/tenants/${tenantId}/api-keys`, {
+        method: "POST",
+        body: JSON.stringify({ name: document.getElementById("ak-name").value || "API key", scopes: ["read"] }),
+      });
+      document.getElementById("ak-once").innerHTML =
+        `<p class="notice ok"><strong>Copy now — shown once:</strong><br><code style="word-break:break-all">${esc(r.api_key)}</code></p>`;
+      setTimeout(() => navigate("api"), 5000);
+    }
+    async function revokeApiKey(id) {
+      if (!confirm("Revoke this key?")) return;
+      await api(`/api/tenants/${tenantId}/api-keys/${id}`, { method: "DELETE" });
+      navigate("api");
+    }
+
     function switchTenant() {
       enterApp(true);
     }

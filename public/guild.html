@@ -24,6 +24,7 @@
   <header class="g">
     <div class="header-inner">
       <strong id="guild-name">Loading…</strong>
+      <nav id="site-nav" style="display:flex;gap:0.85rem;flex-wrap:wrap;align-items:center;font-size:0.9rem"></nav>
       <span>
         <a class="brand" id="portal-link" href="/portal">Member sign-in</a>
         · <a class="brand" href="/">powered by QuiltHosting 🧵</a>
@@ -35,14 +36,15 @@
 
     <div id="hero"></div>
 
-    <h2>Membership</h2>
+    <h2 id="h-membership">Membership</h2>
     <div id="levels"><p class="muted">Loading membership levels…</p></div>
 
-    <h2>Upcoming Events</h2>
+    <h2 id="h-events">Upcoming Events</h2>
     <div id="events"><p class="muted">Loading events…</p></div>
 
     <div id="store-section"></div>
     <div id="donate-section"></div>
+    <div id="blog-section"></div>
 
     <div id="pages"></div>
   </main>
@@ -313,11 +315,75 @@
       sec.appendChild(card);
     }
 
+    let cart = []; // {product_id, name, price_cents, quantity}
+    let taxRateBps = 0;
+    let taxLabel = "Sales tax";
+
+    function cartSubtotal() {
+      return cart.reduce((s, i) => s + i.price_cents * i.quantity, 0);
+    }
+    function cartTax() {
+      return Math.floor((cartSubtotal() * taxRateBps) / 10000);
+    }
+    function renderCartBar(sec) {
+      let bar = document.getElementById("cart-bar");
+      if (!bar) {
+        bar = el("div", "card");
+        bar.id = "cart-bar";
+        sec.appendChild(bar);
+      }
+      if (!cart.length) {
+        bar.replaceChildren(el("p", "muted", "Cart empty — add items below."));
+        return;
+      }
+      bar.replaceChildren();
+      bar.appendChild(el("strong", "", "Cart (" + cart.reduce((n, i) => n + i.quantity, 0) + " items)"));
+      for (const i of cart) {
+        bar.appendChild(el("div", "muted", i.quantity + "× " + i.name + " — " + money(i.price_cents * i.quantity)));
+      }
+      const sub = cartSubtotal();
+      const tax = cartTax();
+      bar.appendChild(el("div", "", "Subtotal " + money(sub) + (tax ? " · " + taxLabel + " " + money(tax) : "") + " · Total " + money(sub + tax)));
+      const checkout = el("button", "", "Checkout cart");
+      checkout.style.marginTop = "0.5rem";
+      checkout.addEventListener("click", checkoutCart);
+      bar.appendChild(checkout);
+    }
+    function addToCart(p) {
+      const existing = cart.find((i) => i.product_id === p.id);
+      if (existing) existing.quantity += 1;
+      else cart.push({ product_id: p.id, name: p.name, price_cents: p.price_cents, quantity: 1 });
+      renderCartBar($("store-section"));
+    }
+    async function checkoutCart() {
+      if (!cart.length) return;
+      const email = prompt("Email for your receipt:");
+      if (!email) return;
+      try {
+        const res = await fetch(`${API}/public/${slug}/cart/checkout`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: email.trim(),
+            items: cart.map((i) => ({ product_id: i.product_id, quantity: i.quantity })),
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Checkout failed");
+        if (data.checkout_url) { location.href = data.checkout_url; return; }
+        cart = [];
+        flash("ok", data.message || "Order complete!");
+        renderCartBar($("store-section"));
+      } catch (e) {
+        flash("err", e.message);
+      }
+    }
     function renderStore(products) {
       const sec = $("store-section");
       sec.replaceChildren();
       if (!products || !products.length) return;
       sec.appendChild(el("h2", "", "Shop"));
+      renderCartBar(sec);
       for (const p of products) {
         const card = el("div", "card row");
         const left = el("div");
@@ -327,9 +393,12 @@
         const right = el("div");
         right.style.textAlign = "right";
         right.appendChild(el("div", "price", p.price_cents ? money(p.price_cents) : "Free"));
-        const btn = el("button", "", "Buy");
-        btn.addEventListener("click", () => buyProduct(p));
-        right.appendChild(btn);
+        const btn = el("button", "", "Add to cart");
+        btn.addEventListener("click", () => addToCart(p));
+        const buyOne = el("button", "secondary", "Buy now");
+        buyOne.style.marginLeft = "0.35rem";
+        buyOne.addEventListener("click", () => buyProduct(p));
+        right.append(btn, buyOne);
         card.append(left, right);
         sec.appendChild(card);
       }
@@ -366,19 +435,60 @@
       }
     }
 
+    function applyTheme(theme) {
+      if (!theme) return;
+      if (theme.primary) {
+        document.documentElement.style.setProperty("--brand", theme.primary);
+        document.documentElement.style.setProperty("--accent", theme.primary);
+      }
+      if (theme.font === "serif") document.body.style.fontFamily = "Georgia, 'Times New Roman', serif";
+      else if (theme.font === "rounded") document.body.style.fontFamily = "system-ui, 'Segoe UI', sans-serif";
+      if (theme.style === "modern") {
+        document.querySelectorAll(".card").forEach(() => {});
+        document.body.classList.add("theme-modern");
+      }
+    }
+    function renderNav(site) {
+      const nav = $("site-nav");
+      if (!nav) return;
+      nav.replaceChildren();
+      const add = (label, href) => {
+        const a = el("a", "brand", label);
+        a.href = href;
+        nav.appendChild(a);
+      };
+      add("Join", "#h-membership");
+      add("Events", "#h-events");
+      for (const p of site.nav_pages || []) {
+        add(p.nav_label || p.title, "#page-" + p.slug);
+      }
+      for (const n of site.nav || []) {
+        const a = el("a", "brand", n.label);
+        a.href = n.href;
+        if (n.external) { a.target = "_blank"; a.rel = "noopener"; }
+        nav.appendChild(a);
+      }
+    }
     async function load() {
       try {
-        const [levelsRes, eventsRes, infoRes, productsRes] = await Promise.all([
+        const [levelsRes, eventsRes, infoRes, productsRes, siteRes, blogRes] = await Promise.all([
           fetch(`${API}/public/${slug}/levels`),
           fetch(`${API}/public/${slug}/events`),
           fetch(`${API}/public/${slug}/info`),
           fetch(`${API}/public/${slug}/products`),
+          fetch(`${API}/public/${slug}/site`),
+          fetch(`${API}/public/${slug}/blog`),
         ]);
         if (!levelsRes.ok) throw new Error("Guild not found");
         const levelsData = await levelsRes.json();
         const eventsData = await eventsRes.json();
         const info = infoRes.ok ? await infoRes.json() : { tenant: levelsData.tenant, profile: {}, join_fields: [] };
         const productsData = productsRes.ok ? await productsRes.json() : { products: [] };
+        const site = siteRes.ok ? await siteRes.json() : { theme: {}, nav: [], nav_pages: [], store: {} };
+        taxRateBps = Number(site.store?.tax_rate_bps) || 0;
+        taxLabel = site.store?.tax_label || "Sales tax";
+        applyTheme(site.theme);
+        renderNav(site);
         joinFields = info.join_fields || [];
         renderHero(info);
         renderStore(productsData.products || []);
@@ -398,6 +508,24 @@
         if (!eventsData.events.length) evb.appendChild(el("p", "muted", "No upcoming events."));
         for (const ev of eventsData.events) evb.appendChild(eventCard(ev));
 
+        // Blog
+        try {
+          const blog = blogRes.ok ? await blogRes.json() : { posts: [] };
+          const bs = $("blog-section");
+          bs.replaceChildren();
+          if (blog.posts && blog.posts.length) {
+            bs.appendChild(el("h2", "", "Blog"));
+            for (const post of blog.posts) {
+              const card = el("div", "card");
+              card.appendChild(el("h3", "", post.title));
+              const body = el("div");
+              body.innerHTML = post.html || "";
+              card.appendChild(body);
+              bs.appendChild(card);
+            }
+          }
+        } catch {}
+
         // Guild content pages (authored by guild admins — CMS trust model)
         try {
           const pagesData = await (await fetch(`${API}/public/${slug}/pages`)).json();
@@ -405,6 +533,7 @@
           pb.replaceChildren();
           for (const p of pagesData.pages || []) {
             const h = el("h2", "", p.title);
+            h.id = "page-" + (p.slug || "");
             const card = el("div", "card");
             const body = el("div");
             body.innerHTML = p.html || "";

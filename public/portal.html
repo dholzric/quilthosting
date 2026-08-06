@@ -57,6 +57,7 @@
         <button data-tab="invoices" onclick="showTab('invoices')">Invoices</button>
         <button data-tab="documents" onclick="showTab('documents')">Documents</button>
         <button data-tab="directory" onclick="showTab('directory')">Directory</button>
+        <button data-tab="forum" onclick="showTab('forum')">Forum</button>
         <button data-tab="pages" onclick="showTab('pages')">Guild Info</button>
         <button data-tab="profile" onclick="showTab('profile')">Profile</button>
       </div>
@@ -66,6 +67,7 @@
       <div id="tab-invoices" class="hidden"></div>
       <div id="tab-documents" class="hidden"></div>
       <div id="tab-directory" class="hidden"></div>
+      <div id="tab-forum" class="hidden"></div>
       <div id="tab-pages" class="hidden"></div>
       <div id="tab-profile" class="hidden"></div>
     </div>
@@ -171,7 +173,7 @@
     });
 
     function showTab(name) {
-      ["home", "events", "invoices", "documents", "directory", "pages", "profile"].forEach((t) => {
+      ["home", "events", "invoices", "documents", "directory", "forum", "pages", "profile"].forEach((t) => {
         const panel = document.getElementById("tab-" + t);
         const btn = document.querySelector(`.tabs button[data-tab="${t}"]`);
         if (t === name) {
@@ -186,6 +188,7 @@
       if (name === "invoices") loadInvoices();
       if (name === "documents") loadDocuments();
       if (name === "directory") loadDirectory();
+      if (name === "forum") loadForum();
       if (name === "pages") loadGuildPages();
       if (name === "profile") loadProfile();
     }
@@ -285,12 +288,28 @@
         const table = elBuild("table");
         const thead = elBuild("thead");
         const hr = elBuild("tr");
-        for (const h of ["Name", "Member since"]) hr.appendChild(elBuild("th", "", h));
+        for (const h of ["", "Name", "Showcase", "Member since"]) hr.appendChild(elBuild("th", "", h));
         thead.appendChild(hr);
         const tbody = elBuild("tbody");
         for (const m of data.members) {
           const tr = elBuild("tr");
+          const tdPhoto = elBuild("td");
+          if (m.photo_file_id) {
+            const img = document.createElement("img");
+            img.src = `/public/${slug}/member-photo/${m.photo_file_id}`;
+            img.width = 40; img.height = 40;
+            img.style.cssText = "border-radius:50%;object-fit:cover";
+            img.alt = "";
+            tdPhoto.appendChild(img);
+          }
+          tr.appendChild(tdPhoto);
           tr.appendChild(elBuild("td", "", [m.first_name, m.last_name].filter(Boolean).join(" ") || "(name not shared)"));
+          let show = m.bio || "";
+          try {
+            const s = JSON.parse(m.showcase_json || "{}");
+            show = [s.headline, s.interests, m.bio].filter(Boolean).join(" · ");
+          } catch {}
+          tr.appendChild(elBuild("td", "", show || "—"));
           tr.appendChild(elBuild("td", "", m.joined_at ? new Date(m.joined_at).toLocaleDateString() : "—"));
           tbody.appendChild(tr);
         }
@@ -300,6 +319,84 @@
       } catch (e) {
         el.replaceChildren(elBuild("p", "muted", e.message));
       }
+    }
+
+    async function loadForum() {
+      const el = document.getElementById("tab-forum");
+      if (!el) return;
+      el.innerHTML = "<p class='muted'>Loading…</p>";
+      try {
+        const data = await api(`/api/portal/${slug}/forum/topics`);
+        const topics = data.topics || [];
+        el.innerHTML = `
+          <div class="card">
+            <h2>Member forum</h2>
+            <label>New topic title</label>
+            <input id="f-title" placeholder="Show & tell ideas" />
+            <label>Body</label>
+            <textarea id="f-body" rows="3" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px;font:inherit"></textarea>
+            <button onclick="postTopic()" style="margin-top:0.5rem">Post topic</button>
+            <span id="f-msg" class="muted" style="margin-left:0.5rem"></span>
+          </div>
+          <div class="card">
+            ${topics.length === 0 ? "<p class='muted'>No topics yet — start one!</p>" : topics.map((t) => `
+              <div style="padding:0.75rem 0;border-bottom:1px solid var(--border)">
+                <strong>${esc(t.title)}</strong>${t.is_pinned ? " 📌" : ""}
+                <span class="muted" style="font-size:0.85rem"> · ${esc([t.first_name,t.last_name].filter(Boolean).join(" ")||"Member")}
+                  · ${t.reply_count||0} replies</span>
+                <p style="margin:0.35rem 0;font-size:0.95rem">${esc((t.body||"").slice(0,280))}</p>
+                <button class="secondary" onclick='openTopic(${JSON.stringify(t.id)})'>Open / reply</button>
+              </div>`).join("")}
+          </div>
+          <div id="f-thread"></div>`;
+      } catch (e) {
+        el.innerHTML = `<p class="error">${esc(e.message)}</p>`;
+      }
+    }
+    async function postTopic() {
+      try {
+        await api(`/api/portal/${slug}/forum/topics`, {
+          method: "POST",
+          body: JSON.stringify({
+            title: document.getElementById("f-title").value,
+            body: document.getElementById("f-body").value,
+          }),
+        });
+        loadForum();
+      } catch (e) {
+        const msg = document.getElementById("f-msg");
+        if (msg) msg.textContent = e.message;
+      }
+    }
+    async function openTopic(id) {
+      const box = document.getElementById("f-thread");
+      if (!box) return;
+      box.innerHTML = "<p class='muted'>Loading…</p>";
+      try {
+        const data = await api(`/api/portal/${slug}/forum/topics/${id}`);
+        const t = data.topic;
+        const posts = data.posts || [];
+        box.innerHTML = `
+          <div class="card">
+            <h3>${esc(t.title)}</h3>
+            <p>${esc(t.body)}</p>
+            <hr />
+            ${posts.map((p) => `<p style="font-size:0.95rem"><strong>${esc([p.first_name,p.last_name].filter(Boolean).join(" ")||"Member")}</strong>
+              <span class="muted" style="font-size:0.8rem">${new Date(p.created_at).toLocaleString()}</span><br>${esc(p.body)}</p>`).join("") || "<p class='muted'>No replies yet.</p>"}
+            <label>Reply</label>
+            <textarea id="f-reply" rows="2" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px;font:inherit"></textarea>
+            <button onclick='replyTopic(${JSON.stringify(id)})' style="margin-top:0.5rem">Reply</button>
+          </div>`;
+      } catch (e) {
+        box.innerHTML = `<p class="error">${esc(e.message)}</p>`;
+      }
+    }
+    async function replyTopic(id) {
+      await api(`/api/portal/${slug}/forum/topics/${id}/replies`, {
+        method: "POST",
+        body: JSON.stringify({ body: document.getElementById("f-reply").value }),
+      });
+      openTopic(id);
     }
 
     async function loadGuildPages() {
@@ -542,11 +639,22 @@
               <input type="checkbox" id="p-directory" style="width:auto" ${m.directory_visible !== 0 ? "checked" : ""} />
               Show me in the member directory
             </label>
+            <label>Bio (directory showcase)</label>
+            <textarea id="p-bio" rows="2" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px;font:inherit">${esc(m.bio || "")}</textarea>
+            <label>Headline</label>
+            <input id="p-headline" value="${esc((() => { try { return JSON.parse(m.showcase_json||"{}").headline||""; } catch { return ""; } })())}" placeholder="Longarm quilter · BOM fan" />
+            <label>Interests</label>
+            <input id="p-interests" value="${esc((() => { try { return JSON.parse(m.showcase_json||"{}").interests||""; } catch { return ""; } })())}" placeholder="Scrappy quilts, hand binding" />
+            <label>Photo</label>
+            <input type="file" id="p-photo" accept="image/*" />
+            <button class="secondary" type="button" onclick="uploadPhoto()" style="margin-top:0.35rem">Upload photo</button>
+            <span id="p-photo-msg" class="muted" style="margin-left:0.5rem;font-size:0.85rem"></span>
             ${data.membership && data.membership.status === "active" ? `
             <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border)">
               <h3 style="font-size:1rem;margin:0 0 0.5rem">Membership</h3>
               <p class="muted" style="font-size:0.9rem">${esc(data.membership.level_name || "")}
                 ${data.membership.end_date ? " · ends " + new Date(data.membership.end_date).toLocaleDateString() : ""}</p>
+              <button class="secondary" onclick="updateCard()">Update payment card</button>
               <button class="secondary" onclick="cancelAutoRenew()">Cancel auto-renew</button>
               <span id="p-renew-msg" class="muted" style="margin-left:0.5rem;font-size:0.85rem"></span>
             </div>` : ""}
@@ -603,12 +711,45 @@
             last_name: document.getElementById("p-last").value,
             phone: document.getElementById("p-phone").value,
             directory_visible: document.getElementById("p-directory")?.checked !== false,
+            bio: document.getElementById("p-bio")?.value || "",
+            showcase: {
+              headline: document.getElementById("p-headline")?.value || "",
+              interests: document.getElementById("p-interests")?.value || "",
+            },
             custom_fields: custom,
           }),
         });
         document.getElementById("profile-msg").textContent = "Saved.";
       } catch (e) {
         document.getElementById("profile-msg").textContent = e.message;
+      }
+    }
+    async function uploadPhoto() {
+      const input = document.getElementById("p-photo");
+      const f = input?.files?.[0];
+      const msg = document.getElementById("p-photo-msg");
+      if (!f) { if (msg) msg.textContent = "Choose a photo first."; return; }
+      try {
+        const res = await fetch(`${API}/api/portal/${slug}/photo`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": f.type || "image/jpeg" },
+          body: f,
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || res.statusText);
+        if (msg) msg.textContent = "Photo updated.";
+      } catch (e) {
+        if (msg) msg.textContent = e.message;
+      }
+    }
+    async function updateCard() {
+      const msg = document.getElementById("p-renew-msg");
+      try {
+        const r = await api(`/api/portal/${slug}/update-card`, { method: "POST" });
+        if (r.url) location.href = r.url;
+        else if (msg) msg.textContent = "No portal URL returned.";
+      } catch (e) {
+        if (msg) msg.textContent = e.message;
       }
     }
     async function cancelAutoRenew() {

@@ -231,6 +231,12 @@ publicRoutes.post("/:slug/join", async (c) => {
       portalUrl: portalUrl(c.env.APP_URL, tenant.slug),
     });
     await sendEmail(c.env, { to: email, subject, html });
+    try {
+      const { enrollMemberActivated } = await import("../lib/automations");
+      await enrollMemberActivated(c.env, tenant.id, member.id);
+    } catch {
+      /* optional */
+    }
 
     return c.json({
       status: "active",
@@ -505,25 +511,50 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
   });
 });
 
-// GET /public/:slug/pages — published public pages (no members-only)
+// GET /public/:slug/pages — published public pages (no members-only; not blog posts)
 publicRoutes.get("/:slug/pages", async (c) => {
   const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
   if (!tenant) return c.json({ error: "Guild not found" }, 404);
-  const rows = await all<{ slug: string; title: string; content_json: string }>(
-    c.env.DB.prepare(
-      `SELECT slug, title, content_json FROM pages
-       WHERE tenant_id = ? AND published = 1 AND is_members_only = 0
-       ORDER BY sort_order, title`
-    ).bind(tenant.id)
-  );
-  return c.json({
-    tenant: { name: tenant.name, slug: tenant.slug },
-    pages: rows.map((p) => ({
-      slug: p.slug,
-      title: p.title,
-      html: (JSON.parse(p.content_json || "{}").html as string) || "",
-    })),
-  });
+  const { contentFromPage } = await import("../lib/blocks");
+  try {
+    const rows = await all<{
+      slug: string;
+      title: string;
+      content_json: string;
+      blocks_json?: string | null;
+    }>(
+      c.env.DB.prepare(
+        `SELECT slug, title, content_json, blocks_json FROM pages
+         WHERE tenant_id = ? AND published = 1 AND is_members_only = 0
+           AND coalesce(page_type, 'page') = 'page'
+         ORDER BY sort_order, title`
+      ).bind(tenant.id)
+    );
+    return c.json({
+      tenant: { name: tenant.name, slug: tenant.slug },
+      pages: rows.map((p) => ({
+        slug: p.slug,
+        title: p.title,
+        html: contentFromPage(p).html,
+      })),
+    });
+  } catch {
+    const rows = await all<{ slug: string; title: string; content_json: string }>(
+      c.env.DB.prepare(
+        `SELECT slug, title, content_json FROM pages
+         WHERE tenant_id = ? AND published = 1 AND is_members_only = 0
+         ORDER BY sort_order, title`
+      ).bind(tenant.id)
+    );
+    return c.json({
+      tenant: { name: tenant.name, slug: tenant.slug },
+      pages: rows.map((p) => ({
+        slug: p.slug,
+        title: p.title,
+        html: (JSON.parse(p.content_json || "{}").html as string) || "",
+      })),
+    });
+  }
 });
 
 /**
@@ -760,7 +791,7 @@ publicRoutes.get("/:slug/info", async (c) => {
 });
 
 /**
- * GET /public/:slug/directory — optional public member directory
+ * GET /public/:slug/directory — optional public member directory (with showcase)
  */
 publicRoutes.get("/:slug/directory", async (c) => {
   const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
@@ -774,6 +805,41 @@ publicRoutes.get("/:slug/directory", async (c) => {
   }
   try {
     const members = await all<{
+      id: string;
+      first_name: string | null;
+      last_name: string | null;
+      bio: string | null;
+      photo_file_id: string | null;
+      showcase_json: string | null;
+    }>(
+      c.env.DB.prepare(
+        `SELECT id, first_name, last_name, bio, photo_file_id, showcase_json FROM members
+         WHERE tenant_id = ? AND status = 'active'
+           AND coalesce(directory_visible, 1) = 1
+         ORDER BY last_name, first_name LIMIT 500`
+      ).bind(tenant.id)
+    );
+    return c.json({
+      tenant: { name: tenant.name, slug: tenant.slug },
+      members: members.map((m) => {
+        let showcase: Record<string, string> = {};
+        try {
+          showcase = JSON.parse(m.showcase_json || "{}");
+        } catch {}
+        return {
+          id: m.id,
+          first_name: m.first_name,
+          last_name: m.last_name,
+          bio: m.bio,
+          photo_url: m.photo_file_id
+            ? `/public/${tenant.slug}/member-photo/${m.photo_file_id}`
+            : null,
+          showcase,
+        };
+      }),
+    });
+  } catch {
+    const members = await all<{
       first_name: string | null;
       last_name: string | null;
     }>(
@@ -784,11 +850,360 @@ publicRoutes.get("/:slug/directory", async (c) => {
          ORDER BY last_name, first_name LIMIT 500`
       ).bind(tenant.id)
     );
+    return c.json({ tenant: { name: tenant.name, slug: tenant.slug }, members });
+  }
+});
+
+/** Public photo file (member showcase) */
+publicRoutes.get("/:slug/member-photo/:fileId", async (c) => {
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Not found" }, 404);
+  const fileId = c.req.param("fileId");
+  const member = await first(
+    c.env.DB.prepare(
+      `SELECT id FROM members WHERE tenant_id = ? AND photo_file_id = ?
+         AND coalesce(directory_visible, 1) = 1 AND status = 'active'`
+    ).bind(tenant.id, fileId)
+  );
+  if (!member) return c.json({ error: "Not found" }, 404);
+  const row = await first<{ r2_key: string; content_type: string | null }>(
+    c.env.DB.prepare(
+      `SELECT r2_key, content_type FROM files WHERE id = ? AND tenant_id = ?`
+    ).bind(fileId, tenant.id)
+  );
+  if (!row) return c.json({ error: "Not found" }, 404);
+  const obj = await c.env.FILES.get(row.r2_key);
+  if (!obj) return c.json({ error: "Not found" }, 404);
+  return new Response(obj.body, {
+    headers: {
+      "Content-Type": row.content_type || "image/jpeg",
+      "Cache-Control": "public, max-age=86400",
+    },
+  });
+});
+
+/** Site theme + nav for public guild page */
+publicRoutes.get("/:slug/site", async (c) => {
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  let settings: any = {};
+  try {
+    settings = JSON.parse(tenant.settings_json || "{}");
+  } catch {}
+  let navPages: Array<{ slug: string; title: string; nav_label: string | null }> = [];
+  try {
+    navPages = await all(
+      c.env.DB.prepare(
+        `SELECT slug, title, nav_label FROM pages
+         WHERE tenant_id = ? AND published = 1 AND is_members_only = 0
+           AND coalesce(show_in_nav, 1) = 1 AND coalesce(page_type, 'page') = 'page'
+         ORDER BY sort_order, title`
+      ).bind(tenant.id)
+    );
+  } catch {
+    navPages = [];
+  }
+  const taxRateBps = Number(settings.store?.tax_rate_bps || 0) || 0;
+  return c.json({
+    theme: settings.theme || {},
+    nav: settings.nav || [],
+    nav_pages: navPages,
+    store: {
+      tax_rate_bps: taxRateBps,
+      tax_label: settings.store?.tax_label || "Sales tax",
+    },
+  });
+});
+
+/** Blog posts (public pages with page_type=blog_post) */
+publicRoutes.get("/:slug/blog", async (c) => {
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  try {
+    const posts = await all(
+      c.env.DB.prepare(
+        `SELECT slug, title, content_json, blocks_json, updated_at, created_at
+         FROM pages
+         WHERE tenant_id = ? AND published = 1 AND is_members_only = 0
+           AND coalesce(page_type, 'page') = 'blog_post'
+         ORDER BY created_at DESC LIMIT 50`
+      ).bind(tenant.id)
+    );
+    const { contentFromPage } = await import("../lib/blocks");
     return c.json({
-      tenant: { name: tenant.name, slug: tenant.slug },
-      members,
+      posts: posts.map((p: any) => ({
+        slug: p.slug,
+        title: p.title,
+        html: contentFromPage(p).html,
+        updated_at: p.updated_at,
+        created_at: p.created_at,
+      })),
     });
   } catch {
-    return c.json({ tenant: { name: tenant.name, slug: tenant.slug }, members: [] });
+    return c.json({ posts: [] });
+  }
+});
+
+/** Public form / survey by slug */
+publicRoutes.get("/:slug/forms/:formSlug", async (c) => {
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  const form = await first<{
+    id: string;
+    name: string;
+    slug: string;
+    description: string | null;
+    fields_json: string;
+    form_type: string;
+  }>(
+    c.env.DB.prepare(
+      `SELECT id, name, slug, description, fields_json, form_type FROM forms
+       WHERE tenant_id = ? AND slug = ? AND published = 1 AND is_public = 1`
+    ).bind(tenant.id, c.req.param("formSlug"))
+  );
+  if (!form) return c.json({ error: "Form not found" }, 404);
+  let fields = [];
+  try {
+    fields = JSON.parse(form.fields_json || "[]");
+  } catch {}
+  return c.json({
+    form: {
+      id: form.id,
+      name: form.name,
+      slug: form.slug,
+      description: form.description,
+      form_type: form.form_type,
+      fields,
+    },
+  });
+});
+
+publicRoutes.post("/:slug/forms/:formSlug", async (c) => {
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  const form = await first<{ id: string; fields_json: string }>(
+    c.env.DB.prepare(
+      `SELECT id, fields_json FROM forms
+       WHERE tenant_id = ? AND slug = ? AND published = 1 AND is_public = 1`
+    ).bind(tenant.id, c.req.param("formSlug"))
+  );
+  if (!form) return c.json({ error: "Form not found" }, 404);
+  const { normalizeFormFields, validateFormAnswers } = await import("../lib/forms");
+  let fields = normalizeFormFields([]);
+  try {
+    fields = normalizeFormFields(JSON.parse(form.fields_json || "[]"));
+  } catch {}
+  const body = await c.req.json<{
+    email?: string;
+    name?: string;
+    answers?: unknown;
+  }>();
+  const validated = validateFormAnswers(fields, body.answers || body);
+  if (!validated.ok) return c.json({ error: validated.error }, 400);
+  const id = generateId();
+  const now = new Date().toISOString();
+  let memberId: string | null = null;
+  const email = (body.email || "").toLowerCase().trim();
+  if (email) {
+    const m = await first<{ id: string }>(
+      c.env.DB.prepare(
+        `SELECT id FROM members WHERE tenant_id = ? AND email = ?`
+      ).bind(tenant.id, email)
+    );
+    memberId = m?.id ?? null;
+  }
+  await c.env.DB.prepare(
+    `INSERT INTO form_responses (id, tenant_id, form_id, member_id, email, name, answers_json, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  )
+    .bind(
+      id,
+      tenant.id,
+      form.id,
+      memberId,
+      email || null,
+      body.name?.trim() || null,
+      JSON.stringify(validated.answers),
+      now
+    )
+    .run();
+  return c.json({ ok: true, id }, 201);
+});
+
+/**
+ * POST /public/:slug/cart/checkout — multi-SKU cart with tax
+ */
+publicRoutes.post("/:slug/cart/checkout", async (c) => {
+  const slug = c.req.param("slug");
+  const tenant = await getTenantBySlug(c.env.DB, slug);
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  const body = await c.req.json<{
+    email: string;
+    name?: string;
+    items: Array<{ product_id: string; quantity?: number }>;
+  }>();
+  const email = (body.email || "").toLowerCase().trim();
+  if (!email || !email.includes("@")) {
+    return c.json({ error: "email is required" }, 400);
+  }
+  if (!Array.isArray(body.items) || !body.items.length) {
+    return c.json({ error: "Cart is empty" }, 400);
+  }
+
+  let settings: any = {};
+  try {
+    settings = JSON.parse(tenant.settings_json || "{}");
+  } catch {}
+  const taxRateBps = Math.max(0, Math.min(2500, Number(settings.store?.tax_rate_bps) || 0));
+
+  const cartLines: Array<{
+    product_id: string;
+    name: string;
+    quantity: number;
+    unit_cents: number;
+    taxable: boolean;
+    line_cents: number;
+  }> = [];
+
+  for (const raw of body.items.slice(0, 20)) {
+    const product = await first<{
+      id: string;
+      name: string;
+      price_cents: number;
+      inventory: number | null;
+      is_active: number;
+      taxable?: number;
+    }>(
+      c.env.DB.prepare(
+        `SELECT * FROM products WHERE id = ? AND tenant_id = ?`
+      ).bind(raw.product_id, tenant.id)
+    );
+    if (!product || !product.is_active) {
+      return c.json({ error: `Product not found: ${raw.product_id}` }, 400);
+    }
+    const qty = Math.min(20, Math.max(1, Math.floor(Number(raw.quantity) || 1)));
+    if (product.inventory !== null && qty > product.inventory) {
+      return c.json({ error: `Only ${product.inventory} left of ${product.name}` }, 400);
+    }
+    cartLines.push({
+      product_id: product.id,
+      name: product.name,
+      quantity: qty,
+      unit_cents: product.price_cents,
+      taxable: product.taxable !== 0,
+      line_cents: product.price_cents * qty,
+    });
+  }
+
+  const subtotal = cartLines.reduce((s, l) => s + l.line_cents, 0);
+  const taxableBase = cartLines
+    .filter((l) => l.taxable)
+    .reduce((s, l) => s + l.line_cents, 0);
+  const taxCents = Math.floor((taxableBase * taxRateBps) / 10000);
+  const total = subtotal + taxCents;
+
+  const orderId = generateId();
+  const now = new Date().toISOString();
+  let memberId: string | undefined;
+  const member = await first<{ id: string }>(
+    c.env.DB.prepare(
+      `SELECT id FROM members WHERE tenant_id = ? AND email = ?`
+    ).bind(tenant.id, email)
+  );
+  memberId = member?.id;
+
+  await c.env.DB.prepare(
+    `INSERT INTO store_orders
+     (id, tenant_id, member_id, email, status, subtotal_cents, tax_cents, total_cents, items_json, created_at, updated_at)
+     VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?)`
+  )
+    .bind(
+      orderId,
+      tenant.id,
+      memberId ?? null,
+      email,
+      subtotal,
+      taxCents,
+      total,
+      JSON.stringify(cartLines),
+      now,
+      now
+    )
+    .run();
+
+  if (total === 0) {
+    await c.env.DB.prepare(
+      `UPDATE store_orders SET status = 'paid', updated_at = ? WHERE id = ?`
+    )
+      .bind(now, orderId)
+      .run();
+    for (const l of cartLines) {
+      await c.env.DB.prepare(
+        `UPDATE products SET inventory = inventory - ?, updated_at = ?
+         WHERE id = ? AND tenant_id = ? AND inventory IS NOT NULL AND inventory >= ?`
+      )
+        .bind(l.quantity, now, l.product_id, tenant.id, l.quantity)
+        .run();
+    }
+    return c.json({ status: "fulfilled", order_id: orderId, message: "Order complete (free)." });
+  }
+
+  if (!c.env.STRIPE_SECRET_KEY) {
+    return c.json({ error: "Payments not configured" }, 503);
+  }
+
+  const baseUrl = c.env.APP_URL || "http://localhost:8787";
+  const lineItems = cartLines.map((l) => ({
+    name: l.name,
+    amountCents: l.unit_cents,
+    quantity: l.quantity,
+  }));
+  if (taxCents > 0) {
+    lineItems.push({
+      name: settings.store?.tax_label || "Sales tax",
+      amountCents: taxCents,
+      quantity: 1,
+    });
+  }
+
+  try {
+    const session = await createCheckoutSession(c.env, {
+      tenantId: tenant.id,
+      tenantSlug: tenant.slug,
+      memberId,
+      email,
+      name: body.name,
+      amountCents: total,
+      description: `${tenant.name} store order`,
+      type: "store",
+      relatedId: orderId,
+      lineItems,
+      extraMetadata: {
+        order_id: orderId,
+        tax_cents: String(taxCents),
+        subtotal_cents: String(subtotal),
+      },
+      successUrl: `${baseUrl}/g/${tenant.slug}?purchased=1`,
+      cancelUrl: `${baseUrl}/g/${tenant.slug}?cancelled=1`,
+      mode: "payment",
+      stripeAccountId: tenant.stripe_account_id,
+    });
+    await c.env.DB.prepare(
+      `UPDATE store_orders SET stripe_session_id = ?, updated_at = ? WHERE id = ?`
+    )
+      .bind(session.id, now, orderId)
+      .run();
+    return c.json({
+      status: "checkout",
+      checkout_url: session.url,
+      session_id: session.id,
+      order_id: orderId,
+      subtotal_cents: subtotal,
+      tax_cents: taxCents,
+      total_cents: total,
+    });
+  } catch (err) {
+    console.error("Cart checkout failed", err);
+    return c.json({ error: "Payment session could not be created" }, 502);
   }
 });

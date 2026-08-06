@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>QuiltHosting API — Zapier & integrations</title>
+  <link rel="stylesheet" href="/qh.css" />
+  <style>
+    main { max-width: 720px; margin: 2rem auto; padding: 0 1.25rem 3rem; }
+    pre { background: var(--surface-2, #f3efe8); padding: 1rem; border-radius: 10px; overflow-x: auto; font-size: 0.85rem; }
+    code { font-size: 0.9em; }
+    h2 { margin-top: 2rem; }
+  </style>
+</head>
+<body class="has-fleet-footer">
+  <main>
+    <h1>Public API (v1)</h1>
+    <p class="muted">Use API keys from Admin → API for Zapier, Make, or custom integrations. Keys are shown once at creation.</p>
+
+    <h2>Authentication</h2>
+    <pre>Authorization: Bearer qh_…your_key…</pre>
+    <p>Optional query form (less secure): <code>?api_key=qh_…</code></p>
+
+    <h2>Endpoints</h2>
+    <pre>GET /api/v1/me
+GET /api/v1/members?status=active
+GET /api/v1/events
+GET /api/v1/payments
+GET /api/v1/levels</pre>
+
+    <h2>Zapier (no native app yet)</h2>
+    <ol>
+      <li>Create a read key in QuiltHosting Admin → API.</li>
+      <li>In Zapier, use <strong>Webhooks by Zapier</strong> (GET) or <strong>Code by Zapier</strong> with <code>fetch</code>.</li>
+      <li>Poll <code>GET /api/v1/members</code> or <code>/payments</code> on a schedule, or push outbound from your own Zap when QuiltHosting emails fire.</li>
+      <li>For member-created events, map fields: <code>email</code>, <code>first_name</code>, <code>last_name</code>, <code>status</code>, <code>joined_at</code>.</li>
+    </ol>
+
+    <h2>Example</h2>
+    <pre>curl -s https://quilthosting.com/api/v1/members \
+  -H "Authorization: Bearer qh_…" | jq '.members[0:3]'</pre>
+
+    <p><a href="/admin">← Back to admin</a></p>
+  </main>
+</body>
+</html>

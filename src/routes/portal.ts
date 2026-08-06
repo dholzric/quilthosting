@@ -357,6 +357,8 @@ portalRoutes.patch("/:slug/profile", async (c) => {
     phone?: string;
     directory_visible?: boolean;
     custom_fields?: Record<string, string>;
+    bio?: string;
+    showcase?: { headline?: string; interests?: string; website?: string };
   }>();
 
   const member = await first<Member>(
@@ -380,6 +382,19 @@ portalRoutes.patch("/:slug/profile", async (c) => {
       : body.directory_visible
         ? 1
         : 0;
+  let showcaseJson: string | null = null;
+  if (body.showcase && typeof body.showcase === "object") {
+    let current: Record<string, string> = {};
+    try {
+      current = JSON.parse((member as any).showcase_json || "{}");
+    } catch {}
+    showcaseJson = JSON.stringify({
+      ...current,
+      headline: body.showcase.headline != null ? String(body.showcase.headline).slice(0, 120) : current.headline,
+      interests: body.showcase.interests != null ? String(body.showcase.interests).slice(0, 500) : current.interests,
+      website: body.showcase.website != null ? String(body.showcase.website).slice(0, 300) : current.website,
+    });
+  }
   try {
     await c.env.DB.prepare(
       `UPDATE members SET
@@ -388,6 +403,8 @@ portalRoutes.patch("/:slug/profile", async (c) => {
          phone = coalesce(?, phone),
          custom_fields_json = coalesce(?, custom_fields_json),
          directory_visible = coalesce(?, directory_visible),
+         bio = coalesce(?, bio),
+         showcase_json = coalesce(?, showcase_json),
          updated_at = ?
        WHERE id = ?`
     )
@@ -397,6 +414,8 @@ portalRoutes.patch("/:slug/profile", async (c) => {
         body.phone ?? null,
         customJson,
         dirVis,
+        body.bio !== undefined ? String(body.bio).slice(0, 2000) : null,
+        showcaseJson,
         now,
         member.id
       )
@@ -443,7 +462,7 @@ async function requireGuildMember(c: any, slug: string) {
   return { user, tenant, member };
 }
 
-// GET /api/portal/:slug/directory — active members, names only
+// GET /api/portal/:slug/directory — active members + showcase
 portalRoutes.get("/:slug/directory", async (c) => {
   const ctx = await requireGuildMember(c, c.req.param("slug"));
   if ("error" in ctx) return ctx.error;
@@ -452,9 +471,12 @@ portalRoutes.get("/:slug/directory", async (c) => {
       first_name: string | null;
       last_name: string | null;
       joined_at: string | null;
+      bio: string | null;
+      photo_file_id: string | null;
+      showcase_json: string | null;
     }>(
       c.env.DB.prepare(
-        `SELECT first_name, last_name, joined_at FROM members
+        `SELECT first_name, last_name, joined_at, bio, photo_file_id, showcase_json FROM members
          WHERE tenant_id = ? AND status = 'active'
            AND coalesce(directory_visible, 1) = 1
          ORDER BY last_name, first_name LIMIT 500`
@@ -522,6 +544,197 @@ portalRoutes.post("/:slug/cancel-auto-renew", async (c) => {
   return c.json({
     ok: true,
     message: "Auto-renew cancelled. Your membership stays active until the end date.",
+  });
+});
+
+/**
+ * POST /api/portal/:slug/update-card
+ * Stripe Customer Portal deep-link to update payment method on file.
+ */
+portalRoutes.post("/:slug/update-card", async (c) => {
+  const user = await requirePortalUser(c);
+  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  const member = await first<Member & { stripe_customer_id?: string | null }>(
+    c.env.DB.prepare(
+      "SELECT * FROM members WHERE tenant_id = ? AND email = ?"
+    ).bind(tenant.id, user.email)
+  );
+  if (!member) return c.json({ error: "Not a member" }, 404);
+
+  const membership = await first<{ stripe_subscription_id: string | null }>(
+    c.env.DB.prepare(
+      `SELECT stripe_subscription_id FROM memberships
+       WHERE member_id = ? AND tenant_id = ? AND status = 'active'
+       ORDER BY created_at DESC LIMIT 1`
+    ).bind(member.id, tenant.id)
+  );
+  if (!membership?.stripe_subscription_id) {
+    return c.json({ error: "No auto-renew subscription — nothing to update" }, 400);
+  }
+
+  const {
+    retrieveSubscription,
+    createCustomerPortalSession,
+  } = await import("../lib/stripe");
+  try {
+    const sub = await retrieveSubscription(c.env, membership.stripe_subscription_id);
+    const customerId =
+      (typeof sub.customer === "string" && sub.customer) ||
+      member.stripe_customer_id ||
+      null;
+    if (!customerId) {
+      return c.json({ error: "No Stripe customer on file for this membership" }, 400);
+    }
+    if (!member.stripe_customer_id) {
+      try {
+        await c.env.DB.prepare(
+          `UPDATE members SET stripe_customer_id = ?, updated_at = ? WHERE id = ?`
+        )
+          .bind(customerId, new Date().toISOString(), member.id)
+          .run();
+      } catch {
+        /* column may not exist */
+      }
+    }
+    const url = await createCustomerPortalSession(c.env, {
+      customerId,
+      returnUrl: portalUrl(c.env.APP_URL, tenant.slug, { card: "updated" }),
+    });
+    return c.json({ url });
+  } catch (e: any) {
+    return c.json({ error: e.message || "Could not open card update portal" }, 502);
+  }
+});
+
+// --- Members-only forum ---
+portalRoutes.get("/:slug/forum/topics", async (c) => {
+  const ctx = await requireGuildMember(c, c.req.param("slug"));
+  if ("error" in ctx) return ctx.error;
+  try {
+    const rows = await all(
+      c.env.DB.prepare(
+        `SELECT t.id, t.title, t.body, t.is_pinned, t.reply_count, t.created_at, t.updated_at,
+                m.first_name, m.last_name
+         FROM forum_topics t
+         LEFT JOIN members m ON m.id = t.member_id
+         WHERE t.tenant_id = ?
+         ORDER BY t.is_pinned DESC, t.updated_at DESC LIMIT 100`
+      ).bind(ctx.tenant.id)
+    );
+    return c.json({ topics: rows });
+  } catch {
+    return c.json({ topics: [] });
+  }
+});
+
+portalRoutes.post("/:slug/forum/topics", async (c) => {
+  const ctx = await requireGuildMember(c, c.req.param("slug"));
+  if ("error" in ctx) return ctx.error;
+  const body = await c.req.json<{ title: string; body: string }>();
+  const title = (body.title || "").trim().slice(0, 200);
+  const text = (body.body || "").trim().slice(0, 10000);
+  if (!title || !text) return c.json({ error: "title and body required" }, 400);
+  const id = (await import("../lib/utils/id")).generateId();
+  const now = new Date().toISOString();
+  await c.env.DB.prepare(
+    `INSERT INTO forum_topics (id, tenant_id, member_id, title, body, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  )
+    .bind(id, ctx.tenant.id, ctx.member.id, title, text, now, now)
+    .run();
+  return c.json({ id, title }, 201);
+});
+
+portalRoutes.get("/:slug/forum/topics/:topicId", async (c) => {
+  const ctx = await requireGuildMember(c, c.req.param("slug"));
+  if ("error" in ctx) return ctx.error;
+  const topic = await first(
+    c.env.DB.prepare(
+      `SELECT t.*, m.first_name, m.last_name FROM forum_topics t
+       LEFT JOIN members m ON m.id = t.member_id
+       WHERE t.id = ? AND t.tenant_id = ?`
+    ).bind(c.req.param("topicId"), ctx.tenant.id)
+  );
+  if (!topic) return c.json({ error: "Not found" }, 404);
+  const posts = await all(
+    c.env.DB.prepare(
+      `SELECT p.id, p.body, p.created_at, m.first_name, m.last_name
+       FROM forum_posts p
+       LEFT JOIN members m ON m.id = p.member_id
+       WHERE p.topic_id = ? ORDER BY p.created_at ASC LIMIT 200`
+    ).bind(c.req.param("topicId"))
+  );
+  return c.json({ topic, posts });
+});
+
+portalRoutes.post("/:slug/forum/topics/:topicId/replies", async (c) => {
+  const ctx = await requireGuildMember(c, c.req.param("slug"));
+  if ("error" in ctx) return ctx.error;
+  const topic = await first(
+    c.env.DB.prepare(
+      `SELECT id FROM forum_topics WHERE id = ? AND tenant_id = ?`
+    ).bind(c.req.param("topicId"), ctx.tenant.id)
+  );
+  if (!topic) return c.json({ error: "Not found" }, 404);
+  const body = await c.req.json<{ body: string }>();
+  const text = (body.body || "").trim().slice(0, 10000);
+  if (!text) return c.json({ error: "body required" }, 400);
+  const id = (await import("../lib/utils/id")).generateId();
+  const now = new Date().toISOString();
+  await c.env.DB.prepare(
+    `INSERT INTO forum_posts (id, tenant_id, topic_id, member_id, body, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  )
+    .bind(id, ctx.tenant.id, c.req.param("topicId"), ctx.member.id, text, now)
+    .run();
+  await c.env.DB.prepare(
+    `UPDATE forum_topics SET reply_count = coalesce(reply_count,0) + 1, updated_at = ? WHERE id = ?`
+  )
+    .bind(now, c.req.param("topicId"))
+    .run();
+  return c.json({ id }, 201);
+});
+
+/** Upload profile photo (raw body, image/*) */
+portalRoutes.post("/:slug/photo", async (c) => {
+  const ctx = await requireGuildMember(c, c.req.param("slug"));
+  if ("error" in ctx) return ctx.error;
+  const contentType = c.req.header("Content-Type") || "image/jpeg";
+  if (!contentType.startsWith("image/")) {
+    return c.json({ error: "Image required" }, 400);
+  }
+  const bytes = await c.req.arrayBuffer();
+  if (!bytes.byteLength || bytes.byteLength > 5 * 1024 * 1024) {
+    return c.json({ error: "Image must be under 5 MB" }, 400);
+  }
+  const { generateId } = await import("../lib/utils/id");
+  const id = generateId();
+  const ext = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
+  const filename = `avatar.${ext}`;
+  const key = `${ctx.tenant.id}/${id}/${filename}`;
+  await c.env.FILES.put(key, bytes, { httpMetadata: { contentType } });
+  const now = new Date().toISOString();
+  await c.env.DB.prepare(
+    `INSERT INTO files (id, tenant_id, r2_key, filename, content_type, size, uploaded_by, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  )
+    .bind(id, ctx.tenant.id, key, filename, contentType, bytes.byteLength, ctx.user.id, now)
+    .run();
+  try {
+    await c.env.DB.prepare(
+      `UPDATE members SET photo_file_id = ?, updated_at = ? WHERE id = ?`
+    )
+      .bind(id, now, ctx.member.id)
+      .run();
+  } catch {
+    return c.json({ error: "Photo column missing — run migration 0008" }, 503);
+  }
+  return c.json({
+    ok: true,
+    photo_file_id: id,
+    photo_url: `/public/${ctx.tenant.slug}/member-photo/${id}`,
   });
 });
 

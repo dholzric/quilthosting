@@ -4,7 +4,7 @@
 > /features/membership-management).
 >
 > **QuiltHosting baseline in original draft:** v0.11.0  
-> **Updated against deployed code:** v0.19.0 (2026-08-06)
+> **Updated against deployed code:** v0.20.0 (2026-08-06)
 
 ## Wild Apricot quick profile
 
@@ -48,35 +48,35 @@
 | Platform billing 🚀 | Free / Guild (starter) plan; upgrade Checkout; customer portal; plan limit enforcement. |
 | Ops 🚀 | Rate limits on public/auth POSTs; site gate; fleet footer (QuiltMap LLC). |
 
-### 🟡 Partial — lighter version
+### 🟡 Partial — lighter version (closed in v0.20 unless noted)
 
-| Area | Wild Apricot | QuiltHosting v0.16 | Gap to close |
+| Area | Wild Apricot | QuiltHosting v0.20 | Notes |
 |---|---|---|---|
-| Website builder | Full drag-and-drop site, themes, embed widgets | Public `/g/:slug` + HTML pages + profile | Blocks editor, themes, nav; **embeddable join/event widgets** for WordPress |
-| Custom forms | Applications, events, surveys; conditionals | Custom member fields on join + **per-event registration questions** (text/select, required) | Surveys; conditional fields |
-| Recurring payments | Saved cards, mature auto-renew | `renewal_type: auto` + subscription Checkout + `invoice.paid` extend | **E2E test** in Stripe test mode; card-update / cancel UX in portal |
-| Financial exports | Excel + **QuickBooks** | CSV (members, payments, regs) | QuickBooks IIF/QBO or integration |
-| Directory | Public OR members-only, showcases, opt-out | Members-only + **optional public directory** + member opt-out | Profile photos / rich showcases |
-| Invoicing | Auto invoices + PDF documents | Payment history + **printable receipts** + receipt emails + **QuickBooks IIF export** | Full auto-invoice numbering / multi-line invoices |
-| Automation | Sequences beyond renewals | Renewals + event reminders + welcome + waitlist + receipts + **lapsed win-back (7d)** + **open tracking** | Multi-step welcome series; click tracking |
-| Onboarding / trial | 60-day trial + coach | Checklist + **30-day Guild trial** + open site when no gate password | Optional human coach / webinars |
-| Mobile | Native admin + member apps | Responsive web + **PWA** (install admin, offline check-in queue) | Richer offline member app optional |
-| Recurring dues | Mature saved-card UX | Auto-renew Checkout + invoice.paid extend + **portal cancel auto-renew** + [E2E checklist](./auto-renew-e2e.md) | Card update deep-link in portal |
+| Website builder | Full drag-and-drop site, themes, embed widgets | **Blocks editor** + themes + nav + embeds | Not full WA DnD; good enough for guild microsites |
+| Custom forms | Applications, events, surveys; conditionals | **Surveys + show_if conditionals** + event questions | |
+| Recurring payments | Saved cards, mature auto-renew | Auto-renew + **E2E** + portal **cancel** + **update card** | |
+| Financial exports | Excel + **QuickBooks** | CSV + **IIF** | |
+| Directory | Public OR members-only, showcases, opt-out | Directory + **photos / bio / showcase** | |
+| Invoicing | Auto invoices + PDF documents | **Numbered multi-line invoices** + print | |
+| Automation | Sequences beyond renewals | **Multi-step welcome** + open + **click tracking** | |
+| Onboarding / trial | 60-day trial + coach | Trial + checklist + **coach/webinar links** | |
+| Mobile | Native admin + member apps | **PWA** admin + portal offline shell | Native apps still deferred |
+| Recurring dues | Mature saved-card UX | Cancel + **Stripe portal card update** | |
 
 ### ❌ Missing entirely (quilt-guild relevance)
 
 | Area | Wild Apricot | Priority for quilt guilds |
 |---|---|---|
-| **Online store** | Products, inventory, tax, orders | **Shipped v0.18 lite** — products, inventory, Stripe Checkout; no tax engine |
-| **Embeddable widgets** | Join/event widgets on external sites | **Shipped v0.18** — `/embed/:slug/join|events|store` iframes |
-| **Public API + Zapier** | Large ecosystem | Medium — document REST + Zapier later |
-| **Saved payment methods UX** | Cards on file | Medium — Stripe Customer Portal / portal “update card” once Connect stable |
-| **Members-only forums** | Forums / CommUnity | Low — Facebook already owns this |
-| **Blogs** | Blog pages | Low — content pages suffice |
-| **SMS** | Paid add-on | Low |
-| **Job board** | Paid add-on | Irrelevant |
-| **Native mobile apps** | iOS/Android | Medium — prefer PWA first |
-| **Multi-chapter product** | Volume / chapter pricing | Medium — maps to Council tier; not built |
+| **Online store** | Products, inventory, tax, orders | **v0.20** — multi-SKU cart + tax rate BPS + SKU |
+| **Embeddable widgets** | Join/event widgets on external sites | **Shipped v0.18** |
+| **Public API + Zapier** | Large ecosystem | **v0.20** — `/api/v1` + API keys + docs |
+| **Saved payment methods UX** | Cards on file | **v0.20** — portal update-card (Stripe Billing Portal) |
+| **Members-only forums** | Forums / CommUnity | **v0.20** — topics/replies in portal |
+| **Blogs** | Blog pages | **v0.20** — `page_type=blog_post` |
+| **SMS** | Paid add-on | **v0.20** — Twilio optional + log |
+| **Job board** | Paid add-on | Irrelevant — skipped |
+| **Native mobile apps** | iOS/Android | Deferred — PWA first |
+| **Multi-chapter product** | Volume / chapter pricing | **v0.20** — parent/child chapters |
 
 ---
 
@@ -118,14 +118,12 @@ For **quilt guilds**, sales-blocking gaps **remaining** (priority order):
 
 ### Remaining optional (not quilt-sale blockers)
 
-- Click tracking (links)
-- Tax automation / multi-SKU cart
-- Native mobile apps
-- Forums / SMS / Zapier
-- Multi-chapter Council product
+- Native iOS/Android apps (PWA covers install + offline check-in)
+- Job board (irrelevant for quilt guilds)
+- Full drag-drop CMS parity with WA
+- Zapier *native* app listing (REST + docs ship; marketplace listing later)
 
-Noise for this buyer: forums, job board, SMS, 1,600 integrations, native apps
-before PWA.
+Noise for this buyer: job board, 1,600 integrations, native apps before PWA.
 
 ---
 

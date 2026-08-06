@@ -17,6 +17,8 @@ export type Product = {
   inventory: number | null;
   is_active: number;
   sort_order: number;
+  sku?: string | null;
+  taxable?: number;
   created_at: string;
   updated_at: string;
 };
@@ -43,6 +45,8 @@ productRoutes.post("/", async (c) => {
     inventory?: number | null;
     is_active?: boolean;
     sort_order?: number;
+    sku?: string;
+    taxable?: boolean;
   }>();
   const name = (body.name || "").trim();
   if (!name) return c.json({ error: "name is required" }, 400);
@@ -53,24 +57,47 @@ productRoutes.post("/", async (c) => {
       : Math.max(0, Math.floor(Number(body.inventory)));
   const id = generateId();
   const now = new Date().toISOString();
-  await c.env.DB.prepare(
-    `INSERT INTO products
-     (id, tenant_id, name, description, price_cents, inventory, is_active, sort_order, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  )
-    .bind(
-      id,
-      tenant.id,
-      name,
-      body.description?.trim() || null,
-      price,
-      inventory,
-      body.is_active === false ? 0 : 1,
-      body.sort_order ?? 0,
-      now,
-      now
+  try {
+    await c.env.DB.prepare(
+      `INSERT INTO products
+       (id, tenant_id, name, description, price_cents, inventory, is_active, sort_order, sku, taxable, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
-    .run();
+      .bind(
+        id,
+        tenant.id,
+        name,
+        body.description?.trim() || null,
+        price,
+        inventory,
+        body.is_active === false ? 0 : 1,
+        body.sort_order ?? 0,
+        body.sku?.trim() || null,
+        body.taxable === false ? 0 : 1,
+        now,
+        now
+      )
+      .run();
+  } catch {
+    await c.env.DB.prepare(
+      `INSERT INTO products
+       (id, tenant_id, name, description, price_cents, inventory, is_active, sort_order, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+      .bind(
+        id,
+        tenant.id,
+        name,
+        body.description?.trim() || null,
+        price,
+        inventory,
+        body.is_active === false ? 0 : 1,
+        body.sort_order ?? 0,
+        now,
+        now
+      )
+      .run();
+  }
   const row = await first<Product>(
     c.env.DB.prepare("SELECT * FROM products WHERE id = ?").bind(id)
   );
@@ -94,6 +121,8 @@ productRoutes.patch("/:productId", async (c) => {
     inventory?: number | null;
     is_active?: boolean;
     sort_order?: number;
+    sku?: string | null;
+    taxable?: boolean;
   }>();
   const now = new Date().toISOString();
   const name =
@@ -110,30 +139,59 @@ productRoutes.patch("/:productId", async (c) => {
         ? null
         : Math.max(0, Math.floor(Number(body.inventory)));
   }
-  await c.env.DB.prepare(
-    `UPDATE products SET
-       name = ?, description = ?, price_cents = ?, inventory = ?,
-       is_active = ?, sort_order = ?, updated_at = ?
-     WHERE id = ? AND tenant_id = ?`
-  )
-    .bind(
-      name,
-      body.description !== undefined
-        ? body.description?.trim() || null
-        : existing.description,
-      price,
-      inventory,
-      body.is_active !== undefined
-        ? body.is_active
-          ? 1
-          : 0
-        : existing.is_active,
-      body.sort_order ?? existing.sort_order,
-      now,
-      productId,
-      tenant.id
+  try {
+    await c.env.DB.prepare(
+      `UPDATE products SET
+         name = ?, description = ?, price_cents = ?, inventory = ?,
+         is_active = ?, sort_order = ?, sku = coalesce(?, sku), taxable = coalesce(?, taxable), updated_at = ?
+       WHERE id = ? AND tenant_id = ?`
     )
-    .run();
+      .bind(
+        name,
+        body.description !== undefined
+          ? body.description?.trim() || null
+          : existing.description,
+        price,
+        inventory,
+        body.is_active !== undefined
+          ? body.is_active
+            ? 1
+            : 0
+          : existing.is_active,
+        body.sort_order ?? existing.sort_order,
+        body.sku !== undefined ? body.sku?.trim() || null : null,
+        body.taxable !== undefined ? (body.taxable ? 1 : 0) : null,
+        now,
+        productId,
+        tenant.id
+      )
+      .run();
+  } catch {
+    await c.env.DB.prepare(
+      `UPDATE products SET
+         name = ?, description = ?, price_cents = ?, inventory = ?,
+         is_active = ?, sort_order = ?, updated_at = ?
+       WHERE id = ? AND tenant_id = ?`
+    )
+      .bind(
+        name,
+        body.description !== undefined
+          ? body.description?.trim() || null
+          : existing.description,
+        price,
+        inventory,
+        body.is_active !== undefined
+          ? body.is_active
+            ? 1
+            : 0
+          : existing.is_active,
+        body.sort_order ?? existing.sort_order,
+        now,
+        productId,
+        tenant.id
+      )
+      .run();
+  }
   const row = await first<Product>(
     c.env.DB.prepare("SELECT * FROM products WHERE id = ?").bind(productId)
   );

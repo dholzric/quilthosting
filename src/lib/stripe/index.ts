@@ -61,6 +61,12 @@ export function applicationFeeAmount(env: Env, amountCents: number): number | un
   return fee > 0 ? fee : undefined;
 }
 
+export type CheckoutLineItem = {
+  name: string;
+  amountCents: number;
+  quantity?: number;
+};
+
 export type CreateCheckoutParams = {
   tenantId: string;
   tenantSlug: string;
@@ -73,12 +79,18 @@ export type CreateCheckoutParams = {
   relatedId?: string;
   /** Optional quantity for store purchases (metadata). */
   quantity?: number;
+  /** Multi-SKU cart lines (store). When set, overrides single line_items[0]. */
+  lineItems?: CheckoutLineItem[];
+  /** Extra metadata (order id, tax, etc.) */
+  extraMetadata?: Record<string, string>;
   successUrl: string;
   cancelUrl: string;
   mode?: "payment" | "subscription";
   interval?: "month" | "year";
   /** Connected Express account — destination charges so funds land in the guild's bank. */
   stripeAccountId?: string | null;
+  /** Existing Stripe customer (card update / renewals). */
+  customerId?: string | null;
 };
 
 export async function createCheckoutSession(
@@ -89,22 +101,42 @@ export async function createCheckoutSession(
     mode: params.mode || "payment",
     success_url: params.successUrl,
     cancel_url: params.cancelUrl,
-    customer_email: params.email,
     // Guilds are their own merchant of record when using Connect; opt out of Managed Payments.
     "managed_payments[enabled]": "false",
     "metadata[tenant_id]": params.tenantId,
     "metadata[type]": params.type,
     "metadata[email]": params.email,
-    "line_items[0][price_data][currency]": "usd",
-    "line_items[0][price_data][unit_amount]": params.amountCents,
-    "line_items[0][price_data][product_data][name]": params.description,
-    "line_items[0][quantity]": 1,
   };
+
+  if (params.customerId) {
+    body.customer = params.customerId;
+  } else {
+    body.customer_email = params.email;
+  }
+
+  if (params.lineItems?.length) {
+    params.lineItems.slice(0, 20).forEach((li, i) => {
+      body[`line_items[${i}][price_data][currency]`] = "usd";
+      body[`line_items[${i}][price_data][unit_amount]`] = Math.max(0, Math.floor(li.amountCents));
+      body[`line_items[${i}][price_data][product_data][name]`] = li.name.slice(0, 200);
+      body[`line_items[${i}][quantity]`] = Math.max(1, Math.floor(li.quantity || 1));
+    });
+  } else {
+    body["line_items[0][price_data][currency]"] = "usd";
+    body["line_items[0][price_data][unit_amount]"] = params.amountCents;
+    body["line_items[0][price_data][product_data][name]"] = params.description;
+    body["line_items[0][quantity]"] = 1;
+  }
 
   if (params.memberId) body["metadata[member_id]"] = params.memberId;
   if (params.relatedId) body["metadata[related_id]"] = params.relatedId;
   if (params.quantity != null && params.quantity > 0) {
     body["metadata[quantity]"] = String(params.quantity);
+  }
+  if (params.extraMetadata) {
+    for (const [k, v] of Object.entries(params.extraMetadata)) {
+      if (v != null && v !== "") body[`metadata[${k}]`] = String(v).slice(0, 500);
+    }
   }
 
   const connected = params.stripeAccountId?.startsWith("acct_")
@@ -285,6 +317,22 @@ export async function cancelSubscription(
   subscriptionId: string
 ): Promise<StripeResponse> {
   return stripeRequest(env, "DELETE", `/subscriptions/${subscriptionId}`);
+}
+
+/** Retrieve a subscription (to get customer id for portal card updates). */
+export async function retrieveSubscription(
+  env: Env,
+  subscriptionId: string
+): Promise<StripeResponse> {
+  return stripeRequest(env, "GET", `/subscriptions/${subscriptionId}`);
+}
+
+/** Create Stripe Billing Portal session focused on payment method update. */
+export async function createCustomerPortalSession(
+  env: Env,
+  params: { customerId: string; returnUrl: string }
+): Promise<string> {
+  return createBillingPortalSession(env, params);
 }
 
 const WEBHOOK_TOLERANCE_SECONDS = 300;

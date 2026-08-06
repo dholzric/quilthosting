@@ -257,7 +257,9 @@ commsRoutes.post("/", async (c) => {
           subject: personalizedSubject,
           bodyHtml: personalizedBody,
         });
-        // Append open-tracking pixel
+        // Click-tracking wrappers + open-tracking pixel
+        const { wrapLinksForTracking } = await import("../lib/automations");
+        html = wrapLinksForTracking(html, c.env.APP_URL, logId);
         html += trackingPixelHtml(c.env.APP_URL, logId);
         const text = body.body_text
           ? applyMergeFields(body.body_text, ctx)

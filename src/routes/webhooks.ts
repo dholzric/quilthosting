@@ -264,7 +264,46 @@ webhookRoutes.post("/stripe", async (c) => {
             subject,
             html,
           });
+          try {
+            const { enrollMemberActivated } = await import("../lib/automations");
+            await enrollMemberActivated(c.env, tenantId, memberId);
+          } catch (e) {
+            console.warn("automation enroll failed", e);
+          }
         }
+      }
+    }
+
+    // Multi-SKU store cart orders
+    if (paymentType === "store" && session.metadata?.order_id) {
+      const orderId = session.metadata.order_id as string;
+      try {
+        await c.env.DB.prepare(
+          `UPDATE store_orders SET status = 'paid', updated_at = ?, stripe_session_id = ?
+           WHERE id = ? AND tenant_id = ?`
+        )
+          .bind(now, session.id, orderId, tenantId)
+          .run();
+        const order = await first<{ items_json: string }>(
+          c.env.DB.prepare(`SELECT items_json FROM store_orders WHERE id = ?`).bind(orderId)
+        );
+        if (order) {
+          const items = JSON.parse(order.items_json || "[]") as Array<{
+            product_id: string;
+            quantity: number;
+          }>;
+          for (const it of items) {
+            if (!it.product_id || !it.quantity) continue;
+            await c.env.DB.prepare(
+              `UPDATE products SET inventory = inventory - ?, updated_at = ?
+               WHERE id = ? AND tenant_id = ? AND inventory IS NOT NULL AND inventory >= ?`
+            )
+              .bind(it.quantity, now, it.product_id, tenantId, it.quantity)
+              .run();
+          }
+        }
+      } catch (e) {
+        console.warn("store order fulfill failed", e);
       }
     }
   }

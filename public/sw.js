@@ -1,5 +1,5 @@
 /* QuiltHosting service worker — cache shell for offline admin check-in */
-const CACHE = "qh-v18";
+const CACHE = "qh-v20";
 const PRECACHE = [
   "/admin",
   "/admin.html",
@@ -7,6 +7,7 @@ const PRECACHE = [
   "/manifest.webmanifest",
   "/portal",
   "/portal.html",
+  "/icon.svg",
 ];
 
 self.addEventListener("install", (event) => {

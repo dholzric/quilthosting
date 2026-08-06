@@ -25,6 +25,16 @@ import { portalRoutes } from "./routes/portal";
 import { billingRoutes } from "./routes/billing";
 import { groupRoutes } from "./routes/groups";
 import { productRoutes } from "./routes/products";
+import { formRoutes } from "./routes/forms";
+import { invoiceRoutes } from "./routes/invoices";
+import { automationRoutes } from "./routes/automations";
+import { forumAdminRoutes } from "./routes/forums";
+import { apiKeyRoutes } from "./routes/apiKeys";
+import { smsRoutes } from "./routes/sms";
+import { chapterRoutes } from "./routes/chapters";
+import { v1Routes } from "./routes/v1";
+import { runAutomationJob } from "./lib/automations";
+import { generateId } from "./lib/utils/id";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -49,11 +59,12 @@ app.get("/", (c) => {
   }
   return c.json({
     name: "QuiltHosting API",
-    version: "0.19.0",
+    version: "0.20.0",
     status: "ok",
     environment: c.env.ENVIRONMENT,
     admin: "/admin",
     portal: "/portal",
+    api: "/api/v1",
   });
 });
 
@@ -159,6 +170,42 @@ app.get("/t/o/:logId", async (c) => {
   });
 });
 
+// Email click tracking redirect
+app.get("/t/c/:logId", async (c) => {
+  const logId = c.req.param("logId") || "";
+  const dest = c.req.query("u") || "";
+  let safeUrl = "/";
+  try {
+    const u = new URL(dest);
+    if (u.protocol === "http:" || u.protocol === "https:") safeUrl = u.toString();
+  } catch {
+    /* ignore */
+  }
+  if (logId && logId.length < 80) {
+    try {
+      const now = new Date().toISOString();
+      await c.env.DB.prepare(
+        `UPDATE email_logs SET
+           click_count = coalesce(click_count, 0) + 1,
+           clicked_at = coalesce(clicked_at, ?)
+         WHERE id = ?`
+      )
+        .bind(now, logId)
+        .run();
+      await c.env.DB.prepare(
+        `INSERT INTO email_clicks (id, email_log_id, url, clicked_at)
+         VALUES (?, ?, ?, ?)`
+      )
+        .bind(generateId(), logId, safeUrl.slice(0, 2000), now)
+        .run();
+    } catch {
+      /* pre-migration */
+    }
+  }
+  return c.redirect(safeUrl, 302);
+});
+
+app.route("/api/v1", v1Routes);
 app.route("/api/auth", authRoutes);
 app.route("/api/tenants", tenantRoutes);
 app.route("/api/portal", portalRoutes);
@@ -179,6 +226,13 @@ tenantApp.route("/pages", pageRoutes);
 tenantApp.route("/files", fileRoutes);
 tenantApp.route("/products", productRoutes);
 tenantApp.route("/billing", billingRoutes);
+tenantApp.route("/forms", formRoutes);
+tenantApp.route("/invoices", invoiceRoutes);
+tenantApp.route("/automations", automationRoutes);
+tenantApp.route("/forum", forumAdminRoutes);
+tenantApp.route("/api-keys", apiKeyRoutes);
+tenantApp.route("/sms", smsRoutes);
+tenantApp.route("/chapters", chapterRoutes);
 app.route("/api/tenants/:tenantId", tenantApp);
 
 app.route("/public", publicRoutes);
@@ -198,7 +252,8 @@ async function runDailyJobs(env: Env) {
   const renewals = await runRenewalJob(env);
   const events = await runEventReminderJob(env);
   const blasts = await runScheduledBlasts(env);
-  return { renewals, events, blasts };
+  const automations = await runAutomationJob(env);
+  return { renewals, events, blasts, automations };
 }
 
 app.get("/__scheduled", async (c) => {
