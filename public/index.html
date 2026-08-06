@@ -122,16 +122,13 @@
     .cta-final { text-align: center; padding: 4.5rem 1.5rem 5rem; }
     .cta-final h2 { font-size: 2rem; }
 
-    footer { border-top: 1px solid var(--border); }
-    footer .inner { max-width: 1080px; margin: 0 auto; padding: 2rem 1.5rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; color: var(--ink-3); font-size: 0.85rem; }
-
     @media (max-width: 860px) {
       .hero { grid-template-columns: 1fr; padding-top: 3.5rem; }
       .preview { transform: none; }
     }
   </style>
 </head>
-<body>
+<body class="has-fleet-footer">
   <header class="site-header">
     <div class="inner">
       <a class="logo" href="/"><span class="thread">✦</span> QuiltHosting</a>
@@ -374,16 +371,24 @@
     <a class="btn" href="/admin" style="padding:0.85rem 1.8rem;font-size:1.05rem">Start your guild</a>
   </section>
 
-  <footer>
-    <div class="inner">
-      <span>© QuiltHosting · membership software for quilt &amp; craft guilds</span>
-      <span>
-        <a href="/portal" style="color:var(--ink-3)">Member portal</a> ·
-        <a href="/admin" style="color:var(--ink-3)">Guild admin</a> ·
-        <a href="/terms" style="color:var(--ink-3)">Terms</a> ·
-        <a href="/privacy" style="color:var(--ink-3)">Privacy</a>
-      </span>
-    </div>
+  <footer class="qh-fleet-footer" role="contentinfo">
+    <span class="brand">
+      <a class="home" href="/" title="QuiltHosting home"><strong>QuiltHosting</strong></a> — a
+      <a href="https://quiltmap.com" target="_blank" rel="noopener noreferrer">QuiltMap</a> company
+    </span>
+    <nav aria-label="Footer links">
+      <a href="https://quiltmap.com" target="_blank" rel="noopener noreferrer">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z" />
+          <circle cx="12" cy="10" r="3" />
+        </svg>
+        quiltmap.com</a>
+      <a href="/portal">Member portal</a>
+      <a href="/admin">Guild admin</a>
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
+    </nav>
+    <span class="legal"><span class="prerelease" title="QuiltHosting is in private preview">PRE-RELEASE</span> © 2026 QuiltMap · 5900 Balcones Drive STE 100, Austin, TX 78731 · v0.14.1</span>
   </footer>
 </body>
 </html>

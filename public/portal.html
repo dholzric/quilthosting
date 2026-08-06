@@ -18,7 +18,7 @@
     .event-item:last-child { border-bottom: none; }
   </style>
 </head>
-<body>
+<body class="has-fleet-footer">
   <header class="portal-header">
     <div class="inner">
       <h1><a href="/" style="color:inherit;text-decoration:none" title="QuiltHosting home"><span style="color:var(--gold)">✦</span></a> <span id="guild-title">Member Portal</span></h1>
@@ -681,5 +681,24 @@
       loadPortal();
     }
   </script>
+  <footer class="qh-fleet-footer" role="contentinfo">
+    <span class="brand">
+      <a class="home" href="/" title="QuiltHosting home"><strong>QuiltHosting</strong></a> — a
+      <a href="https://quiltmap.com" target="_blank" rel="noopener noreferrer">QuiltMap</a> company
+    </span>
+    <nav aria-label="Footer links">
+      <a href="https://quiltmap.com" target="_blank" rel="noopener noreferrer">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z" />
+          <circle cx="12" cy="10" r="3" />
+        </svg>
+        quiltmap.com</a>
+      <a href="/portal">Member portal</a>
+      <a href="/admin">Guild admin</a>
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
+    </nav>
+    <span class="legal"><span class="prerelease" title="QuiltHosting is in private preview">PRE-RELEASE</span> © 2026 QuiltMap · 5900 Balcones Drive STE 100, Austin, TX 78731 · v0.14.1</span>
+  </footer>
 </body>
 </html>

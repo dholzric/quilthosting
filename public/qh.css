@@ -397,3 +397,70 @@ dialog::backdrop { background: rgba(34, 31, 26, 0.45); }
 .notice { padding: 0.85rem 1.1rem; border-radius: var(--r-sm); margin: 1rem 0; font-size: 0.95rem; }
 .notice.ok { background: var(--ok-soft); color: var(--ok); }
 .notice.err { background: var(--danger-soft); color: var(--danger); }
+
+/* --- Fleet footer (QuiltMap company bar — matches CreateABlock) --------- */
+
+.qh-fleet-footer {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+  padding: 0.55rem 1.25rem;
+  background: #2b2b2e;
+  color: #b8b4ab;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  font-family: var(--font-ui);
+}
+.qh-fleet-footer .brand strong { color: #fff; font-weight: 700; }
+.qh-fleet-footer .brand .home {
+  color: inherit;
+  text-decoration: none;
+}
+.qh-fleet-footer .brand .home:hover strong { text-decoration: underline; }
+.qh-fleet-footer a {
+  color: #9ccbd6;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+.qh-fleet-footer a:hover { color: #fff; text-decoration: underline; }
+.qh-fleet-footer nav {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.qh-fleet-footer .legal {
+  margin-left: auto;
+  color: #8a867d;
+}
+.qh-fleet-footer .prerelease {
+  background: #e9a93d;
+  color: #2b2b2e;
+  border-radius: 4px;
+  padding: 0.05rem 0.4rem;
+  font-weight: 700;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  margin-right: 0.4rem;
+}
+@media (max-width: 760px) {
+  .qh-fleet-footer {
+    justify-content: center;
+    text-align: center;
+  }
+  .qh-fleet-footer .legal { margin-left: 0; }
+}
+
+/* Pin body layout so fleet footer can sit at bottom of short pages */
+body.has-fleet-footer {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+body.has-fleet-footer > .qh-fleet-footer { margin-top: auto; }
+/* Admin app layout grows to fill */
+body.has-fleet-footer > .layout { flex: 1; }
+body.has-fleet-footer > .wrap { flex: 1; width: 100%; }
