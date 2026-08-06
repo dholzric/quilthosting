@@ -69,12 +69,36 @@
     </div>
     <div id="view-events" class="view-hidden">
       <h2>Events</h2>
-      <div class="qh-view-toggle">
-        <button id="ev-toggle-list" class="on" onclick="setEventsMode('list')">List</button>
-        <button id="ev-toggle-cal" onclick="setEventsMode('calendar')">Calendar</button>
+      <div class="row" style="justify-content:flex-start;gap:0.75rem">
+        <div class="qh-view-toggle">
+          <button id="ev-toggle-list" class="on" onclick="setEventsMode('list')">List</button>
+          <button id="ev-toggle-cal" onclick="setEventsMode('calendar')">Calendar</button>
+        </div>
+        <a class="btn secondary" id="ics-subscribe" href="#" style="margin-bottom:1rem">Subscribe</a>
       </div>
       <div id="events-page"></div>
       <div id="events-calendar" class="hidden"></div>
+    </div>
+
+    <!-- Single event -->
+    <div id="view-event" class="view-hidden">
+      <a class="brand" id="event-back" href="#">&larr; All events</a>
+      <h2 id="event-title" style="margin-top:0.6rem"></h2>
+      <div id="event-body"></div>
+      <div id="event-volunteers"></div>
+    </div>
+
+    <!-- Photo galleries -->
+    <div id="view-galleries" class="view-hidden">
+      <h2>Photo Galleries</h2>
+      <div id="galleries-list"></div>
+    </div>
+
+    <div id="view-gallery" class="view-hidden">
+      <a class="brand" id="gallery-back" href="#">&larr; All galleries</a>
+      <h2 id="gallery-title" style="margin-top:0.6rem"></h2>
+      <p class="muted" id="gallery-desc"></p>
+      <div id="gallery-photos" class="qh-photo-grid"></div>
     </div>
 
     <!-- CMS content page -->
@@ -91,6 +115,18 @@
       <p style="margin-top:1rem"><a class="brand" id="nf-home" href="#">← Guild home</a></p>
     </div>
   </main>
+
+  <dialog id="vol-dialog">
+    <h3 id="vol-title" style="margin-top:0"></h3>
+    <div id="vol-error" class="notice err hidden"></div>
+    <label>Your name</label><input id="vol-name" />
+    <label>Email</label><input id="vol-email" type="email" placeholder="you@example.com" />
+    <label>Phone (optional)</label><input id="vol-phone" />
+    <div style="display:flex;gap:0.6rem;justify-content:flex-end;margin-top:1.2rem">
+      <button class="secondary" onclick="document.getElementById('vol-dialog').close()">Cancel</button>
+      <button onclick="submitVolunteer()">Sign up</button>
+    </div>
+  </dialog>
 
   <dialog id="signup-dialog">
     <h3 id="dialog-title" style="margin-top:0"></h3>
@@ -113,6 +149,7 @@
     // Paths: /g/:tenantSlug[/pageSlug]  or custom-domain /[/pageSlug]
     let slug = "";
     let pageSlug = ""; // "" | "membership" | "events" | cms page slug
+    let subSlug = ""; // event id / gallery slug
     let onCustomHost = false;
     let siteCache = null;
     let pagesBySlug = {};
@@ -141,10 +178,12 @@
         onCustomHost = false;
         slug = decodeURIComponent(parts[1]);
         pageSlug = parts[2] ? decodeURIComponent(parts[2]) : "";
+        subSlug = parts[3] ? decodeURIComponent(parts[3]) : "";
         return;
       }
       onCustomHost = true;
       pageSlug = parts[0] ? decodeURIComponent(parts[0]) : "";
+      subSlug = parts[1] ? decodeURIComponent(parts[1]) : "";
       slug = "";
     }
 
@@ -175,7 +214,7 @@
     }
 
     function showView(name) {
-      for (const id of ["view-home", "view-membership", "view-events", "view-page", "view-notfound"]) {
+      for (const id of ["view-home", "view-membership", "view-events", "view-event", "view-galleries", "view-gallery", "view-page", "view-notfound"]) {
         const node = $(id);
         if (!node) continue;
         node.classList.toggle("view-hidden", id !== name);
@@ -194,6 +233,21 @@
         const src = $("levels");
         const dst = $("levels-page");
         if (src && dst) dst.replaceChildren(...Array.from(src.childNodes).map((n) => n.cloneNode(true)));
+        return;
+      }
+      if (p === "events" && subSlug) {
+        showView("view-event");
+        renderEventDetail(subSlug);
+        return;
+      }
+      if (p === "galleries" || p === "photos") {
+        if (subSlug) {
+          showView("view-gallery");
+          renderGallery(subSlug);
+        } else {
+          showView("view-galleries");
+          renderGalleries();
+        }
         return;
       }
       if (p === "events" || p === "calendar") {
@@ -259,6 +313,250 @@
           drawCalendar();
         },
       });
+    }
+
+    // ---- Event detail, galleries, volunteer sheets ----
+    function guildPath(sub) {
+      return onCustomHost ? "/" + sub : "/g/" + encodeURIComponent(slug) + "/" + sub;
+    }
+
+    function addToCalendarLinks(ev) {
+      const wrap = el("div", "row");
+      wrap.style.justifyContent = "flex-start";
+      wrap.style.marginTop = "0.75rem";
+      const ics = el("a", "btn secondary", "Add to calendar");
+      ics.href = `${API}/public/${slug || location.hostname}/events/${ev.id}/ics`;
+      wrap.appendChild(ics);
+      const start = new Date(ev.start_at);
+      const end = ev.end_at ? new Date(ev.end_at) : new Date(start.getTime() + 2 * 3600000);
+      const fmt = (d) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+      const g = el("a", "btn secondary", "Google Calendar");
+      g.target = "_blank";
+      g.rel = "noopener";
+      g.href =
+        "https://calendar.google.com/calendar/render?action=TEMPLATE" +
+        "&text=" + encodeURIComponent(ev.title) +
+        "&dates=" + fmt(start) + "/" + fmt(end) +
+        (ev.location ? "&location=" + encodeURIComponent(ev.location) : "") +
+        (ev.description ? "&details=" + encodeURIComponent(ev.description) : "");
+      wrap.appendChild(g);
+      return wrap;
+    }
+
+    async function renderEventDetail(eventId) {
+      const body = $("event-body");
+      $("event-back").href = guildPath("events");
+      body.replaceChildren(el("p", "muted", "Loading\u2026"));
+      $("event-volunteers").replaceChildren();
+      try {
+        const res = await fetch(`${API}/public/${slug}/events/${eventId}`);
+        if (!res.ok) throw new Error("Event not found");
+        const data = await res.json();
+        const ev = data.event || data;
+        $("event-title").textContent = ev.title;
+        document.title = ev.title + " \u2014 " + (data.tenant?.name || "Guild");
+
+        const card = el("div", "card");
+        const when = new Date(ev.start_at).toLocaleString(undefined, {
+          dateStyle: "full", timeStyle: "short",
+        });
+        card.appendChild(el("div", "", when));
+        if (ev.location) {
+          const loc = el("div", "muted");
+          loc.textContent = ev.location + " ";
+          const map = el("a", "", "(map)");
+          map.href = "https://maps.google.com/?q=" + encodeURIComponent(ev.location);
+          map.target = "_blank";
+          map.rel = "noopener";
+          loc.appendChild(map);
+          card.appendChild(loc);
+        }
+        if (ev.description) {
+          const d = el("p", "");
+          d.style.marginTop = "0.75rem";
+          d.textContent = ev.description;
+          card.appendChild(d);
+        }
+        card.appendChild(el("div", "muted",
+          "Members " + (ev.member_price_cents ? money(ev.member_price_cents) : "free") +
+          " \u00b7 Non-members " + (ev.non_member_price_cents ? money(ev.non_member_price_cents) : "free")));
+        if (ev.registration_open) {
+          const btn = el("button", "", "Register");
+          btn.style.marginTop = "0.75rem";
+          btn.addEventListener("click", () =>
+            openSignup("Register \u2014 " + ev.title, {
+              type: "event", eventId: ev.id, questions: ev.questions || [],
+            }));
+          card.appendChild(btn);
+        } else {
+          card.appendChild(el("div", "muted", "Registration is closed."));
+        }
+        card.appendChild(addToCalendarLinks(ev));
+        body.replaceChildren(card);
+        renderVolunteers(ev.id);
+      } catch (e) {
+        body.replaceChildren(el("div", "notice err", e.message));
+      }
+    }
+
+    async function renderVolunteers(eventId) {
+      const box = $("event-volunteers");
+      box.replaceChildren();
+      let slots = [];
+      try {
+        const res = await fetch(`${API}/public/${slug}/events/${eventId}/volunteers`);
+        slots = (await res.json()).slots || [];
+      } catch { return; }
+      if (!slots.length) return;
+      box.appendChild(el("h2", "", "Volunteer sign-up"));
+      for (const st of slots) {
+        const card = el("div", "card row");
+        const left = el("div");
+        left.appendChild(el("strong", "", st.title));
+        if (st.description) left.appendChild(el("div", "muted", st.description));
+        const filled = st.taken + " of " + st.needed + " filled";
+        const who = st.volunteers.length ? " \u00b7 " + st.volunteers.join(", ") : "";
+        left.appendChild(el("div", "muted", filled + who));
+        const right = el("div");
+        right.style.textAlign = "right";
+        if (st.taken >= st.needed) {
+          right.appendChild(el("span", "badge active", "Full"));
+        } else {
+          const btn = el("button", "", "Sign up");
+          btn.addEventListener("click", () => openVolunteer(eventId, st));
+          right.appendChild(btn);
+        }
+        card.append(left, right);
+        box.appendChild(card);
+      }
+    }
+
+    function openVolunteer(eventId, slot) {
+      volunteerCtx = { eventId, slot };
+      $("vol-title").textContent = "Sign up \u2014 " + slot.title;
+      $("vol-error").classList.add("hidden");
+      $("vol-dialog").showModal();
+    }
+
+    async function submitVolunteer() {
+      const err = $("vol-error");
+      err.classList.add("hidden");
+      const email = $("vol-email").value.trim();
+      const name = $("vol-name").value.trim();
+      if (!email) {
+        err.textContent = "Email is required."; err.classList.remove("hidden"); return;
+      }
+      try {
+        const res = await fetch(
+          `${API}/public/${slug}/events/${volunteerCtx.eventId}/volunteer`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              slot_id: volunteerCtx.slot.id, name, email,
+              phone: $("vol-phone").value.trim() || undefined,
+            }),
+          }
+        );
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Sign-up failed");
+        $("vol-dialog").close();
+        flash("ok", "Thank you! You're signed up for " + data.slot + ".");
+        renderVolunteers(volunteerCtx.eventId);
+      } catch (e) {
+        err.textContent = e.message;
+        err.classList.remove("hidden");
+      }
+    }
+
+    async function renderGalleries() {
+      const box = $("galleries-list");
+      box.replaceChildren(el("p", "muted", "Loading\u2026"));
+      try {
+        const data = await (await fetch(`${API}/public/${slug}/galleries`)).json();
+        const gals = data.galleries || [];
+        box.replaceChildren();
+        if (!gals.length) {
+          box.appendChild(el("p", "muted", "No photo galleries yet."));
+          return;
+        }
+        const grid = el("div", "qh-photo-grid");
+        for (const g of gals) {
+          const a = el("a", "qh-gallery-card");
+          a.href = guildPath("galleries/" + encodeURIComponent(g.slug));
+          if (g.cover_photo_id) {
+            const img = document.createElement("img");
+            img.loading = "lazy";
+            img.alt = g.title;
+            img.src = `${API}/public/${slug}/photo/${g.cover_photo_id}`;
+            a.appendChild(img);
+          } else {
+            a.appendChild(el("div", "qh-gallery-blank", "\ud83e\uddf5"));
+          }
+          const cap = el("div", "qh-gallery-cap");
+          cap.appendChild(el("strong", "", g.title));
+          cap.appendChild(el("div", "muted", g.photo_count + " photo" + (g.photo_count === 1 ? "" : "s")));
+          a.appendChild(cap);
+          grid.appendChild(a);
+        }
+        box.appendChild(grid);
+      } catch (e) {
+        box.replaceChildren(el("div", "notice err", e.message));
+      }
+    }
+
+    async function renderGallery(gallerySlug) {
+      const box = $("gallery-photos");
+      $("gallery-back").href = guildPath("galleries");
+      box.replaceChildren(el("p", "muted", "Loading\u2026"));
+      try {
+        const data = await (await fetch(
+          `${API}/public/${slug}/galleries/${encodeURIComponent(gallerySlug)}`)).json();
+        if (data.error) throw new Error(data.error);
+        $("gallery-title").textContent = data.gallery.title;
+        $("gallery-desc").textContent = data.gallery.description || "";
+        document.title = data.gallery.title + " \u2014 " + (data.tenant?.name || "Guild");
+        box.replaceChildren();
+        for (const ph of data.photos || []) {
+          const fig = el("figure", "qh-photo");
+          const img = document.createElement("img");
+          img.loading = "lazy";
+          img.alt = ph.caption || "";
+          img.src = `${API}/public/${slug}/photo/${ph.id}`;
+          fig.appendChild(img);
+          if (ph.caption) fig.appendChild(el("figcaption", "muted", ph.caption));
+          box.appendChild(fig);
+        }
+        if (!(data.photos || []).length) {
+          box.appendChild(el("p", "muted", "No photos in this gallery yet."));
+        }
+      } catch (e) {
+        box.replaceChildren(el("div", "notice err", e.message));
+      }
+    }
+
+    let volunteerCtx = null;
+
+    // Subscribe button + Photos nav entry (added once the guild slug is known)
+    async function decorateNav() {
+      const sub = $("ics-subscribe");
+      if (sub) {
+        sub.href = `${API}/public/${slug}/events.ics`;
+        sub.title = "Subscribe in Google or Apple Calendar";
+      }
+      try {
+        const data = await (await fetch(`${API}/public/${slug}/galleries`)).json();
+        if ((data.galleries || []).length) {
+          const nav = $("site-nav");
+          if (nav && !nav.querySelector("[data-nav-galleries]")) {
+            const a = el("a", "brand", "Photos");
+            a.dataset.navGalleries = "1";
+            a.href = guildPath("galleries");
+            const first = nav.querySelector("a");
+            nav.insertBefore(a, first ? first.nextSibling : null);
+          }
+        }
+      } catch { /* galleries are optional */ }
     }
 
     const qs = new URLSearchParams(location.search);
@@ -380,7 +678,12 @@
       const when = new Date(ev.start_at).toLocaleString(undefined, { dateStyle: "full", timeStyle: "short" });
       const card = el("div", "card row");
       const left = el("div");
-      left.appendChild(el("strong", "", ev.title));
+      const titleLink = el("a", "", ev.title);
+      titleLink.href = guildPath("events/" + ev.id);
+      titleLink.style.cssText = "font-weight:700;color:inherit;text-decoration:none";
+      const titleWrap = el("strong");
+      titleWrap.appendChild(titleLink);
+      left.appendChild(titleWrap);
       left.appendChild(el("div", "muted", when + (ev.location ? " · " + ev.location : "")));
       if (ev.description) left.appendChild(el("div", "muted", ev.description));
       left.appendChild(el("div", "muted",
@@ -765,7 +1068,7 @@
         showView("view-home");
       }
     }
-    load();
+    load().then(() => decorateNav()).catch(() => decorateNav());
   </script>
   <footer class="qh-fleet-footer" role="contentinfo">
     <span class="brand">

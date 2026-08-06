@@ -424,7 +424,10 @@ memberRoutes.delete("/:memberId", async (c) => {
  */
 memberRoutes.post("/import", async (c) => {
   const tenant = c.get("tenant");
-  const body = await c.req.json<{ rows: Array<Record<string, string>> }>();
+  const body = await c.req.json<{
+    rows: Array<Record<string, string>>;
+    dry_run?: boolean;
+  }>();
   if (!Array.isArray(body.rows) || !body.rows.length) {
     return c.json({ error: "rows array is required" }, 400);
   }
@@ -451,6 +454,46 @@ memberRoutes.post("/import", async (c) => {
       ).bind(tenant.id, ...slice)
     );
     for (const m of found) byEmail.set(m.email, m.id);
+  }
+
+  // Dry run: report exactly what a real import would do, write nothing.
+  if (body.dry_run) {
+    const seenEmails = new Set<string>();
+    let willCreate = 0;
+    let willUpdate = 0;
+    const skipped: Array<{ row: number; reason: string }> = [];
+    const sample: Array<Record<string, string>> = [];
+    body.rows.forEach((r, idx) => {
+      const email = (r.email || "").toLowerCase().trim();
+      if (!email || !email.includes("@")) {
+        skipped.push({ row: idx + 1, reason: "missing or invalid email" });
+        return;
+      }
+      if (seenEmails.has(email)) {
+        skipped.push({ row: idx + 1, reason: "duplicate email in file" });
+        return;
+      }
+      seenEmails.add(email);
+      const existing = byEmail.has(email);
+      if (existing) willUpdate++;
+      else willCreate++;
+      if (sample.length < 5) {
+        sample.push({
+          email,
+          name: [r.first_name, r.last_name].filter(Boolean).join(" "),
+          action: existing ? "update" : "create",
+        });
+      }
+    });
+    return c.json({
+      dry_run: true,
+      total_rows: body.rows.length,
+      will_create: willCreate,
+      will_update: willUpdate,
+      will_skip: skipped.length,
+      skipped: skipped.slice(0, 20),
+      sample,
+    });
   }
 
   const levels = await all<MembershipLevel>(

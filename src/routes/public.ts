@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Env, Event, MembershipLevel, Member, Tenant } from "../types";
 import { all, first } from "../lib/db";
+import { buildIcs, icsResponse } from "../lib/ical";
 import { generateId, generateTicketCode } from "../lib/utils/id";
 import { createCheckoutSession } from "../lib/stripe";
 import { sendEmail, welcomeEmail, eventConfirmationEmail } from "../lib/email";
@@ -1293,4 +1294,244 @@ publicRoutes.post("/:slug/cart/checkout", async (c) => {
     console.error("Cart checkout failed", err);
     return c.json({ error: "Payment session could not be created" }, 502);
   }
+});
+
+
+// ---------------------------------------------------------------------------
+// Calendar feeds (.ics) — subscribe in Google/Apple Calendar
+// ---------------------------------------------------------------------------
+
+/** GET /public/:slug/events.ics — whole-guild subscribable feed */
+publicRoutes.get("/:slug/events.ics", async (c) => {
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  const events = await all<{
+    id: string;
+    title: string;
+    description: string | null;
+    location: string | null;
+    start_at: string;
+    end_at: string | null;
+    updated_at: string;
+  }>(
+    c.env.DB.prepare(
+      `SELECT id, title, description, location, start_at, end_at, updated_at
+       FROM events
+       WHERE tenant_id = ? AND is_public = 1
+         AND start_at >= datetime('now', '-90 days')
+       ORDER BY start_at ASC LIMIT 500`
+    ).bind(tenant.id)
+  );
+  const base = c.env.APP_URL || "https://quilthosting.com";
+  const ics = buildIcs(
+    tenant.name + " Events",
+    events.map((e) => ({ ...e, url: `${base}/g/${tenant.slug}/events/${e.id}` }))
+  );
+  return icsResponse(ics, `${tenant.slug}-events.ics`);
+});
+
+/** GET /public/:slug/events/:eventId/ics — single event download */
+publicRoutes.get("/:slug/events/:eventId/ics", async (c) => {
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  const ev = await first<{
+    id: string;
+    title: string;
+    description: string | null;
+    location: string | null;
+    start_at: string;
+    end_at: string | null;
+    updated_at: string;
+  }>(
+    c.env.DB.prepare(
+      `SELECT id, title, description, location, start_at, end_at, updated_at
+       FROM events WHERE id = ? AND tenant_id = ? AND is_public = 1`
+    ).bind(c.req.param("eventId"), tenant.id)
+  );
+  if (!ev) return c.json({ error: "Event not found" }, 404);
+  const base = c.env.APP_URL || "https://quilthosting.com";
+  const ics = buildIcs(ev.title, [
+    { ...ev, url: `${base}/g/${tenant.slug}/events/${ev.id}` },
+  ]);
+  return icsResponse(ics, "event.ics");
+});
+
+// ---------------------------------------------------------------------------
+// Volunteer sign-up sheets (public side)
+// ---------------------------------------------------------------------------
+
+/** GET /public/:slug/events/:eventId/volunteers — slots + filled counts (no emails) */
+publicRoutes.get("/:slug/events/:eventId/volunteers", async (c) => {
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  const eventId = c.req.param("eventId");
+  const slots = await all<{
+    id: string;
+    title: string;
+    description: string | null;
+    needed: number;
+    starts_at: string | null;
+    sort_order: number;
+  }>(
+    c.env.DB.prepare(
+      `SELECT id, title, description, needed, starts_at, sort_order
+       FROM volunteer_slots WHERE tenant_id = ? AND event_id = ?
+       ORDER BY sort_order, title`
+    ).bind(tenant.id, eventId)
+  );
+  if (!slots.length) return c.json({ slots: [] });
+  const counts = await all<{ slot_id: string; taken: number; names: string | null }>(
+    c.env.DB.prepare(
+      `SELECT slot_id, COUNT(*) taken, group_concat(name, ', ') names
+       FROM volunteer_signups WHERE tenant_id = ? AND event_id = ?
+       GROUP BY slot_id`
+    ).bind(tenant.id, eventId)
+  );
+  const byId = new Map(counts.map((r) => [r.slot_id, r]));
+  return c.json({
+    slots: slots.map((s) => {
+      const cnt = byId.get(s.id);
+      return {
+        ...s,
+        taken: cnt?.taken || 0,
+        // First names only keeps the sheet social without exposing contacts
+        volunteers: (cnt?.names || "")
+          .split(", ")
+          .filter(Boolean)
+          .map((n) => n.split(" ")[0]),
+      };
+    }),
+  });
+});
+
+/** POST /public/:slug/events/:eventId/volunteer — claim a slot */
+publicRoutes.post("/:slug/events/:eventId/volunteer", async (c) => {
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  const eventId = c.req.param("eventId");
+  const body = await c.req.json<{
+    slot_id: string;
+    name?: string;
+    email: string;
+    phone?: string;
+    note?: string;
+  }>();
+  if (!body.slot_id || !body.email) {
+    return c.json({ error: "slot_id and email are required" }, 400);
+  }
+  const email = body.email.toLowerCase().trim();
+  const slot = await first<{ id: string; title: string; needed: number }>(
+    c.env.DB.prepare(
+      "SELECT id, title, needed FROM volunteer_slots WHERE id = ? AND tenant_id = ? AND event_id = ?"
+    ).bind(body.slot_id, tenant.id, eventId)
+  );
+  if (!slot) return c.json({ error: "Sign-up slot not found" }, 404);
+
+  const taken = await first<{ cnt: number }>(
+    c.env.DB.prepare(
+      "SELECT COUNT(*) cnt FROM volunteer_signups WHERE tenant_id = ? AND slot_id = ?"
+    ).bind(tenant.id, slot.id)
+  );
+  const dupe = await first(
+    c.env.DB.prepare(
+      "SELECT id FROM volunteer_signups WHERE slot_id = ? AND email = ?"
+    ).bind(slot.id, email)
+  );
+  if (dupe) return c.json({ error: "You have already signed up for this slot" }, 409);
+  if ((taken?.cnt ?? 0) >= slot.needed) {
+    return c.json({ error: "That slot is already full" }, 409);
+  }
+
+  const member = await first<{ id: string }>(
+    c.env.DB.prepare(
+      "SELECT id FROM members WHERE tenant_id = ? AND email = ?"
+    ).bind(tenant.id, email)
+  );
+  await c.env.DB.prepare(
+    `INSERT INTO volunteer_signups
+     (id, tenant_id, slot_id, event_id, member_id, name, email, phone, note, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  )
+    .bind(
+      generateId(), tenant.id, slot.id, eventId, member?.id ?? null,
+      body.name ?? null, email, body.phone ?? null, body.note ?? null,
+      new Date().toISOString()
+    )
+    .run();
+  return c.json({ ok: true, slot: slot.title });
+});
+
+// ---------------------------------------------------------------------------
+// Photo galleries (public)
+// ---------------------------------------------------------------------------
+
+publicRoutes.get("/:slug/galleries", async (c) => {
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  const rows = await all<{
+    id: string;
+    slug: string;
+    title: string;
+    description: string | null;
+    photo_count: number;
+    cover_photo_id: string | null;
+  }>(
+    c.env.DB.prepare(
+      `SELECT g.id, g.slug, g.title, g.description,
+              (SELECT COUNT(*) FROM gallery_photos p WHERE p.gallery_id = g.id) photo_count,
+              (SELECT p.id FROM gallery_photos p WHERE p.gallery_id = g.id ORDER BY p.sort_order LIMIT 1) cover_photo_id
+       FROM galleries g
+       WHERE g.tenant_id = ? AND g.published = 1 AND g.is_members_only = 0
+       ORDER BY g.sort_order, g.created_at DESC`
+    ).bind(tenant.id)
+  );
+  return c.json({ tenant: { name: tenant.name, slug: tenant.slug }, galleries: rows });
+});
+
+publicRoutes.get("/:slug/galleries/:gallerySlug", async (c) => {
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  const gallery = await first<{
+    id: string;
+    slug: string;
+    title: string;
+    description: string | null;
+  }>(
+    c.env.DB.prepare(
+      `SELECT id, slug, title, description FROM galleries
+       WHERE tenant_id = ? AND slug = ? AND published = 1 AND is_members_only = 0`
+    ).bind(tenant.id, c.req.param("gallerySlug"))
+  );
+  if (!gallery) return c.json({ error: "Gallery not found" }, 404);
+  const photos = await all<{ id: string; caption: string | null; credit: string | null }>(
+    c.env.DB.prepare(
+      `SELECT id, caption, credit FROM gallery_photos
+       WHERE tenant_id = ? AND gallery_id = ? ORDER BY sort_order, created_at`
+    ).bind(tenant.id, gallery.id)
+  );
+  return c.json({ tenant: { name: tenant.name, slug: tenant.slug }, gallery, photos });
+});
+
+/** GET /public/:slug/photo/:photoId — serve a gallery image from R2 */
+publicRoutes.get("/:slug/photo/:photoId", async (c) => {
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  const row = await first<{ r2_key: string; content_type: string | null; members_only: number }>(
+    c.env.DB.prepare(
+      `SELECT f.r2_key, f.content_type, g.is_members_only members_only
+       FROM gallery_photos p
+       JOIN files f ON f.id = p.file_id
+       JOIN galleries g ON g.id = p.gallery_id
+       WHERE p.id = ? AND p.tenant_id = ? AND g.published = 1`
+    ).bind(c.req.param("photoId"), tenant.id)
+  );
+  if (!row || row.members_only) return c.json({ error: "Photo not found" }, 404);
+  const obj = await c.env.FILES.get(row.r2_key);
+  if (!obj) return c.json({ error: "Photo data missing" }, 404);
+  return new Response(obj.body, {
+    headers: {
+      "Content-Type": row.content_type || "image/jpeg",
+      "Cache-Control": "public, max-age=86400",
+    },
+  });
 });

@@ -7,6 +7,7 @@ import {
   normalizeQuestions,
   parseEventSettings,
 } from "../lib/eventQuestions";
+import { parseRecurrence, expandOccurrences } from "../lib/recurrence";
 
 export const eventRoutes = new Hono<{
   Bindings: Env;
@@ -30,10 +31,16 @@ type Registration = {
 eventRoutes.get("/", async (c) => {
   const tenant = c.get("tenant");
   const upcoming = c.req.query("upcoming") === "1";
+  const month = c.req.query("month");
   let query = "SELECT * FROM events WHERE tenant_id = ?";
   const params: (string | number)[] = [tenant.id];
-  if (upcoming) query += " AND start_at >= datetime('now')";
-  query += " ORDER BY start_at ASC LIMIT 100";
+  if (month && /^[0-9]{4}-(0[1-9]|1[0-2])$/.test(month)) {
+    query += " AND substr(start_at, 1, 7) = ?";
+    params.push(month);
+  } else if (upcoming) {
+    query += " AND start_at >= datetime('now')";
+  }
+  query += " ORDER BY start_at ASC LIMIT 400";
   const events = await all<Event>(c.env.DB.prepare(query).bind(...params));
   return c.json(events);
 });
@@ -52,10 +59,12 @@ eventRoutes.post("/", async (c) => {
     is_public?: boolean;
     waitlist_enabled?: boolean;
     questions?: unknown;
+    recurrence?: unknown;
   }>();
   if (!body.title || !body.start_at) {
     return c.json({ error: "title and start_at are required" }, 400);
   }
+  const rule = parseRecurrence(body.recurrence);
   const questions = normalizeQuestions(body.questions);
   const settingsJson = JSON.stringify({ questions });
   const id = generateId();
@@ -75,10 +84,51 @@ eventRoutes.post("/", async (c) => {
       settingsJson, now, now
     )
     .run();
+  // Materialize recurring occurrences as real event rows so registration,
+  // capacity, calendar and ics all work unchanged.
+  let created = 1;
+  if (rule) {
+    const occurrences = expandOccurrences(body.start_at, rule);
+    const durationMs =
+      body.end_at && !isNaN(new Date(body.end_at).getTime())
+        ? new Date(body.end_at).getTime() - new Date(body.start_at).getTime()
+        : 0;
+    const stmts = [];
+    for (let i = 1; i < occurrences.length; i++) {
+      const startIso = occurrences[i];
+      const endIso =
+        durationMs > 0
+          ? new Date(new Date(startIso).getTime() + durationMs).toISOString()
+          : null;
+      stmts.push(
+        c.env.DB.prepare(
+          `INSERT INTO events
+           (id, tenant_id, title, description, location, start_at, end_at, capacity,
+            member_price_cents, non_member_price_cents, is_public, waitlist_enabled,
+            settings_json, recurrence_parent_id, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(
+          generateId(), tenant.id, body.title, body.description ?? null,
+          body.location ?? null, startIso, endIso, body.capacity ?? null,
+          body.member_price_cents ?? 0, body.non_member_price_cents ?? 0,
+          body.is_public === false ? 0 : 1, body.waitlist_enabled ? 1 : 0,
+          settingsJson, id, now, now
+        )
+      );
+    }
+    for (let i = 0; i < stmts.length; i += 25) {
+      await c.env.DB.batch(stmts.slice(i, i + 25));
+    }
+    created = occurrences.length;
+    await c.env.DB.prepare("UPDATE events SET recurrence_rule = ? WHERE id = ?")
+      .bind(JSON.stringify(rule), id)
+      .run();
+  }
+
   const event = await first<Event>(
     c.env.DB.prepare("SELECT * FROM events WHERE id = ?").bind(id)
   );
-  return c.json(event, 201);
+  return c.json({ ...event, occurrences_created: created }, 201);
 });
 
 eventRoutes.get("/:eventId", async (c) => {
@@ -349,4 +399,138 @@ eventRoutes.patch("/:eventId/registrations/:regId", async (c) => {
   }
 
   return c.json({ ok: true, status: body.status });
+});
+
+
+// ---------------------------------------------------------------------------
+// Volunteer sign-up sheets (refreshments, show shifts, setup/teardown)
+// ---------------------------------------------------------------------------
+
+type SlotRow = {
+  id: string;
+  event_id: string;
+  title: string;
+  description: string | null;
+  needed: number;
+  starts_at: string | null;
+  sort_order: number;
+};
+
+eventRoutes.get("/:eventId/volunteers.csv", async (c) => {
+  const tenant = c.get("tenant");
+  const eventId = c.req.param("eventId");
+  const rows = await all<Record<string, unknown>>(
+    c.env.DB.prepare(
+      `SELECT s.title slot, g.name, g.email, g.phone, g.note, g.created_at
+       FROM volunteer_signups g JOIN volunteer_slots s ON s.id = g.slot_id
+       WHERE g.tenant_id = ? AND g.event_id = ?
+       ORDER BY s.sort_order, s.title, g.created_at`
+    ).bind(tenant.id, eventId)
+  );
+  const cell = (v: unknown) => {
+    const t = v == null ? "" : String(v);
+    return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+  };
+  const body = ["slot,name,email,phone,note,signed_up_at"]
+    .concat(
+      rows.map((r) =>
+        [r.slot, r.name, r.email, r.phone, r.note, r.created_at].map(cell).join(",")
+      )
+    )
+    .join("\n");
+  return new Response(body, {
+    headers: {
+      "Content-Type": "text/csv",
+      "Content-Disposition": 'attachment; filename="volunteers.csv"',
+    },
+  });
+});
+
+eventRoutes.get("/:eventId/volunteers", async (c) => {
+  const tenant = c.get("tenant");
+  const eventId = c.req.param("eventId");
+  const slots = await all<SlotRow>(
+    c.env.DB.prepare(
+      `SELECT id, event_id, title, description, needed, starts_at, sort_order
+       FROM volunteer_slots WHERE tenant_id = ? AND event_id = ?
+       ORDER BY sort_order, title`
+    ).bind(tenant.id, eventId)
+  );
+  const signups = await all<{
+    id: string;
+    slot_id: string;
+    name: string | null;
+    email: string;
+    phone: string | null;
+    note: string | null;
+    created_at: string;
+  }>(
+    c.env.DB.prepare(
+      `SELECT id, slot_id, name, email, phone, note, created_at
+       FROM volunteer_signups WHERE tenant_id = ? AND event_id = ?
+       ORDER BY created_at`
+    ).bind(tenant.id, eventId)
+  );
+  return c.json({
+    slots: slots.map((s) => ({
+      ...s,
+      signups: signups.filter((g) => g.slot_id === s.id),
+    })),
+  });
+});
+
+eventRoutes.post("/:eventId/volunteers", async (c) => {
+  const tenant = c.get("tenant");
+  const eventId = c.req.param("eventId");
+  const body = await c.req.json<{
+    title: string;
+    description?: string;
+    needed?: number;
+    starts_at?: string;
+    sort_order?: number;
+  }>();
+  if (!body.title) return c.json({ error: "title is required" }, 400);
+  const event = await first(
+    c.env.DB.prepare("SELECT id FROM events WHERE id = ? AND tenant_id = ?").bind(
+      eventId,
+      tenant.id
+    )
+  );
+  if (!event) return c.json({ error: "Event not found" }, 404);
+  const id = generateId();
+  const now = new Date().toISOString();
+  await c.env.DB.prepare(
+    `INSERT INTO volunteer_slots
+     (id, tenant_id, event_id, title, description, needed, starts_at, sort_order, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  )
+    .bind(
+      id, tenant.id, eventId, body.title, body.description ?? null,
+      Math.max(1, Number(body.needed) || 1), body.starts_at ?? null,
+      body.sort_order ?? 0, now, now
+    )
+    .run();
+  return c.json({ ok: true, id }, 201);
+});
+
+eventRoutes.delete("/:eventId/volunteers/:slotId/signups/:signupId", async (c) => {
+  const tenant = c.get("tenant");
+  const res = await c.env.DB.prepare(
+    "DELETE FROM volunteer_signups WHERE id = ? AND tenant_id = ? AND slot_id = ?"
+  )
+    .bind(c.req.param("signupId"), tenant.id, c.req.param("slotId"))
+    .run();
+  if (!res.meta.changes) return c.json({ error: "Signup not found" }, 404);
+  return c.json({ ok: true });
+});
+
+eventRoutes.delete("/:eventId/volunteers/:slotId", async (c) => {
+  const tenant = c.get("tenant");
+  const res = await c.env.DB.prepare(
+    "DELETE FROM volunteer_slots WHERE id = ? AND tenant_id = ? AND event_id = ?"
+  )
+    .bind(c.req.param("slotId"), tenant.id, c.req.param("eventId"))
+    .run();
+  if (!res.meta.changes) return c.json({ error: "Slot not found" }, 404);
+  return c.json({ ok: true });
 });

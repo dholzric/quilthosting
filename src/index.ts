@@ -18,6 +18,7 @@ import { statsRoutes, paymentRoutes } from "./routes/stats";
 import { commsRoutes } from "./routes/comms";
 import { teamRoutes } from "./routes/team";
 import { pageRoutes } from "./routes/pages";
+import { galleryRoutes } from "./routes/galleries";
 import { fileRoutes } from "./routes/files";
 import { publicRoutes } from "./routes/public";
 import { webhookRoutes } from "./routes/webhooks";
@@ -310,6 +311,7 @@ tenantApp.route("/chapters", chapterRoutes);
 tenantApp.route("/webhooks", outboundWebhookRoutes);
 tenantApp.route("/qbo", qboRoutes);
 tenantApp.route("/domain", domainRoutes);
+tenantApp.route("/galleries", galleryRoutes);
 app.route("/api/tenants/:tenantId", tenantApp);
 
 app.route("/public", publicRoutes);

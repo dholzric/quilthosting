@@ -291,3 +291,160 @@ paymentRoutes.post("/:paymentId/refund", async (c) => {
     .run();
   return c.json({ ok: true, refunded_cents: payment.amount_cents });
 });
+
+
+// ---------------------------------------------------------------------------
+// Treasurer reports
+// ---------------------------------------------------------------------------
+
+/**
+ * GET /api/tenants/:tenantId/stats/annual?year=YYYY
+ * Board-ready yearly summary: revenue by category, membership movement,
+ * and event attendance.
+ */
+statsRoutes.get("/annual", async (c) => {
+  const tenant = c.get("tenant");
+  const year = String(Number(c.req.query("year")) || new Date().getFullYear());
+  const from = year + "-01-01";
+  const to = String(Number(year) + 1) + "-01-01";
+
+  const [byType, byMonth, joined, lapsed, events, topEvents] = await Promise.all([
+    all<{ type: string; total_cents: number; payments: number }>(
+      c.env.DB.prepare(
+        `SELECT type, SUM(amount_cents) total_cents, COUNT(*) payments
+         FROM payments
+         WHERE tenant_id = ? AND status = 'succeeded'
+           AND created_at >= ? AND created_at < ?
+         GROUP BY type ORDER BY total_cents DESC`
+      ).bind(tenant.id, from, to)
+    ),
+    all<{ month: string; total_cents: number }>(
+      c.env.DB.prepare(
+        `SELECT substr(created_at, 1, 7) month, SUM(amount_cents) total_cents
+         FROM payments
+         WHERE tenant_id = ? AND status = 'succeeded'
+           AND created_at >= ? AND created_at < ?
+         GROUP BY month ORDER BY month`
+      ).bind(tenant.id, from, to)
+    ),
+    first<{ cnt: number }>(
+      c.env.DB.prepare(
+        `SELECT COUNT(*) cnt FROM members
+         WHERE tenant_id = ? AND joined_at >= ? AND joined_at < ?`
+      ).bind(tenant.id, from, to)
+    ),
+    first<{ cnt: number }>(
+      c.env.DB.prepare(
+        `SELECT COUNT(*) cnt FROM members
+         WHERE tenant_id = ? AND status = 'lapsed'
+           AND updated_at >= ? AND updated_at < ?`
+      ).bind(tenant.id, from, to)
+    ),
+    first<{ cnt: number; registrations: number }>(
+      c.env.DB.prepare(
+        `SELECT COUNT(DISTINCT e.id) cnt,
+                (SELECT COUNT(*) FROM event_registrations r
+                  WHERE r.tenant_id = ? AND r.created_at >= ? AND r.created_at < ?
+                    AND r.status IN ('registered','checked_in')) registrations
+         FROM events e
+         WHERE e.tenant_id = ? AND e.start_at >= ? AND e.start_at < ?`
+      ).bind(tenant.id, from, to, tenant.id, from, to)
+    ),
+    all<{ title: string; registrations: number }>(
+      c.env.DB.prepare(
+        `SELECT e.title, COUNT(r.id) registrations
+         FROM events e LEFT JOIN event_registrations r
+           ON r.event_id = e.id AND r.status IN ('registered','checked_in')
+         WHERE e.tenant_id = ? AND e.start_at >= ? AND e.start_at < ?
+         GROUP BY e.id ORDER BY registrations DESC LIMIT 10`
+      ).bind(tenant.id, from, to)
+    ),
+  ]);
+
+  const refunded = await first<{ total_cents: number; cnt: number }>(
+    c.env.DB.prepare(
+      `SELECT coalesce(SUM(amount_cents), 0) total_cents, COUNT(*) cnt
+       FROM payments WHERE tenant_id = ? AND status = 'refunded'
+         AND created_at >= ? AND created_at < ?`
+    ).bind(tenant.id, from, to)
+  );
+
+  const gross = byType.reduce((sum, r) => sum + (r.total_cents || 0), 0);
+  return c.json({
+    year: Number(year),
+    revenue: {
+      gross_cents: gross,
+      refunded_cents: refunded?.total_cents || 0,
+      net_cents: gross - (refunded?.total_cents || 0),
+      by_type: byType,
+      by_month: byMonth,
+    },
+    members: {
+      joined: joined?.cnt || 0,
+      lapsed: lapsed?.cnt || 0,
+    },
+    events: {
+      count: events?.cnt || 0,
+      registrations: events?.registrations || 0,
+      top: topEvents,
+    },
+  });
+});
+
+/**
+ * GET /api/tenants/:tenantId/stats/statement?member_id=&year=YYYY
+ * Per-member payment statement — doubles as a donation/tax receipt.
+ */
+statsRoutes.get("/statement", async (c) => {
+  const tenant = c.get("tenant");
+  const memberId = c.req.query("member_id");
+  const year = String(Number(c.req.query("year")) || new Date().getFullYear());
+  if (!memberId) return c.json({ error: "member_id is required" }, 400);
+  const from = year + "-01-01";
+  const to = String(Number(year) + 1) + "-01-01";
+
+  const member = await first<{
+    id: string;
+    email: string;
+    first_name: string | null;
+    last_name: string | null;
+    status: string;
+  }>(
+    c.env.DB.prepare(
+      "SELECT id, email, first_name, last_name, status FROM members WHERE id = ? AND tenant_id = ?"
+    ).bind(memberId, tenant.id)
+  );
+  if (!member) return c.json({ error: "Member not found" }, 404);
+
+  const payments = await all<{
+    id: string;
+    type: string;
+    description: string | null;
+    amount_cents: number;
+    status: string;
+    created_at: string;
+  }>(
+    c.env.DB.prepare(
+      `SELECT id, type, description, amount_cents, status, created_at
+       FROM payments
+       WHERE tenant_id = ? AND member_id = ? AND created_at >= ? AND created_at < ?
+       ORDER BY created_at`
+    ).bind(tenant.id, memberId, from, to)
+  );
+
+  const paid = payments.filter((p) => p.status === "succeeded");
+  const donations = paid.filter((p) => p.type === "donation");
+  return c.json({
+    year: Number(year),
+    tenant: { name: tenant.name, slug: tenant.slug },
+    member,
+    payments,
+    totals: {
+      paid_cents: paid.reduce((s, p) => s + p.amount_cents, 0),
+      donations_cents: donations.reduce((s, p) => s + p.amount_cents, 0),
+      refunded_cents: payments
+        .filter((p) => p.status === "refunded")
+        .reduce((s, p) => s + p.amount_cents, 0),
+    },
+  });
+});
