@@ -6,6 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 QuiltHosting — a multi-tenant membership + events platform for quilt/craft guilds (an alternative to Wild Apricot). Product of **QuiltMap LLC** (parent company). Domain: quilthosting.com. Renamed from "guildbase"; ticket codes use the `QH` prefix (`generateTicketCode` in `src/lib/utils/id.ts`).
 
+## Documentation
+
+- **Product docs (deployed):** `public/docs/*` → https://quilthosting.com/docs/ (site-gated while stealth)
+- **Repo index:** `docs/README.md`
+- **HTML library index:** `docs-library.html` (project root)
+- Admin → Settings links to `/docs/`
+
 ## Stack
 
 Cloudflare Workers + Hono + Zod, TypeScript ESM. Bindings (see `src/types.ts` `Env`): D1 (`DB`), R2 (`FILES`), KV (`KV`). Stripe (raw REST via `src/lib/stripe/`, no SDK) and Resend (`src/lib/email/`). No framework on the frontend — `public/admin.html` and `public/portal.html` are standalone pages served via the `[assets]` binding (reachable at `/admin` and `/portal`; assets take precedence over the Worker's routes for those paths).
