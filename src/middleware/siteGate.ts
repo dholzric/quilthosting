@@ -8,9 +8,9 @@ import type { Env } from "../types";
  * Uses a signed HttpOnly cookie instead of HTTP Basic auth so the
  * admin/portal pages can keep using Authorization: Bearer for the API.
  *
- * Exempt: /api/webhooks/* (Stripe must reach it; it verifies its own
- * signatures), /robots.txt, and CORS preflights. Fails closed in
- * production when the secret is missing.
+ * Exempt: /api/webhooks/*, /t/o/* (open pixels), /robots.txt, OPTIONS.
+ * Stealth by default: requires SITE_ACCESS_PASSWORD in production.
+ * Open only when ENVIRONMENT=development and password is unset.
  */
 
 const COOKIE_NAME = "qh_site";
@@ -80,17 +80,15 @@ export const siteGate = createMiddleware<{ Bindings: Env }>(
     if (path.startsWith("/api/webhooks/")) return next();
     if (path.startsWith("/t/o/")) return next(); // open-tracking pixels
     if (c.req.method === "OPTIONS") return next();
-    // No password configured → site is open (launch-ready). Set
-    // SITE_ACCESS_PASSWORD secret to re-enable the preview gate.
-    if (!c.env.SITE_ACCESS_PASSWORD) {
-      if (path === "/robots.txt") {
-        return c.text("User-agent: *\nAllow: /\nSitemap: " + (c.env.APP_URL || "") + "/\n");
-      }
-      return next();
-    }
-
+    // Always deny crawlers while the product is in stealth / private preview
     if (path === "/robots.txt") {
       return c.text("User-agent: *\nDisallow: /\n");
+    }
+
+    if (!c.env.SITE_ACCESS_PASSWORD) {
+      // Local dev only without a password; production must set the secret
+      if (c.env.ENVIRONMENT === "development") return next();
+      return c.text("Site access is not configured", 503);
     }
 
     const expected = await gateToken(c.env);

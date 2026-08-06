@@ -107,8 +107,8 @@ For **quilt guilds**, sales-blocking gaps **remaining** (priority order):
 
 | # | Gap | Status |
 |---|-----|--------|
-| 1 | Recurring dues E2E | **Docs + cancel UX shipped** — run [auto-renew-e2e.md](./auto-renew-e2e.md) in Stripe test mode |
-| 2 | Exit stealth / trial | **Shipped v0.19** — open when no SITE_ACCESS_PASSWORD; 30-day Guild trial |
+| 1 | Recurring dues E2E | **PASSED 2026-08-06** (automated webhooks) — see [auto-renew-e2e.md](./auto-renew-e2e.md) |
+| 2 | Exit stealth / trial | **Stay stealth** (gate + noindex). 30-day Guild trial code remains for when we launch |
 | 3 | Event registration questions | **Shipped v0.17** |
 | 4 | Printable receipts | **Shipped v0.17** |
 | 5 | Store lite | **Shipped v0.18** |
