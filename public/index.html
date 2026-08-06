@@ -5,85 +5,215 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex, nofollow" />
   <title>QuiltHosting — Membership software for quilt guilds</title>
+  <link rel="stylesheet" href="/qh.css" />
   <style>
-    :root {
-      --bg: #faf8f5; --surface: #fff; --text: #1a1a1a; --muted: #666;
-      --accent: #c45c26; --accent-dark: #a04a1e; --border: #e8e0d5;
+    .site-header {
+      position: sticky; top: 0; z-index: 10;
+      background: rgba(250, 247, 242, 0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
     }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
-    header { display: flex; justify-content: space-between; align-items: center; max-width: 1040px; margin: 0 auto; padding: 1.25rem 1.5rem; }
-    .logo { font-weight: 700; font-size: 1.25rem; color: var(--accent); text-decoration: none; }
-    nav a { color: var(--text); text-decoration: none; margin-left: 1.25rem; font-size: 0.95rem; }
-    .btn { display: inline-block; background: var(--accent); color: #fff !important; padding: 0.65rem 1.4rem; border-radius: 8px; text-decoration: none; font-weight: 600; }
-    .btn:hover { background: var(--accent-dark); }
-    .btn.ghost { background: transparent; color: var(--accent) !important; border: 1px solid var(--accent); }
-    .hero { max-width: 1040px; margin: 0 auto; padding: 4rem 1.5rem 3rem; text-align: center; }
-    .hero h1 { font-size: 2.6rem; line-height: 1.2; margin: 0 0 1rem; }
-    .hero p.sub { font-size: 1.2rem; color: var(--muted); max-width: 640px; margin: 0 auto 2rem; }
-    .quilt-strip { display: flex; height: 10px; max-width: 420px; margin: 2.5rem auto 0; border-radius: 5px; overflow: hidden; }
-    .quilt-strip span { flex: 1; }
-    section.features { max-width: 1040px; margin: 0 auto; padding: 2rem 1.5rem 4rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; }
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; }
-    .card h3 { margin: 0 0 0.5rem; font-size: 1.05rem; }
-    .card p { margin: 0; color: var(--muted); font-size: 0.95rem; }
-    footer { text-align: center; color: var(--muted); font-size: 0.85rem; padding: 2rem 1.5rem 3rem; }
-    @media (max-width: 600px) { .hero h1 { font-size: 1.9rem; } }
+    .site-header .inner {
+      max-width: 1080px; margin: 0 auto; padding: 0.85rem 1.5rem;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .logo {
+      font-family: var(--font-display); font-weight: 700; font-size: 1.3rem;
+      color: var(--ink); text-decoration: none; letter-spacing: -0.01em;
+    }
+    .logo .thread { color: var(--brand); }
+    .site-header nav { display: flex; align-items: center; gap: 1.5rem; }
+    .site-header nav a { color: var(--ink-2); text-decoration: none; font-size: 0.92rem; font-weight: 500; }
+    .site-header nav a:hover { color: var(--ink); }
+    .site-header nav a.btn { color: #fff; }
+
+    .hero { max-width: 1080px; margin: 0 auto; padding: 5.5rem 1.5rem 4rem; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 3rem; align-items: center; }
+    .hero h1 { font-size: clamp(2.2rem, 5vw, 3.4rem); font-weight: 700; margin-bottom: 1.1rem; }
+    .hero h1 em { font-style: italic; color: var(--brand); }
+    .hero .sub { font-size: 1.15rem; color: var(--ink-2); max-width: 34rem; margin-bottom: 1.75rem; }
+    .hero .cta-row { display: flex; gap: 0.85rem; align-items: center; flex-wrap: wrap; }
+    .hero .cta-note { font-size: 0.85rem; color: var(--ink-3); margin-top: 0.85rem; }
+
+    /* Stylized product preview, built in HTML */
+    .preview {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r-lg); box-shadow: var(--shadow-lg);
+      overflow: hidden; transform: rotate(0.6deg);
+    }
+    .preview .bar { display: flex; gap: 6px; padding: 10px 14px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
+    .preview .bar span { width: 9px; height: 9px; border-radius: 50%; background: var(--border-strong); }
+    .preview .body { padding: 1.1rem 1.2rem; }
+    .preview .ptiles { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 0.9rem; }
+    .preview .ptile { border: 1px solid var(--border); border-radius: var(--r-sm); padding: 0.6rem 0.75rem; }
+    .preview .ptile .l { font-size: 0.62rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); }
+    .preview .ptile .v { font-family: var(--font-display); font-size: 1.25rem; font-weight: 600; }
+    .preview .prow { display: flex; justify-content: space-between; padding: 0.45rem 0.2rem; font-size: 0.8rem; border-bottom: 1px solid var(--border); color: var(--ink-2); }
+    .preview .prow:last-child { border-bottom: none; }
+
+    .band { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .band .inner { max-width: 1080px; margin: 0 auto; padding: 1.4rem 1.5rem; display: flex; gap: 2.5rem; justify-content: center; flex-wrap: wrap; color: var(--ink-2); font-size: 0.92rem; }
+    .band strong { color: var(--ink); }
+
+    .features { max-width: 1080px; margin: 0 auto; padding: 4rem 1.5rem; }
+    .features .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.1rem; margin-top: 2rem; }
+    .feature { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); padding: 1.5rem; box-shadow: var(--shadow-sm); }
+    .feature .icon {
+      width: 38px; height: 38px; border-radius: 10px; background: var(--brand-soft);
+      display: flex; align-items: center; justify-content: center; font-size: 1.1rem; margin-bottom: 0.9rem;
+    }
+    .feature h3 { margin-bottom: 0.35rem; }
+    .feature p { color: var(--ink-2); font-size: 0.93rem; margin: 0; }
+
+    .compare { max-width: 800px; margin: 0 auto; padding: 1rem 1.5rem 4.5rem; }
+    .compare .card { padding: 2rem; }
+    .compare ul { margin: 1rem 0 0; padding: 0; list-style: none; }
+    .compare li { padding: 0.5rem 0; border-bottom: 1px solid var(--border); display: flex; gap: 0.75rem; color: var(--ink-2); }
+    .compare li:last-child { border-bottom: none; }
+    .compare li .yes { color: var(--ok); font-weight: 700; }
+
+    .cta-final { text-align: center; padding: 4.5rem 1.5rem 5rem; }
+    .cta-final h2 { font-size: 2rem; }
+
+    footer { border-top: 1px solid var(--border); }
+    footer .inner { max-width: 1080px; margin: 0 auto; padding: 2rem 1.5rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; color: var(--ink-3); font-size: 0.85rem; }
+
+    @media (max-width: 860px) {
+      .hero { grid-template-columns: 1fr; padding-top: 3.5rem; }
+      .preview { transform: none; }
+    }
   </style>
 </head>
 <body>
-  <header>
-    <a class="logo" href="/">🧵 QuiltHosting</a>
-    <nav>
-      <a href="/portal">Member Portal</a>
-      <a class="btn ghost" href="/admin">Guild Admin</a>
-    </nav>
+  <header class="site-header">
+    <div class="inner">
+      <a class="logo" href="/"><span class="thread">✦</span> QuiltHosting</a>
+      <nav>
+        <a href="#features">Features</a>
+        <a href="/portal">Member portal</a>
+        <a class="btn" href="/admin">Guild admin</a>
+      </nav>
+    </div>
   </header>
 
-  <div class="hero">
-    <h1>Run your quilt guild,<br>not your software.</h1>
-    <p class="sub">
-      Membership, dues, events, and renewals for quilt and craft guilds —
-      with transparent pricing, refunds you can issue yourself, and reports
-      that never make you export a spreadsheet.
-    </p>
-    <a class="btn" href="/admin">Open your guild dashboard</a>
-    <div class="quilt-strip" aria-hidden="true">
-      <span style="background:#c45c26"></span><span style="background:#e8b04b"></span>
-      <span style="background:#7a9e7e"></span><span style="background:#5b7ea3"></span>
-      <span style="background:#a06588"></span><span style="background:#c45c26"></span>
+  <section class="hero">
+    <div>
+      <h1>Run your quilt guild, <em>not</em> your software.</h1>
+      <p class="sub">
+        Membership, dues, events, and renewals for quilt &amp; craft guilds —
+        with honest pricing, refunds you can issue yourself, and reports that
+        never make you export a spreadsheet.
+      </p>
+      <div class="cta-row">
+        <a class="btn" href="/admin" style="padding:0.8rem 1.6rem;font-size:1rem">Start your guild</a>
+        <a class="btn secondary" href="#features" style="padding:0.8rem 1.6rem;font-size:1rem">See what's included</a>
+      </div>
+      <p class="cta-note">Set up in an afternoon · Import your existing member list in minutes</p>
+      <div class="quilt-strip" style="max-width:320px;margin-top:2.25rem" aria-hidden="true">
+        <span></span><span></span><span></span><span></span><span></span><span></span>
+      </div>
     </div>
-  </div>
-
-  <section class="features">
-    <div class="card">
-      <h3>Members &amp; renewals</h3>
-      <p>One roster with statuses that maintain themselves. Automatic renewal reminders at 30, 14, 7, and 1 day — and lapsing handled for you.</p>
-    </div>
-    <div class="card">
-      <h3>Dues &amp; payments</h3>
-      <p>Online joining and dues collection by card. Payments land in your guild's own account, and refunds don't require a support ticket.</p>
-    </div>
-    <div class="card">
-      <h3>Events &amp; check-in</h3>
-      <p>Workshops, retreats, and quilt shows with member pricing, capacity, waitlists, ticket codes, and day-of check-in.</p>
-    </div>
-    <div class="card">
-      <h3>Reports built in</h3>
-      <p>Growth, renewals due, revenue by month, event attendance — on your dashboard, not in a CSV download.</p>
-    </div>
-    <div class="card">
-      <h3>A portal your members get</h3>
-      <p>Members sign in with an emailed link — no passwords to forget. They can update their info, renew, and register for events.</p>
-    </div>
-    <div class="card">
-      <h3>Simple, honest pricing</h3>
-      <p>Priced by your active membership, not every contact you've ever met. No surprise tier bumps.</p>
+    <div class="preview" aria-hidden="true">
+      <div class="bar"><span></span><span></span><span></span></div>
+      <div class="body">
+        <div class="ptiles">
+          <div class="ptile"><div class="l">Active members</div><div class="v">148</div></div>
+          <div class="ptile"><div class="l">Renewals due</div><div class="v">12</div></div>
+          <div class="ptile"><div class="l">Revenue · Oct</div><div class="v">$1,240</div></div>
+          <div class="ptile"><div class="l">Event signups</div><div class="v">36</div></div>
+        </div>
+        <div class="prow"><span>Fall Quilt Show &amp; Tell</span><span>32 / 40 registered</span></div>
+        <div class="prow"><span>Beginner Paper Piecing</span><span>Waitlist open</span></div>
+        <div class="prow"><span>Holiday Charity Sew-in</span><span>18 registered</span></div>
+      </div>
     </div>
   </section>
 
+  <div class="band">
+    <div class="inner">
+      <span><strong>Built for guilds</strong> — not generic clubs</span>
+      <span><strong>No contact-count pricing traps</strong></span>
+      <span><strong>Your members sign in without passwords</strong></span>
+    </div>
+  </div>
+
+  <section class="features" id="features">
+    <h2 style="text-align:center">Everything a guild needs, nothing it doesn't</h2>
+    <p class="muted" style="text-align:center;max-width:520px;margin:0 auto">
+      The whole membership year — join, renew, meet, show, and account for it — in one place.
+    </p>
+    <div class="grid">
+      <div class="feature">
+        <div class="icon">🧵</div>
+        <h3>Members &amp; renewals</h3>
+        <p>One roster with statuses that maintain themselves. Reminders go out at 30, 14, 7, and 1 day — lapsing is handled for you.</p>
+      </div>
+      <div class="feature">
+        <div class="icon">💳</div>
+        <h3>Dues, donations &amp; refunds</h3>
+        <p>Card payments for joining, renewing, and giving. Issue a refund in one click — no support ticket, no workaround.</p>
+      </div>
+      <div class="feature">
+        <div class="icon">📅</div>
+        <h3>Events &amp; check-in</h3>
+        <p>Workshops, retreats, and quilt shows with member pricing, capacity, waitlists, ticket codes, and day-of check-in.</p>
+      </div>
+      <div class="feature">
+        <div class="icon">📈</div>
+        <h3>Reports built in</h3>
+        <p>Growth, renewals due, revenue by month, event attendance — on your dashboard, not in a CSV download.</p>
+      </div>
+      <div class="feature">
+        <div class="icon">💌</div>
+        <h3>Email your members</h3>
+        <p>Newsletters and announcements to exactly the right segment, with delivery logged. No third-party mail merge.</p>
+      </div>
+      <div class="feature">
+        <div class="icon">🚪</div>
+        <h3>A portal members get</h3>
+        <p>Members sign in from an emailed link — no passwords to forget. They update their info, renew, register, and browse the directory.</p>
+      </div>
+      <div class="feature">
+        <div class="icon">📄</div>
+        <h3>Pages &amp; documents</h3>
+        <p>A public guild page with your story, meeting info, and custom pages. Share newsletters and minutes with members only.</p>
+      </div>
+      <div class="feature">
+        <div class="icon">🤝</div>
+        <h3>Room for the whole board</h3>
+        <p>Invite your treasurer, membership chair, and events chair with the right access for each role.</p>
+      </div>
+      <div class="feature">
+        <div class="icon">📥</div>
+        <h3>Painless migration</h3>
+        <p>Import your existing member list — including Wild Apricot exports — and keep every name, status, and note.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="compare">
+    <div class="card">
+      <h2>Switching from Wild Apricot?</h2>
+      <p class="muted">The things guilds tell us pushed them to look elsewhere — solved here:</p>
+      <ul>
+        <li><span class="yes">✓</span> Refunds processed inside the platform, not in a separate processor</li>
+        <li><span class="yes">✓</span> Priced on your membership — lapsed contacts and old prospects don't count against you</li>
+        <li><span class="yes">✓</span> Trend reporting without exporting a single CSV</li>
+        <li><span class="yes">✓</span> Import your member export and be running the same day</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="cta-final">
+    <h2>Bring your guild home.</h2>
+    <p class="muted" style="max-width:420px;margin:0 auto 1.5rem">Set up your guild, import your members, and send your first renewal reminder — all before your next meeting.</p>
+    <a class="btn" href="/admin" style="padding:0.85rem 1.8rem;font-size:1.05rem">Start your guild</a>
+  </section>
+
   <footer>
-    QuiltHosting · membership software for quilt &amp; craft guilds
+    <div class="inner">
+      <span>© QuiltHosting · membership software for quilt &amp; craft guilds</span>
+      <span><a href="/portal" style="color:var(--ink-3)">Member portal</a> · <a href="/admin" style="color:var(--ink-3)">Guild admin</a></span>
+    </div>
   </footer>
 </body>
 </html>

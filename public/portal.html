@@ -4,112 +4,27 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Member Portal – QuiltHosting</title>
+  <link rel="stylesheet" href="/qh.css" />
   <style>
     :root {
-      --bg: #faf8f5;
-      --surface: #fff;
-      --text: #1a1a1a;
-      --muted: #666;
-      --accent: #c45c26;
-      --accent-hover: #a34a1c;
-      --border: #e5e0d8;
-      --success: #2d6a4f;
+      --muted: var(--ink-3);
+      --success: var(--ok);
+      --text: var(--ink);
+      --bg: var(--paper);
+      --accent: var(--brand);
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.5;
-      min-height: 100vh;
-    }
-    header {
-      background: #2c1810;
-      color: #f5e6d3;
-      padding: 1rem 1.5rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    header h1 { font-size: 1.15rem; font-weight: 600; }
-    header a { color: #e8c9a8; text-decoration: none; font-size: 0.9rem; }
-    .wrap { max-width: 720px; margin: 0 auto; padding: 1.5rem; }
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 1.25rem;
-      margin-bottom: 1rem;
-    }
-    .card h2 { font-size: 1.1rem; margin-bottom: 0.75rem; }
-    .badge {
-      display: inline-block;
-      padding: 0.15rem 0.55rem;
-      border-radius: 999px;
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-    .badge.active { background: #d8f3dc; color: var(--success); }
-    .badge.lapsed, .badge.expired, .badge.cancelled { background: #f8d7da; color: #9b2226; }
-    .badge.pending { background: #fff3cd; color: #856404; }
-    .badge.registered, .badge.checked_in { background: #d8f3dc; color: var(--success); }
-    .badge.waitlist { background: #fff3cd; color: #856404; }
-    button, .btn {
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      padding: 0.55rem 1.1rem;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      font-weight: 500;
-    }
-    button:hover { background: var(--accent-hover); }
-    button.secondary {
-      background: transparent;
-      color: var(--accent);
-      border: 1px solid var(--accent);
-    }
-    input {
-      width: 100%;
-      padding: 0.55rem 0.75rem;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      font-size: 0.95rem;
-      margin-bottom: 0.75rem;
-    }
-    label { display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 0.25rem; }
-    .muted { color: var(--muted); font-size: 0.9rem; }
-    .error { color: #9b2226; font-size: 0.9rem; margin-bottom: 0.75rem; }
-    .hidden { display: none; }
-    .row { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; }
-    .event-item {
-      border-bottom: 1px solid var(--border);
-      padding: 0.85rem 0;
-    }
+    .event-item { border-bottom: 1px solid var(--border); padding: 0.85rem 0; }
     .event-item:last-child { border-bottom: none; }
-    .tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
-    .tabs button {
-      background: transparent;
-      color: var(--muted);
-      border: 1px solid var(--border);
-    }
-    .tabs button.active {
-      background: var(--accent);
-      color: #fff;
-      border-color: var(--accent);
-    }
-    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    th, td { text-align: left; padding: 0.5rem 0.4rem; border-bottom: 1px solid var(--border); }
-    th { font-size: 0.75rem; text-transform: uppercase; color: var(--muted); }
   </style>
 </head>
 <body>
-  <header>
-    <h1 id="guild-title">Member Portal</h1>
-    <div class="row">
-      <span id="user-email" class="muted" style="color:#d4c4b0"></span>
-      <a href="#" id="logout-btn" class="hidden">Sign out</a>
+  <header class="portal-header">
+    <div class="inner">
+      <h1 id="guild-title">Member Portal</h1>
+      <div class="row" style="justify-content:flex-end">
+        <span id="user-email" style="color:#a89a83;font-size:0.85rem"></span>
+        <a href="#" id="logout-btn" class="hidden">Sign out</a>
+      </div>
     </div>
   </header>
 
@@ -128,8 +43,7 @@
         <button class="secondary" onclick="doMagicLink()">Email me a login link</button>
       </div>
       <p class="muted" style="margin-top:1rem;font-size:0.8rem">
-        Guild: <code id="slug-display"></code>
-        · Set via <code>?slug=yourguild</code>
+        <span id="slug-display" class="hidden"></span>
       </p>
     </div>
 

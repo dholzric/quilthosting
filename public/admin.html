@@ -4,129 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>QuiltHosting Admin</title>
+  <link rel="stylesheet" href="/qh.css" />
   <style>
+    /* Aliases for legacy inline styles in page scripts */
     :root {
-      --bg: #faf8f5;
-      --surface: #ffffff;
-      --text: #1a1a1a;
-      --muted: #666;
-      --accent: #c45c26;
-      --accent-hover: #a34a1c;
-      --border: #e5e0d8;
-      --success: #2d6a4f;
-      --danger: #9b2226;
+      --muted: var(--ink-3);
+      --success: var(--ok);
+      --text: var(--ink);
+      --bg: var(--paper);
+      --accent: var(--brand);
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.5;
-    }
-    .layout { display: flex; min-height: 100vh; }
-    .sidebar {
-      width: 220px;
-      background: #2c1810;
-      color: #f5e6d3;
-      padding: 1.5rem 1rem;
-      flex-shrink: 0;
-    }
-    .sidebar h1 {
-      font-size: 1.25rem;
-      margin-bottom: 1.5rem;
-      color: #f5e6d3;
-    }
-    .sidebar nav a {
-      display: block;
-      color: #d4c4b0;
-      text-decoration: none;
-      padding: 0.5rem 0.75rem;
-      border-radius: 6px;
-      margin-bottom: 0.25rem;
-      font-size: 0.95rem;
-    }
-    .sidebar nav a:hover, .sidebar nav a.active {
-      background: rgba(196, 92, 38, 0.3);
-      color: #fff;
-    }
-    .main { flex: 1; padding: 2rem; max-width: 1100px; }
-    h2 { margin-bottom: 1rem; font-size: 1.5rem; }
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 1.25rem;
-      margin-bottom: 1rem;
-    }
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
-    .stat {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 1rem 1.25rem;
-    }
-    .stat .label { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
-    .stat .value { font-size: 1.75rem; font-weight: 700; margin-top: 0.25rem; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    th, td { text-align: left; padding: 0.65rem 0.75rem; border-bottom: 1px solid var(--border); }
-    th { font-size: 0.75rem; text-transform: uppercase; color: var(--muted); letter-spacing: 0.04em; }
-    .badge {
-      display: inline-block;
-      padding: 0.15rem 0.5rem;
-      border-radius: 999px;
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-    .badge.active { background: #d8f3dc; color: var(--success); }
-    .badge.pending { background: #fff3cd; color: #856404; }
-    .badge.lapsed, .badge.cancelled { background: #f8d7da; color: var(--danger); }
-    .badge.registered { background: #d8f3dc; color: var(--success); }
-    .badge.waitlist { background: #fff3cd; color: #856404; }
-    .badge.checked_in { background: #caf0f8; color: #0077b6; }
-    button, .btn {
-      background: var(--accent);
-      color: white;
-      border: none;
-      padding: 0.5rem 1rem;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      font-weight: 500;
-    }
-    button:hover, .btn:hover { background: var(--accent-hover); }
-    button.secondary {
-      background: transparent;
-      color: var(--accent);
-      border: 1px solid var(--accent);
-    }
-    input, select, textarea {
-      width: 100%;
-      padding: 0.5rem 0.75rem;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      font-size: 0.95rem;
-      margin-bottom: 0.75rem;
-    }
-    label { display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 0.25rem; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    .hidden { display: none; }
-    .login-box {
-      max-width: 380px;
-      margin: 4rem auto;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 2rem;
-    }
-    .login-box h1 { margin-bottom: 1.5rem; text-align: center; }
-    .error { color: var(--danger); font-size: 0.9rem; margin-bottom: 0.75rem; }
-    .toolbar { display: flex; gap: 0.75rem; margin-bottom: 1rem; align-items: center; }
-    .toolbar input { margin: 0; max-width: 240px; }
+    textarea { resize: vertical; }
   </style>
 </head>
 <body>
@@ -178,7 +66,7 @@
   <!-- App -->
   <div id="app-view" class="layout hidden">
     <aside class="sidebar">
-      <h1>QuiltHosting</h1>
+      <h1><span class="thread">✦</span> QuiltHosting</h1>
       <nav>
         <a href="#" data-page="dashboard" class="active">Dashboard</a>
         <a href="#" data-page="members">Members</a>
@@ -191,7 +79,7 @@
         <a href="#" data-page="team">Team</a>
         <a href="#" data-page="settings">Settings</a>
       </nav>
-      <div style="margin-top:2rem;font-size:0.8rem;color:#a08060" id="tenant-label"></div>
+      <div class="guild-tag" id="tenant-label"></div>
     </aside>
     <main class="main">
       <div id="page-content"></div>
