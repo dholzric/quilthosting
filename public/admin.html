@@ -376,11 +376,22 @@
       `;
     }
 
+    /** Normalize list API responses: array, or { payments|members|…: array }. */
+    function asList(data, key) {
+      if (Array.isArray(data)) return data;
+      if (data && key && Array.isArray(data[key])) return data[key];
+      if (data && Array.isArray(data.items)) return data.items;
+      if (data && Array.isArray(data.results)) return data.results;
+      return [];
+    }
+
     async function renderPayments(el, page = 1) {
       const data = await api(`/api/tenants/${tenantId}/payments?page=${page}&limit=50`);
-      const rows = Array.isArray(data) ? data : (data.payments || []);
-      const total = data.total != null ? data.total : rows.length;
-      const totalPages = data.total_pages || 1;
+      // Paginated envelope: { payments: [...], total, page, ... } — never .map the envelope
+      const rows = asList(data, "payments");
+      const total = data && typeof data.total === "number" ? data.total : rows.length;
+      const totalPages =
+        (data && data.total_pages) || Math.max(1, Math.ceil(total / 50) || 1);
       el.innerHTML = `
         <h2>Payments</h2>
         <div class="toolbar">
@@ -479,8 +490,7 @@
       if (opts.q) qs.set("q", opts.q);
       if (opts.status) qs.set("status", opts.status);
       const data = await api(`/api/tenants/${tenantId}/members?${qs}`);
-      const list = Array.isArray(data) ? data : data && data.members;
-      return Array.isArray(list) ? list : [];
+      return asList(data, "members");
     }
 
     async function renderMembers(el, page) {
@@ -493,9 +503,8 @@
       if (status) qs.set("status", status);
       const data = await api(`/api/tenants/${tenantId}/members?${qs}`);
       // API returns { members, total, ... } (paginated). Never call .map on the envelope.
-      const rawList = Array.isArray(data) ? data : data && data.members;
-      const members = Array.isArray(rawList) ? rawList : [];
-      const total = data && data.total != null ? data.total : members.length;
+      const members = asList(data, "members");
+      const total = data && typeof data.total === "number" ? data.total : members.length;
       const totalPages = (data && data.total_pages) || Math.max(1, Math.ceil(total / 50) || 1);
       el.innerHTML = `
         <h2>Members</h2>
