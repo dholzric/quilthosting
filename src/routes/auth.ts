@@ -106,7 +106,7 @@ authRoutes.post("/login", async (c) => {
 });
 
 authRoutes.post("/magic-link", async (c) => {
-  const body = await c.req.json<{ email: string; guildSlug?: string }>();
+  const body = await c.req.json<{ email: string; guildSlug?: string; dest?: string }>();
   if (!body.email) {
     return c.json({ error: "email is required" }, 400);
   }
@@ -133,7 +133,7 @@ authRoutes.post("/magic-link", async (c) => {
     60 * 15
   );
   const baseUrl = c.env.APP_URL || "http://localhost:8787";
-  const loginUrl = `${baseUrl}/auth/verify?token=${token}${body.guildSlug ? `&slug=${body.guildSlug}` : ""}`;
+  const loginUrl = `${baseUrl}/auth/verify?token=${token}${body.guildSlug ? `&slug=${body.guildSlug}` : ""}${body.dest === "app" ? "&dest=app" : ""}`;
   const guildName = body.guildSlug || "QuiltHosting";
   const { subject, html } = magicLinkEmail({ guildName, loginUrl });
   await sendEmail(c.env, { to: email, subject, html });
