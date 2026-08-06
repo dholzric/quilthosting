@@ -108,6 +108,43 @@ paymentRoutes.get("/", async (c) => {
   return c.json(rows);
 });
 
+// GET /api/tenants/:tenantId/payments/export.iif — QuickBooks Desktop IIF
+paymentRoutes.get("/export.iif", async (c) => {
+  const tenant = c.get("tenant");
+  const rows = await all<Record<string, unknown>>(
+    c.env.DB.prepare(
+      `SELECT p.created_at, p.type, p.description, p.amount_cents, p.status,
+              m.email member_email, m.first_name, m.last_name
+       FROM payments p LEFT JOIN members m ON m.id = p.member_id
+       WHERE p.tenant_id = ? AND p.status = 'succeeded'
+       ORDER BY p.created_at`
+    ).bind(tenant.id)
+  );
+  // Minimal IIF bank deposit lines for import into QuickBooks Desktop
+  const lines = [
+    "!TRNS\tTRNSTYPE\tDATE\tACCNT\tNAME\tAMOUNT\tMEMO",
+    "!SPL\tTRNSTYPE\tDATE\tACCNT\tNAME\tAMOUNT\tMEMO",
+    "!ENDTRNS",
+  ];
+  for (const r of rows) {
+    const date = String(r.created_at).slice(0, 10);
+    const amount = ((r.amount_cents as number) / 100).toFixed(2);
+    const name = [r.first_name, r.last_name].filter(Boolean).join(" ") ||
+      r.member_email ||
+      "Member";
+    const memo = `${r.type}: ${r.description || ""}`.replace(/\t/g, " ").slice(0, 60);
+    lines.push(`TRNS\tDEPOSIT\t${date}\tUndeposited Funds\t${name}\t${amount}\t${memo}`);
+    lines.push(`SPL\tDEPOSIT\t${date}\tIncome:Membership\t${name}\t-${amount}\t${memo}`);
+    lines.push("ENDTRNS");
+  }
+  return new Response(lines.join("\n"), {
+    headers: {
+      "Content-Type": "application/octet-stream",
+      "Content-Disposition": 'attachment; filename="payments.iif"',
+    },
+  });
+});
+
 // GET /api/tenants/:tenantId/payments/export.csv — bookkeeping export
 paymentRoutes.get("/export.csv", async (c) => {
   const tenant = c.get("tenant");

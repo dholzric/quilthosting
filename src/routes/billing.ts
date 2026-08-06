@@ -6,8 +6,11 @@ import {
   countActiveMembers,
   FREE_ACTIVE_MEMBER_LIMIT,
   GUILD_PLAN_PRICE_CENTS,
+  effectivePlan,
   isPaidPlan,
+  isTrialActive,
   planLabel,
+  TRIAL_DAYS,
 } from "../lib/plans";
 import {
   createAccountLink,
@@ -40,18 +43,21 @@ billingRoutes.get("/", async (c) => {
     Tenant & {
       stripe_customer_id: string | null;
       stripe_subscription_id: string | null;
+      trial_ends_at: string | null;
     }
   >(
     c.env.DB.prepare(
       `SELECT id, name, slug, plan, status, stripe_account_id,
-              stripe_customer_id, stripe_subscription_id
+              stripe_customer_id, stripe_subscription_id, trial_ends_at
        FROM tenants WHERE id = ?`
     ).bind(tenant.id)
   );
   if (!row) return c.json({ error: "Not found" }, 404);
 
   const activeMembers = await countActiveMembers(c.env.DB, tenant.id);
-  const limit = isPaidPlan(row.plan) ? null : FREE_ACTIVE_MEMBER_LIMIT;
+  const eff = effectivePlan(row);
+  const limit = isPaidPlan(eff) ? null : FREE_ACTIVE_MEMBER_LIMIT;
+  const trialActive = isTrialActive(row);
 
   let connect: {
     account_id: string | null;
@@ -83,7 +89,12 @@ billingRoutes.get("/", async (c) => {
 
   return c.json({
     plan: row.plan,
-    plan_label: planLabel(row.plan),
+    effective_plan: eff,
+    plan_label: trialActive
+      ? `Guild trial (${TRIAL_DAYS} days)`
+      : planLabel(row.plan),
+    trial_active: trialActive,
+    trial_ends_at: row.trial_ends_at,
     active_members: activeMembers,
     active_member_limit: limit,
     at_limit: limit != null && activeMembers >= limit,

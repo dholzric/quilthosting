@@ -27,9 +27,6 @@ export async function sendEmail(
     return { id: "", success: false, error: "Email not configured" };
   }
 
-  // EMAIL_FROM must be on a Resend-verified domain. During stealth we
-  // send via quiltmap.com (the account's verified domain); switch to
-  // quilthosting.com at launch.
   const from =
     params.from || env.EMAIL_FROM || "QuiltHosting <noreply@quilthosting.com>";
 
@@ -73,6 +70,12 @@ export async function sendEmail(
       error: err instanceof Error ? err.message : "Unknown error",
     };
   }
+}
+
+/** 1×1 transparent GIF open-tracking pixel */
+export function trackingPixelHtml(appUrl: string, emailLogId: string): string {
+  const base = appUrl.replace(/\/$/, "");
+  return `<img src="${base}/t/o/${encodeURIComponent(emailLogId)}.gif" width="1" height="1" alt="" style="display:block;width:1px;height:1px;border:0" />`;
 }
 
 export function welcomeEmail(opts: {
@@ -224,6 +227,31 @@ export function waitlistPromotedEmail(opts: {
           <strong>When:</strong> ${opts.eventDate}<br/>
           ${opts.eventLocation ? `<strong>Where:</strong> ${opts.eventLocation}<br/>` : ""}
           ${opts.ticketCode ? `<strong>Ticket:</strong> ${opts.ticketCode}` : ""}
+        </p>
+        <p style="color: #666; font-size: 14px;">— ${opts.guildName}</p>
+      </div>
+    `,
+  };
+}
+
+export function winBackEmail(opts: {
+  guildName: string;
+  firstName?: string;
+  renewUrl: string;
+}): { subject: string; html: string } {
+  const name = opts.firstName || "there";
+  return {
+    subject: `We miss you at ${opts.guildName}`,
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 560px; margin: 0 auto;">
+        <h1 style="color: #1a1a1a;">Come back anytime</h1>
+        <p>Hi ${name},</p>
+        <p>Your membership with <strong>${opts.guildName}</strong> has lapsed — we'd love to have you back.</p>
+        <p style="margin: 24px 0;">
+          <a href="${opts.renewUrl}"
+             style="background: #c45c26; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+            Renew membership
+          </a>
         </p>
         <p style="color: #666; font-size: 14px;">— ${opts.guildName}</p>
       </div>

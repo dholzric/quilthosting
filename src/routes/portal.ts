@@ -355,6 +355,7 @@ portalRoutes.patch("/:slug/profile", async (c) => {
     first_name?: string;
     last_name?: string;
     phone?: string;
+    directory_visible?: boolean;
     custom_fields?: Record<string, string>;
   }>();
 
@@ -373,24 +374,53 @@ portalRoutes.patch("/:slug/profile", async (c) => {
   }
 
   const now = new Date().toISOString();
-  await c.env.DB.prepare(
-    `UPDATE members SET
-       first_name = coalesce(?, first_name),
-       last_name = coalesce(?, last_name),
-       phone = coalesce(?, phone),
-       custom_fields_json = coalesce(?, custom_fields_json),
-       updated_at = ?
-     WHERE id = ?`
-  )
-    .bind(
-      body.first_name ?? null,
-      body.last_name ?? null,
-      body.phone ?? null,
-      customJson,
-      now,
-      member.id
+  const dirVis =
+    body.directory_visible === undefined
+      ? null
+      : body.directory_visible
+        ? 1
+        : 0;
+  try {
+    await c.env.DB.prepare(
+      `UPDATE members SET
+         first_name = coalesce(?, first_name),
+         last_name = coalesce(?, last_name),
+         phone = coalesce(?, phone),
+         custom_fields_json = coalesce(?, custom_fields_json),
+         directory_visible = coalesce(?, directory_visible),
+         updated_at = ?
+       WHERE id = ?`
     )
-    .run();
+      .bind(
+        body.first_name ?? null,
+        body.last_name ?? null,
+        body.phone ?? null,
+        customJson,
+        dirVis,
+        now,
+        member.id
+      )
+      .run();
+  } catch {
+    await c.env.DB.prepare(
+      `UPDATE members SET
+         first_name = coalesce(?, first_name),
+         last_name = coalesce(?, last_name),
+         phone = coalesce(?, phone),
+         custom_fields_json = coalesce(?, custom_fields_json),
+         updated_at = ?
+       WHERE id = ?`
+    )
+      .bind(
+        body.first_name ?? null,
+        body.last_name ?? null,
+        body.phone ?? null,
+        customJson,
+        now,
+        member.id
+      )
+      .run();
+  }
 
   const updated = await first<Member>(
     c.env.DB.prepare("SELECT * FROM members WHERE id = ?").bind(member.id)
@@ -417,14 +447,82 @@ async function requireGuildMember(c: any, slug: string) {
 portalRoutes.get("/:slug/directory", async (c) => {
   const ctx = await requireGuildMember(c, c.req.param("slug"));
   if ("error" in ctx) return ctx.error;
-  const rows = await all<{ first_name: string | null; last_name: string | null; joined_at: string | null }>(
+  try {
+    const rows = await all<{
+      first_name: string | null;
+      last_name: string | null;
+      joined_at: string | null;
+    }>(
+      c.env.DB.prepare(
+        `SELECT first_name, last_name, joined_at FROM members
+         WHERE tenant_id = ? AND status = 'active'
+           AND coalesce(directory_visible, 1) = 1
+         ORDER BY last_name, first_name LIMIT 500`
+      ).bind(ctx.tenant.id)
+    );
+    return c.json({ tenant: { name: ctx.tenant.name }, members: rows });
+  } catch {
+    const rows = await all<{
+      first_name: string | null;
+      last_name: string | null;
+      joined_at: string | null;
+    }>(
+      c.env.DB.prepare(
+        `SELECT first_name, last_name, joined_at FROM members
+         WHERE tenant_id = ? AND status = 'active'
+         ORDER BY last_name, first_name LIMIT 500`
+      ).bind(ctx.tenant.id)
+    );
+    return c.json({ tenant: { name: ctx.tenant.name }, members: rows });
+  }
+});
+
+// POST /api/portal/:slug/cancel-auto-renew — stop Stripe subscription auto-renew
+portalRoutes.post("/:slug/cancel-auto-renew", async (c) => {
+  const user = await requirePortalUser(c);
+  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  const member = await first<Member>(
     c.env.DB.prepare(
-      `SELECT first_name, last_name, joined_at FROM members
-       WHERE tenant_id = ? AND status = 'active'
-       ORDER BY last_name, first_name LIMIT 500`
-    ).bind(ctx.tenant.id)
+      "SELECT * FROM members WHERE tenant_id = ? AND email = ?"
+    ).bind(tenant.id, user.email)
   );
-  return c.json({ tenant: { name: ctx.tenant.name }, members: rows });
+  if (!member) return c.json({ error: "Not a member" }, 404);
+
+  const membership = await first<{
+    id: string;
+    stripe_subscription_id: string | null;
+    auto_renew: number;
+  }>(
+    c.env.DB.prepare(
+      `SELECT id, stripe_subscription_id, auto_renew FROM memberships
+       WHERE member_id = ? AND tenant_id = ? AND status = 'active'
+       ORDER BY created_at DESC LIMIT 1`
+    ).bind(member.id, tenant.id)
+  );
+  if (!membership?.stripe_subscription_id) {
+    return c.json(
+      { error: "No auto-renew subscription on file for this membership" },
+      400
+    );
+  }
+
+  const { cancelSubscription } = await import("../lib/stripe");
+  try {
+    await cancelSubscription(c.env, membership.stripe_subscription_id);
+  } catch (e: any) {
+    return c.json({ error: e.message || "Could not cancel with Stripe" }, 502);
+  }
+  await c.env.DB.prepare(
+    `UPDATE memberships SET auto_renew = 0, updated_at = ? WHERE id = ?`
+  )
+    .bind(new Date().toISOString(), membership.id)
+    .run();
+  return c.json({
+    ok: true,
+    message: "Auto-renew cancelled. Your membership stays active until the end date.",
+  });
 });
 
 // GET /api/portal/:slug/files — guild document library

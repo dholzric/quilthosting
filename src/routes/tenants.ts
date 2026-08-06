@@ -3,6 +3,7 @@ import type { Env, Tenant } from "../types";
 import { generateId } from "../lib/utils/id";
 import { first, all } from "../lib/db";
 import { requireAuth, type AuthVariables } from "../middleware/auth";
+import { TRIAL_DAYS } from "../lib/plans";
 
 export const tenantRoutes = new Hono<{
   Bindings: Env;
@@ -44,16 +45,34 @@ tenantRoutes.post("/", async (c) => {
   }
   const id = generateId();
   const now = new Date().toISOString();
-  await c.env.DB.batch([
-    c.env.DB.prepare(
-      `INSERT INTO tenants (id, name, slug, plan, status, settings_json, created_at, updated_at)
-       VALUES (?, ?, ?, 'free', 'active', '{}', ?, ?)`
-    ).bind(id, body.name, slug, now, now),
-    c.env.DB.prepare(
-      `INSERT INTO tenant_users (tenant_id, user_id, role, created_at)
-       VALUES (?, ?, 'owner', ?)`
-    ).bind(id, user.id, now),
-  ]);
+  // 30-day Guild trial (unlimited members) without a credit card
+  const trialEnds = new Date();
+  trialEnds.setUTCDate(trialEnds.getUTCDate() + TRIAL_DAYS);
+  const trialIso = trialEnds.toISOString();
+  try {
+    await c.env.DB.batch([
+      c.env.DB.prepare(
+        `INSERT INTO tenants (id, name, slug, plan, status, settings_json, trial_ends_at, created_at, updated_at)
+         VALUES (?, ?, ?, 'free', 'active', '{}', ?, ?, ?)`
+      ).bind(id, body.name, slug, trialIso, now, now),
+      c.env.DB.prepare(
+        `INSERT INTO tenant_users (tenant_id, user_id, role, created_at)
+         VALUES (?, ?, 'owner', ?)`
+      ).bind(id, user.id, now),
+    ]);
+  } catch {
+    // Pre-migration fallback without trial_ends_at
+    await c.env.DB.batch([
+      c.env.DB.prepare(
+        `INSERT INTO tenants (id, name, slug, plan, status, settings_json, created_at, updated_at)
+         VALUES (?, ?, ?, 'free', 'active', '{}', ?, ?)`
+      ).bind(id, body.name, slug, now, now),
+      c.env.DB.prepare(
+        `INSERT INTO tenant_users (tenant_id, user_id, role, created_at)
+         VALUES (?, ?, 'owner', ?)`
+      ).bind(id, user.id, now),
+    ]);
+  }
   const tenant = await first<Tenant>(
     c.env.DB.prepare("SELECT * FROM tenants WHERE id = ?").bind(id)
   );

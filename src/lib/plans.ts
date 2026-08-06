@@ -7,6 +7,9 @@ export const FREE_ACTIVE_MEMBER_LIMIT = 30;
 /** Guild plan monthly price in cents ($24). */
 export const GUILD_PLAN_PRICE_CENTS = 2400;
 
+/** New guilds get this many days of Guild features free. */
+export const TRIAL_DAYS = 30;
+
 export function planLabel(plan: string | null | undefined): string {
   switch (plan) {
     case "starter":
@@ -18,13 +21,38 @@ export function planLabel(plan: string | null | undefined): string {
   }
 }
 
+export function isTrialActive(
+  tenant: Pick<Tenant, "trial_ends_at"> | { trial_ends_at?: string | null }
+): boolean {
+  const ends = tenant.trial_ends_at;
+  if (!ends) return false;
+  return new Date(ends).getTime() > Date.now();
+}
+
+/** Plan used for limits: trial counts as paid (starter). */
+export function effectivePlan(
+  tenant: Pick<Tenant, "plan" | "trial_ends_at" | "stripe_subscription_id">
+): Plan {
+  if (isPaidPlan(tenant.plan)) return tenant.plan as Plan;
+  if (isTrialActive(tenant)) return "starter";
+  return "free";
+}
+
 export function isPaidPlan(plan: string | null | undefined): boolean {
   return plan === "starter" || plan === "pro";
 }
 
-export function activeMemberLimit(plan: string | null | undefined): number | null {
+export function activeMemberLimit(
+  plan: string | null | undefined
+): number | null {
   if (isPaidPlan(plan)) return null;
   return FREE_ACTIVE_MEMBER_LIMIT;
+}
+
+export function activeMemberLimitForTenant(
+  tenant: Pick<Tenant, "plan" | "trial_ends_at" | "stripe_subscription_id">
+): number | null {
+  return activeMemberLimit(effectivePlan(tenant));
 }
 
 export async function countActiveMembers(
@@ -48,10 +76,10 @@ export async function countActiveMembers(
  */
 export async function assertCanActivateMember(
   db: D1Database,
-  tenant: Pick<Tenant, "id" | "plan">,
+  tenant: Pick<Tenant, "id" | "plan" | "trial_ends_at" | "stripe_subscription_id">,
   memberId?: string | null
 ): Promise<void> {
-  const limit = activeMemberLimit(tenant.plan);
+  const limit = activeMemberLimitForTenant(tenant);
   if (limit == null) return;
 
   if (memberId) {

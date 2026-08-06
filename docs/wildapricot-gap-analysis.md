@@ -4,7 +4,7 @@
 > /features/membership-management).
 >
 > **QuiltHosting baseline in original draft:** v0.11.0  
-> **Updated against deployed code:** v0.18.0 (2026-08-06)
+> **Updated against deployed code:** v0.19.0 (2026-08-06)
 
 ## Wild Apricot quick profile
 
@@ -56,11 +56,12 @@
 | Custom forms | Applications, events, surveys; conditionals | Custom member fields on join + **per-event registration questions** (text/select, required) | Surveys; conditional fields |
 | Recurring payments | Saved cards, mature auto-renew | `renewal_type: auto` + subscription Checkout + `invoice.paid` extend | **E2E test** in Stripe test mode; card-update / cancel UX in portal |
 | Financial exports | Excel + **QuickBooks** | CSV (members, payments, regs) | QuickBooks IIF/QBO or integration |
-| Directory | Public OR members-only, showcases, opt-out | Members-only names list | Privacy opt-in/out, richer profiles, optional public directory |
-| Invoicing | Auto invoices + PDF documents | Payment history + **printable receipts** (admin + portal, Print → PDF) + receipt emails | Full auto-invoice numbering / multi-line invoices |
-| Automation | Sequences beyond renewals | Renewals + event reminders + welcome + waitlist + receipts | Welcome series, lapsed win-back sequence; open/click tracking |
-| Onboarding / trial | 60-day trial + coach | **Dashboard checklist** + stealth gate | Real free trial (no gate), trial clock, optional coach path |
+| Directory | Public OR members-only, showcases, opt-out | Members-only + **optional public directory** + member opt-out | Profile photos / rich showcases |
+| Invoicing | Auto invoices + PDF documents | Payment history + **printable receipts** + receipt emails + **QuickBooks IIF export** | Full auto-invoice numbering / multi-line invoices |
+| Automation | Sequences beyond renewals | Renewals + event reminders + welcome + waitlist + receipts + **lapsed win-back (7d)** + **open tracking** | Multi-step welcome series; click tracking |
+| Onboarding / trial | 60-day trial + coach | Checklist + **30-day Guild trial** + open site when no gate password | Optional human coach / webinars |
 | Mobile | Native admin + member apps | Responsive web + **PWA** (install admin, offline check-in queue) | Richer offline member app optional |
+| Recurring dues | Mature saved-card UX | Auto-renew Checkout + invoice.paid extend + **portal cancel auto-renew** + [E2E checklist](./auto-renew-e2e.md) | Card update deep-link in portal |
 
 ### ❌ Missing entirely (quilt-guild relevance)
 
@@ -104,15 +105,24 @@ no native refunds, weak trend reporting, PE ownership narrative.
 
 For **quilt guilds**, sales-blocking gaps **remaining** (priority order):
 
-| # | Gap | Why it blocks | Suggested next build |
-|---|-----|---------------|----------------------|
-| 1 | **Recurring dues verified E2E** | Treasurers won’t trust auto-renew without a proven test path | Stripe test-mode checklist doc + portal cancel/update card |
-| 2 | **Exit stealth / trial story** | Gate + no public trial vs WA’s 60 days | Soft gate for marketing pages; 30-day Guild trial on signup |
-| 3 | ~~Event registration questions~~ | **Shipped v0.17** | Admin questions + public form + CSV |
-| 4 | ~~Printable receipts~~ | **Shipped v0.17** | Admin + portal Print → Save as PDF |
-| 5 | ~~Store lite~~ | **Shipped v0.18** | Admin Store + public shop + inventory |
-| 6 | ~~Embed widgets~~ | **Shipped v0.18** | join / events / store iframes |
-| 7 | ~~PWA check-in~~ | **Shipped v0.18** | Manifest + SW + offline check-in queue |
+| # | Gap | Status |
+|---|-----|--------|
+| 1 | Recurring dues E2E | **Docs + cancel UX shipped** — run [auto-renew-e2e.md](./auto-renew-e2e.md) in Stripe test mode |
+| 2 | Exit stealth / trial | **Shipped v0.19** — open when no SITE_ACCESS_PASSWORD; 30-day Guild trial |
+| 3 | Event registration questions | **Shipped v0.17** |
+| 4 | Printable receipts | **Shipped v0.17** |
+| 5 | Store lite | **Shipped v0.18** |
+| 6 | Embed widgets | **Shipped v0.18** |
+| 7 | PWA check-in | **Shipped v0.18** |
+| 8 | Open tracking / win-back / public directory / QBO | **Shipped v0.19** |
+
+### Remaining optional (not quilt-sale blockers)
+
+- Click tracking (links)
+- Tax automation / multi-SKU cart
+- Native mobile apps
+- Forums / SMS / Zapier
+- Multi-chapter Council product
 
 Noise for this buyer: forums, job board, SMS, 1,600 integrations, native apps
 before PWA.

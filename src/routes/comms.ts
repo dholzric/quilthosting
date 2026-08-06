@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import type { Env, TenantVariables } from "../types";
 import { all, first } from "../lib/db";
 import { generateId } from "../lib/utils/id";
-import { sendEmail } from "../lib/email";
+import { sendEmail, trackingPixelHtml } from "../lib/email";
 import {
   applyMergeFields,
   bodyToHtml,
@@ -248,14 +248,17 @@ commsRoutes.post("/", async (c) => {
     const chunk = audience.members.slice(i, i + CHUNK);
     const results = await Promise.all(
       chunk.map(async (m) => {
+        const logId = generateId();
         const ctx = memberMergeCtx(m, tenant.name);
         const personalizedBody = applyMergeFields(rawBody, ctx);
         const personalizedSubject = applyMergeFields(body.subject, ctx);
-        const html = wrapEmailLayout(layout, {
+        let html = wrapEmailLayout(layout, {
           guildName: tenant.name,
           subject: personalizedSubject,
           bodyHtml: personalizedBody,
         });
+        // Append open-tracking pixel
+        html += trackingPixelHtml(c.env.APP_URL, logId);
         const text = body.body_text
           ? applyMergeFields(body.body_text, ctx)
           : undefined;
@@ -265,17 +268,17 @@ commsRoutes.post("/", async (c) => {
           html,
           text,
         });
-        return { m, res };
+        return { m, res, logId };
       })
     );
-    const logInserts = results.map(({ m, res }) => {
+    const logInserts = results.map(({ m, res, logId }) => {
       if (res.success) sent++;
       else errors.push(`${m.email}: ${res.error}`);
       return c.env.DB.prepare(
         `INSERT INTO email_logs (id, tenant_id, member_id, to_email, template, resend_id, status, created_at)
          VALUES (?, ?, ?, ?, 'blast', ?, ?, ?)`
       ).bind(
-        generateId(),
+        logId,
         tenant.id,
         m.id,
         m.email,
@@ -377,17 +380,32 @@ commsRoutes.delete("/blasts/:blastId", async (c) => {
 // GET /api/tenants/:tenantId/emails — recent email log
 commsRoutes.get("/", async (c) => {
   const tenant = c.get("tenant");
-  const rows = await all(
-    c.env.DB.prepare(
-      `SELECT e.id, e.to_email, e.template, e.status, e.created_at,
-              m.first_name, m.last_name
-       FROM email_logs e
-       LEFT JOIN members m ON m.id = e.member_id
-       WHERE e.tenant_id = ?
-       ORDER BY e.created_at DESC LIMIT 200`
-    ).bind(tenant.id)
-  );
-  return c.json(rows);
+  try {
+    const rows = await all(
+      c.env.DB.prepare(
+        `SELECT e.id, e.to_email, e.template, e.status, e.created_at,
+                e.opened_at, e.open_count,
+                m.first_name, m.last_name
+         FROM email_logs e
+         LEFT JOIN members m ON m.id = e.member_id
+         WHERE e.tenant_id = ?
+         ORDER BY e.created_at DESC LIMIT 200`
+      ).bind(tenant.id)
+    );
+    return c.json(rows);
+  } catch {
+    const rows = await all(
+      c.env.DB.prepare(
+        `SELECT e.id, e.to_email, e.template, e.status, e.created_at,
+                m.first_name, m.last_name
+         FROM email_logs e
+         LEFT JOIN members m ON m.id = e.member_id
+         WHERE e.tenant_id = ?
+         ORDER BY e.created_at DESC LIMIT 200`
+      ).bind(tenant.id)
+    );
+    return c.json(rows);
+  }
 });
 
 // GET /api/tenants/:tenantId/emails/audience?segment=...

@@ -49,7 +49,7 @@ app.get("/", (c) => {
   }
   return c.json({
     name: "QuiltHosting API",
-    version: "0.18.0",
+    version: "0.19.0",
     status: "ok",
     environment: c.env.ENVIRONMENT,
     admin: "/admin",
@@ -127,6 +127,37 @@ app.get("/embed/:slug/store", (c) => {
 });
 
 app.route("/api/webhooks", webhookRoutes);
+
+// Email open tracking pixel (1×1 GIF) — exempt from site gate via path check below
+const PIXEL_GIF = Uint8Array.from(
+  atob("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"),
+  (c) => c.charCodeAt(0)
+);
+app.get("/t/o/:logId", async (c) => {
+  let logId = c.req.param("logId") || "";
+  if (logId.endsWith(".gif")) logId = logId.slice(0, -4);
+  if (logId && logId.length < 80) {
+    try {
+      const now = new Date().toISOString();
+      await c.env.DB.prepare(
+        `UPDATE email_logs SET
+           open_count = coalesce(open_count, 0) + 1,
+           opened_at = coalesce(opened_at, ?)
+         WHERE id = ?`
+      )
+        .bind(now, logId)
+        .run();
+    } catch {
+      /* pre-migration or missing row */
+    }
+  }
+  return new Response(PIXEL_GIF, {
+    headers: {
+      "Content-Type": "image/gif",
+      "Cache-Control": "no-store, no-cache, must-revalidate",
+    },
+  });
+});
 
 app.route("/api/auth", authRoutes);
 app.route("/api/tenants", tenantRoutes);

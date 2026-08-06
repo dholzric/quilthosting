@@ -5,6 +5,8 @@ export type Env = {
   KV: KVNamespace;
   ASSETS: Fetcher;
   SITE_ACCESS_PASSWORD?: string;
+  /** When "true", site is public even if SITE_ACCESS_PASSWORD is unset. Default: open when password unset. */
+  PUBLIC_LAUNCH?: string;
   EMAIL_FROM?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
@@ -38,6 +40,8 @@ export interface Tenant {
   /** Platform billing (guild pays QuiltHosting) */
   stripe_customer_id?: string | null;
   stripe_subscription_id?: string | null;
+  /** ISO date when free Guild trial ends (null = no trial / already converted). */
+  trial_ends_at?: string | null;
   plan: Plan;
   status: string;
   settings_json: string;
@@ -58,6 +62,8 @@ export interface Member {
   status: MemberStatus;
   joined_at: string | null;
   notes: string | null;
+  /** 1 = show in member/public directory */
+  directory_visible?: number;
   created_at: string;
   updated_at: string;
 }

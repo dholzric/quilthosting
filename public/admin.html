@@ -363,7 +363,10 @@
       const rows = await api(`/api/tenants/${tenantId}/payments`);
       el.innerHTML = `
         <h2>Payments</h2>
-        <div class="toolbar"><button class="secondary" onclick="exportPayments()">Export CSV</button></div>
+        <div class="toolbar">
+          <button class="secondary" onclick="exportPayments()">Export CSV</button>
+          <button class="secondary" onclick="exportPaymentsIif()">Export QuickBooks (IIF)</button>
+        </div>
         <div class="card">
           ${rows.length === 0 ? "<p style='color:var(--muted)'>No payments yet</p>" : `
             <table>
@@ -422,6 +425,17 @@
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = "payments.csv";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+    async function exportPaymentsIif() {
+      const res = await fetch(`${API}/api/tenants/${tenantId}/payments/export.iif`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const blob = await res.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "payments.iif";
       a.click();
       URL.revokeObjectURL(a.href);
     }
@@ -1436,7 +1450,7 @@
           <h3 style="margin-bottom:0.75rem">Recent emails</h3>
           ${log.length === 0 ? "<p style='color:var(--muted)'>Nothing sent yet</p>" : `
             <table>
-              <thead><tr><th>Date</th><th>To</th><th>Type</th><th>Status</th></tr></thead>
+              <thead><tr><th>Date</th><th>To</th><th>Type</th><th>Status</th><th>Opens</th></tr></thead>
               <tbody>
                 ${log.slice(0, 50).map((e) => `
                   <tr>
@@ -1444,6 +1458,7 @@
                     <td>${esc(e.to_email)}</td>
                     <td>${esc(e.template)}</td>
                     <td><span class="badge ${e.status === "sent" ? "active" : "cancelled"}">${esc(e.status)}</span></td>
+                    <td>${e.open_count ? e.open_count : "—"}</td>
                   </tr>
                 `).join("")}
               </tbody>
@@ -1863,9 +1878,12 @@
           </div>
           <div class="form-row">
             <div><label>Facebook</label><input id="prof-facebook" value="${esc(prof.facebook || "")}" placeholder="https://facebook.com/…" /></div>
-            <div style="display:flex;align-items:end;padding-bottom:0.4rem">
+            <div style="display:flex;align-items:end;padding-bottom:0.4rem;flex-direction:column;gap:0.35rem">
               <label style="display:flex;align-items:center;gap:0.4rem;margin:0">
                 <input type="checkbox" id="prof-donations" style="width:auto" ${prof.donations_enabled !== false ? "checked" : ""} /> Accept donations
+              </label>
+              <label style="display:flex;align-items:center;gap:0.4rem;margin:0">
+                <input type="checkbox" id="prof-directory" style="width:auto" ${prof.directory_public ? "checked" : ""} /> Public member directory
               </label>
             </div>
           </div>
@@ -1944,10 +1962,11 @@
           : "Until Connect is ready, card payments use the platform Stripe account (sandbox/testing).";
         box.innerHTML = `
           <p><strong>Plan:</strong> ${esc(b.plan_label)} · ${esc(limitTxt)}
-            ${b.at_limit ? ' <span class="badge" style="background:#fde8e8;color:#9b2226">At free limit</span>' : ""}</p>
+            ${b.at_limit ? ' <span class="badge" style="background:#fde8e8;color:#9b2226">At free limit</span>' : ""}
+            ${b.trial_active && b.trial_ends_at ? ` · trial ends ${new Date(b.trial_ends_at).toLocaleDateString()}` : ""}</p>
           <p style="margin-top:0.35rem"><strong>Payouts:</strong> ${esc(payout)}</p>
           <p class="muted" style="margin-top:0.35rem;font-size:0.8rem">${esc(modeNote)}</p>
-          <p class="muted" style="margin-top:0.35rem;font-size:0.8rem">Guild plan: $${(b.guild_price_cents / 100).toFixed(0)}/month · cancel anytime</p>
+          <p class="muted" style="margin-top:0.35rem;font-size:0.8rem">Guild plan: $${(b.guild_price_cents / 100).toFixed(0)}/month · cancel anytime · new guilds get a free trial</p>
         `;
         actions.replaceChildren();
         const btn = (label, fn, secondary) => {
@@ -1962,7 +1981,7 @@
         } else {
           btn("Open Stripe Express dashboard", openStripeDashboard, true);
         }
-        if (b.plan === "free") {
+        if (b.plan === "free" || b.trial_active) {
           btn(`Upgrade to Guild ($${(b.guild_price_cents / 100).toFixed(0)}/mo)`, upgradePlan);
         } else if (b.stripe_customer_id) {
           btn("Manage subscription", openBillingPortal, true);
@@ -2023,6 +2042,7 @@
         website: document.getElementById("prof-website").value.trim(),
         facebook: document.getElementById("prof-facebook").value.trim(),
         donations_enabled: document.getElementById("prof-donations").checked,
+        directory_public: document.getElementById("prof-directory")?.checked || false,
       };
       await saveSettings();
       show(document.getElementById("prof-saved"));
@@ -2148,7 +2168,7 @@
       <a href="/privacy">Privacy</a>
       <a href="/terms">Terms</a>
     </nav>
-    <span class="legal"><span class="prerelease" title="QuiltHosting is in private preview">PRE-RELEASE</span> © 2026 QuiltMap LLC · 5900 Balcones Drive STE 100, Austin, TX 78731 · v0.18.0</span>
+    <span class="legal"><span class="prerelease" title="QuiltHosting is in private preview">PRE-RELEASE</span> © 2026 QuiltMap LLC · 5900 Balcones Drive STE 100, Austin, TX 78731 · v0.19.0</span>
   </footer>
 </body>
 </html>

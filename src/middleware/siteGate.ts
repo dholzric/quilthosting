@@ -78,14 +78,19 @@ export const siteGate = createMiddleware<{ Bindings: Env }>(
     const path = new URL(c.req.url).pathname;
 
     if (path.startsWith("/api/webhooks/")) return next();
+    if (path.startsWith("/t/o/")) return next(); // open-tracking pixels
     if (c.req.method === "OPTIONS") return next();
-    if (path === "/robots.txt") {
-      return c.text("User-agent: *\nDisallow: /\n");
+    // No password configured → site is open (launch-ready). Set
+    // SITE_ACCESS_PASSWORD secret to re-enable the preview gate.
+    if (!c.env.SITE_ACCESS_PASSWORD) {
+      if (path === "/robots.txt") {
+        return c.text("User-agent: *\nAllow: /\nSitemap: " + (c.env.APP_URL || "") + "/\n");
+      }
+      return next();
     }
 
-    if (!c.env.SITE_ACCESS_PASSWORD) {
-      if (c.env.ENVIRONMENT === "development") return next();
-      return c.text("Site access is not configured", 503);
+    if (path === "/robots.txt") {
+      return c.text("User-agent: *\nDisallow: /\n");
     }
 
     const expected = await gateToken(c.env);

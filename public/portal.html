@@ -538,6 +538,18 @@
             <input id="p-last" value="${esc(m.last_name || "")}" />
             <label>Phone</label>
             <input id="p-phone" value="${esc(m.phone || "")}" />
+            <label style="display:flex;align-items:center;gap:0.4rem;margin-top:0.75rem">
+              <input type="checkbox" id="p-directory" style="width:auto" ${m.directory_visible !== 0 ? "checked" : ""} />
+              Show me in the member directory
+            </label>
+            ${data.membership && data.membership.status === "active" ? `
+            <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border)">
+              <h3 style="font-size:1rem;margin:0 0 0.5rem">Membership</h3>
+              <p class="muted" style="font-size:0.9rem">${esc(data.membership.level_name || "")}
+                ${data.membership.end_date ? " · ends " + new Date(data.membership.end_date).toLocaleDateString() : ""}</p>
+              <button class="secondary" onclick="cancelAutoRenew()">Cancel auto-renew</button>
+              <span id="p-renew-msg" class="muted" style="margin-left:0.5rem;font-size:0.85rem"></span>
+            </div>` : ""}
             <label>Email</label>
             <input value="${esc(m.email)}" disabled />
             <div id="p-custom"></div>
@@ -590,12 +602,23 @@
             first_name: document.getElementById("p-first").value,
             last_name: document.getElementById("p-last").value,
             phone: document.getElementById("p-phone").value,
+            directory_visible: document.getElementById("p-directory")?.checked !== false,
             custom_fields: custom,
           }),
         });
         document.getElementById("profile-msg").textContent = "Saved.";
       } catch (e) {
         document.getElementById("profile-msg").textContent = e.message;
+      }
+    }
+    async function cancelAutoRenew() {
+      const msg = document.getElementById("p-renew-msg");
+      if (!confirm("Stop automatic renewal? Your membership stays active until the end date.")) return;
+      try {
+        const r = await api(`/api/portal/${slug}/cancel-auto-renew`, { method: "POST" });
+        if (msg) msg.textContent = r.message || "Auto-renew cancelled.";
+      } catch (e) {
+        if (msg) msg.textContent = e.message;
       }
     }
 
@@ -699,7 +722,7 @@
       <a href="/privacy">Privacy</a>
       <a href="/terms">Terms</a>
     </nav>
-    <span class="legal"><span class="prerelease" title="QuiltHosting is in private preview">PRE-RELEASE</span> © 2026 QuiltMap LLC · 5900 Balcones Drive STE 100, Austin, TX 78731 · v0.18.0</span>
+    <span class="legal"><span class="prerelease" title="QuiltHosting is in private preview">PRE-RELEASE</span> © 2026 QuiltMap LLC · 5900 Balcones Drive STE 100, Austin, TX 78731 · v0.19.0</span>
   </footer>
 </body>
 </html>

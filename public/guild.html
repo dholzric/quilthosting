@@ -261,6 +261,29 @@
       hero.appendChild(card);
     }
 
+    async function renderPublicDirectory(info) {
+      if (!info.profile || !info.profile.directory_public) return;
+      try {
+        const res = await fetch(`${API}/public/${slug}/directory`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const members = data.members || [];
+        if (!members.length) return;
+        const sec = document.createElement("div");
+        sec.appendChild(el("h2", "", "Members"));
+        const card = el("div", "card");
+        const ul = document.createElement("ul");
+        ul.style.cssText = "columns:2;margin:0;padding-left:1.2rem";
+        for (const m of members) {
+          const li = document.createElement("li");
+          li.textContent = [m.first_name, m.last_name].filter(Boolean).join(" ") || "Member";
+          ul.appendChild(li);
+        }
+        card.appendChild(ul);
+        sec.appendChild(card);
+        $("pages").before(sec);
+      } catch {}
+    }
     function renderDonate(info) {
       const sec = $("donate-section");
       sec.replaceChildren();
@@ -360,6 +383,7 @@
         renderHero(info);
         renderStore(productsData.products || []);
         renderDonate(info);
+        renderPublicDirectory(info);
 
         $("guild-name").textContent = levelsData.tenant.name;
         document.title = levelsData.tenant.name + " — QuiltHosting";
@@ -413,7 +437,7 @@
       <a href="/privacy">Privacy</a>
       <a href="/terms">Terms</a>
     </nav>
-    <span class="legal"><span class="prerelease" title="QuiltHosting is in private preview">PRE-RELEASE</span> © 2026 QuiltMap LLC · 5900 Balcones Drive STE 100, Austin, TX 78731 · v0.18.0</span>
+    <span class="legal"><span class="prerelease" title="QuiltHosting is in private preview">PRE-RELEASE</span> © 2026 QuiltMap LLC · 5900 Balcones Drive STE 100, Austin, TX 78731 · v0.19.0</span>
   </footer>
 </body>
 </html>

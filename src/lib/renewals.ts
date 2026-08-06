@@ -1,7 +1,7 @@
 import type { Env } from "../types";
 import { all, first } from "./db";
 import { generateId } from "./utils/id";
-import { sendEmail, renewalReminderEmail } from "./email";
+import { sendEmail, renewalReminderEmail, winBackEmail } from "./email";
 import { formatMoney } from "./utils/money";
 
 type MembershipRow = {
@@ -27,9 +27,17 @@ const REMINDER_DAYS = [30, 14, 7, 1] as const;
 export async function runRenewalJob(env: Env): Promise<{
   reminders_sent: number;
   expired: number;
+  winbacks_sent: number;
+  trials_ended: number;
   errors: string[];
 }> {
-  const result = { reminders_sent: 0, expired: 0, errors: [] as string[] };
+  const result = {
+    reminders_sent: 0,
+    expired: 0,
+    winbacks_sent: 0,
+    trials_ended: 0,
+    errors: [] as string[],
+  };
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
 
@@ -146,6 +154,95 @@ export async function runRenewalJob(env: Env): Promise<{
     }
   } catch (e) {
     result.errors.push(`expire: ${String(e)}`);
+  }
+
+  // Win-back: members who lapsed 7 days ago (one-time)
+  try {
+    const winTarget = new Date(now);
+    winTarget.setUTCDate(winTarget.getUTCDate() - 7);
+    const winDate = winTarget.toISOString().slice(0, 10);
+    const lapsed = await all<{
+      id: string;
+      email: string;
+      first_name: string | null;
+      tenant_id: string;
+      tenant_name: string;
+      tenant_slug: string;
+    }>(
+      env.DB.prepare(
+        `SELECT mem.id, mem.email, mem.first_name, mem.tenant_id,
+                t.name as tenant_name, t.slug as tenant_slug
+         FROM members mem
+         JOIN tenants t ON t.id = mem.tenant_id
+         WHERE mem.status = 'lapsed' AND t.status = 'active'
+           AND date(mem.updated_at) = date(?)`
+      ).bind(winDate)
+    );
+    for (const row of lapsed) {
+      const already = await first(
+        env.DB.prepare(
+          `SELECT id FROM email_logs
+           WHERE tenant_id = ? AND member_id = ? AND template = 'winback_7d'
+           LIMIT 1`
+        ).bind(row.tenant_id, row.id)
+      );
+      if (already) continue;
+      const renewUrl = `${env.APP_URL.replace(/\/$/, "")}/portal?slug=${encodeURIComponent(row.tenant_slug)}&renew=1`;
+      const { subject, html } = winBackEmail({
+        guildName: row.tenant_name,
+        firstName: row.first_name ?? undefined,
+        renewUrl,
+      });
+      const sendResult = await sendEmail(env, {
+        to: row.email,
+        subject,
+        html,
+        tags: [{ name: "template", value: "winback_7d" }],
+      });
+      try {
+        await env.DB.prepare(
+          `INSERT INTO email_logs (id, tenant_id, member_id, to_email, template, resend_id, status, created_at)
+           VALUES (?, ?, ?, ?, 'winback_7d', ?, ?, ?)`
+        )
+          .bind(
+            generateId(),
+            row.tenant_id,
+            row.id,
+            row.email,
+            sendResult.id || null,
+            sendResult.success ? "sent" : "failed",
+            new Date().toISOString()
+          )
+          .run();
+      } catch {}
+      if (sendResult.success) result.winbacks_sent++;
+    }
+  } catch (e) {
+    result.errors.push(`winback: ${String(e)}`);
+  }
+
+  // End platform trials without paid subscription
+  try {
+    const expiredTrials = await all<{ id: string }>(
+      env.DB.prepare(
+        `SELECT id FROM tenants
+         WHERE trial_ends_at IS NOT NULL
+           AND date(trial_ends_at) < date(?)
+           AND plan = 'free'
+           AND (stripe_subscription_id IS NULL OR stripe_subscription_id = '')`
+      ).bind(today)
+    );
+    for (const t of expiredTrials) {
+      await env.DB.prepare(
+        `UPDATE tenants SET trial_ends_at = null, updated_at = ? WHERE id = ?`
+      )
+        .bind(new Date().toISOString(), t.id)
+        .run();
+      result.trials_ended++;
+    }
+  } catch (e) {
+    // column may not exist pre-migration
+    result.errors.push(`trials: ${String(e)}`);
   }
 
   return result;

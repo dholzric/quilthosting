@@ -753,7 +753,42 @@ publicRoutes.get("/:slug/info", async (c) => {
       facebook: profile.facebook || "",
       meeting_info: profile.meeting_info || "",
       donations_enabled: profile.donations_enabled !== false,
+      directory_public: !!profile.directory_public,
     },
     join_fields: joinFields,
   });
+});
+
+/**
+ * GET /public/:slug/directory — optional public member directory
+ */
+publicRoutes.get("/:slug/directory", async (c) => {
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  let settings: any = {};
+  try {
+    settings = JSON.parse(tenant.settings_json || "{}");
+  } catch {}
+  if (!settings.profile?.directory_public) {
+    return c.json({ error: "Directory is not public" }, 403);
+  }
+  try {
+    const members = await all<{
+      first_name: string | null;
+      last_name: string | null;
+    }>(
+      c.env.DB.prepare(
+        `SELECT first_name, last_name FROM members
+         WHERE tenant_id = ? AND status = 'active'
+           AND coalesce(directory_visible, 1) = 1
+         ORDER BY last_name, first_name LIMIT 500`
+      ).bind(tenant.id)
+    );
+    return c.json({
+      tenant: { name: tenant.name, slug: tenant.slug },
+      members,
+    });
+  } catch {
+    return c.json({ tenant: { name: tenant.name, slug: tenant.slug }, members: [] });
+  }
 });

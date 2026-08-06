@@ -7,7 +7,7 @@ import {
   assertCanActivateMember,
   countActiveMembers,
   FREE_ACTIVE_MEMBER_LIMIT,
-  isPaidPlan,
+  effectivePlan,
 } from "../lib/plans";
 
 export const memberRoutes = new Hono<{
@@ -308,6 +308,7 @@ memberRoutes.patch("/:memberId", async (c) => {
     phone?: string | null;
     status?: string;
     notes?: string | null;
+    directory_visible?: boolean;
     custom_fields?: Record<string, string>;
   }>();
 
@@ -334,6 +335,7 @@ memberRoutes.patch("/:memberId", async (c) => {
       );
     }
   }
+  // directory_visible handled below
   if (body.email !== undefined) {
     const email = body.email.toLowerCase().trim();
     if (!email) return c.json({ error: "email cannot be empty" }, 400);
@@ -353,6 +355,10 @@ memberRoutes.patch("/:memberId", async (c) => {
       fields.push(`${key} = ?`);
       params.push(body[key]);
     }
+  }
+  if (body.directory_visible !== undefined) {
+    fields.push("directory_visible = ?");
+    params.push(body.directory_visible ? 1 : 0);
   }
   if (body.custom_fields && typeof body.custom_fields === "object") {
     let current: Record<string, string> = {};
@@ -431,7 +437,7 @@ memberRoutes.post("/import", async (c) => {
 
   // Free plan: stop assigning new actives once the limit would be exceeded
   let activeSlotsLeft: number | null = null;
-  if (!isPaidPlan(tenant.plan)) {
+  if (effectivePlan(tenant) === "free") {
     const active = await countActiveMembers(c.env.DB, tenant.id);
     activeSlotsLeft = Math.max(0, FREE_ACTIVE_MEMBER_LIMIT - active);
   }
