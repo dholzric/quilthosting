@@ -22,11 +22,16 @@ directory = "./public"
 binding = "ASSETS"
 run_worker_first = true
 
+[[routes]]
+pattern = "quilthosting.com"
+custom_domain = true
+
 # Local dev overrides these via .dev.vars
 [vars]
 ENVIRONMENT = "production"
-# Stealth phase: workers.dev only; switch to https://quilthosting.com at launch
-APP_URL = "https://quilthosting.dholzric.workers.dev"
+APP_URL = "https://quilthosting.com"
+# Admin sign-in is Google-only (password login/register return 403; portal magic links still work)
+GOOGLE_AUTH_REQUIRED = "true"
 # Resend free plan = 1 verified domain (quiltmap.com). Swap at launch.
 EMAIL_FROM = "QuiltHosting <noreply@quiltmap.com>"
 # Public identifier (not a secret); shared OAuth client with quiltmap/createablock/quiltgen

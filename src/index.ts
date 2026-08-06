@@ -34,7 +34,7 @@ app.use("*", siteGate);
 app.get("/", (c) => {
   return c.json({
     name: "QuiltHosting API",
-    version: "0.3.0",
+    version: "0.6.0",
     status: "ok",
     environment: c.env.ENVIRONMENT,
     admin: "/admin",

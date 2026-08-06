@@ -19,7 +19,26 @@ type UserRow = {
   name: string | null;
 };
 
+// Login methods the UI should offer
+authRoutes.get("/config", (c) => {
+  const google = Boolean(c.env.GOOGLE_CLIENT_ID && c.env.GOOGLE_CLIENT_SECRET);
+  return c.json({
+    google,
+    google_required: google && c.env.GOOGLE_AUTH_REQUIRED === "true",
+  });
+});
+
+function passwordAuthDisabled(c: { env: Env }): boolean {
+  return (
+    c.env.GOOGLE_AUTH_REQUIRED === "true" &&
+    Boolean(c.env.GOOGLE_CLIENT_ID && c.env.GOOGLE_CLIENT_SECRET)
+  );
+}
+
 authRoutes.post("/register", async (c) => {
+  if (passwordAuthDisabled(c)) {
+    return c.json({ error: "Password sign-in is disabled. Use Google sign-in." }, 403);
+  }
   const body = await c.req.json<{ email: string; password: string; name?: string }>();
   if (!body.email || !body.password) {
     return c.json({ error: "email and password are required" }, 400);
@@ -51,6 +70,9 @@ authRoutes.post("/register", async (c) => {
 });
 
 authRoutes.post("/login", async (c) => {
+  if (passwordAuthDisabled(c)) {
+    return c.json({ error: "Password sign-in is disabled. Use Google sign-in." }, 403);
+  }
   const body = await c.req.json<{ email: string; password: string }>();
   if (!body.email || !body.password) {
     return c.json({ error: "email and password are required" }, 400);
