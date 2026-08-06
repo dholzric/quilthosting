@@ -11,3 +11,8 @@ dist/
 *.tar.gz
 *.tgz
 *.zip
+
+# stray media drops
+*.jpg
+*.jpeg
+*.png.bak
