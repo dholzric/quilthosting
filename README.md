@@ -29,4 +29,4 @@ Portal: public/portal.html?slug=YOUR_GUILD
 
 ## License
 
-Private — QuiltHosting / QuiltMap / Holzrichter Group
+Private — QuiltHosting / QuiltMap
