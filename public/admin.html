@@ -399,6 +399,29 @@
             <div><label>Notes</label><input id="em-notes" /></div>
           </div>
           <div id="em-custom"></div>
+          <div id="em-memberships" style="margin:1rem 0;padding-top:0.75rem;border-top:1px solid var(--border)"></div>
+          <div id="em-assign" class="card" style="margin:0.75rem 0;background:var(--bg)">
+            <h3 style="margin:0 0 0.5rem;font-size:0.95rem">Assign / renew membership</h3>
+            <p class="muted" style="font-size:0.8rem;margin:0 0 0.5rem">For cash, check, or comps. Creates a real membership with an end date (not just status=active).</p>
+            <div class="form-row">
+              <div><label>Level</label><select id="em-level"></select></div>
+              <div><label>End date (optional)</label><input id="em-end" type="date" /></div>
+            </div>
+            <div class="form-row">
+              <div><label>Amount paid (cents)</label><input id="em-amount" type="number" min="0" step="1" /></div>
+              <div><label>Payment method</label>
+                <select id="em-pay-method">
+                  <option value="cash">Cash</option>
+                  <option value="check">Check</option>
+                  <option value="comp">Comp / free</option>
+                  <option value="card_offline">Card (already collected)</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+            <label>Note</label><input id="em-pay-note" placeholder="Check #1234" />
+            <button onclick="assignMembership()" style="margin-top:0.5rem">Assign membership</button>
+          </div>
           <button onclick="saveMember()">Save</button>
           <button class="secondary" onclick="hide(document.getElementById('edit-member-form'))">Close</button>
           <button class="secondary" style="color:var(--danger);float:right" onclick="cancelMember()">Cancel membership</button>
@@ -439,12 +462,52 @@
       document.getElementById("em-last").value = m.last_name || "";
       document.getElementById("em-phone").value = m.phone || "";
       document.getElementById("em-notes").value = m.notes || "";
+      document.getElementById("em-pay-note").value = "";
+      document.getElementById("em-end").value = "";
       // Custom fields defined by this guild
       const box = document.getElementById("em-custom");
       box.replaceChildren();
       const defs = await tenantCustomFields();
       let vals = {};
       try { vals = JSON.parse(m.custom_fields_json || "{}"); } catch {}
+      // Levels for assign form
+      try {
+        const levels = await api(`/api/tenants/${tenantId}/levels`);
+        const sel = document.getElementById("em-level");
+        sel.replaceChildren();
+        for (const l of levels) {
+          const opt = document.createElement("option");
+          opt.value = l.id;
+          opt.textContent = `${l.name} ($${(l.price_cents / 100).toFixed(2)})`;
+          opt.dataset.price = String(l.price_cents);
+          sel.appendChild(opt);
+        }
+        if (levels[0]) document.getElementById("em-amount").value = levels[0].price_cents;
+        sel.onchange = () => {
+          const o = sel.selectedOptions[0];
+          if (o) document.getElementById("em-amount").value = o.dataset.price || 0;
+        };
+      } catch {}
+      // Membership history
+      try {
+        const hist = await api(`/api/tenants/${tenantId}/members/${id}/memberships`);
+        const hbox = document.getElementById("em-memberships");
+        if (!hist.length) {
+          hbox.innerHTML = `<p class="muted" style="font-size:0.85rem;margin:0">No membership records yet — use Assign below (status alone does not set renewals).</p>`;
+        } else {
+          hbox.innerHTML = `<p style="font-size:0.85rem;font-weight:600;margin:0 0 0.35rem">Membership history</p>
+            <table style="font-size:0.85rem"><thead><tr><th>Level</th><th>Status</th><th>Start</th><th>End</th><th>Paid</th></tr></thead>
+            <tbody>${hist.map((r) => `<tr>
+              <td>${esc(r.level_name)}</td>
+              <td><span class="badge ${r.status}">${esc(r.status)}</span></td>
+              <td>${r.start_date ? new Date(r.start_date).toLocaleDateString() : "—"}</td>
+              <td>${r.end_date ? new Date(r.end_date).toLocaleDateString() : "—"}</td>
+              <td>$${((r.amount_paid_cents || 0) / 100).toFixed(2)}</td>
+            </tr>`).join("")}</tbody></table>`;
+        }
+      } catch {
+        document.getElementById("em-memberships").innerHTML = "";
+      }
       for (const f of defs) {
         const wrap = document.createElement("div");
         const label = document.createElement("label");
@@ -498,6 +561,31 @@
       await api(`/api/tenants/${tenantId}/members/${id}`, { method: "DELETE" });
       navigate("members");
     }
+    async function assignMembership() {
+      const id = document.getElementById("em-id").value;
+      const levelId = document.getElementById("em-level").value;
+      if (!levelId) { alert("Create a membership level first."); return; }
+      const end = document.getElementById("em-end").value;
+      const amount = Number(document.getElementById("em-amount").value);
+      try {
+        await api(`/api/tenants/${tenantId}/members/${id}/memberships`, {
+          method: "POST",
+          body: JSON.stringify({
+            level_id: levelId,
+            end_date: end || undefined,
+            amount_paid_cents: Number.isFinite(amount) ? amount : 0,
+            payment_method: document.getElementById("em-pay-method").value,
+            note: document.getElementById("em-pay-note").value || undefined,
+          }),
+        });
+        await editMember(id);
+        // Refresh list badges without full navigate
+        const members = await api(`/api/tenants/${tenantId}/members`);
+        window._members = members;
+      } catch (e) {
+        alert(e.message || "Could not assign membership");
+      }
+    }
 
     async function exportMembers() {
       const res = await fetch(`${API}/api/tenants/${tenantId}/members/export.csv`, {
@@ -550,6 +638,9 @@
       const iPhone = col(["phone", "phonenumber", "mobile", "cellphone"]);
       const iStatus = col(["status", "membershipstatus"]);
       const iNotes = col(["notes", "note", "comments"]);
+      const iLevel = col(["level", "levelname", "membershiplevel", "membershiptype", "membershiplabel"]);
+      const iEnd = col(["enddate", "expiry", "expiration", "expirationdate", "renewaldate", "membershipexpires"]);
+      const iJoined = col(["joined", "joinedat", "joindate", "membersince"]);
       if (iEmail === -1) { out.textContent = "Could not find an email column."; return; }
       const payload = rows.slice(1).map((r) => ({
         email: r[iEmail] || "",
@@ -558,6 +649,9 @@
         phone: iPhone !== -1 ? r[iPhone] : undefined,
         status: iStatus !== -1 ? (r[iStatus] || "").toLowerCase() : undefined,
         notes: iNotes !== -1 ? r[iNotes] : undefined,
+        level_name: iLevel !== -1 ? r[iLevel] : undefined,
+        end_date: iEnd !== -1 ? r[iEnd] : undefined,
+        joined_at: iJoined !== -1 ? r[iJoined] : undefined,
       }));
       out.textContent = `Importing ${payload.length} rows…`;
       try {
@@ -565,7 +659,8 @@
           method: "POST",
           body: JSON.stringify({ rows: payload }),
         });
-        out.textContent = `Imported: ${r.created} new, ${r.updated} updated, ${r.skipped} skipped.`;
+        const mem = r.memberships_assigned ? `, ${r.memberships_assigned} memberships assigned` : "";
+        out.textContent = `Imported: ${r.created} new, ${r.updated} updated, ${r.skipped} skipped${mem}.`;
         setTimeout(() => navigate("members"), 1200);
       } catch (e) {
         out.textContent = e.message;

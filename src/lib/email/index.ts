@@ -135,6 +135,7 @@ export function eventConfirmationEmail(opts: {
   eventDate: string;
   eventLocation?: string;
   amountFormatted?: string;
+  ticketCode?: string;
 }): { subject: string; html: string } {
   const name = opts.firstName || "there";
   return {
@@ -148,7 +149,8 @@ export function eventConfirmationEmail(opts: {
         <p>
           <strong>When:</strong> ${opts.eventDate}<br/>
           ${opts.eventLocation ? `<strong>Where:</strong> ${opts.eventLocation}<br/>` : ""}
-          ${opts.amountFormatted ? `<strong>Paid:</strong> ${opts.amountFormatted}` : ""}
+          ${opts.amountFormatted ? `<strong>Paid:</strong> ${opts.amountFormatted}<br/>` : ""}
+          ${opts.ticketCode ? `<strong>Ticket code:</strong> ${opts.ticketCode}` : ""}
         </p>
         <p style="color: #666; font-size: 14px;">— ${opts.guildName}</p>
       </div>

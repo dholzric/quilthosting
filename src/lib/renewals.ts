@@ -67,7 +67,7 @@ export async function runRenewalJob(env: Env): Promise<{
         );
         if (already) continue;
 
-        const renewUrl = `${env.APP_URL}/portal?tenant=${row.tenant_slug}&renew=1`;
+        const renewUrl = `${env.APP_URL.replace(/\/$/, "")}/portal?slug=${encodeURIComponent(row.tenant_slug)}&renew=1`;
         const { subject, html } = renewalReminderEmail({
           guildName: row.tenant_name,
           firstName: row.first_name ?? undefined,

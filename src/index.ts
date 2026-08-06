@@ -45,7 +45,7 @@ app.get("/", (c) => {
   }
   return c.json({
     name: "QuiltHosting API",
-    version: "0.9.0",
+    version: "0.12.0",
     status: "ok",
     environment: c.env.ENVIRONMENT,
     admin: "/admin",
@@ -105,13 +105,26 @@ app.route("/api/tenants/:tenantId", tenantApp);
 
 app.route("/public", publicRoutes);
 
+/** Manual trigger for the daily renewal job. Requires Authorization: Bearer <JWT_SECRET>
+ *  or the same value as X-Cron-Secret. Cron trigger does not hit this route. */
+function authorizeScheduled(c: { req: { header: (n: string) => string | undefined }; env: Env }): boolean {
+  const secret = c.env.JWT_SECRET;
+  if (!secret) return false;
+  const bearer = c.req.header("Authorization");
+  if (bearer === `Bearer ${secret}`) return true;
+  if (c.req.header("X-Cron-Secret") === secret) return true;
+  return false;
+}
+
 app.get("/__scheduled", async (c) => {
+  if (!authorizeScheduled(c)) return c.json({ error: "Unauthorized" }, 401);
   const result = await runRenewalJob(c.env);
   console.log("Renewal job finished", result);
   return c.json({ ok: true, ...result });
 });
 
 app.post("/__scheduled", async (c) => {
+  if (!authorizeScheduled(c)) return c.json({ error: "Unauthorized" }, 401);
   const result = await runRenewalJob(c.env);
   return c.json({ ok: true, ...result });
 });

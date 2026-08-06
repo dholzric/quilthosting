@@ -5,6 +5,7 @@ import { generateId, generateTicketCode } from "../lib/utils/id";
 import { createCheckoutSession } from "../lib/stripe";
 import { sendEmail, welcomeEmail, eventConfirmationEmail } from "../lib/email";
 import { formatMoney } from "../lib/utils/money";
+import { activateMembership, portalUrl } from "../lib/memberships";
 
 export const publicRoutes = new Hono<{ Bindings: Env }>();
 
@@ -184,38 +185,18 @@ publicRoutes.post("/:slug/join", async (c) => {
 
   // Free membership — activate immediately
   if (level.price_cents === 0) {
-    const membershipId = generateId();
-    const endDate = new Date();
-    endDate.setMonth(endDate.getMonth() + level.duration_months);
+    const membershipId = await activateMembership(c.env.DB, {
+      tenantId: tenant.id,
+      memberId: member.id,
+      level,
+      amountPaidCents: 0,
+      now,
+    });
 
-    await c.env.DB.prepare(
-      `INSERT INTO memberships
-       (id, tenant_id, member_id, level_id, start_date, end_date, status, amount_paid_cents, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, 'active', 0, ?, ?)`
-    )
-      .bind(
-        membershipId,
-        tenant.id,
-        member.id,
-        level.id,
-        now,
-        endDate.toISOString(),
-        now,
-        now
-      )
-      .run();
-
-    await c.env.DB.prepare(
-      "UPDATE members SET status = 'active', updated_at = ? WHERE id = ?"
-    )
-      .bind(now, member.id)
-      .run();
-
-    const portalUrl = `${c.env.APP_URL}/portal`;
     const { subject, html } = welcomeEmail({
       guildName: tenant.name,
       firstName: member.first_name ?? undefined,
-      portalUrl,
+      portalUrl: portalUrl(c.env.APP_URL, tenant.slug),
     });
     await sendEmail(c.env, { to: email, subject, html });
 
@@ -305,12 +286,12 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
       ? event.member_price_cents
       : event.non_member_price_cents;
 
-  // Capacity check
+  // Capacity check — hold seats for pending Stripe checkouts too
   if (event.capacity) {
     const countRow = await first<{ cnt: number }>(
       c.env.DB.prepare(
         `SELECT COUNT(*) as cnt FROM event_registrations
-         WHERE event_id = ? AND tenant_id = ? AND status IN ('registered', 'checked_in')`
+         WHERE event_id = ? AND tenant_id = ? AND status IN ('registered', 'checked_in', 'pending_payment')`
       ).bind(eventId, tenant.id)
     );
     const current = countRow?.cnt ?? 0;
@@ -339,13 +320,13 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
   const regId = generateId();
   const ticketCode = generateTicketCode("EV");
 
-  // Determine status (waitlist if full)
+  // Determine status (waitlist if full) — count pending_payment so paid seats are held
   let status = "registered";
   if (event.capacity) {
     const countRow = await first<{ cnt: number }>(
       c.env.DB.prepare(
         `SELECT COUNT(*) as cnt FROM event_registrations
-         WHERE event_id = ? AND tenant_id = ? AND status IN ('registered', 'checked_in')`
+         WHERE event_id = ? AND tenant_id = ? AND status IN ('registered', 'checked_in', 'pending_payment')`
       ).bind(eventId, tenant.id)
     );
     if ((countRow?.cnt ?? 0) >= event.capacity && event.waitlist_enabled) {
@@ -387,6 +368,7 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
         eventTitle: event.title,
         eventDate,
         eventLocation: event.location ?? undefined,
+        ticketCode,
       });
       await sendEmail(c.env, { to: email, subject, html });
     }

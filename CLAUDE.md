@@ -26,7 +26,7 @@ The D1 `database_id` and KV `id` in `wrangler.toml` are still `REPLACE_WITH_YOUR
 
 ## Architecture
 
-Single Worker entry point `src/index.ts` exports `fetch` (Hono app) and `scheduled` (daily cron `0 8 * * *` → `runRenewalJob` in `src/lib/renewals.ts`, which sends renewal reminder emails at 30/14/7/1 days and lapses expired memberships; also triggerable via `GET|POST /__scheduled`).
+Single Worker entry point `src/index.ts` exports `fetch` (Hono app) and `scheduled` (daily cron `0 8 * * *` → `runRenewalJob` in `src/lib/renewals.ts`, which sends renewal reminder emails at 30/14/7/1 days and lapses expired memberships; also triggerable via `GET|POST /__scheduled` with `Authorization: Bearer <JWT_SECRET>` or `X-Cron-Secret: <JWT_SECRET>`).
 
 **Multi-tenancy** is the core pattern. Tenants are guilds. `src/middleware/tenant.ts` resolves the tenant from (in priority order) the `:tenantId` path param, the `X-Tenant-Slug` header, or the subdomain (`slug.quilthosting.com`), then puts it on context as `tenant`. Every tenant-scoped table carries a `tenant_id` — always filter queries by it.
 

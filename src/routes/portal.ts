@@ -2,8 +2,8 @@ import { Hono } from "hono";
 import type { Env, Member, MembershipLevel, Event } from "../types";
 import { all, first } from "../lib/db";
 import { extractBearer, verifyJwt } from "../lib/auth";
-import { generateId } from "../lib/utils/id";
 import { createCheckoutSession } from "../lib/stripe";
+import { activateMembership, portalUrl } from "../lib/memberships";
 
 export const portalRoutes = new Hono<{ Bindings: Env }>();
 
@@ -52,6 +52,7 @@ portalRoutes.get("/:slug/me", async (c) => {
     });
   }
 
+  // Prefer the active membership; fall back to most recent history row
   const membership = await first<{
     id: string;
     level_id: string;
@@ -67,7 +68,7 @@ portalRoutes.get("/:slug/me", async (c) => {
        FROM memberships m
        JOIN membership_levels l ON l.id = m.level_id
        WHERE m.member_id = ? AND m.tenant_id = ?
-       ORDER BY m.created_at DESC
+       ORDER BY CASE m.status WHEN 'active' THEN 0 ELSE 1 END, m.created_at DESC
        LIMIT 1`
     ).bind(member.id, tenant.id)
   );
@@ -204,35 +205,14 @@ portalRoutes.post("/:slug/renew", async (c) => {
   if (!level) return c.json({ error: "Level not found" }, 404);
 
   if (level.price_cents === 0) {
-    // Free renew
     const now = new Date().toISOString();
-    const membershipId = generateId();
-    const endDate = new Date();
-    endDate.setMonth(endDate.getMonth() + level.duration_months);
-
-    await c.env.DB.prepare(
-      `INSERT INTO memberships
-       (id, tenant_id, member_id, level_id, start_date, end_date, status, amount_paid_cents, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, 'active', 0, ?, ?)`
-    )
-      .bind(
-        membershipId,
-        tenant.id,
-        member.id,
-        level.id,
-        now,
-        endDate.toISOString(),
-        now,
-        now
-      )
-      .run();
-
-    await c.env.DB.prepare(
-      "UPDATE members SET status = 'active', updated_at = ? WHERE id = ?"
-    )
-      .bind(now, member.id)
-      .run();
-
+    const membershipId = await activateMembership(c.env.DB, {
+      tenantId: tenant.id,
+      memberId: member.id,
+      level,
+      amountPaidCents: 0,
+      now,
+    });
     return c.json({ status: "active", membership_id: membershipId });
   }
 
@@ -240,7 +220,6 @@ portalRoutes.post("/:slug/renew", async (c) => {
     return c.json({ error: "Payments not configured" }, 503);
   }
 
-  const baseUrl = c.env.APP_URL || "http://localhost:8787";
   const session = await createCheckoutSession(c.env, {
     tenantId: tenant.id,
     tenantSlug: tenant.slug,
@@ -251,8 +230,8 @@ portalRoutes.post("/:slug/renew", async (c) => {
     description: `${tenant.name} – ${level.name} Renewal`,
     type: "dues",
     relatedId: level.id,
-    successUrl: `${baseUrl}/portal.html?slug=${tenant.slug}&renewed=1`,
-    cancelUrl: `${baseUrl}/portal.html?slug=${tenant.slug}&cancelled=1`,
+    successUrl: portalUrl(c.env.APP_URL, tenant.slug, { renewed: "1" }),
+    cancelUrl: portalUrl(c.env.APP_URL, tenant.slug, { cancelled: "1" }),
     mode: level.renewal_type === "auto" ? "subscription" : "payment",
     interval: level.duration_months >= 12 ? "year" : "month",
   });

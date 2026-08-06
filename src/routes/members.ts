@@ -1,7 +1,8 @@
 import { Hono } from "hono";
-import type { Env, Member, TenantVariables } from "../types";
+import type { Env, Member, MembershipLevel, TenantVariables } from "../types";
 import { generateId } from "../lib/utils/id";
 import { all, first } from "../lib/db";
+import { activateMembership } from "../lib/memberships";
 
 export const memberRoutes = new Hono<{
   Bindings: Env;
@@ -79,18 +80,43 @@ memberRoutes.post("/", async (c) => {
 // GET /api/tenants/:tenantId/members/export.csv
 memberRoutes.get("/export.csv", async (c) => {
   const tenant = c.get("tenant");
-  const members = await all<Member>(
+  const members = await all<
+    Member & { level_name: string | null; membership_end: string | null }
+  >(
     c.env.DB.prepare(
-      "SELECT * FROM members WHERE tenant_id = ? ORDER BY last_name, first_name"
+      `SELECT mem.*,
+              (SELECT l.name FROM memberships m
+               JOIN membership_levels l ON l.id = m.level_id
+               WHERE m.member_id = mem.id AND m.tenant_id = mem.tenant_id
+               ORDER BY CASE m.status WHEN 'active' THEN 0 ELSE 1 END, m.created_at DESC
+               LIMIT 1) as level_name,
+              (SELECT m.end_date FROM memberships m
+               WHERE m.member_id = mem.id AND m.tenant_id = mem.tenant_id
+               ORDER BY CASE m.status WHEN 'active' THEN 0 ELSE 1 END, m.created_at DESC
+               LIMIT 1) as membership_end
+       FROM members mem
+       WHERE mem.tenant_id = ?
+       ORDER BY mem.last_name, mem.first_name`
     ).bind(tenant.id)
   );
   const csvCell = (v: unknown) => {
     const s = v == null ? "" : String(v);
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
-  const header = "email,first_name,last_name,phone,status,joined_at,notes";
+  const header =
+    "email,first_name,last_name,phone,status,joined_at,notes,level,end_date";
   const lines = members.map((m) =>
-    [m.email, m.first_name, m.last_name, m.phone, m.status, m.joined_at, m.notes]
+    [
+      m.email,
+      m.first_name,
+      m.last_name,
+      m.phone,
+      m.status,
+      m.joined_at,
+      m.notes,
+      m.level_name,
+      m.membership_end ? String(m.membership_end).slice(0, 10) : "",
+    ]
       .map(csvCell)
       .join(",")
   );
@@ -112,6 +138,133 @@ memberRoutes.get("/:memberId", async (c) => {
   );
   if (!member) return c.json({ error: "Not found" }, 404);
   return c.json(member);
+});
+
+// GET /api/tenants/:tenantId/members/:memberId/memberships
+memberRoutes.get("/:memberId/memberships", async (c) => {
+  const tenant = c.get("tenant");
+  const memberId = c.req.param("memberId");
+  const member = await first(
+    c.env.DB.prepare(
+      "SELECT id FROM members WHERE id = ? AND tenant_id = ?"
+    ).bind(memberId, tenant.id)
+  );
+  if (!member) return c.json({ error: "Member not found" }, 404);
+  const rows = await all(
+    c.env.DB.prepare(
+      `SELECT m.id, m.level_id, m.start_date, m.end_date, m.status,
+              m.amount_paid_cents, m.auto_renew, m.created_at,
+              l.name as level_name, l.price_cents
+       FROM memberships m
+       JOIN membership_levels l ON l.id = m.level_id
+       WHERE m.member_id = ? AND m.tenant_id = ?
+       ORDER BY m.created_at DESC
+       LIMIT 50`
+    ).bind(memberId, tenant.id)
+  );
+  return c.json(rows);
+});
+
+/**
+ * POST /api/tenants/:tenantId/members/:memberId/memberships
+ * Admin assigns a level (cash/check/comp/online already paid elsewhere).
+ * Body: { level_id, end_date?, start_date?, amount_paid_cents?,
+ *         payment_method?: "cash"|"check"|"comp"|"other"|"card_offline", note? }
+ */
+memberRoutes.post("/:memberId/memberships", async (c) => {
+  const tenant = c.get("tenant");
+  const memberId = c.req.param("memberId");
+  const body = await c.req.json<{
+    level_id: string;
+    start_date?: string;
+    end_date?: string | null;
+    amount_paid_cents?: number;
+    payment_method?: string;
+    note?: string;
+  }>();
+
+  if (!body.level_id) return c.json({ error: "level_id is required" }, 400);
+
+  const member = await first<Member>(
+    c.env.DB.prepare(
+      "SELECT * FROM members WHERE id = ? AND tenant_id = ?"
+    ).bind(memberId, tenant.id)
+  );
+  if (!member) return c.json({ error: "Member not found" }, 404);
+
+  const level = await first<MembershipLevel>(
+    c.env.DB.prepare(
+      "SELECT * FROM membership_levels WHERE id = ? AND tenant_id = ? AND status = 'active'"
+    ).bind(body.level_id, tenant.id)
+  );
+  if (!level) return c.json({ error: "Level not found" }, 404);
+
+  const now = new Date().toISOString();
+  const amount =
+    body.amount_paid_cents !== undefined
+      ? Math.max(0, Math.floor(Number(body.amount_paid_cents)))
+      : level.price_cents;
+
+  let endDate: string | null | undefined = body.end_date;
+  if (endDate === "") endDate = null;
+  if (endDate) {
+    // Accept YYYY-MM-DD or full ISO
+    const d = new Date(endDate);
+    if (Number.isNaN(d.getTime())) {
+      return c.json({ error: "Invalid end_date" }, 400);
+    }
+    endDate = d.toISOString();
+  }
+
+  const membershipId = await activateMembership(c.env.DB, {
+    tenantId: tenant.id,
+    memberId,
+    level,
+    amountPaidCents: amount,
+    now,
+    startDate: body.start_date || now,
+    endDate: endDate === undefined ? undefined : endDate,
+    autoRenew: false,
+  });
+
+  const method = (body.payment_method || "cash").slice(0, 40);
+  const note = (body.note || "").slice(0, 200);
+  const description = [
+    `Offline ${method}`,
+    level.name,
+    note,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  if (amount > 0 || method === "comp") {
+    await c.env.DB.prepare(
+      `INSERT INTO payments
+       (id, tenant_id, member_id, type, amount_cents, currency, status,
+        description, related_id, created_at, updated_at)
+       VALUES (?, ?, ?, 'dues', ?, 'usd', 'succeeded', ?, ?, ?, ?)`
+    )
+      .bind(
+        generateId(),
+        tenant.id,
+        memberId,
+        amount,
+        description,
+        membershipId,
+        now,
+        now
+      )
+      .run();
+  }
+
+  const membership = await first(
+    c.env.DB.prepare(
+      `SELECT m.*, l.name as level_name FROM memberships m
+       JOIN membership_levels l ON l.id = m.level_id
+       WHERE m.id = ?`
+    ).bind(membershipId)
+  );
+  return c.json({ ok: true, membership }, 201);
 });
 
 const MEMBER_STATUSES = ["pending", "active", "lapsed", "cancelled"];
@@ -206,7 +359,9 @@ memberRoutes.delete("/:memberId", async (c) => {
 /**
  * POST /api/tenants/:tenantId/members/import
  * Bulk upsert by email — the Wild Apricot migration path.
- * Body: { rows: [{email, first_name?, last_name?, phone?, status?, notes?}] }
+ * Body: { rows: [{email, first_name?, last_name?, phone?, status?, notes?,
+ *                 level_name?|level?, end_date?|expiry?|renewal_date?, joined_at?}] }
+ * When level_name matches a guild level, creates/replaces an active membership.
  */
 memberRoutes.post("/import", async (c) => {
   const tenant = c.get("tenant");
@@ -222,12 +377,30 @@ memberRoutes.post("/import", async (c) => {
     c.env.DB.prepare("SELECT id, email FROM members WHERE tenant_id = ?").bind(tenant.id)
   );
   const byEmail = new Map(existing.map((m) => [m.email, m.id]));
+
+  const levels = await all<MembershipLevel>(
+    c.env.DB.prepare(
+      "SELECT * FROM membership_levels WHERE tenant_id = ? AND status = 'active'"
+    ).bind(tenant.id)
+  );
+  const levelByName = new Map(
+    levels.map((l) => [l.name.toLowerCase().trim(), l])
+  );
+
   const now = new Date().toISOString();
   let created = 0,
     updated = 0,
-    skipped = 0;
+    skipped = 0,
+    membershipsAssigned = 0;
   const stmts: D1PreparedStatement[] = [];
   const seen = new Set<string>();
+  // After batch inserts, assign memberships (need member ids)
+  const pendingMemberships: Array<{
+    memberId: string;
+    level: MembershipLevel;
+    endDate?: string;
+    startDate?: string;
+  }> = [];
 
   for (const row of body.rows) {
     const email = (row.email || "").toLowerCase().trim();
@@ -236,40 +409,58 @@ memberRoutes.post("/import", async (c) => {
       continue;
     }
     seen.add(email);
-    const status = MEMBER_STATUSES.includes(row.status || "")
-      ? row.status
+    const status = MEMBER_STATUSES.includes((row.status || "").toLowerCase())
+      ? (row.status || "").toLowerCase()
       : "active";
-    if (byEmail.has(email)) {
+
+    const levelName = (row.level_name || row.level || "").trim();
+    const level = levelName
+      ? levelByName.get(levelName.toLowerCase())
+      : undefined;
+    const endRaw = row.end_date || row.expiry || row.renewal_date || row.expiration || "";
+    let endDate: string | undefined;
+    if (endRaw) {
+      const d = new Date(endRaw);
+      if (!Number.isNaN(d.getTime())) endDate = d.toISOString();
+    }
+
+    let memberId = byEmail.get(email);
+    if (memberId) {
       stmts.push(
         c.env.DB.prepare(
           `UPDATE members SET
              first_name = coalesce(?, first_name), last_name = coalesce(?, last_name),
-             phone = coalesce(?, phone), notes = coalesce(?, notes), updated_at = ?
+             phone = coalesce(?, phone), notes = coalesce(?, notes),
+             status = coalesce(?, status), updated_at = ?
            WHERE id = ?`
         ).bind(
           row.first_name || null,
           row.last_name || null,
           row.phone || null,
           row.notes || null,
+          // Only force status when no level will set active via membership
+          level ? null : status,
           now,
-          byEmail.get(email)
+          memberId
         )
       );
       updated++;
     } else {
+      memberId = generateId();
+      byEmail.set(email, memberId);
       stmts.push(
         c.env.DB.prepare(
           `INSERT INTO members (id, tenant_id, email, first_name, last_name, phone, notes, status, joined_at, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         ).bind(
-          generateId(),
+          memberId,
           tenant.id,
           email,
           row.first_name || null,
           row.last_name || null,
           row.phone || null,
           row.notes || null,
-          status,
+          level ? "pending" : status, // activateMembership flips to active when level set
           row.joined_at || now,
           now,
           now
@@ -277,10 +468,44 @@ memberRoutes.post("/import", async (c) => {
       );
       created++;
     }
+
+    if (level && memberId) {
+      pendingMemberships.push({
+        memberId,
+        level,
+        endDate,
+        startDate: row.joined_at || undefined,
+      });
+    }
   }
 
   for (let i = 0; i < stmts.length; i += 50) {
     await c.env.DB.batch(stmts.slice(i, i + 50));
   }
-  return c.json({ ok: true, created, updated, skipped });
+
+  for (const pm of pendingMemberships) {
+    try {
+      await activateMembership(c.env.DB, {
+        tenantId: tenant.id,
+        memberId: pm.memberId,
+        level: pm.level,
+        amountPaidCents: 0,
+        now,
+        startDate: pm.startDate,
+        endDate: pm.endDate,
+        autoRenew: false,
+      });
+      membershipsAssigned++;
+    } catch (e) {
+      console.warn("import membership assign failed", pm.memberId, e);
+    }
+  }
+
+  return c.json({
+    ok: true,
+    created,
+    updated,
+    skipped,
+    memberships_assigned: membershipsAssigned,
+  });
 });

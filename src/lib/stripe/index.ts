@@ -84,6 +84,18 @@ export async function createCheckoutSession(
   if (params.memberId) body["metadata[member_id]"] = params.memberId;
   if (params.relatedId) body["metadata[related_id]"] = params.relatedId;
 
+  // Copy metadata onto the subscription so invoice.paid renewals can resolve context
+  if (params.mode === "subscription") {
+    body["subscription_data[metadata][tenant_id]"] = params.tenantId;
+    body["subscription_data[metadata][type]"] = params.type;
+    if (params.memberId) {
+      body["subscription_data[metadata][member_id]"] = params.memberId;
+    }
+    if (params.relatedId) {
+      body["subscription_data[metadata][related_id]"] = params.relatedId;
+    }
+  }
+
   if (params.mode === "subscription" && params.interval) {
     body["line_items[0][price_data][recurring][interval]"] = params.interval;
   }
