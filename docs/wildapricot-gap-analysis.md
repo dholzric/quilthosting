@@ -1,9 +1,10 @@
-# Wild Apricot Gap Analysis — QuiltHosting v0.11
+# Wild Apricot Gap Analysis — QuiltHosting
 
-> Researched 2026-08-06 from wildapricot.com (homepage, /features, /pricing,
-> /features/membership-management). Compares against QuiltHosting as deployed
-> at v0.11.0. Note: Stripe Connect payouts + platform plan billing are in
-> progress (Grok) and treated as "in flight" below.
+> **WA research:** 2026-08-06 from wildapricot.com (homepage, /features, /pricing,
+> /features/membership-management).
+>
+> **QuiltHosting baseline in original draft:** v0.11.0  
+> **Updated against deployed code:** v0.16.0 (2026-08-06)
 
 ## Wild Apricot quick profile
 
@@ -15,80 +16,122 @@
 - Add-on products: Job Board, CommUnity (member community), Text Messaging,
   Registration Tech
 
+## Status key
+
+| Symbol | Meaning |
+|---|---|
+| ✅ | At parity or ahead for quilt-guild use |
+| 🟡 | Partial — lighter version; saleable with caveats |
+| ❌ | Missing; may block some sales |
+| 🚀 | Shipped after original v0.11 draft (v0.12–v0.16) |
+
+---
+
 ## Feature-by-feature
 
 ### ✅ At parity (or ahead)
 
 | Area | Notes |
 |---|---|
-| Member database | Search/filter, statuses, notes, custom fields, CSV import (WA-header-compatible) + export. **Ahead:** our import maps their exports directly. |
-| Membership levels | Multiple tiers, pricing, durations, manual/auto renewal types. |
-| Renewals & dues | Automated reminders (30/14/7/1d), auto-lapse, online renewal, invoices in portal. WA equivalent. |
-| Events | Registration forms, member/non-member pricing, capacity, waitlists + promote, ticket codes, check-in (web), CSV export. |
-| Email & communications | Segment blasts, delivery log, automated transactional emails, **newsletters readable online** (WA has archives too). |
-| Member portal | Passwordless magic-link + Google sign-in, profile self-service, invoices, event registration, directory, documents. **Ahead:** no passwords at all. |
-| Member directory | Members-only, searchable list. WA also offers *public* directories and richer profile showcases (see gaps). |
-| Refunds | **Ahead** — one-click refund in-app; WA cannot refund natively (their most-complained gap). |
-| Reporting | Dashboard stats: growth, renewals due, revenue by month, signups; payments CSV export. WA reporting is totals-oriented; we do trends in-app. |
-| Donations | Online one-time donations with preset amounts. |
-| Multi-admin roles | owner/admin/membership/events/viewer + invites. WA has admin roles too. |
-| Pricing model | **Ahead (positioning):** priced on *active members*, not every contact ever collected. |
+| Member database | Search/filter, statuses, notes, custom fields, CSV import (WA-header-compatible) + export. **Ahead:** import maps their exports; levels + expiry on import. |
+| Membership levels | Multiple tiers, pricing, durations, manual/auto renewal. Soft-archive levels. Admin assign / offline payment. |
+| Renewals & dues | Automated reminders (30/14/7/1d), auto-lapse, portal renew, invoices list. Membership stacking fixed; single active membership. |
+| Events | Registration, member/non-member pricing, capacity (+ pending_payment hold), waitlists + promote **with email**, ticket codes, check-in, CSV export, delete. |
+| Email & communications | Status / **group** / **level** segments; merge fields; layouts + templates; schedule send; delivery log; online newsletter archive. Automations: welcome, renewals, event confirm + **7d/1d reminders**, waitlist promote, donation receipt. |
+| Member portal | Passwordless magic-link + Google, profile, invoices, events, directory, documents, newsletters. **Ahead:** no passwords required. |
+| Refunds | **Ahead** — one-click in-app; WA’s most-cited gap. |
+| Reporting | Dashboard trends (growth, renewals due, revenue by month, signups); CSV exports. |
+| Donations | Online one-time + **receipt email**. |
+| Multi-admin roles | owner/admin/membership/events/viewer + invites; **nav filtered by role** in admin UI. |
+| Pricing model | **Ahead (positioning):** active members only, not all contacts. Free ≤30 enforced; Guild $24/mo platform billing. |
+| Stripe Connect 🚀 | Express onboarding; destination charges for dues/events/donations; optional platform fee BPS. |
+| Platform billing 🚀 | Free / Guild (starter) plan; upgrade Checkout; customer portal; plan limit enforcement. |
+| Ops 🚀 | Rate limits on public/auth POSTs; site gate; fleet footer (QuiltMap LLC). |
 
-### 🟡 Partial — we have a lighter version
+### 🟡 Partial — lighter version
 
-| Area | Wild Apricot | QuiltHosting today | Gap to close |
+| Area | Wild Apricot | QuiltHosting v0.16 | Gap to close |
 |---|---|---|---|
-| Website builder | Full drag-and-drop site builder, themes, widgets embeddable in external sites | Public guild page + HTML content pages + profile hero | Blocks-based page editor, theme choices, nav menus; embeddable join/event widgets for guilds' existing WordPress sites |
-| Custom forms | Form builder on applications, events, surveys; conditional fields | Custom member fields (text/dropdown) on join form | Per-event registration questions; surveys; required/conditional fields |
-| Recurring payments | Auto-renewal via saved cards is core | `renewal_type: auto` + subscription checkout exists but untested end-to-end | Verify subscription lifecycle (invoice.paid → extend membership), card-update flow, cancellation |
-| Financial exports | Excel + **QuickBooks** export | CSV exports (members, payments, registrations) | QuickBooks-formatted export (IIF/QBO) or integration |
-| Directory | Public OR members-only, profile showcases, opt-out controls | Members-only names list | Privacy opt-in/out per member, richer profiles, optional public directory |
-| Invoicing | Auto-generated invoices + receipts as documents | Payment history list in portal | Printable/PDF receipts and invoices |
-| Automation | Scheduled/automated email sequences beyond renewals | Renewal reminders only | Welcome series, event reminders (day-before), lapsed win-back sequence |
+| Website builder | Full drag-and-drop site, themes, embed widgets | Public `/g/:slug` + HTML pages + profile | Blocks editor, themes, nav; **embeddable join/event widgets** for WordPress |
+| Custom forms | Applications, events, surveys; conditionals | Custom member fields on join (text/dropdown) | **Per-event registration questions**; surveys; required/conditional |
+| Recurring payments | Saved cards, mature auto-renew | `renewal_type: auto` + subscription Checkout + `invoice.paid` extend | **E2E test** in Stripe test mode; card-update / cancel UX in portal |
+| Financial exports | Excel + **QuickBooks** | CSV (members, payments, regs) | QuickBooks IIF/QBO or integration |
+| Directory | Public OR members-only, showcases, opt-out | Members-only names list | Privacy opt-in/out, richer profiles, optional public directory |
+| Invoicing | Auto invoices + PDF documents | Payment history list; receipt emails for join/donation | **Printable/PDF** receipts & invoices |
+| Automation | Sequences beyond renewals | Renewals + event reminders + welcome + waitlist + receipts | Welcome series, lapsed win-back sequence; open/click tracking |
+| Onboarding / trial | 60-day trial + coach | **Dashboard checklist** + stealth gate | Real free trial (no gate), trial clock, optional coach path |
+| Mobile | Native admin + member apps | Responsive web | **PWA** (install + offline check-in) covers most guild needs |
 
-### ❌ Missing entirely
+### ❌ Missing entirely (quilt-guild relevance)
 
-| Area | Wild Apricot offering | Priority for quilt guilds |
+| Area | Wild Apricot | Priority for quilt guilds |
 |---|---|---|
-| **Mobile apps** (admin + member, iOS/Android) | Full-featured native apps incl. mobile check-in | Medium — our pages are mobile-responsive; a PWA (installable, offline check-in) would cover 90% at 5% of the cost |
-| **Online store** | Products, inventory, tax automation, order management | Medium-high — guilds sell patterns, kits, show tickets, raffle entries |
-| **Members-only forums / community** | Forums; CommUnity add-on | Low-medium — Facebook groups already own this space |
-| **Blogs** | Member-visible blog pages | Low — content pages cover most of it |
-| **Integrations ecosystem** | "1,600+ apps" (Zapier etc.), widgets, SSO, public API docs | Medium — a documented public API + Zapier would check the box |
-| **Text messaging (SMS)** | Paid add-on | Low for now |
-| **Job board** | Paid add-on | Irrelevant for quilt guilds |
-| **Multi-chapter / volume pricing** | Custom pricing for chapter organizations | Medium — maps to our "Council" tier; state guilds are a real segment |
-| **Free trial mechanics** | 60-day trial, onboarding coach, boot camp, webinars | High at launch — we need a trial story + guided onboarding wizard |
-| **Saved payment methods** | Cards on file for renewals/store | High once Connect lands |
+| **Online store** | Products, inventory, tax, orders | **High for demo** — patterns/kits/raffle; single “product” reusing donation Checkout is enough to start |
+| **Embeddable widgets** | Join/event widgets on external sites | **High** — many guilds keep WordPress |
+| **Public API + Zapier** | Large ecosystem | Medium — document REST + Zapier later |
+| **Saved payment methods UX** | Cards on file | Medium — Stripe Customer Portal / portal “update card” once Connect stable |
+| **Members-only forums** | Forums / CommUnity | Low — Facebook already owns this |
+| **Blogs** | Blog pages | Low — content pages suffice |
+| **SMS** | Paid add-on | Low |
+| **Job board** | Paid add-on | Irrelevant |
+| **Native mobile apps** | iOS/Android | Medium — prefer PWA first |
+| **Multi-chapter product** | Volume / chapter pricing | Medium — maps to Council tier; not built |
 
-### In flight (Grok)
+---
 
-- Stripe Connect Express payouts per guild (destination charges, platform fee)
-- Platform plan billing (Free ≤30 active members; Guild $24/mo)
+## What closed since the v0.11 draft
 
-## Strategic read
+| Gap (original) | Resolution |
+|---|---|
+| Stripe Connect / guild bank | v0.13 Connect Express + destination charges |
+| Platform plan billing + free cap | v0.13 plan column + $24 Checkout + ≤30 active |
+| Membership lifecycle bugs | v0.12 activate/expire/idempotent webhooks |
+| Email groups | v0.14 |
+| Personalization, level segments, templates, event reminders | v0.15 |
+| Scheduled blasts | v0.16 |
+| Onboarding checklist | v0.16 |
+| Waitlist promote email, donation receipts | v0.16 |
+| Rate limits, role-aware nav, level archive, event delete | v0.16 |
+| Parent branding | QuiltMap LLC (not Holzrichter) |
 
-WA's moat is **breadth** (site builder, store, apps, integrations) and **social
-proof** (15k orgs, awards). Their weaknesses — the reasons people leave — remain
-our strengths: contact-count pricing, no refunds, CSV-only trend reporting,
-post-acquisition support decay, PE ownership.
+---
 
-For the quilt-guild niche specifically, the gaps that will actually block a
-sale, in order:
+## Strategic read (still true)
 
-1. **Guided onboarding + trial** — WA gives 60 days + a coach; we currently
-   give a blank dashboard behind a password
-2. **Recurring dues verified end-to-end** — auto-renewal is table stakes for
-   treasurer trust
-3. **Event registration questions** (per-event custom fields) — quilt workshops
-   need "machine or hand piecing?", "lunch choice", etc.
-4. **Receipts/invoices as documents** — treasurers ask on day one
-5. **Online store lite** — patterns/kits/raffle tickets; even a single-item
-   "product" checkout reusing the donation flow would demo well
-6. **Embeddable widgets** — many guilds keep their WordPress site; a join
-   widget meets them where they are
-7. **PWA mobile story** — "add to home screen" + offline check-in beats
-   building native apps
+WA’s moat is **breadth** (site builder, store, apps, integrations) and **social
+proof** (15k orgs). Their weaknesses remain our strengths: contact-count pricing,
+no native refunds, weak trend reporting, PE ownership narrative.
 
-Everything else (forums, job board, SMS, 1,600 integrations) is noise for this
-buyer.
+For **quilt guilds**, sales-blocking gaps **remaining** (priority order):
+
+| # | Gap | Why it blocks | Suggested next build |
+|---|-----|---------------|----------------------|
+| 1 | **Recurring dues verified E2E** | Treasurers won’t trust auto-renew without a proven test path | Stripe test-mode checklist doc + portal cancel/update card |
+| 2 | **Exit stealth / trial story** | Gate + no public trial vs WA’s 60 days | Soft gate for marketing pages; 30-day Guild trial on signup |
+| 3 | **Event registration questions** | Workshops need lunch/level/equipment fields | `custom_answers_json` already on regs — productize admin UI + public form |
+| 4 | **PDF/printable receipts** | Treasurers ask day one | Simple HTML print view or server PDF for payment + membership |
+| 5 | **Store lite / products** | Patterns, kits, raffle tickets | Reuse donation Checkout with product name + amount |
+| 6 | **Embed widgets** | Guilds keep WordPress | `/embed/:slug/join` + `/embed/:slug/events` iframe snippets |
+| 7 | **PWA check-in** | Mobile day-of at events | Manifest + offline reg list for admins |
+
+Noise for this buyer: forums, job board, SMS, 1,600 integrations, native apps
+before PWA.
+
+---
+
+## Recommended sequence (post-v0.16)
+
+1. **E2E auto-renew test pass** (no new features — prove invoice.paid path)  
+2. **Event custom questions** (schema already supports answers)  
+3. **Printable receipt page** (`/portal` or admin print)  
+4. **Product/store lite** (one SKU type)  
+5. **Embed widgets**  
+6. **Trial / drop gate** when ready to sell  
+
+---
+
+## Sources
+
+- Wild Apricot marketing site (features, pricing, membership management) — 2026-08-06  
+- QuiltHosting codebase + deploys through v0.16.0  
+- Internal: `docs/competition-wild-apricot-alternatives.md`
