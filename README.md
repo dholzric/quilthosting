@@ -2,14 +2,24 @@
 
 Membership + events platform for quilt (and craft) guilds.
 
-**Domain:** quilthosting.com (purchased)
+**Domain:** [quilthosting.com](https://quilthosting.com)  
+**Parent:** QuiltMap LLC  
+**Stack:** Cloudflare Workers + Hono + D1 + R2 + KV · Stripe · Resend
 
-Built on Cloudflare Workers + D1 + R2 + KV. Alternative to Wild Apricot.
-A product of **QuiltMap LLC** (parent company).
+Alternative to Wild Apricot with active-member pricing, in-app refunds, and quilt-guild workflows.
 
-## Stack
+## Documentation
 
-Cloudflare Workers, Hono, D1, R2, KV, Stripe, Resend
+| | |
+|--|--|
+| **Product docs (live)** | [quilthosting.com/docs/](https://quilthosting.com/docs/) |
+| **Docs index (repo)** | [docs/README.md](./docs/README.md) |
+| **Getting started** | [docs/getting-started.md](./docs/getting-started.md) · HTML guide |
+| **Admin / portal / billing** | under `public/docs/` |
+| **Public API** | [docs/api.md](./docs/api.md) · `/docs/api.html` |
+| **WA gap analysis** | [docs/wildapricot-gap-analysis.md](./docs/wildapricot-gap-analysis.md) |
+
+HTML guides ship with the Worker (`public/docs/*`) and share the site access password while stealth.
 
 ## Quick start
 
@@ -21,12 +31,16 @@ npm run db:migrate:local
 npm run dev
 ```
 
-Secrets: JWT_SECRET, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY
+| Surface | Path |
+|---------|------|
+| Marketing | `/` |
+| Docs | `/docs/` |
+| Admin | `/admin` |
+| Portal | `/portal?slug=YOUR_GUILD` |
+| Public guild | `/g/YOUR_GUILD` |
 
-Production APP_URL: https://quilthosting.com
-
-Admin: public/admin.html
-Portal: public/portal.html?slug=YOUR_GUILD
+**Secrets:** `JWT_SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `RESEND_API_KEY`, `SITE_ACCESS_PASSWORD`  
+**Production `APP_URL`:** https://quilthosting.com
 
 ## License
 

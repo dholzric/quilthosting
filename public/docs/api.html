@@ -4,44 +4,91 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex, nofollow" />
-  <title>QuiltHosting API — Zapier & integrations</title>
+  <title>Public API &amp; Zapier — QuiltHosting Docs</title>
   <link rel="stylesheet" href="/qh.css" />
-  <style>
-    main { max-width: 720px; margin: 2rem auto; padding: 0 1.25rem 3rem; }
-    pre { background: var(--surface-2, #f3efe8); padding: 1rem; border-radius: 10px; overflow-x: auto; font-size: 0.85rem; }
-    code { font-size: 0.9em; }
-    h2 { margin-top: 2rem; }
-  </style>
+  <link rel="stylesheet" href="/docs/docs.css" />
 </head>
 <body class="has-fleet-footer">
-  <main>
-    <h1>Public API (v1)</h1>
-    <p class="muted">Use API keys from Admin → API for Zapier, Make, or custom integrations. Keys are shown once at creation.</p>
+  <div class="docs-wrap">
+    <header class="docs-top">
+      <a class="logo" href="/docs/"><span class="t">✦</span> QuiltHosting Docs</a>
+      <nav>
+        <a href="/docs/">All docs</a>
+        <a href="/admin">Admin → API</a>
+      </nav>
+    </header>
+    <div class="docs-layout">
+      <aside class="docs-side">
+        <h3>On this page</h3>
+        <a href="#auth">Authentication</a>
+        <a href="#endpoints">Endpoints</a>
+        <a href="#examples">Examples</a>
+        <a href="#zapier">Zapier / Make</a>
+        <a href="#limits">Limits &amp; notes</a>
+      </aside>
+      <main class="docs-main">
+        <h1>Public API (v1)</h1>
+        <p class="lede">
+          REST API for integrations. Create keys under Admin → <strong>API</strong>
+          (shown once at creation).
+        </p>
 
-    <h2>Authentication</h2>
-    <pre>Authorization: Bearer qh_…your_key…</pre>
-    <p>Optional query form (less secure): <code>?api_key=qh_…</code></p>
+        <h2 id="auth">Authentication</h2>
+        <pre>Authorization: Bearer qh_…your_secret_key…</pre>
+        <p>Optional (less secure): <code>?api_key=qh_…</code></p>
+        <p>API routes are exempt from the site access password; the API key is the only gate.</p>
+        <div class="callout warn">Never commit keys to git or paste them in public Zaps. Revoke compromised keys in Admin → API.</div>
 
-    <h2>Endpoints</h2>
-    <pre>GET /api/v1/me
-GET /api/v1/members?status=active
-GET /api/v1/events
-GET /api/v1/payments
-GET /api/v1/levels</pre>
+        <h2 id="endpoints">Endpoints</h2>
+        <p>Base: <code>https://quilthosting.com/api/v1</code></p>
+        <table>
+          <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td>GET</td><td><code>/me</code></td><td>Tenant id, name, slug, plan; key scopes</td></tr>
+            <tr><td>GET</td><td><code>/members?status=active</code></td><td>Members (max 500)</td></tr>
+            <tr><td>GET</td><td><code>/events</code></td><td>Events list</td></tr>
+            <tr><td>GET</td><td><code>/payments</code></td><td>Payments (max 200)</td></tr>
+            <tr><td>GET</td><td><code>/levels</code></td><td>Active membership levels</td></tr>
+          </tbody>
+        </table>
 
-    <h2>Zapier (no native app yet)</h2>
-    <ol>
-      <li>Create a read key in QuiltHosting Admin → API.</li>
-      <li>In Zapier, use <strong>Webhooks by Zapier</strong> (GET) or <strong>Code by Zapier</strong> with <code>fetch</code>.</li>
-      <li>Poll <code>GET /api/v1/members</code> or <code>/payments</code> on a schedule, or push outbound from your own Zap when QuiltHosting emails fire.</li>
-      <li>For member-created events, map fields: <code>email</code>, <code>first_name</code>, <code>last_name</code>, <code>status</code>, <code>joined_at</code>.</li>
-    </ol>
+        <h3>Member object (fields)</h3>
+        <pre>id, email, first_name, last_name, phone, status, joined_at, created_at</pre>
 
-    <h2>Example</h2>
-    <pre>curl -s https://quilthosting.com/api/v1/members \
-  -H "Authorization: Bearer qh_…" | jq '.members[0:3]'</pre>
+        <h2 id="examples">Examples</h2>
+        <pre>curl -s https://quilthosting.com/api/v1/me \
+  -H "Authorization: Bearer qh_…"
 
-    <p><a href="/admin">← Back to admin</a></p>
-  </main>
+curl -s "https://quilthosting.com/api/v1/members?status=active" \
+  -H "Authorization: Bearer qh_…" | jq '.members[0:3]'
+
+curl -s https://quilthosting.com/api/v1/payments \
+  -H "Authorization: Bearer qh_…"</pre>
+
+        <h2 id="zapier">Zapier / Make</h2>
+        <ol>
+          <li>Admin → API → create a key with <code>read</code> scope.</li>
+          <li>In Zapier: <strong>Webhooks by Zapier</strong> → GET, or <strong>Code by Zapier</strong> with <code>fetch</code>.</li>
+          <li>Schedule a poll on <code>/members</code> or <code>/payments</code> (e.g. every 15 minutes).</li>
+          <li>Filter for new rows by <code>created_at</code> or store last-seen ids in Zapier Storage.</li>
+          <li>Map fields into Google Sheets, Mailchimp, QuickBooks Online, etc.</li>
+        </ol>
+        <p>There is no official Zapier app listing yet — custom webhooks cover most guild needs.</p>
+
+        <h2 id="limits">Limits &amp; notes</h2>
+        <ul>
+          <li>Read-focused today; write endpoints may expand later</li>
+          <li>Keys can be revoked; last-used timestamp is recorded</li>
+          <li>Member portal and admin UIs use JWT auth — not the public API key</li>
+          <li>Repo markdown: <code>docs/api.md</code></li>
+        </ul>
+
+        <div class="docs-footer">
+          <a href="/docs/email-automations.html">← Email</a>
+          <a href="/docs/features.html">Feature reference →</a>
+        </div>
+      </main>
+    </div>
+  </div>
 </body>
 </html>

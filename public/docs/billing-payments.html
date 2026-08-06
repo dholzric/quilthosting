@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Billing &amp; payments — QuiltHosting Docs</title>
+  <link rel="stylesheet" href="/qh.css" />
+  <link rel="stylesheet" href="/docs/docs.css" />
+</head>
+<body class="has-fleet-footer">
+  <div class="docs-wrap">
+    <header class="docs-top">
+      <a class="logo" href="/docs/"><span class="t">✦</span> QuiltHosting Docs</a>
+      <nav>
+        <a href="/docs/">All docs</a>
+        <a href="/admin">Admin</a>
+      </nav>
+    </header>
+    <div class="docs-layout">
+      <aside class="docs-side">
+        <h3>On this page</h3>
+        <a href="#two">Two money flows</a>
+        <a href="#connect">Stripe Connect</a>
+        <a href="#platform">Platform plan</a>
+        <a href="#dues">Dues &amp; auto-renew</a>
+        <a href="#refunds">Refunds</a>
+        <a href="#receipts">Receipts &amp; QBO</a>
+        <a href="#invoices">Invoices</a>
+      </aside>
+      <main class="docs-main">
+        <h1>Billing &amp; payments</h1>
+        <p class="lede">How guild dues, platform fees, refunds, and invoices work.</p>
+
+        <h2 id="two">Two money flows</h2>
+        <table>
+          <thead><tr><th>Flow</th><th>Who pays</th><th>Where money goes</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Member payments</strong></td>
+              <td>Members (dues, events, store, donations)</td>
+              <td>Guild’s connected Stripe account (destination charges)</td>
+            </tr>
+            <tr>
+              <td><strong>Platform billing</strong></td>
+              <td>Guild → QuiltHosting</td>
+              <td>QuiltHosting (Guild plan $24/mo after trial)</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2 id="connect">Stripe Connect</h2>
+        <p>Admin → Settings → Billing &amp; payouts → complete Express onboarding. Required for real payouts to the guild bank. Optional platform application fee (basis points) may apply if configured by QuiltHosting.</p>
+
+        <h2 id="platform">Platform plan (QuiltHosting fee)</h2>
+        <ul>
+          <li><strong>Free:</strong> ≤ 30 active members</li>
+          <li><strong>Trial:</strong> 30 days of Guild features</li>
+          <li><strong>Guild:</strong> $24/month unlimited actives — upgrade Checkout from billing card</li>
+        </ul>
+        <p>Manage or cancel platform subscription via <strong>Stripe Customer Portal</strong> from the same billing card.</p>
+
+        <h2 id="dues">Dues &amp; auto-renew</h2>
+        <ul>
+          <li>Levels with <code>renewal_type: auto</code> create Stripe subscriptions at checkout</li>
+          <li><code>invoice.paid</code> webhooks extend membership end dates</li>
+          <li>Portal: renew, cancel auto-renew, update card</li>
+          <li>Daily job: renewal reminders at 30 / 14 / 7 / 1 days; auto-lapse expired; win-back at 7 days lapsed</li>
+        </ul>
+        <div class="callout warn">Test auto-renew thoroughly in Stripe test mode before relying on it for a live guild. See internal checklist <code>docs/auto-renew-e2e.md</code> in the repo.</div>
+
+        <h2 id="refunds">Refunds</h2>
+        <p>Admin → Payments → refund. One-click in-app refunds (a known Wild Apricot gap). Refunds go through Stripe to the original payment method when possible.</p>
+
+        <h2 id="receipts">Receipts &amp; QuickBooks</h2>
+        <ul>
+          <li>Members: printable receipts from portal invoices list</li>
+          <li>Donation receipt emails on successful donations</li>
+          <li>Admin: CSV exports; <strong>QuickBooks Desktop IIF</strong> via payments export</li>
+        </ul>
+
+        <h2 id="invoices">Numbered invoices</h2>
+        <p>Admin → Invoices for multi-line bills (booth fees, sponsorships, etc.). Sequential numbers per guild. Print to PDF from the browser. Statuses: draft, sent, paid.</p>
+
+        <div class="docs-footer">
+          <a href="/docs/website-store.html">← Website &amp; store</a>
+          <a href="/docs/email-automations.html">Email →</a>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Member portal — QuiltHosting Docs</title>
+  <link rel="stylesheet" href="/qh.css" />
+  <link rel="stylesheet" href="/docs/docs.css" />
+</head>
+<body class="has-fleet-footer">
+  <div class="docs-wrap">
+    <header class="docs-top">
+      <a class="logo" href="/docs/"><span class="t">✦</span> QuiltHosting Docs</a>
+      <nav>
+        <a href="/docs/">All docs</a>
+        <a href="/portal">Open portal</a>
+      </nav>
+    </header>
+    <div class="docs-layout">
+      <aside class="docs-side">
+        <h3>On this page</h3>
+        <a href="#signin">Sign-in</a>
+        <a href="#tabs">Portal tabs</a>
+        <a href="#renew">Renew &amp; card</a>
+        <a href="#directory">Directory &amp; photo</a>
+        <a href="#forum">Forum</a>
+        <a href="#share">Share the link</a>
+      </aside>
+      <main class="docs-main">
+        <h1>Member portal</h1>
+        <p class="lede">Self-service for members: renewals, events, documents, directory, and more.</p>
+
+        <h2 id="signin">Sign-in (passwordless)</h2>
+        <p>Members open <code>/portal?slug=your-guild</code> and enter email. QuiltHosting emails a magic link (or they can use Google if enabled). No guild-managed passwords.</p>
+        <div class="callout">Magic links expire. If a link fails, request a new one from the portal login screen.</div>
+
+        <h2 id="tabs">Portal tabs</h2>
+        <table>
+          <thead><tr><th>Tab</th><th>Use</th></tr></thead>
+          <tbody>
+            <tr><td>Home</td><td>Membership status, quick renew, documents snapshot</td></tr>
+            <tr><td>Events</td><td>Upcoming events; register if allowed</td></tr>
+            <tr><td>Invoices</td><td>Payment history + printable receipts</td></tr>
+            <tr><td>Documents</td><td>Guild file library downloads</td></tr>
+            <tr><td>Directory</td><td>Fellow members (respecting opt-out + showcase)</td></tr>
+            <tr><td>Forum</td><td>Members-only topics and replies</td></tr>
+            <tr><td>Guild Info</td><td>Members-only content pages</td></tr>
+            <tr><td>Profile</td><td>Name, phone, bio, photo, directory visibility, custom fields</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="renew">Renew, cancel auto-renew, update card</h2>
+        <ul>
+          <li><strong>Renew</strong> — starts Checkout (one-time or subscription depending on level)</li>
+          <li><strong>Cancel auto-renew</strong> — stops the Stripe subscription; membership stays active until end date</li>
+          <li><strong>Update payment card</strong> — opens Stripe Customer Portal for the card on file</li>
+        </ul>
+
+        <h2 id="directory">Directory, bio &amp; photo</h2>
+        <p>On Profile, members can:</p>
+        <ul>
+          <li>Upload a photo (shown in the member directory)</li>
+          <li>Add bio, headline, and interests</li>
+          <li>Opt out of the directory entirely</li>
+        </ul>
+        <p>If the guild enables a <strong>public directory</strong>, opted-in members also appear on the public guild page.</p>
+
+        <h2 id="forum">Forum</h2>
+        <p>Any non-cancelled member can post topics and replies. Officers moderate (pin/delete) under Admin → Forum.</p>
+
+        <h2 id="share">Share the link</h2>
+        <pre>https://quilthosting.com/portal?slug=your-slug</pre>
+        <p>Put this on newsletters, Facebook, and your website. Pair with the public join page <code>/g/your-slug</code> for new members.</p>
+
+        <div class="docs-footer">
+          <a href="/docs/admin-guide.html">← Admin guide</a>
+          <a href="/docs/website-store.html">Website &amp; store →</a>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

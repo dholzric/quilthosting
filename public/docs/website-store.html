@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Website, logo &amp; store — QuiltHosting Docs</title>
+  <link rel="stylesheet" href="/qh.css" />
+  <link rel="stylesheet" href="/docs/docs.css" />
+</head>
+<body class="has-fleet-footer">
+  <div class="docs-wrap">
+    <header class="docs-top">
+      <a class="logo" href="/docs/"><span class="t">✦</span> QuiltHosting Docs</a>
+      <nav>
+        <a href="/docs/">All docs</a>
+        <a href="/admin">Admin</a>
+      </nav>
+    </header>
+    <div class="docs-layout">
+      <aside class="docs-side">
+        <h3>On this page</h3>
+        <a href="#public">Public guild page</a>
+        <a href="#logo">Guild logo</a>
+        <a href="#website">Website builder</a>
+        <a href="#blog">Blog</a>
+        <a href="#embeds">Embeds</a>
+        <a href="#store">Store &amp; tax</a>
+      </aside>
+      <main class="docs-main">
+        <h1>Website, logo &amp; store</h1>
+        <p class="lede">Your public face: join page, branding, content, embeds, and shop.</p>
+
+        <h2 id="public">Public guild page</h2>
+        <pre>https://quilthosting.com/g/your-slug</pre>
+        <p>Includes membership levels, upcoming events, store, donations (if enabled), blog, content pages, and optional public directory.</p>
+
+        <h2 id="logo">Guild logo</h2>
+        <p>Admin → <strong>Settings → Public profile → Guild logo</strong>.</p>
+        <ul>
+          <li>Formats: PNG, JPEG, WebP, GIF, SVG</li>
+          <li>Max size: 2 MB</li>
+          <li>Shown next to the guild name on <code>/g/:slug</code> and on join embeds</li>
+          <li>Public URL: <code>/public/:slug/logo</code></li>
+        </ul>
+        <div class="callout ok">Square or horizontal logos work best. Transparent PNG recommended.</div>
+
+        <h2 id="website">Website builder</h2>
+        <p>Admin → <strong>Website</strong>.</p>
+        <h3>Theme</h3>
+        <ul>
+          <li>Primary color, style (classic / modern / warm), font</li>
+          <li>Custom nav links as JSON: <code>[{"label":"QuiltMap","href":"https://quiltmap.com"}]</code></li>
+        </ul>
+        <h3>Pages</h3>
+        <p>Create published or draft pages. Options: members-only, show in nav.</p>
+        <p><strong>Blocks JSON</strong> (preferred) — example:</p>
+        <pre>[
+  {"type":"heading","text":"About us","level":2},
+  {"type":"text","html":"&lt;p&gt;We meet monthly…&lt;/p&gt;"},
+  {"type":"image","url":"https://…","alt":"Guild quilt"},
+  {"type":"button","label":"Join","href":"#h-membership"},
+  {"type":"join_cta","title":"Become a member"},
+  {"type":"events_list","limit":5},
+  {"type":"store_list","limit":6},
+  {"type":"divider"},
+  {"type":"html","html":"&lt;p&gt;Custom markup&lt;/p&gt;"}
+]</pre>
+        <p>You can still paste plain HTML in the content box if you prefer.</p>
+
+        <h2 id="blog">Blog</h2>
+        <p>Admin → <strong>Blog</strong>. Posts appear on the public page under Blog. Not mixed into regular nav pages.</p>
+
+        <h2 id="embeds">Embeds (WordPress, etc.)</h2>
+        <p>Copy from Settings or use:</p>
+        <pre>&lt;iframe src="https://quilthosting.com/embed/YOUR-SLUG/join"
+  width="100%" height="520" style="border:0;max-width:440px"
+  loading="lazy"&gt;&lt;/iframe&gt;</pre>
+        <p>Paths: <code>/embed/:slug/join</code>, <code>/events</code>, <code>/store</code>.</p>
+
+        <h2 id="store">Store, cart &amp; tax</h2>
+        <ol>
+          <li>Admin → Store → add products (price in cents, optional inventory &amp; SKU).</li>
+          <li>Set tax rate in <strong>basis points</strong> (e.g. 700 = 7.00%) and tax label.</li>
+          <li>Mark products taxable or not.</li>
+          <li>On the public page, visitors add to cart and checkout (multi-SKU + tax line).</li>
+        </ol>
+        <p>“Buy now” still works for a single product. Free products fulfill without Stripe.</p>
+
+        <div class="docs-footer">
+          <a href="/docs/member-portal.html">← Member portal</a>
+          <a href="/docs/billing-payments.html">Billing →</a>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>
