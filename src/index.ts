@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import type { Env } from "./types";
 import { tenantMiddleware } from "./middleware/tenant";
+import { verifyJwt, signJwt } from "./lib/auth";
 import { requireAuth, requireTenantAccess } from "./middleware/auth";
 import { siteGate } from "./middleware/siteGate";
 import { runRenewalJob } from "./lib/renewals";
@@ -13,6 +14,10 @@ import { levelRoutes } from "./routes/levels";
 import { memberRoutes } from "./routes/members";
 import { eventRoutes } from "./routes/events";
 import { statsRoutes, paymentRoutes } from "./routes/stats";
+import { commsRoutes } from "./routes/comms";
+import { teamRoutes } from "./routes/team";
+import { pageRoutes } from "./routes/pages";
+import { fileRoutes } from "./routes/files";
 import { publicRoutes } from "./routes/public";
 import { webhookRoutes } from "./routes/webhooks";
 import { portalRoutes } from "./routes/portal";
@@ -40,12 +45,35 @@ app.get("/", (c) => {
   }
   return c.json({
     name: "QuiltHosting API",
-    version: "0.6.0",
+    version: "0.8.0",
     status: "ok",
     environment: c.env.ENVIRONMENT,
     admin: "/admin",
     portal: "/portal",
   });
+});
+
+// Magic-link landing: exchange the short-lived emailed token for a
+// session and hand it to the portal via the URL hash.
+app.get("/auth/verify", async (c) => {
+  const token = c.req.query("token") || "";
+  const slug = c.req.query("slug") || "";
+  const payload = await verifyJwt(token, c.env.JWT_SECRET);
+  if (!payload) {
+    return c.html(
+      `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Link expired</title>
+<style>body{font-family:system-ui;max-width:480px;margin:4rem auto;padding:0 1rem;text-align:center}</style></head>
+<body><h2>This sign-in link has expired</h2><p>Please request a new one from the member portal.</p>
+<p><a href="/portal${slug ? `?slug=${encodeURIComponent(slug)}` : ""}">Back to the portal</a></p></body></html>`,
+      401
+    );
+  }
+  const session = await signJwt(
+    { sub: payload.sub, email: payload.email, name: payload.name },
+    c.env.JWT_SECRET
+  );
+  const dest = `/portal${slug ? `?slug=${encodeURIComponent(slug)}` : ""}#ptoken=${session}`;
+  return c.redirect(dest);
 });
 
 // Public guild page: /g/:slug — static shell reads the slug client-side
@@ -69,6 +97,10 @@ tenantApp.route("/members", memberRoutes);
 tenantApp.route("/events", eventRoutes);
 tenantApp.route("/stats", statsRoutes);
 tenantApp.route("/payments", paymentRoutes);
+tenantApp.route("/emails", commsRoutes);
+tenantApp.route("/team", teamRoutes);
+tenantApp.route("/pages", pageRoutes);
+tenantApp.route("/files", fileRoutes);
 app.route("/api/tenants/:tenantId", tenantApp);
 
 app.route("/public", publicRoutes);

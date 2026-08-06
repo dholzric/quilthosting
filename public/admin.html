@@ -185,6 +185,10 @@
         <a href="#" data-page="levels">Levels</a>
         <a href="#" data-page="events">Events</a>
         <a href="#" data-page="payments">Payments</a>
+        <a href="#" data-page="comms">Email</a>
+        <a href="#" data-page="pages">Pages</a>
+        <a href="#" data-page="files">Documents</a>
+        <a href="#" data-page="team">Team</a>
         <a href="#" data-page="settings">Settings</a>
       </nav>
       <div style="margin-top:2rem;font-size:0.8rem;color:#a08060" id="tenant-label"></div>
@@ -332,6 +336,10 @@
         else if (page === "levels") await renderLevels(el);
         else if (page === "events") await renderEvents(el);
         else if (page === "payments") await renderPayments(el);
+        else if (page === "comms") await renderComms(el);
+        else if (page === "pages") await renderPagesAdmin(el);
+        else if (page === "files") await renderFiles(el);
+        else if (page === "team") await renderTeam(el);
         else if (page === "settings") renderSettings(el);
       } catch (e) {
         el.innerHTML = `<p class="error">${e.message}</p>`;
@@ -424,6 +432,10 @@
         <div class="toolbar">
           <input type="search" id="member-search" placeholder="Search…" oninput="filterMembers()" />
           <button onclick="showAddMember()">Add Member</button>
+          <button class="secondary" onclick="exportMembers()">Export CSV</button>
+          <button class="secondary" onclick="document.getElementById('import-input').click()">Import CSV</button>
+          <input type="file" id="import-input" accept=".csv,text/csv" class="hidden" onchange="importMembers(this)" />
+          <span id="import-result" style="color:var(--muted);font-size:0.85rem"></span>
         </div>
         <div id="add-member-form" class="card hidden">
           <div class="form-row">
@@ -523,6 +535,79 @@
       navigate("members");
     }
 
+    async function exportMembers() {
+      const res = await fetch(`${API}/api/tenants/${tenantId}/members/export.csv`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const blob = await res.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "members.csv";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+    // Minimal CSV parser (quoted fields, commas, newlines)
+    function parseCsv(text) {
+      const rows = [];
+      let row = [], cell = "", inQ = false;
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        if (inQ) {
+          if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else inQ = false; }
+          else cell += ch;
+        } else if (ch === '"') inQ = true;
+        else if (ch === ",") { row.push(cell); cell = ""; }
+        else if (ch === "\n" || ch === "\r") {
+          if (ch === "\r" && text[i + 1] === "\n") i++;
+          row.push(cell); cell = "";
+          if (row.some((c) => c !== "")) rows.push(row);
+          row = [];
+        } else cell += ch;
+      }
+      row.push(cell);
+      if (row.some((c) => c !== "")) rows.push(row);
+      return rows;
+    }
+    async function importMembers(input) {
+      const out = document.getElementById("import-result");
+      const f = input.files && input.files[0];
+      if (!f) return;
+      out.textContent = "Reading…";
+      const text = await f.text();
+      const rows = parseCsv(text);
+      if (rows.length < 2) { out.textContent = "No data rows found."; return; }
+      // Header-driven mapping: works with Wild Apricot exports (case-insensitive,
+      // matches e.g. "E-Mail", "First name", "Phone")
+      const header = rows[0].map((h) => h.toLowerCase().replace(/[^a-z]/g, ""));
+      const col = (names) => header.findIndex((h) => names.includes(h));
+      const iEmail = col(["email", "emailaddress", "mail"]);
+      const iFirst = col(["firstname", "first"]);
+      const iLast = col(["lastname", "last", "surname"]);
+      const iPhone = col(["phone", "phonenumber", "mobile", "cellphone"]);
+      const iStatus = col(["status", "membershipstatus"]);
+      const iNotes = col(["notes", "note", "comments"]);
+      if (iEmail === -1) { out.textContent = "Could not find an email column."; return; }
+      const payload = rows.slice(1).map((r) => ({
+        email: r[iEmail] || "",
+        first_name: iFirst !== -1 ? r[iFirst] : undefined,
+        last_name: iLast !== -1 ? r[iLast] : undefined,
+        phone: iPhone !== -1 ? r[iPhone] : undefined,
+        status: iStatus !== -1 ? (r[iStatus] || "").toLowerCase() : undefined,
+        notes: iNotes !== -1 ? r[iNotes] : undefined,
+      }));
+      out.textContent = `Importing ${payload.length} rows…`;
+      try {
+        const r = await api(`/api/tenants/${tenantId}/members/import`, {
+          method: "POST",
+          body: JSON.stringify({ rows: payload }),
+        });
+        out.textContent = `Imported: ${r.created} new, ${r.updated} updated, ${r.skipped} skipped.`;
+        setTimeout(() => navigate("members"), 1200);
+      } catch (e) {
+        out.textContent = e.message;
+      }
+      input.value = "";
+    }
     function filterMembers() {
       const q = document.getElementById("member-search").value.toLowerCase();
       document.querySelectorAll("#members-tbody tr").forEach((tr) => {
@@ -642,14 +727,20 @@
         <div class="toolbar"><button onclick="showAddEvent()">Add Event</button></div>
         <div id="add-event-form" class="card hidden">
           <label>Title</label><input id="e-title" />
+          <label>Description</label><input id="e-desc" placeholder="What to bring, who it's for…" />
           <div class="form-row">
             <div><label>Start</label><input id="e-start" type="datetime-local" /></div>
+            <div><label>End (optional)</label><input id="e-end" type="datetime-local" /></div>
+          </div>
+          <div class="form-row">
             <div><label>Location</label><input id="e-location" /></div>
+            <div><label>Capacity (blank = unlimited)</label><input id="e-capacity" type="number" /></div>
           </div>
           <div class="form-row">
             <div><label>Member price (cents)</label><input id="e-mprice" type="number" value="0" /></div>
             <div><label>Non-member price (cents)</label><input id="e-nmprice" type="number" value="0" /></div>
           </div>
+          <label style="display:flex;align-items:center;gap:0.4rem"><input type="checkbox" id="e-waitlist" style="width:auto" /> Enable waitlist when full</label>
           <button onclick="addEvent()">Save</button>
           <button class="secondary" onclick="hide(document.getElementById('add-event-form'))">Cancel</button>
         </div>
@@ -680,12 +771,18 @@
     function showAddEvent() { show(document.getElementById("add-event-form")); }
     async function addEvent() {
       const start = document.getElementById("e-start").value;
+      const end = document.getElementById("e-end").value;
+      const cap = document.getElementById("e-capacity").value;
       await api(`/api/tenants/${tenantId}/events`, {
         method: "POST",
         body: JSON.stringify({
           title: document.getElementById("e-title").value,
+          description: document.getElementById("e-desc").value || undefined,
           start_at: new Date(start).toISOString(),
+          end_at: end ? new Date(end).toISOString() : undefined,
           location: document.getElementById("e-location").value,
+          capacity: cap ? Number(cap) : undefined,
+          waitlist_enabled: document.getElementById("e-waitlist").checked ? 1 : 0,
           member_price_cents: Number(document.getElementById("e-mprice").value),
           non_member_price_cents: Number(document.getElementById("e-nmprice").value),
         }),
@@ -696,7 +793,9 @@
       const regs = await api(`/api/tenants/${tenantId}/events/${eventId}/registrations`);
       document.getElementById("regs-panel").innerHTML = `
         <div class="card" style="margin-top:1rem">
-          <h3 style="margin-bottom:0.75rem">Registrations</h3>
+          <h3 style="margin-bottom:0.75rem">Registrations
+            <button class="secondary" style="float:right" onclick="exportRegs('${eventId}')">Export CSV</button>
+          </h3>
           ${regs.length === 0 ? "<p style='color:var(--muted)'>No registrations yet</p>" : `
             <table>
               <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Ticket</th><th></th></tr></thead>
@@ -708,7 +807,10 @@
                     <td><span class="badge ${r.status}">${r.status}</span></td>
                     <td><code>${r.ticket_code || "—"}</code></td>
                     <td>
-                      ${r.status === "registered" ? `<button onclick="checkIn('${eventId}','${r.id}')">Check in</button>` : ""}
+                      ${r.status === "registered" ? `<button onclick="checkIn('${eventId}','${r.id}')">Check in</button>
+                        <button class="secondary" onclick="setRegStatus('${eventId}','${r.id}','cancelled')">Cancel</button>` : ""}
+                      ${r.status === "waitlist" ? `<button onclick="setRegStatus('${eventId}','${r.id}','registered')">Promote</button>` : ""}
+                      ${r.status === "cancelled" ? `<button class="secondary" onclick="setRegStatus('${eventId}','${r.id}','registered')">Restore</button>` : ""}
                     </td>
                   </tr>
                 `).join("")}
@@ -717,6 +819,24 @@
           `}
         </div>
       `;
+    }
+    async function setRegStatus(eventId, regId, status) {
+      await api(`/api/tenants/${tenantId}/events/${eventId}/registrations/${regId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      });
+      viewRegistrations(eventId);
+    }
+    async function exportRegs(eventId) {
+      const res = await fetch(`${API}/api/tenants/${tenantId}/events/${eventId}/registrations.csv`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const blob = await res.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "registrations.csv";
+      a.click();
+      URL.revokeObjectURL(a.href);
     }
     async function toggleRegistration(eventId, open) {
       await api(`/api/tenants/${tenantId}/events/${eventId}`, {
@@ -731,6 +851,270 @@
         body: JSON.stringify({ registration_id: regId }),
       });
       viewRegistrations(eventId);
+    }
+
+    async function renderComms(el) {
+      const log = await api(`/api/tenants/${tenantId}/emails`);
+      el.innerHTML = `
+        <h2>Email</h2>
+        <div class="card">
+          <h3 style="margin-bottom:0.75rem">Send an email to members</h3>
+          <div class="form-row">
+            <div><label>Subject</label><input id="c-subject" placeholder="October newsletter" /></div>
+            <div><label>Send to</label>
+              <select id="c-segment">
+                <option value="active">Active members</option>
+                <option value="pending">Pending members</option>
+                <option value="lapsed">Lapsed members</option>
+                <option value="all">Everyone (except cancelled)</option>
+              </select>
+            </div>
+          </div>
+          <label>Message</label>
+          <textarea id="c-body" rows="8" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px;font:inherit"></textarea>
+          <button onclick="sendBlast()" style="margin-top:0.5rem">Send</button>
+          <span id="c-result" style="margin-left:0.75rem;color:var(--muted)"></span>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:0.75rem">Recent emails</h3>
+          ${log.length === 0 ? "<p style='color:var(--muted)'>Nothing sent yet</p>" : `
+            <table>
+              <thead><tr><th>Date</th><th>To</th><th>Type</th><th>Status</th></tr></thead>
+              <tbody>
+                ${log.slice(0, 50).map((e) => `
+                  <tr>
+                    <td>${new Date(e.created_at).toLocaleString()}</td>
+                    <td>${esc(e.to_email)}</td>
+                    <td>${esc(e.template)}</td>
+                    <td><span class="badge ${e.status === "sent" ? "active" : "cancelled"}">${esc(e.status)}</span></td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          `}
+        </div>
+      `;
+    }
+    async function sendBlast() {
+      const subject = document.getElementById("c-subject").value.trim();
+      const text = document.getElementById("c-body").value.trim();
+      const segment = document.getElementById("c-segment").value;
+      const out = document.getElementById("c-result");
+      if (!subject || !text) { out.textContent = "Subject and message are required."; return; }
+      if (!confirm(`Send "${subject}" to ${segment} members?`)) return;
+      out.textContent = "Sending…";
+      try {
+        const r = await api(`/api/tenants/${tenantId}/emails`, {
+          method: "POST",
+          body: JSON.stringify({ subject, body_text: text, segment }),
+        });
+        out.textContent = `Sent to ${r.sent} of ${r.recipients} recipients.`;
+      } catch (e) {
+        out.textContent = e.message;
+      }
+    }
+
+    async function renderTeam(el) {
+      const team = await api(`/api/tenants/${tenantId}/team`);
+      el.innerHTML = `
+        <h2>Team</h2>
+        <div class="card">
+          <h3 style="margin-bottom:0.75rem">Invite a co-admin</h3>
+          <div class="form-row">
+            <div><label>Email</label><input id="t-email" type="email" placeholder="treasurer@guild.org" /></div>
+            <div><label>Role</label>
+              <select id="t-role">
+                <option value="admin">Admin (full access)</option>
+                <option value="membership">Membership chair</option>
+                <option value="events">Events chair</option>
+                <option value="viewer">Viewer</option>
+                <option value="owner">Owner</option>
+              </select>
+            </div>
+          </div>
+          <button onclick="inviteTeam()">Invite</button>
+          <span id="t-result" style="margin-left:0.75rem;color:var(--muted)"></span>
+          <p style="color:var(--muted);font-size:0.85rem;margin-top:0.5rem">They'll get an email and can sign in with Google using that address.</p>
+        </div>
+        <div class="card">
+          <table>
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th></th></tr></thead>
+            <tbody>
+              ${team.map((t) => `
+                <tr>
+                  <td>${esc(t.name || "—")}</td>
+                  <td>${esc(t.email)}</td>
+                  <td>${esc(t.role)}</td>
+                  <td><button class="secondary" onclick='removeTeam(${JSON.stringify(t.user_id)}, ${JSON.stringify(t.email)})'>Remove</button></td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+    async function inviteTeam() {
+      const out = document.getElementById("t-result");
+      try {
+        await api(`/api/tenants/${tenantId}/team`, {
+          method: "POST",
+          body: JSON.stringify({
+            email: document.getElementById("t-email").value,
+            role: document.getElementById("t-role").value,
+          }),
+        });
+        navigate("team");
+      } catch (e) { out.textContent = e.message; }
+    }
+    async function removeTeam(userId, email) {
+      if (!confirm(`Remove ${email} from the team?`)) return;
+      await api(`/api/tenants/${tenantId}/team/${userId}`, { method: "DELETE" });
+      navigate("team");
+    }
+
+    async function renderPagesAdmin(el) {
+      const pages = await api(`/api/tenants/${tenantId}/pages`);
+      el.innerHTML = `
+        <h2>Pages</h2>
+        <p style="color:var(--muted);font-size:0.9rem;margin-bottom:1rem">Content pages shown on your public guild page. Members-only pages appear in the member portal instead.</p>
+        <div class="card">
+          <h3 style="margin-bottom:0.75rem" id="pg-form-title">New page</h3>
+          <input type="hidden" id="pg-id" />
+          <div class="form-row">
+            <div><label>Title</label><input id="pg-title" placeholder="About Our Guild" /></div>
+            <div style="display:flex;gap:1.25rem;align-items:end;padding-bottom:0.35rem">
+              <label style="display:flex;align-items:center;gap:0.35rem;margin:0"><input type="checkbox" id="pg-members" style="width:auto" /> Members only</label>
+              <label style="display:flex;align-items:center;gap:0.35rem;margin:0"><input type="checkbox" id="pg-published" checked style="width:auto" /> Published</label>
+            </div>
+          </div>
+          <label>Content (HTML allowed)</label>
+          <textarea id="pg-content" rows="8" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px;font:inherit"></textarea>
+          <button onclick="savePage()" style="margin-top:0.5rem">Save</button>
+          <button class="secondary" onclick="resetPageForm()">Clear</button>
+          <span id="pg-result" style="margin-left:0.75rem;color:var(--muted)"></span>
+        </div>
+        <div class="card">
+          <table>
+            <thead><tr><th>Title</th><th>Visibility</th><th>Status</th><th>Updated</th><th></th></tr></thead>
+            <tbody>
+              ${pages.length === 0 ? "<tr><td colspan='5' style='color:var(--muted)'>No pages yet</td></tr>" : pages.map((p) => `
+                <tr>
+                  <td>${esc(p.title)}</td>
+                  <td>${p.is_members_only ? "Members only" : "Public"}</td>
+                  <td>${p.published ? "Published" : "Draft"}</td>
+                  <td>${new Date(p.updated_at).toLocaleDateString()}</td>
+                  <td>
+                    <button class="secondary" onclick='editPage(${JSON.stringify(p.id)})'>Edit</button>
+                    <button class="secondary" onclick='deletePage(${JSON.stringify(p.id)}, ${JSON.stringify(p.title)})'>Delete</button>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+      window._pages = pages;
+    }
+    function resetPageForm() {
+      document.getElementById("pg-id").value = "";
+      document.getElementById("pg-title").value = "";
+      document.getElementById("pg-content").value = "";
+      document.getElementById("pg-members").checked = false;
+      document.getElementById("pg-published").checked = true;
+      document.getElementById("pg-form-title").textContent = "New page";
+    }
+    function editPage(id) {
+      const p = (window._pages || []).find((x) => x.id === id);
+      if (!p) return;
+      document.getElementById("pg-id").value = p.id;
+      document.getElementById("pg-title").value = p.title;
+      document.getElementById("pg-content").value = (JSON.parse(p.content_json || "{}").html) || "";
+      document.getElementById("pg-members").checked = !!p.is_members_only;
+      document.getElementById("pg-published").checked = !!p.published;
+      document.getElementById("pg-form-title").textContent = "Edit page";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    async function savePage() {
+      const id = document.getElementById("pg-id").value;
+      const payload = {
+        title: document.getElementById("pg-title").value,
+        content_html: document.getElementById("pg-content").value,
+        is_members_only: document.getElementById("pg-members").checked,
+        published: document.getElementById("pg-published").checked,
+      };
+      const out = document.getElementById("pg-result");
+      try {
+        if (id) await api(`/api/tenants/${tenantId}/pages/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+        else await api(`/api/tenants/${tenantId}/pages`, { method: "POST", body: JSON.stringify(payload) });
+        navigate("pages");
+      } catch (e) { out.textContent = e.message; }
+    }
+    async function deletePage(id, title) {
+      if (!confirm(`Delete page "${title}"?`)) return;
+      await api(`/api/tenants/${tenantId}/pages/${id}`, { method: "DELETE" });
+      navigate("pages");
+    }
+
+    async function renderFiles(el) {
+      const files = await api(`/api/tenants/${tenantId}/files`);
+      el.innerHTML = `
+        <h2>Documents</h2>
+        <p style="color:var(--muted);font-size:0.9rem;margin-bottom:1rem">Newsletters, meeting minutes, patterns — members can download these from the portal.</p>
+        <div class="card">
+          <input type="file" id="file-input" />
+          <button onclick="uploadFile()" style="margin-left:0.5rem">Upload</button>
+          <span id="file-result" style="margin-left:0.75rem;color:var(--muted)"></span>
+        </div>
+        <div class="card">
+          <table>
+            <thead><tr><th>File</th><th>Size</th><th>Uploaded</th><th></th></tr></thead>
+            <tbody>
+              ${files.length === 0 ? "<tr><td colspan='4' style='color:var(--muted)'>No documents yet</td></tr>" : files.map((f) => `
+                <tr>
+                  <td>${esc(f.filename)}</td>
+                  <td>${f.size ? (f.size / 1024).toFixed(0) + " KB" : "—"}</td>
+                  <td>${new Date(f.created_at).toLocaleDateString()}</td>
+                  <td>
+                    <button class="secondary" onclick='downloadFile(${JSON.stringify(f.id)}, ${JSON.stringify(f.filename)})'>Download</button>
+                    <button class="secondary" onclick='deleteFile(${JSON.stringify(f.id)}, ${JSON.stringify(f.filename)})'>Delete</button>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+    async function uploadFile() {
+      const input = document.getElementById("file-input");
+      const out = document.getElementById("file-result");
+      const f = input.files && input.files[0];
+      if (!f) { out.textContent = "Choose a file first."; return; }
+      out.textContent = "Uploading…";
+      const res = await fetch(`${API}/api/tenants/${tenantId}/files?filename=${encodeURIComponent(f.name)}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": f.type || "application/octet-stream" },
+        body: f,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { out.textContent = data.error || "Upload failed"; return; }
+      navigate("files");
+    }
+    async function downloadFile(id, filename) {
+      const res = await fetch(`${API}/api/tenants/${tenantId}/files/${id}/download`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const blob = await res.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+    async function deleteFile(id, filename) {
+      if (!confirm(`Delete "${filename}"?`)) return;
+      await api(`/api/tenants/${tenantId}/files/${id}`, { method: "DELETE" });
+      navigate("files");
     }
 
     function renderSettings(el) {

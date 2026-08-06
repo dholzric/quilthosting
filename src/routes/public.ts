@@ -444,3 +444,24 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
     ticket_code: ticketCode,
   });
 });
+
+// GET /public/:slug/pages — published public pages (no members-only)
+publicRoutes.get("/:slug/pages", async (c) => {
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  const rows = await all<{ slug: string; title: string; content_json: string }>(
+    c.env.DB.prepare(
+      `SELECT slug, title, content_json FROM pages
+       WHERE tenant_id = ? AND published = 1 AND is_members_only = 0
+       ORDER BY sort_order, title`
+    ).bind(tenant.id)
+  );
+  return c.json({
+    tenant: { name: tenant.name, slug: tenant.slug },
+    pages: rows.map((p) => ({
+      slug: p.slug,
+      title: p.title,
+      html: (JSON.parse(p.content_json || "{}").html as string) || "",
+    })),
+  });
+});

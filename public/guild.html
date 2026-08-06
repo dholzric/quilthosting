@@ -51,6 +51,8 @@
 
     <h2>Upcoming Events</h2>
     <div id="events"><p class="muted">Loading events…</p></div>
+
+    <div id="pages"></div>
   </main>
 
   <dialog id="signup-dialog">
@@ -207,6 +209,21 @@
         evb.replaceChildren();
         if (!eventsData.events.length) evb.appendChild(el("p", "muted", "No upcoming events."));
         for (const ev of eventsData.events) evb.appendChild(eventCard(ev));
+
+        // Guild content pages (authored by guild admins — CMS trust model)
+        try {
+          const pagesData = await (await fetch(`${API}/public/${slug}/pages`)).json();
+          const pb = $("pages");
+          pb.replaceChildren();
+          for (const p of pagesData.pages || []) {
+            const h = el("h2", "", p.title);
+            const card = el("div", "card");
+            const body = el("div");
+            body.innerHTML = p.html || "";
+            card.appendChild(body);
+            pb.append(h, card);
+          }
+        } catch {}
       } catch (e) {
         $("guild-name").textContent = "Not found";
         $("levels").replaceChildren(el("div", "notice err", e.message));

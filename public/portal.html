@@ -139,12 +139,18 @@
         <button class="active" data-tab="home" onclick="showTab('home')">Home</button>
         <button data-tab="events" onclick="showTab('events')">Events</button>
         <button data-tab="invoices" onclick="showTab('invoices')">Invoices</button>
+        <button data-tab="documents" onclick="showTab('documents')">Documents</button>
+        <button data-tab="directory" onclick="showTab('directory')">Directory</button>
+        <button data-tab="pages" onclick="showTab('pages')">Guild Info</button>
         <button data-tab="profile" onclick="showTab('profile')">Profile</button>
       </div>
 
       <div id="tab-home"></div>
       <div id="tab-events" class="hidden"></div>
       <div id="tab-invoices" class="hidden"></div>
+      <div id="tab-documents" class="hidden"></div>
+      <div id="tab-directory" class="hidden"></div>
+      <div id="tab-pages" class="hidden"></div>
       <div id="tab-profile" class="hidden"></div>
     </div>
   </div>
@@ -157,6 +163,13 @@
     const params = new URLSearchParams(window.location.search);
     const slug = params.get("slug") || localStorage.getItem("gb_portal_slug") || "";
     let token = localStorage.getItem("gb_token");
+
+    // Magic-link hand-off: /auth/verify redirects here with #ptoken=<jwt>
+    if (location.hash.startsWith("#ptoken=")) {
+      token = decodeURIComponent(location.hash.slice(8));
+      localStorage.setItem("gb_token", token);
+      history.replaceState(null, "", location.pathname + location.search);
+    }
 
     document.getElementById("slug-display").textContent = slug || "(none)";
     if (slug) localStorage.setItem("gb_portal_slug", slug);
@@ -237,7 +250,7 @@
     });
 
     function showTab(name) {
-      ["home", "events", "invoices", "profile"].forEach((t) => {
+      ["home", "events", "invoices", "documents", "directory", "pages", "profile"].forEach((t) => {
         const panel = document.getElementById("tab-" + t);
         const btn = document.querySelector(`.tabs button[data-tab="${t}"]`);
         if (t === name) {
@@ -250,7 +263,98 @@
       });
       if (name === "events") loadEvents();
       if (name === "invoices") loadInvoices();
+      if (name === "documents") loadDocuments();
+      if (name === "directory") loadDirectory();
+      if (name === "pages") loadGuildPages();
       if (name === "profile") loadProfile();
+    }
+
+    function elBuild(tag, className, text) {
+      const n = document.createElement(tag);
+      if (className) n.className = className;
+      if (text !== undefined) n.textContent = text;
+      return n;
+    }
+
+    async function loadDocuments() {
+      const el = document.getElementById("tab-documents");
+      el.replaceChildren(elBuild("p", "muted", "Loading…"));
+      try {
+        const files = await api(`/api/portal/${slug}/files`);
+        if (!files.length) { el.replaceChildren(elBuild("p", "muted", "No documents shared yet.")); return; }
+        const card = elBuild("div", "card");
+        const table = elBuild("table");
+        const thead = elBuild("thead");
+        const hr = elBuild("tr");
+        for (const h of ["File", "Size", "Added"]) hr.appendChild(elBuild("th", "", h));
+        thead.appendChild(hr);
+        const tbody = elBuild("tbody");
+        for (const f of files) {
+          const tr = elBuild("tr");
+          const tdName = elBuild("td");
+          const a = elBuild("a", "", f.filename);
+          a.href = `${API}/api/portal/${slug}/files/${f.id}?token=${encodeURIComponent(token)}`;
+          tdName.appendChild(a);
+          tr.appendChild(tdName);
+          tr.appendChild(elBuild("td", "", f.size ? (f.size / 1024).toFixed(0) + " KB" : "—"));
+          tr.appendChild(elBuild("td", "", new Date(f.created_at).toLocaleDateString()));
+          tbody.appendChild(tr);
+        }
+        table.append(thead, tbody);
+        card.appendChild(table);
+        el.replaceChildren(card);
+      } catch (e) {
+        el.replaceChildren(elBuild("p", "muted", e.message));
+      }
+    }
+
+    async function loadDirectory() {
+      const el = document.getElementById("tab-directory");
+      el.replaceChildren(elBuild("p", "muted", "Loading…"));
+      try {
+        const data = await api(`/api/portal/${slug}/directory`);
+        if (!data.members.length) { el.replaceChildren(elBuild("p", "muted", "No members to show.")); return; }
+        const card = elBuild("div", "card");
+        const table = elBuild("table");
+        const thead = elBuild("thead");
+        const hr = elBuild("tr");
+        for (const h of ["Name", "Member since"]) hr.appendChild(elBuild("th", "", h));
+        thead.appendChild(hr);
+        const tbody = elBuild("tbody");
+        for (const m of data.members) {
+          const tr = elBuild("tr");
+          tr.appendChild(elBuild("td", "", [m.first_name, m.last_name].filter(Boolean).join(" ") || "(name not shared)"));
+          tr.appendChild(elBuild("td", "", m.joined_at ? new Date(m.joined_at).toLocaleDateString() : "—"));
+          tbody.appendChild(tr);
+        }
+        table.append(thead, tbody);
+        card.appendChild(table);
+        el.replaceChildren(card);
+      } catch (e) {
+        el.replaceChildren(elBuild("p", "muted", e.message));
+      }
+    }
+
+    async function loadGuildPages() {
+      const el = document.getElementById("tab-pages");
+      el.replaceChildren(elBuild("p", "muted", "Loading…"));
+      try {
+        const pages = await api(`/api/portal/${slug}/pages`);
+        if (!pages.length) { el.replaceChildren(elBuild("p", "muted", "No guild info pages yet.")); return; }
+        el.replaceChildren();
+        for (const p of pages) {
+          const card = elBuild("div", "card");
+          const h = elBuild("h3", "", p.title + (p.is_members_only ? " (members only)" : ""));
+          const body = elBuild("div");
+          // Intentional: page content is HTML authored by this guild's own
+          // admins in the page editor (CMS trust model, not user input).
+          body.innerHTML = (JSON.parse(p.content_json || "{}").html) || "";
+          card.append(h, body);
+          el.appendChild(card);
+        }
+      } catch (e) {
+        el.replaceChildren(elBuild("p", "muted", e.message));
+      }
     }
 
     async function loadPortal() {

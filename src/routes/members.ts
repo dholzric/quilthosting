@@ -76,6 +76,32 @@ memberRoutes.post("/", async (c) => {
   return c.json(member, 201);
 });
 
+// GET /api/tenants/:tenantId/members/export.csv
+memberRoutes.get("/export.csv", async (c) => {
+  const tenant = c.get("tenant");
+  const members = await all<Member>(
+    c.env.DB.prepare(
+      "SELECT * FROM members WHERE tenant_id = ? ORDER BY last_name, first_name"
+    ).bind(tenant.id)
+  );
+  const csvCell = (v: unknown) => {
+    const s = v == null ? "" : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const header = "email,first_name,last_name,phone,status,joined_at,notes";
+  const lines = members.map((m) =>
+    [m.email, m.first_name, m.last_name, m.phone, m.status, m.joined_at, m.notes]
+      .map(csvCell)
+      .join(",")
+  );
+  return new Response([header, ...lines].join("\n"), {
+    headers: {
+      "Content-Type": "text/csv",
+      "Content-Disposition": 'attachment; filename="members.csv"',
+    },
+  });
+});
+
 memberRoutes.get("/:memberId", async (c) => {
   const tenant = c.get("tenant");
   const memberId = c.req.param("memberId");
@@ -168,4 +194,86 @@ memberRoutes.delete("/:memberId", async (c) => {
     ).bind(now, memberId, tenant.id),
   ]);
   return c.json({ ok: true, status: "cancelled" });
+});
+
+/**
+ * POST /api/tenants/:tenantId/members/import
+ * Bulk upsert by email — the Wild Apricot migration path.
+ * Body: { rows: [{email, first_name?, last_name?, phone?, status?, notes?}] }
+ */
+memberRoutes.post("/import", async (c) => {
+  const tenant = c.get("tenant");
+  const body = await c.req.json<{ rows: Array<Record<string, string>> }>();
+  if (!Array.isArray(body.rows) || !body.rows.length) {
+    return c.json({ error: "rows array is required" }, 400);
+  }
+  if (body.rows.length > 2000) {
+    return c.json({ error: "Max 2000 rows per import" }, 400);
+  }
+
+  const existing = await all<{ id: string; email: string }>(
+    c.env.DB.prepare("SELECT id, email FROM members WHERE tenant_id = ?").bind(tenant.id)
+  );
+  const byEmail = new Map(existing.map((m) => [m.email, m.id]));
+  const now = new Date().toISOString();
+  let created = 0,
+    updated = 0,
+    skipped = 0;
+  const stmts: D1PreparedStatement[] = [];
+  const seen = new Set<string>();
+
+  for (const row of body.rows) {
+    const email = (row.email || "").toLowerCase().trim();
+    if (!email || !email.includes("@") || seen.has(email)) {
+      skipped++;
+      continue;
+    }
+    seen.add(email);
+    const status = MEMBER_STATUSES.includes(row.status || "")
+      ? row.status
+      : "active";
+    if (byEmail.has(email)) {
+      stmts.push(
+        c.env.DB.prepare(
+          `UPDATE members SET
+             first_name = coalesce(?, first_name), last_name = coalesce(?, last_name),
+             phone = coalesce(?, phone), notes = coalesce(?, notes), updated_at = ?
+           WHERE id = ?`
+        ).bind(
+          row.first_name || null,
+          row.last_name || null,
+          row.phone || null,
+          row.notes || null,
+          now,
+          byEmail.get(email)
+        )
+      );
+      updated++;
+    } else {
+      stmts.push(
+        c.env.DB.prepare(
+          `INSERT INTO members (id, tenant_id, email, first_name, last_name, phone, notes, status, joined_at, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(
+          generateId(),
+          tenant.id,
+          email,
+          row.first_name || null,
+          row.last_name || null,
+          row.phone || null,
+          row.notes || null,
+          status,
+          row.joined_at || now,
+          now,
+          now
+        )
+      );
+      created++;
+    }
+  }
+
+  for (let i = 0; i < stmts.length; i += 50) {
+    await c.env.DB.batch(stmts.slice(i, i + 50));
+  }
+  return c.json({ ok: true, created, updated, skipped });
 });

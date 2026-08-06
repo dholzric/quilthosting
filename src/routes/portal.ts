@@ -312,3 +312,88 @@ portalRoutes.patch("/:slug/profile", async (c) => {
   );
   return c.json({ member: updated });
 });
+
+// Helper: the logged-in user's member row for this guild (any status but cancelled)
+async function requireGuildMember(c: any, slug: string) {
+  const user = await requirePortalUser(c);
+  if (!user) return { error: c.json({ error: "Unauthorized" }, 401) };
+  const tenant = await getTenantBySlug(c.env.DB, slug);
+  if (!tenant) return { error: c.json({ error: "Guild not found" }, 404) };
+  const member = await first<Member>(
+    c.env.DB.prepare(
+      "SELECT * FROM members WHERE tenant_id = ? AND email = ? AND status != 'cancelled'"
+    ).bind(tenant.id, user.email.toLowerCase())
+  );
+  if (!member) return { error: c.json({ error: "Not a member of this guild" }, 403) };
+  return { user, tenant, member };
+}
+
+// GET /api/portal/:slug/directory — active members, names only
+portalRoutes.get("/:slug/directory", async (c) => {
+  const ctx = await requireGuildMember(c, c.req.param("slug"));
+  if ("error" in ctx) return ctx.error;
+  const rows = await all<{ first_name: string | null; last_name: string | null; joined_at: string | null }>(
+    c.env.DB.prepare(
+      `SELECT first_name, last_name, joined_at FROM members
+       WHERE tenant_id = ? AND status = 'active'
+       ORDER BY last_name, first_name LIMIT 500`
+    ).bind(ctx.tenant.id)
+  );
+  return c.json({ tenant: { name: ctx.tenant.name }, members: rows });
+});
+
+// GET /api/portal/:slug/files — guild document library
+portalRoutes.get("/:slug/files", async (c) => {
+  const ctx = await requireGuildMember(c, c.req.param("slug"));
+  if ("error" in ctx) return ctx.error;
+  const rows = await all(
+    c.env.DB.prepare(
+      `SELECT id, filename, content_type, size, created_at
+       FROM files WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 200`
+    ).bind(ctx.tenant.id)
+  );
+  return c.json(rows);
+});
+
+// GET /api/portal/:slug/files/:fileId — download (?token= supported so plain <a> links work)
+portalRoutes.get("/:slug/files/:fileId", async (c) => {
+  const token =
+    extractBearer(c.req.header("Authorization")) || c.req.query("token") || "";
+  const payload = token ? await verifyJwt(token, c.env.JWT_SECRET) : null;
+  if (!payload) return c.json({ error: "Unauthorized" }, 401);
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  const member = await first<Member>(
+    c.env.DB.prepare(
+      "SELECT id FROM members WHERE tenant_id = ? AND email = ? AND status != 'cancelled'"
+    ).bind(tenant.id, payload.email.toLowerCase())
+  );
+  if (!member) return c.json({ error: "Not a member of this guild" }, 403);
+  const row = await first<{ r2_key: string; filename: string; content_type: string | null }>(
+    c.env.DB.prepare(
+      "SELECT r2_key, filename, content_type FROM files WHERE id = ? AND tenant_id = ?"
+    ).bind(c.req.param("fileId"), tenant.id)
+  );
+  if (!row) return c.json({ error: "File not found" }, 404);
+  const obj = await c.env.FILES.get(row.r2_key);
+  if (!obj) return c.json({ error: "File data missing" }, 404);
+  return new Response(obj.body, {
+    headers: {
+      "Content-Type": row.content_type || "application/octet-stream",
+      "Content-Disposition": `attachment; filename="${row.filename.replace(/"/g, "")}"`,
+    },
+  });
+});
+
+// GET /api/portal/:slug/pages — published pages incl. members-only
+portalRoutes.get("/:slug/pages", async (c) => {
+  const ctx = await requireGuildMember(c, c.req.param("slug"));
+  if ("error" in ctx) return ctx.error;
+  const rows = await all(
+    c.env.DB.prepare(
+      `SELECT slug, title, content_json, is_members_only FROM pages
+       WHERE tenant_id = ? AND published = 1 ORDER BY sort_order, title`
+    ).bind(ctx.tenant.id)
+  );
+  return c.json(rows);
+});

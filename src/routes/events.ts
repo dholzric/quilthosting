@@ -157,3 +157,52 @@ eventRoutes.post("/:eventId/check-in", async (c) => {
   reg.status = "checked_in";
   return c.json({ message: "Checked in", registration: reg });
 });
+
+// GET /api/tenants/:tenantId/events/:eventId/registrations.csv
+eventRoutes.get("/:eventId/registrations.csv", async (c) => {
+  const tenant = c.get("tenant");
+  const eventId = c.req.param("eventId");
+  const regs = await all<Record<string, unknown>>(
+    c.env.DB.prepare(
+      `SELECT name, email, status, ticket_code, amount_paid_cents, created_at
+       FROM event_registrations WHERE event_id = ? AND tenant_id = ?
+       ORDER BY created_at`
+    ).bind(eventId, tenant.id)
+  );
+  const cell = (v: unknown) => {
+    const s = v == null ? "" : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const header = "name,email,status,ticket_code,amount_paid,registered_at";
+  const lines = regs.map((r) =>
+    [r.name, r.email, r.status, r.ticket_code, ((r.amount_paid_cents as number) / 100).toFixed(2), r.created_at]
+      .map(cell)
+      .join(",")
+  );
+  return new Response([header, ...lines].join("\n"), {
+    headers: {
+      "Content-Type": "text/csv",
+      "Content-Disposition": 'attachment; filename="registrations.csv"',
+    },
+  });
+});
+
+// PATCH /api/tenants/:tenantId/events/:eventId/registrations/:regId
+// Promote from waitlist, cancel, or un-cancel a registration.
+eventRoutes.patch("/:eventId/registrations/:regId", async (c) => {
+  const tenant = c.get("tenant");
+  const eventId = c.req.param("eventId");
+  const regId = c.req.param("regId");
+  const body = await c.req.json<{ status: string }>();
+  if (!["registered", "waitlist", "cancelled", "checked_in"].includes(body.status)) {
+    return c.json({ error: "Invalid status" }, 400);
+  }
+  const res = await c.env.DB.prepare(
+    `UPDATE event_registrations SET status = ?, updated_at = ?
+     WHERE id = ? AND event_id = ? AND tenant_id = ?`
+  )
+    .bind(body.status, new Date().toISOString(), regId, eventId, tenant.id)
+    .run();
+  if (!res.meta.changes) return c.json({ error: "Registration not found" }, 404);
+  return c.json({ ok: true, status: body.status });
+});
