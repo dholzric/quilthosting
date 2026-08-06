@@ -213,7 +213,9 @@ authRoutes.get("/google", async (c) => {
   }
   const ts = Date.now().toString();
   // dest/slug ride along in the signed state so members return to the portal
-  const dest = c.req.query("dest") === "portal" ? "portal" : "admin";
+  // dest rides in the signed state: admin (web), portal (web), app (native deep link)
+  const destQ = c.req.query("dest");
+  const dest = destQ === "portal" ? "portal" : destQ === "app" ? "app" : "admin";
   const slug = (c.req.query("slug") || "").toLowerCase().replace(/[^a-z0-9-]/g, "");
   const sig = await hmacHex(c.env.JWT_SECRET, `gstate:${ts}:${dest}:${slug}`);
   const state = `${ts}.${dest}.${slug}.${sig}`;
@@ -293,6 +295,12 @@ authRoutes.get("/google/callback", async (c) => {
     { sub: user.id, email: user.email, name: user.name ?? claims.name },
     c.env.JWT_SECRET
   );
+  if (dest === "app") {
+    // Native apps catch this via the registered URL scheme
+    return c.redirect(
+      `quilthosting://auth?token=${jwt}${slug ? `&slug=${encodeURIComponent(slug)}` : ""}`
+    );
+  }
   if (dest === "portal") {
     return c.redirect(
       `/portal${slug ? `?slug=${encodeURIComponent(slug)}` : ""}#ptoken=${jwt}`

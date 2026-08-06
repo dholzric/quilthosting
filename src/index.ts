@@ -157,6 +157,12 @@ app.get("/auth/verify", async (c) => {
     { sub: payload.sub, email: payload.email, name: payload.name },
     c.env.JWT_SECRET
   );
+  // Native app magic links come back with ?dest=app and hand off via URL scheme
+  if (c.req.query("dest") === "app") {
+    return c.redirect(
+      `quilthosting://auth?token=${session}${slug ? `&slug=${encodeURIComponent(slug)}` : ""}`
+    );
+  }
   const dest = `/portal${slug ? `?slug=${encodeURIComponent(slug)}` : ""}#ptoken=${session}`;
   return c.redirect(dest);
 });
