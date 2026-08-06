@@ -12,6 +12,9 @@
     header.g { background: var(--surface); border-bottom: 1px solid var(--border); }
     .header-inner { max-width: 880px; margin: 0 auto; padding: 1.1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
     .header-inner strong { font-family: var(--font-display); font-size: 1.35rem; letter-spacing: -0.01em; }
+    .guild-brand { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
+    .guild-logo { width: 48px; height: 48px; object-fit: contain; border-radius: 10px; flex-shrink: 0; background: var(--surface-2, #f3efe8); }
+    .guild-logo.hidden { display: none; }
     .brand { font-size: 0.82rem; color: var(--ink-3); text-decoration: none; }
     .brand:hover { color: var(--brand); }
     main { max-width: 880px; margin: 0 auto; padding: 1.75rem 1.5rem 3rem; }
@@ -23,7 +26,10 @@
 <body class="has-fleet-footer">
   <header class="g">
     <div class="header-inner">
-      <strong id="guild-name">Loading…</strong>
+      <div class="guild-brand">
+        <img id="guild-logo" class="guild-logo hidden" alt="" width="48" height="48" />
+        <strong id="guild-name">Loading…</strong>
+      </div>
       <nav id="site-nav" style="display:flex;gap:0.85rem;flex-wrap:wrap;align-items:center;font-size:0.9rem"></nav>
       <span>
         <a class="brand" id="portal-link" href="/portal">Member sign-in</a>
@@ -497,6 +503,15 @@
 
         $("guild-name").textContent = levelsData.tenant.name;
         document.title = levelsData.tenant.name + " — QuiltHosting";
+        const logoEl = $("guild-logo");
+        if (info.profile?.logo_url && logoEl) {
+          logoEl.src = info.profile.logo_url + (info.profile.logo_url.includes("?") ? "&" : "?") + "v=1";
+          logoEl.alt = levelsData.tenant.name + " logo";
+          logoEl.classList.remove("hidden");
+          logoEl.onerror = () => logoEl.classList.add("hidden");
+        } else if (logoEl) {
+          logoEl.classList.add("hidden");
+        }
 
         const lv = $("levels");
         lv.replaceChildren();

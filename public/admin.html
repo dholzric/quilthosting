@@ -1980,6 +1980,23 @@
         <div class="card">
           <h3 style="margin-bottom:0.75rem">Public profile</h3>
           <p style="color:var(--muted);font-size:0.85rem;margin-bottom:0.5rem">Shown on your public guild page.</p>
+          <label>Guild logo</label>
+          <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:0.75rem">
+            <div id="logo-preview" style="width:72px;height:72px;border-radius:12px;border:1px solid var(--border);background:var(--surface-2);display:flex;align-items:center;justify-content:center;overflow:hidden">
+              ${prof.logo_file_id
+                ? `<img src="/public/${esc(tenantSlug)}/logo?t=${Date.now()}" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain" />`
+                : `<span class="muted" style="font-size:0.75rem;text-align:center;padding:0.25rem">No logo</span>`}
+            </div>
+            <div>
+              <input type="file" id="logo-input" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" />
+              <div style="margin-top:0.4rem;display:flex;gap:0.4rem;flex-wrap:wrap">
+                <button type="button" onclick="uploadGuildLogo()">Upload logo</button>
+                ${prof.logo_file_id ? `<button type="button" class="secondary" onclick="removeGuildLogo()">Remove</button>` : ""}
+              </div>
+              <p class="muted" style="font-size:0.8rem;margin:0.35rem 0 0">PNG, JPEG, WebP, or SVG · max 2 MB. Shown on your public page and embeds.</p>
+              <span id="logo-msg" class="muted" style="font-size:0.85rem"></span>
+            </div>
+          </div>
           <label>About your guild</label>
           <textarea id="prof-desc" rows="3" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px;font:inherit">${esc(prof.description || "")}</textarea>
           <div class="form-row">
@@ -2162,7 +2179,9 @@
       });
     }
     async function saveProfile() {
+      const prev = (window._settings && window._settings.profile) || {};
       window._settings.profile = {
+        ...prev,
         description: document.getElementById("prof-desc").value.trim(),
         meeting_info: document.getElementById("prof-meeting").value.trim(),
         location: document.getElementById("prof-location").value.trim(),
@@ -2175,6 +2194,44 @@
       await saveSettings();
       show(document.getElementById("prof-saved"));
       setTimeout(() => hide(document.getElementById("prof-saved")), 2000);
+    }
+    async function uploadGuildLogo() {
+      const input = document.getElementById("logo-input");
+      const msg = document.getElementById("logo-msg");
+      const f = input?.files?.[0];
+      if (!f) { if (msg) msg.textContent = "Choose an image first."; return; }
+      if (msg) msg.textContent = "Uploading…";
+      try {
+        const res = await fetch(`${API}/api/tenants/${tenantId}/files/logo`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": f.type || "image/png",
+          },
+          body: f,
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || res.statusText);
+        window._settings = window._settings || {};
+        window._settings.profile = window._settings.profile || {};
+        window._settings.profile.logo_file_id = data.logo_file_id;
+        if (msg) msg.textContent = "Logo saved.";
+        navigate("settings");
+      } catch (e) {
+        if (msg) msg.textContent = e.message;
+      }
+    }
+    async function removeGuildLogo() {
+      if (!confirm("Remove the guild logo?")) return;
+      const msg = document.getElementById("logo-msg");
+      try {
+        await api(`/api/tenants/${tenantId}/files/logo`, { method: "DELETE" });
+        if (window._settings?.profile) delete window._settings.profile.logo_file_id;
+        if (msg) msg.textContent = "Removed.";
+        navigate("settings");
+      } catch (e) {
+        if (msg) msg.textContent = e.message;
+      }
     }
     function renderCustomFieldList() {
       const list = document.getElementById("cf-list");

@@ -47,8 +47,11 @@
       const levelsData = await levelsRes.json();
       const info = infoRes.ok ? await infoRes.json() : { join_fields: [] };
       const levels = levelsData.levels || [];
+      const logoHtml = info.profile?.logo_url
+        ? `<img src="${esc(info.profile.logo_url)}" alt="" width="40" height="40" style="width:40px;height:40px;object-fit:contain;border-radius:8px;vertical-align:middle;margin-right:0.5rem" />`
+        : "";
       root.innerHTML = `
-        <h2>Join ${esc(levelsData.tenant.name)}</h2>
+        <h2 style="display:flex;align-items:center;gap:0.35rem;flex-wrap:wrap">${logoHtml}<span>Join ${esc(levelsData.tenant.name)}</span></h2>
         <div id="msg"></div>
         <label>First name</label><input id="first" />
         <label>Last name</label><input id="last" />

@@ -763,7 +763,7 @@ publicRoutes.post("/:slug/products/:productId/buy", async (c) => {
 
 /**
  * GET /public/:slug/info — guild profile for the public page:
- * description, contact, links, join custom fields.
+ * description, contact, links, join custom fields, logo.
  */
 publicRoutes.get("/:slug/info", async (c) => {
   const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
@@ -774,6 +774,9 @@ publicRoutes.get("/:slug/info", async (c) => {
   const joinFields = (settings.custom_fields || []).filter(
     (f: any) => f && f.key && f.show_on_join
   );
+  const logoUrl = profile.logo_file_id
+    ? `/public/${tenant.slug}/logo`
+    : null;
   return c.json({
     tenant: { name: tenant.name, slug: tenant.slug },
     profile: {
@@ -785,8 +788,38 @@ publicRoutes.get("/:slug/info", async (c) => {
       meeting_info: profile.meeting_info || "",
       donations_enabled: profile.donations_enabled !== false,
       directory_public: !!profile.directory_public,
+      logo_file_id: profile.logo_file_id || null,
+      logo_url: logoUrl,
     },
     join_fields: joinFields,
+  });
+});
+
+/**
+ * GET /public/:slug/logo — public guild logo image
+ */
+publicRoutes.get("/:slug/logo", async (c) => {
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Not found" }, 404);
+  let settings: any = {};
+  try {
+    settings = JSON.parse(tenant.settings_json || "{}");
+  } catch {}
+  const logoFileId = settings.profile?.logo_file_id as string | undefined;
+  if (!logoFileId) return c.json({ error: "No logo" }, 404);
+  const row = await first<{ r2_key: string; content_type: string | null }>(
+    c.env.DB.prepare(
+      `SELECT r2_key, content_type FROM files WHERE id = ? AND tenant_id = ?`
+    ).bind(logoFileId, tenant.id)
+  );
+  if (!row) return c.json({ error: "Not found" }, 404);
+  const obj = await c.env.FILES.get(row.r2_key);
+  if (!obj) return c.json({ error: "Not found" }, 404);
+  return new Response(obj.body, {
+    headers: {
+      "Content-Type": row.content_type || "image/png",
+      "Cache-Control": "public, max-age=3600",
+    },
   });
 });
 
