@@ -241,6 +241,7 @@
         return;
       }
       if (p === "galleries" || p === "photos") {
+        document.title = "Photos \u2014 " + ($("guild-name")?.textContent || "Guild");
         if (subSlug) {
           showView("view-gallery");
           renderGallery(subSlug);
@@ -252,6 +253,8 @@
       }
       if (p === "events" || p === "calendar") {
         showView("view-events");
+        document.title = (p === "calendar" ? "Calendar" : "Events") + " \u2014 " +
+          ($("guild-name")?.textContent || "Guild");
         const src = $("events");
         const dst = $("events-page");
         if (src && dst) dst.replaceChildren(...Array.from(src.childNodes).map((n) => n.cloneNode(true)));
@@ -665,6 +668,9 @@
       const right = el("div");
       right.style.textAlign = "right";
       right.appendChild(el("div", "price", l.price_cents ? money(l.price_cents) : "Free"));
+      if (l.renewal_type === "auto") {
+        right.appendChild(el("div", "badge active", "Auto-renews"));
+      }
       const btn = el("button", "", "Join");
       btn.addEventListener("click", () =>
         openSignup("Join — " + l.name + " (" + (l.price_cents ? money(l.price_cents) : "Free") + ")", { type: "join", levelId: l.id })
@@ -1087,7 +1093,8 @@
       <a href="/privacy">Privacy</a>
       <a href="/terms">Terms</a>
     </nav>
-    <span class="legal"><span class="prerelease" title="QuiltHosting is in private preview">PRE-RELEASE</span> © 2026 QuiltMap LLC · 5900 Balcones Drive STE 100, Austin, TX 78731 · v0.19.0</span>
+    <span class="legal"><span class="prerelease" title="QuiltHosting is in private preview">PRE-RELEASE</span> © 2026 QuiltMap LLC · 5900 Balcones Drive STE 100, Austin, TX 78731 · <span data-qh-version>v0.26.0</span></span>
   </footer>
+  <script>fetch("/api/version").then(r=>r.json()).then(d=>{document.querySelectorAll("[data-qh-version]").forEach(e=>{e.textContent="v"+d.version});}).catch(()=>{});</script>
 </body>
 </html>

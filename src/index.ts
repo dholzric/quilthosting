@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import type { Env } from "./types";
+import { APP_VERSION } from "./version";
 import { tenantMiddleware } from "./middleware/tenant";
 import { verifyJwt, signJwt } from "./lib/auth";
 import { requireAuth, requireTenantAccess } from "./middleware/auth";
@@ -128,7 +129,7 @@ app.get("/", (c) => {
   }
   return c.json({
     name: "QuiltHosting API",
-    version: "0.24.1",
+    version: APP_VERSION,
     status: "ok",
     environment: c.env.ENVIRONMENT,
     admin: "/admin",
@@ -211,6 +212,7 @@ app.get("/embed/:slug/store", (c) => {
   });
 });
 
+app.get("/api/version", (c) => c.json({ version: APP_VERSION }));
 app.route("/api/webhooks", webhookRoutes);
 
 // Email open tracking pixel (1×1 GIF) — exempt from site gate via path check below
