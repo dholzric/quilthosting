@@ -32,6 +32,8 @@ export type Env = {
   CLOUDFLARE_ACCOUNT_ID?: string;
   CLOUDFLARE_ZONE_ID?: string;
   CLOUDFLARE_WORKER_NAME?: string;
+  /** Guilds CNAME here for Cloudflare for SaaS (default customers.{APP host}). */
+  SAAS_CNAME_TARGET?: string;
 };
 
 export type Plan = "free" | "starter" | "pro";

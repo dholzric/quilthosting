@@ -2780,18 +2780,28 @@
         if (d.custom_domain) {
           links.push(`Custom: <strong>${esc(d.custom_domain)}</strong>`);
           document.getElementById("domain-input").value = d.custom_domain;
+          const s = d.saas || {};
+          const bit = (label, st) => {
+            if (!st || !st.ok) return `${label}: not provisioned`;
+            return `${label}: ${esc(st.status || "?")} / SSL ${esc(st.ssl_status || "?")}`;
+          };
+          links.push(bit("www", s.www));
+          links.push(bit("apex", s.apex));
         } else {
           document.getElementById("domain-input").value = "";
         }
         el.innerHTML = links.join(" · ");
         if (dnsEl && d.dns) {
+          const target = d.cname_target || d.dns.cname_target || "customers.quilthosting.com";
           const recs = (d.dns.recommended || []).map((r) =>
             `<li><code>${esc(r.type)}</code> ${esc(r.name)} → <code>${esc(r.value)}</code>${r.note ? ` <span class="muted">(${esc(r.note)})</span>` : ""}</li>`
           ).join("");
           dnsEl.innerHTML = `
             <p class="muted" style="margin:0 0 0.35rem">${esc(d.dns.summary || "")}</p>
+            <p style="margin:0 0 0.35rem"><strong>CNAME target:</strong> <code>${esc(target)}</code></p>
             <ul style="margin:0;padding-left:1.2rem;line-height:1.6">${recs}</ul>
-            <p class="muted" style="margin:0.5rem 0 0">Always available: <a href="${esc(d.dns.free_subdomain)}" target="_blank" rel="noopener">${esc(d.dns.free_subdomain)}</a></p>`;
+            <p class="muted" style="margin:0.5rem 0 0">Always available: <a href="${esc(d.dns.free_subdomain)}" target="_blank" rel="noopener">${esc(d.dns.free_subdomain)}</a>
+            ${d.custom_domain ? ` · <a href="#" onclick="refreshSaasDomain();return false">Refresh SSL status</a>` : ""}</p>`;
         }
       } catch (e) {
         el.textContent = e.message || "Could not load domain settings";
@@ -2800,20 +2810,27 @@
     async function saveCustomDomain() {
       const msg = document.getElementById("domain-msg");
       const domain = document.getElementById("domain-input").value.trim();
-      msg.textContent = "Saving…";
+      msg.textContent = "Saving & provisioning SSL…";
       try {
         const r = await api(`/api/tenants/${tenantId}/domain`, {
           method: "PUT",
           body: JSON.stringify({ domain }),
         });
         const cf = r.cloudflare || {};
-        const apexOk = cf.apex?.ok;
-        const wwwOk = cf.www?.ok;
         msg.textContent = r.ok
-          ? (apexOk || wwwOk
-            ? "Saved and attached to Cloudflare Worker."
-            : "Saved. " + (cf.note || "Point DNS, then re-save to attach SSL if the zone is on this CF account."))
+          ? (cf.note || "Saved.")
           : (r.error || "Failed");
+        await loadDomainStatus();
+      } catch (e) {
+        msg.textContent = e.message;
+      }
+    }
+    async function refreshSaasDomain() {
+      const msg = document.getElementById("domain-msg");
+      msg.textContent = "Refreshing…";
+      try {
+        const r = await api(`/api/tenants/${tenantId}/domain/refresh-saas`, { method: "POST" });
+        msg.textContent = r.ok ? "SaaS status updated." : (r.error || "Refresh failed");
         await loadDomainStatus();
       } catch (e) {
         msg.textContent = e.message;

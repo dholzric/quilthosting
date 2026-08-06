@@ -211,6 +211,195 @@ export async function ensurePlatformSubdomain(
   return attachWorkerHostname(env, host);
 }
 
+/** CNAME target guilds point at (Cloudflare for SaaS). */
+export function saasCnameTarget(env: Env): string {
+  return env.SAAS_CNAME_TARGET || `customers.${appHostname(env.APP_URL)}`;
+}
+
+function saasZoneId(env: Env): string {
+  return env.CLOUDFLARE_ZONE_ID || "c6fd07d190feb5b47b3d9ea76e786fdd";
+}
+
+export type SaasHostnameStatus = {
+  ok: boolean;
+  hostname: string;
+  id?: string;
+  status?: string;
+  ssl_status?: string;
+  error?: string;
+  validation_errors?: string[];
+};
+
+/**
+ * Create (or return existing) Cloudflare for SaaS custom hostname.
+ * Customer CNAMEs their domain → customers.quilthosting.com
+ */
+export async function createSaasCustomHostname(
+  env: Env,
+  hostname: string
+): Promise<SaasHostnameStatus> {
+  const token = env.CLOUDFLARE_API_TOKEN;
+  if (!token) {
+    return { ok: false, hostname, error: "CLOUDFLARE_API_TOKEN not configured" };
+  }
+  const zoneId = saasZoneId(env);
+  const host = normalizeHost(hostname);
+  try {
+    // Already exists?
+    const existing = await findSaasCustomHostname(env, host);
+    if (existing.ok && existing.id) return existing;
+
+    const res = await fetch(
+      `https://api.cloudflare.com/client/v4/zones/${zoneId}/custom_hostnames`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          hostname: host,
+          ssl: {
+            method: "http",
+            type: "dv",
+            settings: {
+              min_tls_version: "1.2",
+              http2: "on",
+              tls_1_3: "on",
+            },
+          },
+        }),
+      }
+    );
+    const data = (await res.json()) as {
+      success: boolean;
+      result?: {
+        id: string;
+        hostname: string;
+        status: string;
+        ssl?: { status: string };
+      };
+      errors?: { message: string; code?: number }[];
+    };
+    if (!data.success) {
+      // 1406 / duplicate — re-fetch
+      const msg = data.errors?.map((e) => e.message).join("; ") || `HTTP ${res.status}`;
+      if (/already exists|duplicate/i.test(msg)) {
+        return findSaasCustomHostname(env, host);
+      }
+      return { ok: false, hostname: host, error: msg };
+    }
+    return {
+      ok: true,
+      hostname: host,
+      id: data.result?.id,
+      status: data.result?.status,
+      ssl_status: data.result?.ssl?.status,
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      hostname: host,
+      error: e instanceof Error ? e.message : "CF SaaS error",
+    };
+  }
+}
+
+export async function findSaasCustomHostname(
+  env: Env,
+  hostname: string
+): Promise<SaasHostnameStatus> {
+  const token = env.CLOUDFLARE_API_TOKEN;
+  if (!token) {
+    return { ok: false, hostname, error: "CLOUDFLARE_API_TOKEN not configured" };
+  }
+  const zoneId = saasZoneId(env);
+  const host = normalizeHost(hostname);
+  try {
+    const res = await fetch(
+      `https://api.cloudflare.com/client/v4/zones/${zoneId}/custom_hostnames?hostname=${encodeURIComponent(host)}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const data = (await res.json()) as {
+      success: boolean;
+      result?: {
+        id: string;
+        hostname: string;
+        status: string;
+        ssl?: { status: string; validation_errors?: { message: string }[] };
+      }[];
+    };
+    const row = (data.result || []).find(
+      (r) => r.hostname.toLowerCase() === host
+    );
+    if (!row) return { ok: false, hostname: host, error: "Not found" };
+    return {
+      ok: true,
+      hostname: host,
+      id: row.id,
+      status: row.status,
+      ssl_status: row.ssl?.status,
+      validation_errors: row.ssl?.validation_errors?.map((v) => v.message),
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      hostname: host,
+      error: e instanceof Error ? e.message : "lookup failed",
+    };
+  }
+}
+
+export async function deleteSaasCustomHostname(
+  env: Env,
+  hostname: string
+): Promise<void> {
+  const token = env.CLOUDFLARE_API_TOKEN;
+  if (!token) return;
+  const found = await findSaasCustomHostname(env, hostname);
+  if (!found.id) return;
+  const zoneId = saasZoneId(env);
+  try {
+    await fetch(
+      `https://api.cloudflare.com/client/v4/zones/${zoneId}/custom_hostnames/${found.id}`,
+      {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Provision apex + www SaaS hostnames for a guild domain.
+ * Prefer www; also create apex (guilds may use CF CNAME flattening).
+ */
+export async function provisionSaasDomain(
+  env: Env,
+  apexDomain: string
+): Promise<{ www: SaasHostnameStatus; apex: SaasHostnameStatus }> {
+  const apex = stripWww(apexDomain);
+  const www = `www.${apex}`;
+  const [wwwRes, apexRes] = await Promise.all([
+    createSaasCustomHostname(env, www),
+    createSaasCustomHostname(env, apex),
+  ]);
+  return { www: wwwRes, apex: apexRes };
+}
+
+export async function deprovisionSaasDomain(
+  env: Env,
+  apexDomain: string
+): Promise<void> {
+  const apex = stripWww(apexDomain);
+  await Promise.all([
+    deleteSaasCustomHostname(env, apex),
+    deleteSaasCustomHostname(env, `www.${apex}`),
+  ]);
+}
+
 /** Preferred public base URL for a tenant (custom domain > platform subdomain > APP_URL path). */
 export function tenantPublicBaseUrl(env: Env, tenant: Tenant, requestHost?: string): string {
   const platform = appHostname(env.APP_URL);
@@ -237,19 +426,28 @@ export function tenantPublicBaseUrl(env: Env, tenant: Tenant, requestHost?: stri
 
 export function dnsInstructions(env: Env, domain: string, slug: string) {
   const platform = appHostname(env.APP_URL);
-  const target = `${slug}.${platform}`;
+  const freeSub = `${slug}.${platform}`;
+  const cnameTarget = saasCnameTarget(env);
+  const apex = stripWww(domain);
   return {
     summary:
-      "Point your domain at QuiltHosting, then we attach SSL via Cloudflare Workers custom domains (zone must be on the same Cloudflare account, or use the free subdomain).",
+      "Point your domain at QuiltHosting with a CNAME. SSL is issued automatically via Cloudflare for SaaS (first 100 hostnames free).",
+    cname_target: cnameTarget,
     recommended: [
       {
         type: "CNAME",
-        name: domain.startsWith("www.") ? "www" : "@ or www",
-        value: target,
-        note: `CNAME to ${target}. Apex domains need CNAME flattening (Cloudflare DNS) or an ALIAS record.`,
+        name: "www",
+        value: cnameTarget,
+        note: `Recommended. Point www.${apex} → ${cnameTarget}`,
+      },
+      {
+        type: "CNAME or ALIAS",
+        name: "@",
+        value: cnameTarget,
+        note: `Apex ${apex} needs CNAME flattening (Cloudflare DNS) or ALIAS/ANAME at your DNS host. Or redirect apex → www.`,
       },
     ],
-    free_subdomain: `https://${target}`,
+    free_subdomain: `https://${freeSub}`,
     path_url: `${env.APP_URL.replace(/\/$/, "")}/g/${slug}`,
   };
 }

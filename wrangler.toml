@@ -40,6 +40,7 @@ GOOGLE_CLIENT_ID = "476466840954-53d90qcp82br0o2t8env78vs6q9a3o20.apps.googleuse
 CLOUDFLARE_ACCOUNT_ID = "fc9a445b7af4421e2d0c2fd202885f97"
 CLOUDFLARE_ZONE_ID = "c6fd07d190feb5b47b3d9ea76e786fdd"
 CLOUDFLARE_WORKER_NAME = "quilthosting"
+SAAS_CNAME_TARGET = "customers.quilthosting.com"
 
 [triggers]
 crons = ["0 8 * * *"]

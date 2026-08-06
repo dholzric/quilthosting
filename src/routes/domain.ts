@@ -3,11 +3,13 @@ import type { Env, Tenant, TenantVariables } from "../types";
 import { first } from "../lib/db";
 import {
   appHostname,
-  attachWorkerHostname,
-  detachWorkerHostname,
+  deprovisionSaasDomain,
   dnsInstructions,
   ensurePlatformSubdomain,
+  findSaasCustomHostname,
   parseCustomDomainInput,
+  provisionSaasDomain,
+  saasCnameTarget,
   stripWww,
   tenantPublicBaseUrl,
 } from "../lib/tenantHost";
@@ -31,17 +33,30 @@ async function requireOwnerAdmin(c: {
   return null;
 }
 
+async function saasStatusForDomain(env: Env, domain: string | null) {
+  if (!domain) return null;
+  const apex = stripWww(domain);
+  const [www, apexSt] = await Promise.all([
+    findSaasCustomHostname(env, `www.${apex}`),
+    findSaasCustomHostname(env, apex),
+  ]);
+  return { www, apex: apexSt };
+}
+
 /** GET /api/tenants/:tenantId/domain */
 domainRoutes.get("/", async (c) => {
   const tenant = c.get("tenant") as Tenant;
   const platform = appHostname(c.env.APP_URL);
   const subdomain = `${tenant.slug}.${platform}`;
+  const saas = await saasStatusForDomain(c.env, tenant.custom_domain);
   return c.json({
     custom_domain: tenant.custom_domain || null,
     platform_subdomain: subdomain,
     platform_subdomain_url: `https://${subdomain}`,
     path_url: `${c.env.APP_URL.replace(/\/$/, "")}/g/${tenant.slug}`,
     public_base_url: tenantPublicBaseUrl(c.env, tenant),
+    cname_target: saasCnameTarget(c.env),
+    saas,
     dns: tenant.custom_domain
       ? dnsInstructions(c.env, tenant.custom_domain, tenant.slug)
       : dnsInstructions(c.env, subdomain, tenant.slug),
@@ -51,7 +66,7 @@ domainRoutes.get("/", async (c) => {
 /**
  * PUT /api/tenants/:tenantId/domain
  * Body: { domain: "example.com" | "" | null }
- * Sets custom_domain, ensures platform subdomain, tries CF Workers domain attach.
+ * Sets custom_domain, ensures free subdomain, provisions Cloudflare for SaaS hostnames.
  */
 domainRoutes.put("/", async (c) => {
   const denied = await requireOwnerAdmin(c);
@@ -74,8 +89,7 @@ domainRoutes.put("/", async (c) => {
       .bind(now, tenant.id)
       .run();
     if (old) {
-      await detachWorkerHostname(c.env, stripWww(old));
-      await detachWorkerHostname(c.env, `www.${stripWww(old)}`);
+      await deprovisionSaasDomain(c.env, old);
     }
     const sub = await ensurePlatformSubdomain(c.env, tenant.slug);
     const updated = await first<Tenant>(
@@ -92,10 +106,8 @@ domainRoutes.put("/", async (c) => {
   const parsed = parseCustomDomainInput(String(raw));
   if (!parsed.ok) return c.json({ error: parsed.error }, 400);
 
-  // Don't allow setting the platform domain itself
   const platform = appHostname(c.env.APP_URL);
   if (parsed.domain === platform || parsed.domain.endsWith(`.${platform}`)) {
-    // Allow only their own free subdomain as "custom" → store null, ensure attach
     if (parsed.domain === `${tenant.slug}.${platform}`) {
       await c.env.DB.prepare(
         `UPDATE tenants SET custom_domain = NULL, updated_at = ? WHERE id = ?`
@@ -128,10 +140,20 @@ domainRoutes.put("/", async (c) => {
            OR lower(custom_domain) = ?
            OR lower(custom_domain) = ?
          )`
-    ).bind(tenant.id, parsed.domain, `www.${parsed.domain}`, stripWww(parsed.domain))
+    ).bind(
+      tenant.id,
+      parsed.domain,
+      `www.${parsed.domain}`,
+      stripWww(parsed.domain)
+    )
   );
   if (taken) {
     return c.json({ error: "That domain is already used by another guild" }, 409);
+  }
+
+  // Remove old SaaS hostnames if domain changed
+  if (tenant.custom_domain && stripWww(tenant.custom_domain) !== parsed.domain) {
+    await deprovisionSaasDomain(c.env, tenant.custom_domain);
   }
 
   const now = new Date().toISOString();
@@ -141,32 +163,30 @@ domainRoutes.put("/", async (c) => {
     )
       .bind(parsed.domain, now, tenant.id)
       .run();
-  } catch (e) {
+  } catch {
     return c.json({ error: "Could not save domain (maybe already taken)" }, 409);
   }
 
-  // Platform free subdomain always available
   const sub = await ensurePlatformSubdomain(c.env, tenant.slug);
-
-  // Attach custom hostnames (apex + www) when CF zone is on this account
-  const attachApex = await attachWorkerHostname(c.env, parsed.domain);
-  const attachWww = await attachWorkerHostname(c.env, `www.${parsed.domain}`);
+  const saas = await provisionSaasDomain(c.env, parsed.domain);
 
   const updated = await first<Tenant>(
     c.env.DB.prepare("SELECT * FROM tenants WHERE id = ?").bind(tenant.id)
   );
 
+  const anyOk = saas.www.ok || saas.apex.ok;
   return c.json({
     ok: true,
     custom_domain: parsed.domain,
     public_base_url: tenantPublicBaseUrl(c.env, updated || tenant),
     platform_subdomain: sub,
+    cname_target: saasCnameTarget(c.env),
+    saas,
     cloudflare: {
-      apex: attachApex,
-      www: attachWww,
-      note: attachApex.ok || attachWww.ok
-        ? "Hostname attached to Worker. DNS must resolve to Cloudflare."
-        : "Saved in app. Attach failed — domain zone may not be on this Cloudflare account yet. Use free subdomain or move DNS to Cloudflare.",
+      saas,
+      note: anyOk
+        ? `SaaS hostnames created. Point DNS CNAME to ${saasCnameTarget(c.env)}. Status becomes active after DNS + certificate validation.`
+        : `Saved in app. SaaS provision failed: ${saas.www.error || saas.apex.error || "unknown"}. Free subdomain still works.`,
     },
     dns: dnsInstructions(c.env, parsed.domain, tenant.slug),
     tenant: updated,
@@ -185,5 +205,22 @@ domainRoutes.post("/ensure-subdomain", async (c) => {
     url: `https://${result.hostname}`,
     error: result.error || null,
     id: result.id || null,
+  });
+});
+
+/** POST /api/tenants/:tenantId/domain/refresh-saas — re-check / re-provision SaaS status */
+domainRoutes.post("/refresh-saas", async (c) => {
+  const denied = await requireOwnerAdmin(c);
+  if (denied) return denied;
+  const tenant = c.get("tenant") as Tenant;
+  if (!tenant.custom_domain) {
+    return c.json({ error: "No custom domain set" }, 400);
+  }
+  const saas = await provisionSaasDomain(c.env, tenant.custom_domain);
+  return c.json({
+    ok: saas.www.ok || saas.apex.ok,
+    saas,
+    cname_target: saasCnameTarget(c.env),
+    dns: dnsInstructions(c.env, tenant.custom_domain, tenant.slug),
   });
 });
