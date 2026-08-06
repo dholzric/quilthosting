@@ -9,13 +9,8 @@ import {
   FREE_ACTIVE_MEMBER_LIMIT,
   effectivePlan,
 } from "../lib/plans";
-import {
-  likeContains,
-  likePrefix,
-  pageMeta,
-  parsePageParams,
-  MAX_EXPORT_BATCH,
-} from "../lib/pagination";
+import { MAX_EXPORT_BATCH } from "../lib/pagination";
+import { listMembersPage } from "../lib/membersList";
 
 export const memberRoutes = new Hono<{
   Bindings: Env;
@@ -29,55 +24,14 @@ export const memberRoutes = new Hono<{
  */
 memberRoutes.get("/", async (c) => {
   const tenant = c.get("tenant");
-  const status = c.req.query("status");
-  const search = (c.req.query("q") || "").trim();
-  const { limit, offset } = parsePageParams({
+  const result = await listMembersPage(c.env.DB, tenant.id, {
+    status: c.req.query("status") || undefined,
+    q: c.req.query("q") || undefined,
     limit: c.req.query("limit") || undefined,
     offset: c.req.query("offset") || undefined,
     page: c.req.query("page") || undefined,
   });
-
-  let where = "WHERE tenant_id = ?";
-  const params: any[] = [tenant.id];
-  if (status) {
-    where += " AND status = ?";
-    params.push(status);
-  }
-  if (search) {
-    // Prefer prefix match on email (uses index); also match names contains
-    if (search.includes("@") || !search.includes(" ")) {
-      where +=
-        " AND (email LIKE ? ESCAPE '\\' OR first_name LIKE ? ESCAPE '\\' OR last_name LIKE ? ESCAPE '\\')";
-      const pref = likePrefix(search);
-      const cont = likeContains(search);
-      params.push(pref, cont, cont);
-    } else {
-      where +=
-        " AND (email LIKE ? ESCAPE '\\' OR first_name LIKE ? ESCAPE '\\' OR last_name LIKE ? ESCAPE '\\' OR (first_name || ' ' || last_name) LIKE ? ESCAPE '\\')";
-      const cont = likeContains(search);
-      params.push(cont, cont, cont, cont);
-    }
-  }
-
-  const countRow = await first<{ cnt: number }>(
-    c.env.DB.prepare(`SELECT COUNT(*) as cnt FROM members ${where}`).bind(
-      ...params
-    )
-  );
-  const total = countRow?.cnt ?? 0;
-
-  const members = await all<Member>(
-    c.env.DB.prepare(
-      `SELECT * FROM members ${where}
-       ORDER BY last_name COLLATE NOCASE, first_name COLLATE NOCASE, email
-       LIMIT ? OFFSET ?`
-    ).bind(...params, limit, offset)
-  );
-
-  return c.json({
-    members,
-    ...pageMeta(total, limit, offset),
-  });
+  return c.json(result);
 });
 
 memberRoutes.post("/", async (c) => {
