@@ -573,11 +573,85 @@
       }
     }
 
+    // No slug in the URL: find the guilds this signed-in email belongs to,
+    // or ask which guild they're looking for.
+    async function pickGuild() {
+      const box = document.getElementById("login-view");
+      show(box);
+      if (token) {
+        try {
+          const data = await api("/api/portal/guilds");
+          if (data.guilds.length === 1) {
+            location.replace(`/portal?slug=${encodeURIComponent(data.guilds[0].slug)}`);
+            return;
+          }
+          if (data.guilds.length > 1) {
+            box.replaceChildren();
+            const h = document.createElement("h2");
+            h.textContent = "Your guilds";
+            box.appendChild(h);
+            for (const g of data.guilds) {
+              const b = document.createElement("button");
+              b.style.cssText = "display:block;width:100%;margin-top:0.5rem;text-align:left";
+              b.textContent = g.name;
+              b.addEventListener("click", () =>
+                location.replace(`/portal?slug=${encodeURIComponent(g.slug)}`));
+              box.appendChild(b);
+            }
+            return;
+          }
+        } catch {}
+      }
+      // Signed out (or no memberships): ask for the guild's web address
+      box.replaceChildren();
+      const h = document.createElement("h2");
+      h.textContent = "Which guild are you a member of?";
+      const p = document.createElement("p");
+      p.className = "muted";
+      p.textContent = "Enter your guild's web address (ask your guild admin if unsure).";
+      const input = document.createElement("input");
+      input.placeholder = "e.g. test-guild";
+      const btn = document.createElement("button");
+      btn.style.marginTop = "0.75rem";
+      btn.textContent = "Continue";
+      const go = () => {
+        const s = input.value.toLowerCase().trim().replace(/[^a-z0-9-]/g, "");
+        if (s) location.replace(`/portal?slug=${encodeURIComponent(s)}`);
+      };
+      btn.addEventListener("click", go);
+      input.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+      box.append(h, p, input, btn);
+    }
+
+    // Hide the unusable password login when the server is Google-only,
+    // and offer Google sign-in that returns to this portal.
+    fetch(API + "/api/auth/config")
+      .then((r) => r.json())
+      .then((cfg) => {
+        if (cfg.google_required) {
+          const pw = document.getElementById("login-password");
+          if (pw) {
+            pw.previousElementSibling.classList.add("hidden"); // label
+            pw.classList.add("hidden");
+          }
+          document.querySelector("#login-view button:not(.secondary)")?.classList.add("hidden");
+        }
+        if (cfg.google) {
+          const row = document.querySelector("#login-view .row");
+          if (row) {
+            const g = document.createElement("a");
+            g.href = `/api/auth/google?dest=portal&slug=${encodeURIComponent(slug)}`;
+            g.textContent = "Sign in with Google";
+            g.style.cssText = "display:inline-block;padding:0.55rem 1rem;border:1px solid #ccc;border-radius:8px;text-decoration:none;color:inherit";
+            row.appendChild(g);
+          }
+        }
+      })
+      .catch(() => {});
+
     // Boot
     if (!slug) {
-      document.getElementById("login-view").innerHTML = `
-        <h2>Missing guild</h2>
-        <p>Open this page with a slug, e.g. <code>portal.html?slug=aaqg</code></p>`;
+      pickGuild();
     } else if (token) {
       loadPortal();
     }

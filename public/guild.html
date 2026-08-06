@@ -40,7 +40,10 @@
   <header>
     <div class="header-inner">
       <strong id="guild-name">Loading…</strong>
-      <a class="brand" href="/">powered by QuiltHosting 🧵</a>
+      <span>
+        <a class="brand" id="portal-link" href="/portal">Member sign-in</a>
+        · <a class="brand" href="/">powered by QuiltHosting 🧵</a>
+      </span>
     </div>
   </header>
   <main>
@@ -91,6 +94,8 @@
       $("flash").replaceChildren(box);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
+
+    document.getElementById("portal-link").href = `/portal?slug=${encodeURIComponent(slug)}`;
 
     const qs = new URLSearchParams(location.search);
     if (qs.get("registered")) flash("ok", "You're registered! Check your email for confirmation.");

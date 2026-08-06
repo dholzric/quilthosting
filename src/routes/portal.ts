@@ -397,3 +397,18 @@ portalRoutes.get("/:slug/pages", async (c) => {
   );
   return c.json(rows);
 });
+
+// GET /api/portal/guilds — guilds where this signed-in email is a member
+portalRoutes.get("/guilds", async (c) => {
+  const user = await requirePortalUser(c);
+  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const rows = await all<{ name: string; slug: string; status: string }>(
+    c.env.DB.prepare(
+      `SELECT t.name, t.slug, m.status FROM members m
+       JOIN tenants t ON t.id = m.tenant_id
+       WHERE m.email = ? AND m.status != 'cancelled' AND t.status = 'active'
+       ORDER BY t.name`
+    ).bind(user.email.toLowerCase())
+  );
+  return c.json({ guilds: rows });
+});

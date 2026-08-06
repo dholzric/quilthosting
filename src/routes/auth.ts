@@ -198,7 +198,11 @@ authRoutes.get("/google", async (c) => {
     return c.json({ error: "Google sign-in not configured" }, 503);
   }
   const ts = Date.now().toString();
-  const state = `${ts}.${await hmacHex(c.env.JWT_SECRET, `gstate:${ts}`)}`;
+  // dest/slug ride along in the signed state so members return to the portal
+  const dest = c.req.query("dest") === "portal" ? "portal" : "admin";
+  const slug = (c.req.query("slug") || "").toLowerCase().replace(/[^a-z0-9-]/g, "");
+  const sig = await hmacHex(c.env.JWT_SECRET, `gstate:${ts}:${dest}:${slug}`);
+  const state = `${ts}.${dest}.${slug}.${sig}`;
   const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   url.searchParams.set("client_id", c.env.GOOGLE_CLIENT_ID);
   url.searchParams.set("redirect_uri", `${c.env.APP_URL}/api/auth/google/callback`);
@@ -218,8 +222,8 @@ authRoutes.get("/google/callback", async (c) => {
   const state = c.req.query("state") || "";
   if (!code) return fail(c.req.query("error") || "Google sign-in was cancelled");
 
-  const [ts, sig] = state.split(".");
-  const expected = await hmacHex(c.env.JWT_SECRET, `gstate:${ts}`);
+  const [ts, dest, slug, sig] = state.split(".");
+  const expected = await hmacHex(c.env.JWT_SECRET, `gstate:${ts}:${dest}:${slug}`);
   if (!ts || sig !== expected || Date.now() - Number(ts) > 10 * 60 * 1000) {
     return fail("Sign-in expired, please try again");
   }
@@ -275,5 +279,10 @@ authRoutes.get("/google/callback", async (c) => {
     { sub: user.id, email: user.email, name: user.name ?? claims.name },
     c.env.JWT_SECRET
   );
+  if (dest === "portal") {
+    return c.redirect(
+      `/portal${slug ? `?slug=${encodeURIComponent(slug)}` : ""}#ptoken=${jwt}`
+    );
+  }
   return c.redirect(`/admin#gtoken=${jwt}`);
 });
