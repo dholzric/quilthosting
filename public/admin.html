@@ -983,40 +983,77 @@
     }
 
     async function renderComms(el) {
-      const [log, blasts, groups] = await Promise.all([
+      const [log, blasts, groups, levels] = await Promise.all([
         api(`/api/tenants/${tenantId}/emails`),
         api(`/api/tenants/${tenantId}/emails/blasts`),
         api(`/api/tenants/${tenantId}/groups`),
+        api(`/api/tenants/${tenantId}/levels`),
       ]);
       window._blasts = blasts;
       window._groups = groups;
       const groupOpts = groups.map((g) =>
         `<option value="group:${g.id}">Group: ${esc(g.name)} (${g.member_count || 0})</option>`
       ).join("");
+      const levelOpts = levels.map((l) =>
+        `<option value="level:${l.id}">Level: ${esc(l.name)}</option>`
+      ).join("");
       el.innerHTML = `
         <h2>Email</h2>
         <div class="card">
           <h3 style="margin-bottom:0.75rem">Send an email to members</h3>
           <div class="form-row">
-            <div><label>Subject</label><input id="c-subject" placeholder="October newsletter" /></div>
+            <div><label>Subject</label><input id="c-subject" placeholder="Hi {{first_name}} — October newsletter" /></div>
             <div><label>Send to</label>
               <select id="c-segment">
                 <option value="active">Active members</option>
                 <option value="pending">Pending members</option>
                 <option value="lapsed">Lapsed members</option>
                 <option value="all">Everyone (except cancelled)</option>
+                ${levelOpts ? `<optgroup label="Membership levels">${levelOpts}</optgroup>` : ""}
                 ${groupOpts ? `<optgroup label="Groups">${groupOpts}</optgroup>` : ""}
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div><label>Layout</label>
+              <select id="c-layout">
+                <option value="newsletter">Newsletter</option>
+                <option value="announcement">Announcement</option>
+                <option value="plain">Plain</option>
+              </select>
+            </div>
+            <div><label>Quick start</label>
+              <select id="c-template" onchange="applyEmailTemplate()">
+                <option value="">— Insert template —</option>
+                <option value="newsletter">Monthly newsletter</option>
+                <option value="event">Event invitation</option>
+                <option value="renewal">Renewal nudge</option>
+                <option value="welcome">Welcome note</option>
               </select>
             </div>
           </div>
           <p id="c-audience" class="muted" style="font-size:0.85rem;margin:0.25rem 0 0.5rem"></p>
           <label>Message</label>
-          <textarea id="c-body" rows="8" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px;font:inherit"></textarea>
-          <label style="display:flex;align-items:center;gap:0.4rem;margin-top:0.4rem">
-            <input type="checkbox" id="c-html" style="width:auto" /> Message is HTML
+          <textarea id="c-body" rows="10" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px;font:inherit" placeholder="Hi {{first_name}},&#10;&#10;…"></textarea>
+          <p class="muted" style="font-size:0.8rem;margin:0.4rem 0 0">
+            Personalize with <code>{{first_name}}</code> <code>{{last_name}}</code> <code>{{email}}</code>
+            <code>{{guild_name}}</code> <code>{{level_name}}</code> <code>{{end_date}}</code>
+          </p>
+          <label style="display:flex;align-items:center;gap:0.4rem;margin-top:0.5rem">
+            <input type="checkbox" id="c-html" style="width:auto" /> Message is raw HTML (skip auto-paragraphs)
           </label>
           <button onclick="sendBlast()" style="margin-top:0.5rem">Send</button>
           <span id="c-result" style="margin-left:0.75rem;color:var(--muted)"></span>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:0.5rem">Automated emails (always on)</h3>
+          <ul style="margin:0;padding-left:1.2rem;color:var(--ink-2);font-size:0.9rem;line-height:1.6">
+            <li>Welcome when someone joins (free or paid)</li>
+            <li>Renewal reminders at 30, 14, 7, and 1 day before membership ends</li>
+            <li>Event registration confirmations (with ticket code)</li>
+            <li>Event reminders 7 days and 1 day before the event</li>
+            <li>Magic-link sign-in for the member portal</li>
+          </ul>
         </div>
         <div class="card">
           <h3 style="margin-bottom:0.75rem">Groups</h3>
@@ -1195,10 +1232,40 @@
       show(document.getElementById("blast-preview"));
       document.getElementById("blast-preview").scrollIntoView({ behavior: "smooth" });
     }
+    function applyEmailTemplate() {
+      const key = document.getElementById("c-template").value;
+      const body = document.getElementById("c-body");
+      const sub = document.getElementById("c-subject");
+      if (!key) return;
+      const t = {
+        newsletter: {
+          subject: "{{guild_name}} newsletter",
+          body: "Hi {{first_name}},\n\nHere's what's happening this month at {{guild_name}}.\n\n• Upcoming meetings and workshops\n• Member news\n• Volunteer opportunities\n\nWe hope to see you soon!\n\n— {{guild_name}}",
+        },
+        event: {
+          subject: "You're invited — event at {{guild_name}}",
+          body: "Hi {{first_name}},\n\nJoin us for an upcoming event with {{guild_name}}.\n\nDetails and registration are on our guild page. We'd love to see you there!\n\n— {{guild_name}}",
+        },
+        renewal: {
+          subject: "Your {{guild_name}} membership",
+          body: "Hi {{first_name}},\n\nYour {{level_name}} membership{{end_date}} is coming up for renewal.\n\nSign in to the member portal to renew when you're ready — thank you for being part of {{guild_name}}.\n\n— {{guild_name}}",
+        },
+        welcome: {
+          subject: "Welcome to {{guild_name}}!",
+          body: "Hi {{first_name}},\n\nWelcome to {{guild_name}}! We're glad you're here.\n\nYou can sign in to the member portal anytime to update your profile, register for events, and read past newsletters.\n\nSee you at the next meeting,\n{{guild_name}}",
+        },
+      }[key];
+      if (!t) return;
+      if (!sub.value.trim()) sub.value = t.subject;
+      body.value = t.body;
+      document.getElementById("c-html").checked = false;
+      document.getElementById("c-template").value = "";
+    }
     async function sendBlast() {
       const subject = document.getElementById("c-subject").value.trim();
       const text = document.getElementById("c-body").value.trim();
       const segment = document.getElementById("c-segment").value;
+      const layout = document.getElementById("c-layout")?.value || "newsletter";
       const out = document.getElementById("c-result");
       if (!subject || !text) { out.textContent = "Subject and message are required."; return; }
       const label = document.getElementById("c-segment").selectedOptions[0]?.textContent || segment;
@@ -1210,8 +1277,8 @@
           method: "POST",
           body: JSON.stringify(
             isHtml
-              ? { subject, body_html: text, segment }
-              : { subject, body_text: text, segment }
+              ? { subject, body_html: text, segment, layout }
+              : { subject, body_text: text, segment, layout }
           ),
         });
         out.textContent = `Sent to ${r.sent} of ${r.recipients} recipients.`;
@@ -1726,7 +1793,7 @@
       <a href="/privacy">Privacy</a>
       <a href="/terms">Terms</a>
     </nav>
-    <span class="legal"><span class="prerelease" title="QuiltHosting is in private preview">PRE-RELEASE</span> © 2026 QuiltMap LLC · 5900 Balcones Drive STE 100, Austin, TX 78731 · v0.14.1</span>
+    <span class="legal"><span class="prerelease" title="QuiltHosting is in private preview">PRE-RELEASE</span> © 2026 QuiltMap LLC · 5900 Balcones Drive STE 100, Austin, TX 78731 · v0.15.0</span>
   </footer>
 </body>
 </html>

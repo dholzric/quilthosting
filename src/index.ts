@@ -7,6 +7,7 @@ import { verifyJwt, signJwt } from "./lib/auth";
 import { requireAuth, requireTenantAccess } from "./middleware/auth";
 import { siteGate } from "./middleware/siteGate";
 import { runRenewalJob } from "./lib/renewals";
+import { runEventReminderJob } from "./lib/eventReminders";
 
 import { authRoutes } from "./routes/auth";
 import { tenantRoutes } from "./routes/tenants";
@@ -47,7 +48,7 @@ app.get("/", (c) => {
   }
   return c.json({
     name: "QuiltHosting API",
-    version: "0.14.1",
+    version: "0.15.0",
     status: "ok",
     environment: c.env.ENVIRONMENT,
     admin: "/admin",
@@ -120,16 +121,22 @@ function authorizeScheduled(c: { req: { header: (n: string) => string | undefine
   return false;
 }
 
+async function runDailyJobs(env: Env) {
+  const renewals = await runRenewalJob(env);
+  const events = await runEventReminderJob(env);
+  return { renewals, events };
+}
+
 app.get("/__scheduled", async (c) => {
   if (!authorizeScheduled(c)) return c.json({ error: "Unauthorized" }, 401);
-  const result = await runRenewalJob(c.env);
-  console.log("Renewal job finished", result);
+  const result = await runDailyJobs(c.env);
+  console.log("Daily jobs finished", result);
   return c.json({ ok: true, ...result });
 });
 
 app.post("/__scheduled", async (c) => {
   if (!authorizeScheduled(c)) return c.json({ error: "Unauthorized" }, 401);
-  const result = await runRenewalJob(c.env);
+  const result = await runDailyJobs(c.env);
   return c.json({ ok: true, ...result });
 });
 
@@ -150,8 +157,8 @@ export default {
     ctx: ExecutionContext
   ) {
     ctx.waitUntil(
-      runRenewalJob(env).then((r) => {
-        console.log("Cron renewal job", r);
+      runDailyJobs(env).then((r) => {
+        console.log("Cron daily jobs", r);
       })
     );
   },
