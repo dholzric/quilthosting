@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-QuiltHosting — a multi-tenant membership + events platform for quilt/craft guilds (an alternative to Wild Apricot, with QuiltMap synergies). Domain: quilthosting.com. Renamed from "guildbase"; ticket codes use the `QH` prefix (`generateTicketCode` in `src/lib/utils/id.ts`).
+QuiltHosting — a multi-tenant membership + events platform for quilt/craft guilds (an alternative to Wild Apricot). Product of **QuiltMap LLC** (parent company). Domain: quilthosting.com. Renamed from "guildbase"; ticket codes use the `QH` prefix (`generateTicketCode` in `src/lib/utils/id.ts`).
 
 ## Stack
 

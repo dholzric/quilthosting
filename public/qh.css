@@ -398,7 +398,7 @@ dialog::backdrop { background: rgba(34, 31, 26, 0.45); }
 .notice.ok { background: var(--ok-soft); color: var(--ok); }
 .notice.err { background: var(--danger-soft); color: var(--danger); }
 
-/* --- Fleet footer (QuiltMap company bar — matches CreateABlock) --------- */
+/* --- Fleet footer (QuiltMap LLC parent bar — matches CreateABlock) ------ */
 
 .qh-fleet-footer {
   display: flex;

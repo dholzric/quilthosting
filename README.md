@@ -4,7 +4,8 @@ Membership + events platform for quilt (and craft) guilds.
 
 **Domain:** quilthosting.com (purchased)
 
-Built on Cloudflare Workers + D1 + R2 + KV. Alternative to Wild Apricot, with QuiltMap synergies.
+Built on Cloudflare Workers + D1 + R2 + KV. Alternative to Wild Apricot.
+A product of **QuiltMap LLC** (parent company).
 
 ## Stack
 
@@ -29,4 +30,4 @@ Portal: public/portal.html?slug=YOUR_GUILD
 
 ## License
 
-Private — QuiltHosting / QuiltMap
+Private — QuiltHosting · QuiltMap LLC
