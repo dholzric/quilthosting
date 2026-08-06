@@ -41,6 +41,7 @@
     <h2>Upcoming Events</h2>
     <div id="events"><p class="muted">Loading events…</p></div>
 
+    <div id="store-section"></div>
     <div id="donate-section"></div>
 
     <div id="pages"></div>
@@ -90,6 +91,7 @@
     if (qs.get("registered")) flash("ok", "You're registered! Check your email for confirmation.");
     if (qs.get("joined")) flash("ok", "Welcome! Your membership is active — check your email.");
     if (qs.get("donated")) flash("ok", "Thank you for your donation! 💛");
+    if (qs.get("purchased")) flash("ok", "Thank you for your purchase! Check your email for a receipt.");
     if (qs.get("cancelled")) flash("err", "Checkout was cancelled. You have not been charged.");
 
     let joinFields = [];
@@ -288,6 +290,44 @@
       sec.appendChild(card);
     }
 
+    function renderStore(products) {
+      const sec = $("store-section");
+      sec.replaceChildren();
+      if (!products || !products.length) return;
+      sec.appendChild(el("h2", "", "Shop"));
+      for (const p of products) {
+        const card = el("div", "card row");
+        const left = el("div");
+        left.appendChild(el("strong", "", p.name));
+        if (p.description) left.appendChild(el("div", "muted", p.description));
+        if (p.inventory != null) left.appendChild(el("div", "muted", p.inventory + " left"));
+        const right = el("div");
+        right.style.textAlign = "right";
+        right.appendChild(el("div", "price", p.price_cents ? money(p.price_cents) : "Free"));
+        const btn = el("button", "", "Buy");
+        btn.addEventListener("click", () => buyProduct(p));
+        right.appendChild(btn);
+        card.append(left, right);
+        sec.appendChild(card);
+      }
+    }
+    async function buyProduct(p) {
+      const email = prompt("Email for your receipt:");
+      if (!email) return;
+      try {
+        const res = await fetch(`${API}/public/${slug}/products/${p.id}/buy`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.trim() }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Purchase failed");
+        if (data.checkout_url) { location.href = data.checkout_url; return; }
+        flash("ok", data.message || "Purchase complete!");
+      } catch (e) {
+        flash("err", e.message);
+      }
+    }
     async function donate(cents) {
       try {
         const res = await fetch(`${API}/public/${slug}/donate`, {
@@ -305,17 +345,20 @@
 
     async function load() {
       try {
-        const [levelsRes, eventsRes, infoRes] = await Promise.all([
+        const [levelsRes, eventsRes, infoRes, productsRes] = await Promise.all([
           fetch(`${API}/public/${slug}/levels`),
           fetch(`${API}/public/${slug}/events`),
           fetch(`${API}/public/${slug}/info`),
+          fetch(`${API}/public/${slug}/products`),
         ]);
         if (!levelsRes.ok) throw new Error("Guild not found");
         const levelsData = await levelsRes.json();
         const eventsData = await eventsRes.json();
         const info = infoRes.ok ? await infoRes.json() : { tenant: levelsData.tenant, profile: {}, join_fields: [] };
+        const productsData = productsRes.ok ? await productsRes.json() : { products: [] };
         joinFields = info.join_fields || [];
         renderHero(info);
+        renderStore(productsData.products || []);
         renderDonate(info);
 
         $("guild-name").textContent = levelsData.tenant.name;
@@ -370,7 +413,7 @@
       <a href="/privacy">Privacy</a>
       <a href="/terms">Terms</a>
     </nav>
-    <span class="legal"><span class="prerelease" title="QuiltHosting is in private preview">PRE-RELEASE</span> © 2026 QuiltMap LLC · 5900 Balcones Drive STE 100, Austin, TX 78731 · v0.17.0</span>
+    <span class="legal"><span class="prerelease" title="QuiltHosting is in private preview">PRE-RELEASE</span> © 2026 QuiltMap LLC · 5900 Balcones Drive STE 100, Austin, TX 78731 · v0.18.0</span>
   </footer>
 </body>
 </html>

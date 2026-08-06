@@ -4,7 +4,7 @@
 > /features/membership-management).
 >
 > **QuiltHosting baseline in original draft:** v0.11.0  
-> **Updated against deployed code:** v0.17.0 (2026-08-06)
+> **Updated against deployed code:** v0.18.0 (2026-08-06)
 
 ## Wild Apricot quick profile
 
@@ -60,14 +60,14 @@
 | Invoicing | Auto invoices + PDF documents | Payment history + **printable receipts** (admin + portal, Print → PDF) + receipt emails | Full auto-invoice numbering / multi-line invoices |
 | Automation | Sequences beyond renewals | Renewals + event reminders + welcome + waitlist + receipts | Welcome series, lapsed win-back sequence; open/click tracking |
 | Onboarding / trial | 60-day trial + coach | **Dashboard checklist** + stealth gate | Real free trial (no gate), trial clock, optional coach path |
-| Mobile | Native admin + member apps | Responsive web | **PWA** (install + offline check-in) covers most guild needs |
+| Mobile | Native admin + member apps | Responsive web + **PWA** (install admin, offline check-in queue) | Richer offline member app optional |
 
 ### ❌ Missing entirely (quilt-guild relevance)
 
 | Area | Wild Apricot | Priority for quilt guilds |
 |---|---|---|
-| **Online store** | Products, inventory, tax, orders | **High for demo** — patterns/kits/raffle; single “product” reusing donation Checkout is enough to start |
-| **Embeddable widgets** | Join/event widgets on external sites | **High** — many guilds keep WordPress |
+| **Online store** | Products, inventory, tax, orders | **Shipped v0.18 lite** — products, inventory, Stripe Checkout; no tax engine |
+| **Embeddable widgets** | Join/event widgets on external sites | **Shipped v0.18** — `/embed/:slug/join|events|store` iframes |
 | **Public API + Zapier** | Large ecosystem | Medium — document REST + Zapier later |
 | **Saved payment methods UX** | Cards on file | Medium — Stripe Customer Portal / portal “update card” once Connect stable |
 | **Members-only forums** | Forums / CommUnity | Low — Facebook already owns this |
@@ -110,9 +110,9 @@ For **quilt guilds**, sales-blocking gaps **remaining** (priority order):
 | 2 | **Exit stealth / trial story** | Gate + no public trial vs WA’s 60 days | Soft gate for marketing pages; 30-day Guild trial on signup |
 | 3 | ~~Event registration questions~~ | **Shipped v0.17** | Admin questions + public form + CSV |
 | 4 | ~~Printable receipts~~ | **Shipped v0.17** | Admin + portal Print → Save as PDF |
-| 5 | **Store lite / products** | Patterns, kits, raffle tickets | Reuse donation Checkout with product name + amount |
-| 6 | **Embed widgets** | Guilds keep WordPress | `/embed/:slug/join` + `/embed/:slug/events` iframe snippets |
-| 7 | **PWA check-in** | Mobile day-of at events | Manifest + offline reg list for admins |
+| 5 | ~~Store lite~~ | **Shipped v0.18** | Admin Store + public shop + inventory |
+| 6 | ~~Embed widgets~~ | **Shipped v0.18** | join / events / store iframes |
+| 7 | ~~PWA check-in~~ | **Shipped v0.18** | Manifest + SW + offline check-in queue |
 
 Noise for this buyer: forums, job board, SMS, 1,600 integrations, native apps
 before PWA.

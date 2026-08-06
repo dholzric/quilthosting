@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>QuiltHosting embed</title>
+  <link rel="stylesheet" href="/qh.css" />
+  <style>
+    body { background: #fff; margin: 0; padding: 0.75rem; font-size: 14px; }
+    .qh-embed { max-width: 420px; margin: 0 auto; }
+    .qh-embed h2 { font-size: 1.1rem; margin: 0 0 0.75rem; }
+    .qh-item { border: 1px solid var(--border); border-radius: 10px; padding: 0.75rem; margin-bottom: 0.6rem; }
+    .qh-item strong { display: block; margin-bottom: 0.2rem; }
+    .qh-item .muted { color: var(--ink-3); font-size: 0.85rem; }
+    .qh-row { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+    .qh-foot { margin-top: 0.75rem; font-size: 0.72rem; color: var(--ink-3); text-align: center; }
+    .qh-foot a { color: var(--brand); }
+    input, select, button { font: inherit; }
+    input, select { width: 100%; padding: 0.45rem 0.6rem; border: 1px solid var(--border); border-radius: 8px; margin: 0.25rem 0 0.5rem; box-sizing: border-box; }
+    button { background: var(--brand); color: #fff; border: none; border-radius: 8px; padding: 0.45rem 0.85rem; font-weight: 600; cursor: pointer; }
+    button:disabled { opacity: 0.6; }
+    .err { color: var(--danger); font-size: 0.85rem; margin: 0.35rem 0; }
+    .ok { color: var(--ok); font-size: 0.85rem; margin: 0.35rem 0; }
+  </style>
+</head>
+<body>
+  <div class="qh-embed" id="root"><p class="muted">Loading…</p></div>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const slug = params.get("slug") || "";
+    const type = params.get("type") || "join"; // join | events | store
+    const API = location.origin;
+    const money = (c) => "$" + ((c || 0) / 100).toFixed(2);
+    const root = document.getElementById("root");
+
+    function foot() {
+      return `<div class="qh-foot">Powered by <a href="${API}/g/${encodeURIComponent(slug)}" target="_blank" rel="noopener">QuiltHosting</a></div>`;
+    }
+
+    async function loadJoin() {
+      const [levelsRes, infoRes] = await Promise.all([
+        fetch(`${API}/public/${slug}/levels`),
+        fetch(`${API}/public/${slug}/info`),
+      ]);
+      if (!levelsRes.ok) throw new Error("Guild not found");
+      const levelsData = await levelsRes.json();
+      const info = infoRes.ok ? await infoRes.json() : { join_fields: [] };
+      const levels = levelsData.levels || [];
+      root.innerHTML = `
+        <h2>Join ${esc(levelsData.tenant.name)}</h2>
+        <div id="msg"></div>
+        <label>First name</label><input id="first" />
+        <label>Last name</label><input id="last" />
+        <label>Email</label><input id="email" type="email" />
+        <label>Membership</label>
+        <select id="level">
+          ${levels.map((l) => `<option value="${esc(l.id)}">${esc(l.name)} — ${l.price_cents ? money(l.price_cents) : "Free"}</option>`).join("")}
+        </select>
+        <div id="custom"></div>
+        <button id="go" ${levels.length ? "" : "disabled"}>Join</button>
+        ${foot()}
+      `;
+      const custom = document.getElementById("custom");
+      for (const f of info.join_fields || []) {
+        const lab = document.createElement("label");
+        lab.textContent = f.label;
+        custom.appendChild(lab);
+        if (f.type === "select") {
+          const sel = document.createElement("select");
+          sel.dataset.key = f.key;
+          sel.innerHTML = `<option value="">—</option>` + (f.options || []).map((o) => `<option value="${esc(o)}">${esc(o)}</option>`).join("");
+          custom.appendChild(sel);
+        } else {
+          const inp = document.createElement("input");
+          inp.dataset.key = f.key;
+          custom.appendChild(inp);
+        }
+      }
+      document.getElementById("go").onclick = async () => {
+        const msg = document.getElementById("msg");
+        msg.className = "";
+        msg.textContent = "";
+        const email = document.getElementById("email").value.trim();
+        if (!email) { msg.className = "err"; msg.textContent = "Email required"; return; }
+        const custom_fields = {};
+        custom.querySelectorAll("[data-key]").forEach((el) => {
+          if (el.value) custom_fields[el.dataset.key] = el.value;
+        });
+        document.getElementById("go").disabled = true;
+        try {
+          const res = await fetch(`${API}/public/${slug}/join`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email,
+              first_name: document.getElementById("first").value.trim() || undefined,
+              last_name: document.getElementById("last").value.trim() || undefined,
+              level_id: document.getElementById("level").value,
+              custom_fields,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Failed");
+          if (data.checkout_url) { location.href = data.checkout_url; return; }
+          msg.className = "ok";
+          msg.textContent = data.message || "Welcome!";
+        } catch (e) {
+          msg.className = "err";
+          msg.textContent = e.message;
+        } finally {
+          document.getElementById("go").disabled = false;
+        }
+      };
+    }
+
+    async function loadEvents() {
+      const res = await fetch(`${API}/public/${slug}/events`);
+      if (!res.ok) throw new Error("Guild not found");
+      const data = await res.json();
+      const events = data.events || [];
+      root.innerHTML = `
+        <h2>Events — ${esc(data.tenant.name)}</h2>
+        <div id="list"></div>
+        ${foot()}
+      `;
+      const list = document.getElementById("list");
+      if (!events.length) {
+        list.innerHTML = `<p class="muted">No upcoming events.</p>`;
+        return;
+      }
+      for (const ev of events) {
+        const when = new Date(ev.start_at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+        const div = document.createElement("div");
+        div.className = "qh-item";
+        div.innerHTML = `
+          <div class="qh-row">
+            <div>
+              <strong></strong>
+              <div class="muted"></div>
+            </div>
+            <a class="btn" style="background:var(--brand);color:#fff;padding:0.4rem 0.7rem;border-radius:8px;text-decoration:none;font-weight:600;font-size:0.85rem" target="_blank" rel="noopener">Register</a>
+          </div>`;
+        div.querySelector("strong").textContent = ev.title;
+        div.querySelector(".muted").textContent = when + (ev.location ? " · " + ev.location : "");
+        div.querySelector("a").href = `${API}/g/${encodeURIComponent(slug)}`;
+        list.appendChild(div);
+      }
+    }
+
+    async function loadStore() {
+      const res = await fetch(`${API}/public/${slug}/products`);
+      if (!res.ok) throw new Error("Guild not found");
+      const data = await res.json();
+      const products = data.products || [];
+      root.innerHTML = `
+        <h2>Shop — ${esc(data.tenant.name)}</h2>
+        <div id="msg"></div>
+        <label>Email</label><input id="email" type="email" />
+        <div id="list"></div>
+        ${foot()}
+      `;
+      const list = document.getElementById("list");
+      if (!products.length) {
+        list.innerHTML = `<p class="muted">Nothing for sale yet.</p>`;
+        return;
+      }
+      for (const p of products) {
+        const div = document.createElement("div");
+        div.className = "qh-item qh-row";
+        const left = document.createElement("div");
+        const name = document.createElement("strong");
+        name.textContent = p.name;
+        left.appendChild(name);
+        if (p.description) {
+          const d = document.createElement("div");
+          d.className = "muted";
+          d.textContent = p.description;
+          left.appendChild(d);
+        }
+        const price = document.createElement("div");
+        price.className = "muted";
+        price.textContent = p.price_cents ? money(p.price_cents) : "Free";
+        left.appendChild(price);
+        const btn = document.createElement("button");
+        btn.textContent = "Buy";
+        btn.onclick = () => buy(p.id);
+        div.append(left, btn);
+        list.appendChild(div);
+      }
+    }
+
+    async function buy(productId) {
+      const msg = document.getElementById("msg");
+      const email = document.getElementById("email").value.trim();
+      if (!email) { msg.className = "err"; msg.textContent = "Email required"; return; }
+      msg.textContent = "";
+      try {
+        const res = await fetch(`${API}/public/${slug}/products/${productId}/buy`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed");
+        if (data.checkout_url) { location.href = data.checkout_url; return; }
+        msg.className = "ok";
+        msg.textContent = data.message || "Done!";
+      } catch (e) {
+        msg.className = "err";
+        msg.textContent = e.message;
+      }
+    }
+
+    function esc(s) {
+      const d = document.createElement("div");
+      d.textContent = s ?? "";
+      return d.innerHTML;
+    }
+
+    (async () => {
+      try {
+        if (!slug) throw new Error("Missing guild");
+        if (type === "events") await loadEvents();
+        else if (type === "store") await loadStore();
+        else await loadJoin();
+      } catch (e) {
+        root.innerHTML = `<p class="err">${esc(e.message)}</p>`;
+      }
+    })();
+  </script>
+</body>
+</html>

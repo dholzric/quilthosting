@@ -24,6 +24,7 @@ import { webhookRoutes } from "./routes/webhooks";
 import { portalRoutes } from "./routes/portal";
 import { billingRoutes } from "./routes/billing";
 import { groupRoutes } from "./routes/groups";
+import { productRoutes } from "./routes/products";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -48,7 +49,7 @@ app.get("/", (c) => {
   }
   return c.json({
     name: "QuiltHosting API",
-    version: "0.17.0",
+    version: "0.18.0",
     status: "ok",
     environment: c.env.ENVIRONMENT,
     admin: "/admin",
@@ -86,6 +87,45 @@ app.get("/g/:slug", (c) => {
   return c.env.ASSETS.fetch(new Request(url.toString(), c.req.raw));
 });
 
+// Embeddable widgets for WordPress / external sites (allow framing)
+app.get("/embed/:slug/join", (c) => {
+  const url = new URL(c.req.url);
+  url.pathname = "/embed.html";
+  url.searchParams.set("type", "join");
+  url.searchParams.set("slug", c.req.param("slug"));
+  const res = c.env.ASSETS.fetch(new Request(url.toString(), c.req.raw));
+  return res.then((r) => {
+    const headers = new Headers(r.headers);
+    headers.delete("X-Frame-Options");
+    headers.set("Content-Security-Policy", "frame-ancestors *");
+    return new Response(r.body, { status: r.status, headers });
+  });
+});
+app.get("/embed/:slug/events", (c) => {
+  const url = new URL(c.req.url);
+  url.pathname = "/embed.html";
+  url.searchParams.set("type", "events");
+  url.searchParams.set("slug", c.req.param("slug"));
+  return c.env.ASSETS.fetch(new Request(url.toString(), c.req.raw)).then((r) => {
+    const headers = new Headers(r.headers);
+    headers.delete("X-Frame-Options");
+    headers.set("Content-Security-Policy", "frame-ancestors *");
+    return new Response(r.body, { status: r.status, headers });
+  });
+});
+app.get("/embed/:slug/store", (c) => {
+  const url = new URL(c.req.url);
+  url.pathname = "/embed.html";
+  url.searchParams.set("type", "store");
+  url.searchParams.set("slug", c.req.param("slug"));
+  return c.env.ASSETS.fetch(new Request(url.toString(), c.req.raw)).then((r) => {
+    const headers = new Headers(r.headers);
+    headers.delete("X-Frame-Options");
+    headers.set("Content-Security-Policy", "frame-ancestors *");
+    return new Response(r.body, { status: r.status, headers });
+  });
+});
+
 app.route("/api/webhooks", webhookRoutes);
 
 app.route("/api/auth", authRoutes);
@@ -106,6 +146,7 @@ tenantApp.route("/groups", groupRoutes);
 tenantApp.route("/team", teamRoutes);
 tenantApp.route("/pages", pageRoutes);
 tenantApp.route("/files", fileRoutes);
+tenantApp.route("/products", productRoutes);
 tenantApp.route("/billing", billingRoutes);
 app.route("/api/tenants/:tenantId", tenantApp);
 

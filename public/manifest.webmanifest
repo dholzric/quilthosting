@@ -1,0 +1,17 @@
+{
+  "name": "QuiltHosting",
+  "short_name": "QuiltHosting",
+  "description": "Membership and events for quilt guilds",
+  "start_url": "/admin",
+  "display": "standalone",
+  "background_color": "#faf7f2",
+  "theme_color": "#b5501f",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

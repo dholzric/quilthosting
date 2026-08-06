@@ -71,6 +71,8 @@ export type CreateCheckoutParams = {
   description: string;
   type: "dues" | "event" | "store" | "donation";
   relatedId?: string;
+  /** Optional quantity for store purchases (metadata). */
+  quantity?: number;
   successUrl: string;
   cancelUrl: string;
   mode?: "payment" | "subscription";
@@ -101,6 +103,9 @@ export async function createCheckoutSession(
 
   if (params.memberId) body["metadata[member_id]"] = params.memberId;
   if (params.relatedId) body["metadata[related_id]"] = params.relatedId;
+  if (params.quantity != null && params.quantity > 0) {
+    body["metadata[quantity]"] = String(params.quantity);
+  }
 
   const connected = params.stripeAccountId?.startsWith("acct_")
     ? params.stripeAccountId

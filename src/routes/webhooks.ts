@@ -124,7 +124,7 @@ webhookRoutes.post("/stripe", async (c) => {
       )
       .run();
 
-    if (paymentType === "donation") {
+    if (paymentType === "donation" || paymentType === "store") {
       const email =
         (meta.email as string) ||
         (typeof session.customer_email === "string"
@@ -134,12 +134,34 @@ webhookRoutes.post("/stripe", async (c) => {
       const tenant = await first<{ name: string }>(
         c.env.DB.prepare("SELECT name FROM tenants WHERE id = ?").bind(tenantId)
       );
+      if (paymentType === "store" && relatedId) {
+        const qty = Math.max(1, Math.floor(Number(meta.quantity) || 1));
+        try {
+          await c.env.DB.prepare(
+            `UPDATE products SET
+               inventory = CASE
+                 WHEN inventory IS NULL THEN NULL
+                 WHEN inventory >= ? THEN inventory - ?
+                 ELSE 0
+               END,
+               updated_at = ?
+             WHERE id = ? AND tenant_id = ?`
+          )
+            .bind(qty, qty, now, relatedId, tenantId)
+            .run();
+        } catch (e) {
+          console.warn("store inventory update failed", e);
+        }
+      }
       if (email && tenant) {
         const { subject, html } = paymentReceiptEmail({
           guildName: tenant.name,
-          description: `Donation to ${tenant.name}`,
+          description:
+            paymentType === "store"
+              ? `Store order`
+              : `Donation to ${tenant.name}`,
           amountFormatted: formatMoney(session.amount_total || 0),
-          typeLabel: "donation",
+          typeLabel: paymentType === "store" ? "purchase" : "donation",
         });
         await sendEmail(c.env, { to: email, subject, html });
       }

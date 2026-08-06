@@ -21,6 +21,10 @@ publicRoutes.use(
   "/:slug/events/:eventId/register",
   rateLimit({ keyPrefix: "ereg", limit: 40, windowSeconds: 600 })
 );
+publicRoutes.use(
+  "/:slug/products/:productId/buy",
+  rateLimit({ keyPrefix: "buy", limit: 30, windowSeconds: 600 })
+);
 
 async function getTenantBySlug(db: D1Database, slug: string) {
   return first<Tenant>(
@@ -569,6 +573,161 @@ publicRoutes.post("/:slug/donate", async (c) => {
     return c.json({ error: "Payment session could not be created" }, 502);
   }
   return c.json({ status: "checkout", checkout_url: session.url });
+});
+
+/**
+ * GET /public/:slug/products — active store items
+ */
+publicRoutes.get("/:slug/products", async (c) => {
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  try {
+    const rows = await all<{
+      id: string;
+      name: string;
+      description: string | null;
+      price_cents: number;
+      inventory: number | null;
+    }>(
+      c.env.DB.prepare(
+        `SELECT id, name, description, price_cents, inventory FROM products
+         WHERE tenant_id = ? AND is_active = 1
+           AND (inventory IS NULL OR inventory > 0)
+         ORDER BY sort_order, name`
+      ).bind(tenant.id)
+    );
+    return c.json({
+      tenant: { name: tenant.name, slug: tenant.slug },
+      products: rows,
+    });
+  } catch {
+    return c.json({ tenant: { name: tenant.name, slug: tenant.slug }, products: [] });
+  }
+});
+
+/**
+ * POST /public/:slug/products/:productId/buy
+ */
+publicRoutes.post("/:slug/products/:productId/buy", async (c) => {
+  const slug = c.req.param("slug");
+  const productId = c.req.param("productId");
+  const tenant = await getTenantBySlug(c.env.DB, slug);
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+
+  const product = await first<{
+    id: string;
+    name: string;
+    price_cents: number;
+    inventory: number | null;
+    is_active: number;
+  }>(
+    c.env.DB.prepare(
+      "SELECT * FROM products WHERE id = ? AND tenant_id = ?"
+    ).bind(productId, tenant.id)
+  );
+  if (!product || !product.is_active) {
+    return c.json({ error: "Product not found" }, 404);
+  }
+  if (product.inventory !== null && product.inventory <= 0) {
+    return c.json({ error: "Sold out" }, 400);
+  }
+
+  const body = await c.req.json<{
+    email: string;
+    name?: string;
+    quantity?: number;
+  }>();
+  const email = (body.email || "").toLowerCase().trim();
+  if (!email || !email.includes("@")) {
+    return c.json({ error: "email is required" }, 400);
+  }
+  const qty = Math.min(10, Math.max(1, Math.floor(Number(body.quantity) || 1)));
+  if (product.inventory !== null && qty > product.inventory) {
+    return c.json({ error: `Only ${product.inventory} left` }, 400);
+  }
+
+  if (product.price_cents === 0) {
+    // Free item — record payment-like fulfillment and decrement stock
+    const now = new Date().toISOString();
+    if (product.inventory !== null) {
+      await c.env.DB.prepare(
+        `UPDATE products SET inventory = inventory - ?, updated_at = ?
+         WHERE id = ? AND tenant_id = ? AND inventory >= ?`
+      )
+        .bind(qty, now, product.id, tenant.id, qty)
+        .run();
+    }
+    let memberId: string | null = null;
+    const member = await first<{ id: string }>(
+      c.env.DB.prepare(
+        "SELECT id FROM members WHERE tenant_id = ? AND email = ?"
+      ).bind(tenant.id, email)
+    );
+    memberId = member?.id ?? null;
+    await c.env.DB.prepare(
+      `INSERT INTO payments
+       (id, tenant_id, member_id, type, amount_cents, currency, status, description, related_id, created_at, updated_at)
+       VALUES (?, ?, ?, 'store', 0, 'usd', 'succeeded', ?, ?, ?, ?)`
+    )
+      .bind(
+        generateId(),
+        tenant.id,
+        memberId,
+        `${product.name} × ${qty} (free)`,
+        product.id,
+        now,
+        now
+      )
+      .run();
+    return c.json({
+      status: "fulfilled",
+      message: `You're all set — ${product.name} is free.`,
+    });
+  }
+
+  if (!c.env.STRIPE_SECRET_KEY) {
+    return c.json({ error: "Payments not configured" }, 503);
+  }
+
+  let memberId: string | undefined;
+  const member = await first<{ id: string }>(
+    c.env.DB.prepare(
+      "SELECT id FROM members WHERE tenant_id = ? AND email = ?"
+    ).bind(tenant.id, email)
+  );
+  memberId = member?.id;
+
+  const baseUrl = c.env.APP_URL || "http://localhost:8787";
+  const amount = product.price_cents * qty;
+  try {
+    const session = await createCheckoutSession(c.env, {
+      tenantId: tenant.id,
+      tenantSlug: tenant.slug,
+      memberId,
+      email,
+      name: body.name,
+      amountCents: amount,
+      description:
+        qty > 1
+          ? `${tenant.name} – ${product.name} × ${qty}`
+          : `${tenant.name} – ${product.name}`,
+      type: "store",
+      relatedId: product.id,
+      quantity: qty,
+      successUrl: `${baseUrl}/g/${tenant.slug}?purchased=1`,
+      cancelUrl: `${baseUrl}/g/${tenant.slug}?cancelled=1`,
+      mode: "payment",
+      stripeAccountId: tenant.stripe_account_id,
+    });
+    return c.json({
+      status: "checkout",
+      checkout_url: session.url,
+      session_id: session.id,
+    });
+  } catch (err) {
+    console.error("Store checkout failed", err);
+    return c.json({ error: "Payment session could not be created" }, 502);
+  }
 });
 
 /**

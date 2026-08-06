@@ -4,7 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>QuiltHosting Admin</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23b5501f'/%3E%3Ctext x='32' y='44' font-size='36' text-anchor='middle' fill='%23faf7f2'%3E%E2%9C%A6%3C/text%3E%3C/svg%3E" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="theme-color" content="#b5501f" />
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/qh.css" />
   <style>
     /* Aliases for legacy inline styles in page scripts */
@@ -76,6 +78,7 @@
         <a href="#" data-page="members">Members</a>
         <a href="#" data-page="levels">Levels</a>
         <a href="#" data-page="events">Events</a>
+        <a href="#" data-page="store">Store</a>
         <a href="#" data-page="payments">Payments</a>
         <a href="#" data-page="comms">Email</a>
         <a href="#" data-page="pages">Pages</a>
@@ -148,7 +151,7 @@
       // viewer: dashboard + members + events view; membership: + levels; events role: events; owner/admin: all
       const map = {
         viewer: ["dashboard", "members", "events", "pages"],
-        membership: ["dashboard", "members", "levels", "payments", "comms", "pages", "settings"],
+        membership: ["dashboard", "members", "levels", "store", "payments", "comms", "pages", "settings"],
         events: ["dashboard", "members", "events", "comms", "pages", "settings"],
         admin: null,
         owner: null,
@@ -260,6 +263,7 @@
         else if (page === "members") await renderMembers(el);
         else if (page === "levels") await renderLevels(el);
         else if (page === "events") await renderEvents(el);
+        else if (page === "store") await renderStore(el);
         else if (page === "payments") await renderPayments(el);
         else if (page === "comms") await renderComms(el);
         else if (page === "pages") await renderPagesAdmin(el);
@@ -1079,15 +1083,29 @@
       navigate("events");
     }
     async function viewRegistrations(eventId) {
-      const data = await api(`/api/tenants/${tenantId}/events/${eventId}/registrations`);
+      let data;
+      try {
+        data = await api(`/api/tenants/${tenantId}/events/${eventId}/registrations`);
+        const regsCache = Array.isArray(data) ? data : (data.registrations || []);
+        await cacheRegsForOffline(eventId, regsCache);
+      } catch (e) {
+        // Offline fallback
+        const raw = localStorage.getItem(`qh_offline_regs_${tenantId}_${eventId}`);
+        if (!raw) throw e;
+        const cached = JSON.parse(raw);
+        data = { questions: [], registrations: cached.regs || [] };
+      }
       const regs = Array.isArray(data) ? data : (data.registrations || []);
       const questions = Array.isArray(data) ? [] : (data.questions || []);
       const qHeaders = questions.map((q) => `<th>${esc(q.label)}</th>`).join("");
+      const offline = !navigator.onLine;
       document.getElementById("regs-panel").innerHTML = `
         <div class="card" style="margin-top:1rem">
           <h3 style="margin-bottom:0.75rem">Registrations
+            ${offline ? '<span class="badge pending">Offline mode</span>' : ""}
             <button class="secondary" style="float:right" onclick="exportRegs('${eventId}')">Export CSV</button>
           </h3>
+          ${offline ? `<p class="muted" style="font-size:0.85rem">Check-ins are queued and will sync when you're back online.</p>` : ""}
           ${regs.length === 0 ? "<p style='color:var(--muted)'>No registrations yet</p>" : `
             <table>
               <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Ticket</th>${qHeaders}<th></th></tr></thead>
@@ -1146,7 +1164,129 @@
       await api(`/api/tenants/${tenantId}/events/${id}`, { method: "DELETE" });
       navigate("events");
     }
+
+    // Offline check-in: cache regs + queue check-ins when offline
+    async function cacheRegsForOffline(eventId, regs) {
+      const key = `qh_offline_regs_${tenantId}_${eventId}`;
+      localStorage.setItem(key, JSON.stringify({ eventId, regs, cachedAt: Date.now() }));
+    }
+    async function flushOfflineCheckins() {
+      if (!navigator.onLine || !token || !tenantId) return;
+      const prefix = `qh_offline_queue_${tenantId}_`;
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!k || !k.startsWith(prefix)) continue;
+        try {
+          const items = JSON.parse(localStorage.getItem(k) || "[]");
+          const eventId = k.slice(prefix.length);
+          for (const regId of items) {
+            await api(`/api/tenants/${tenantId}/events/${eventId}/check-in`, {
+              method: "POST",
+              body: JSON.stringify({ registration_id: regId }),
+            });
+          }
+          localStorage.removeItem(k);
+        } catch (e) {
+          console.warn("offline flush failed", e);
+        }
+      }
+    }
+    window.addEventListener("online", () => flushOfflineCheckins());
+
+    async function renderStore(el) {
+      let products = [];
+      try {
+        products = await api(`/api/tenants/${tenantId}/products`);
+      } catch (e) {
+        el.innerHTML = `<h2>Store</h2><p class="error">${esc(e.message)}. Run database migration 0006 if needed.</p>`;
+        return;
+      }
+      el.innerHTML = `
+        <h2>Store</h2>
+        <p class="muted" style="margin-bottom:1rem">Sell patterns, kits, raffle tickets, or show merch. Buyers pay by card on your public page.</p>
+        <div class="card">
+          <h3 style="margin-bottom:0.75rem">Add product</h3>
+          <div class="form-row">
+            <div><label>Name</label><input id="p-name" placeholder="Block of the month kit" /></div>
+            <div><label>Price (cents)</label><input id="p-price" type="number" value="2500" /></div>
+          </div>
+          <div class="form-row">
+            <div><label>Inventory (blank = unlimited)</label><input id="p-inv" type="number" placeholder="unlimited" /></div>
+            <div><label>Description</label><input id="p-desc" placeholder="Optional" /></div>
+          </div>
+          <button onclick="addProduct()">Save product</button>
+        </div>
+        <div class="card">
+          <table>
+            <thead><tr><th>Name</th><th>Price</th><th>Stock</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              ${products.length === 0 ? "<tr><td colspan='5' class='muted'>No products yet</td></tr>" : products.map((p) => `
+                <tr>
+                  <td><strong>${esc(p.name)}</strong>${p.description ? `<br><span class="muted" style="font-size:0.85rem">${esc(p.description)}</span>` : ""}</td>
+                  <td>$${(p.price_cents / 100).toFixed(2)}</td>
+                  <td>${p.inventory == null ? "∞" : p.inventory}</td>
+                  <td><span class="badge ${p.is_active ? "active" : "cancelled"}">${p.is_active ? "active" : "hidden"}</span></td>
+                  <td>
+                    <button class="secondary" onclick='toggleProduct(${JSON.stringify(p.id)}, ${p.is_active ? 0 : 1})'>${p.is_active ? "Hide" : "Show"}</button>
+                    <button class="secondary" onclick='deleteProduct(${JSON.stringify(p.id)}, ${JSON.stringify(p.name)})'>Remove</button>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:0.5rem">Embed on your website</h3>
+          <p class="muted" style="font-size:0.85rem">Paste this iframe into WordPress or any page:</p>
+          <code style="display:block;padding:0.75rem;background:var(--surface-2);border-radius:8px;font-size:0.8rem;word-break:break-all">
+            &lt;iframe src="${esc(API)}/embed/${esc(tenantSlug)}/store" width="100%" height="480" style="border:0;max-width:440px" loading="lazy"&gt;&lt;/iframe&gt;
+          </code>
+        </div>
+      `;
+    }
+    async function addProduct() {
+      const inv = document.getElementById("p-inv").value;
+      await api(`/api/tenants/${tenantId}/products`, {
+        method: "POST",
+        body: JSON.stringify({
+          name: document.getElementById("p-name").value,
+          price_cents: Number(document.getElementById("p-price").value),
+          description: document.getElementById("p-desc").value || undefined,
+          inventory: inv === "" ? null : Number(inv),
+        }),
+      });
+      navigate("store");
+    }
+    async function toggleProduct(id, active) {
+      await api(`/api/tenants/${tenantId}/products/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ is_active: !!active }),
+      });
+      navigate("store");
+    }
+    async function deleteProduct(id, name) {
+      if (!confirm(`Hide product "${name}"?`)) return;
+      await api(`/api/tenants/${tenantId}/products/${id}`, { method: "DELETE" });
+      navigate("store");
+    }
     async function checkIn(eventId, regId) {
+      if (!navigator.onLine) {
+        const qk = `qh_offline_queue_${tenantId}_${eventId}`;
+        const q = JSON.parse(localStorage.getItem(qk) || "[]");
+        if (!q.includes(regId)) q.push(regId);
+        localStorage.setItem(qk, JSON.stringify(q));
+        // Update cached status for display
+        const ck = `qh_offline_regs_${tenantId}_${eventId}`;
+        try {
+          const cached = JSON.parse(localStorage.getItem(ck) || "{}");
+          (cached.regs || []).forEach((r) => {
+            if (r.id === regId) r.status = "checked_in";
+          });
+          localStorage.setItem(ck, JSON.stringify(cached));
+        } catch {}
+        viewRegistrations(eventId);
+        return;
+      }
       await api(`/api/tenants/${tenantId}/events/${eventId}/check-in`, {
         method: "POST",
         body: JSON.stringify({ registration_id: regId }),
@@ -1758,6 +1898,20 @@
           <p style="margin-top:0.5rem"><a href="${API}/g/${esc(tenantSlug)}" target="_blank"><code>${API}/g/${esc(tenantSlug)}</code></a></p>
         </div>
         <div class="card">
+          <h3 style="margin-bottom:0.5rem">Embed widgets (WordPress, etc.)</h3>
+          <p class="muted" style="font-size:0.85rem;margin-bottom:0.5rem">Paste an iframe into your existing website:</p>
+          <p style="font-size:0.8rem;margin:0.35rem 0"><strong>Join</strong></p>
+          <code style="display:block;padding:0.6rem;background:var(--surface-2);border-radius:8px;font-size:0.75rem;word-break:break-all;margin-bottom:0.75rem">&lt;iframe src="${esc(API)}/embed/${esc(tenantSlug)}/join" width="100%" height="520" style="border:0;max-width:440px" loading="lazy"&gt;&lt;/iframe&gt;</code>
+          <p style="font-size:0.8rem;margin:0.35rem 0"><strong>Events</strong></p>
+          <code style="display:block;padding:0.6rem;background:var(--surface-2);border-radius:8px;font-size:0.75rem;word-break:break-all;margin-bottom:0.75rem">&lt;iframe src="${esc(API)}/embed/${esc(tenantSlug)}/events" width="100%" height="400" style="border:0;max-width:440px" loading="lazy"&gt;&lt;/iframe&gt;</code>
+          <p style="font-size:0.8rem;margin:0.35rem 0"><strong>Store</strong></p>
+          <code style="display:block;padding:0.6rem;background:var(--surface-2);border-radius:8px;font-size:0.75rem;word-break:break-all">&lt;iframe src="${esc(API)}/embed/${esc(tenantSlug)}/store" width="100%" height="480" style="border:0;max-width:440px" loading="lazy"&gt;&lt;/iframe&gt;</code>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:0.5rem">Install as app (PWA)</h3>
+          <p class="muted" style="font-size:0.85rem">On a phone, use “Add to Home Screen” for this admin dashboard. Event check-in works offline and syncs when you reconnect.</p>
+        </div>
+        <div class="card">
           <p style="color:var(--muted);font-size:0.9rem">
             <button class="secondary" onclick="switchTenant()">Switch guild</button>
             <button class="secondary" onclick="logout()" style="margin-left:0.5rem">Log out</button>
@@ -1972,6 +2126,10 @@
     if (token && tenantId) initApp();
     else if (token) enterApp();
     else show(document.getElementById("login-view"));
+    flushOfflineCheckins();
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
   </script>
   <footer class="qh-fleet-footer" role="contentinfo">
     <span class="brand">
@@ -1990,7 +2148,7 @@
       <a href="/privacy">Privacy</a>
       <a href="/terms">Terms</a>
     </nav>
-    <span class="legal"><span class="prerelease" title="QuiltHosting is in private preview">PRE-RELEASE</span> © 2026 QuiltMap LLC · 5900 Balcones Drive STE 100, Austin, TX 78731 · v0.17.0</span>
+    <span class="legal"><span class="prerelease" title="QuiltHosting is in private preview">PRE-RELEASE</span> © 2026 QuiltMap LLC · 5900 Balcones Drive STE 100, Austin, TX 78731 · v0.18.0</span>
   </footer>
 </body>
 </html>
