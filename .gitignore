@@ -16,3 +16,5 @@ dist/
 /*.jpg
 /*.jpeg
 /*.png
+
+scripts/.verify-scale-out/
