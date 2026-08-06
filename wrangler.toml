@@ -26,6 +26,11 @@ run_worker_first = true
 pattern = "quilthosting.com"
 custom_domain = true
 
+# Catch-all so Cloudflare for SaaS custom hostnames hit this Worker
+[[routes]]
+pattern = "*/*"
+zone_name = "quilthosting.com"
+
 # Local dev overrides these via .dev.vars
 [vars]
 ENVIRONMENT = "production"

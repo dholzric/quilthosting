@@ -81,6 +81,8 @@ export const siteGate = createMiddleware<{ Bindings: Env }>(
     if (path.startsWith("/t/o/")) return next(); // open-tracking pixels
     if (path.startsWith("/t/c/")) return next(); // click-tracking redirects
     if (path.startsWith("/api/v1/")) return next(); // public API keys (own auth)
+    // Cloudflare for SaaS / ACME certificate + hostname ownership challenges
+    if (path.startsWith("/.well-known/")) return next();
     if (c.req.method === "OPTIONS") return next();
     // Always deny crawlers while the product is in stealth / private preview
     if (path === "/robots.txt") {
