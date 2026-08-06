@@ -52,7 +52,7 @@
 
 | Area | Wild Apricot | QuiltHosting v0.20 | Notes |
 |---|---|---|---|
-| Website builder | Full drag-and-drop site, themes, embed widgets | **Visual block editor** (drag reorder) + themes + nav + embeds | Lite DnD, not WA full CMS |
+| Website builder | Full drag-and-drop site, themes, embed widgets | **DnD builder** (palette → canvas, live preview, props panel) + themes + nav + embeds | Guild microsites; not full WA theme marketplace |
 | Custom forms | Applications, events, surveys; conditionals | **Surveys + show_if conditionals** + event questions | |
 | Recurring payments | Saved cards, mature auto-renew | Auto-renew + E2E + cancel + **card brand/last4 + update flow** | |
 | Financial exports | Excel + **QuickBooks** | CSV + **IIF** + **QBO OAuth export/push** | Needs `QBO_CLIENT_*` secrets |

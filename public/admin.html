@@ -1825,84 +1825,200 @@
       navigate("team");
     }
 
+    /* —— Drag-and-drop website builder —— */
+    const BLOCK_PALETTE = [
+      { type: "heading", label: "Heading", icon: "H" },
+      { type: "text", label: "Text", icon: "¶" },
+      { type: "image", label: "Image", icon: "▣" },
+      { type: "button", label: "Button", icon: "▢" },
+      { type: "divider", label: "Divider", icon: "—" },
+      { type: "join_cta", label: "Join CTA", icon: "✦" },
+      { type: "events_list", label: "Events", icon: "◷" },
+      { type: "store_list", label: "Store", icon: "$" },
+      { type: "spacer", label: "Spacer", icon: "↕" },
+      { type: "html", label: "HTML", icon: "</>" },
+    ];
+
+    function defaultBlock(type) {
+      const b = { type };
+      if (type === "heading") { b.text = "Your heading"; b.level = 2; }
+      else if (type === "text") b.html = "<p>Write your story here. Click this block to edit.</p>";
+      else if (type === "image") { b.url = ""; b.alt = "Photo"; b.caption = ""; }
+      else if (type === "button") { b.label = "Join us"; b.href = "#h-membership"; b.style = "primary"; }
+      else if (type === "join_cta") { b.title = "Become a member"; b.body = "Join our guild community."; }
+      else if (type === "events_list" || type === "store_list") b.limit = 5;
+      else if (type === "html") b.html = "<p>Custom HTML</p>";
+      else if (type === "spacer") b.height = 24;
+      return b;
+    }
+
+    function blockPreviewHtml(b) {
+      if (!b) return "";
+      switch (b.type) {
+        case "heading": {
+          const tag = "h" + (b.level || 2);
+          return `<${tag} style="margin:0.25rem 0">${esc(b.text || "Heading")}</${tag}>`;
+        }
+        case "text":
+        case "html":
+          return `<div class="qh-block-text">${b.html || "<p class='muted'>Empty text</p>"}</div>`;
+        case "image":
+          return b.url
+            ? `<figure style="margin:0"><img src="${esc(b.url)}" alt="${esc(b.alt||"")}" style="max-width:100%;border-radius:8px" />${b.caption ? `<figcaption class="muted" style="font-size:0.85rem">${esc(b.caption)}</figcaption>` : ""}</figure>`
+            : `<div class="muted" style="padding:2rem;text-align:center;background:var(--surface-2);border-radius:8px">Drop / set image URL</div>`;
+        case "button":
+          return `<p style="margin:0.5rem 0"><a class="btn ${b.style === "secondary" ? "secondary" : ""}" href="${esc(b.href||"#")}">${esc(b.label||"Button")}</a></p>`;
+        case "divider":
+          return `<hr style="border:none;border-top:1px solid var(--border);margin:0.75rem 0" />`;
+        case "join_cta":
+          return `<div class="card" style="margin:0;background:var(--brand-soft)"><strong>${esc(b.title||"Join")}</strong><p class="muted" style="margin:0.35rem 0 0;font-size:0.9rem">${esc(b.body||"")}</p></div>`;
+        case "events_list":
+          return `<div class="muted" style="padding:1rem;border:1px dashed var(--border);border-radius:8px">📅 Upcoming events (shows up to ${b.limit||5} on the public site)</div>`;
+        case "store_list":
+          return `<div class="muted" style="padding:1rem;border:1px dashed var(--border);border-radius:8px">🛒 Store items (up to ${b.limit||6})</div>`;
+        case "spacer":
+          return `<div style="height:${b.height||24}px;background:repeating-linear-gradient(90deg,transparent,transparent 4px,var(--border) 4px,var(--border) 5px);opacity:0.4"></div>`;
+        default:
+          return `<span class="muted">${esc(b.type)}</span>`;
+      }
+    }
+
     async function renderPagesAdmin(el) {
-      const pages = (await api(`/api/tenants/${tenantId}/pages`)).filter((p) => (p.page_type || "page") !== "blog_post");
+      const pagesRaw = await api(`/api/tenants/${tenantId}/pages`);
+      const pages = asList(pagesRaw, "pages").filter((p) => (p.page_type || "page") !== "blog_post");
       let site = { theme: {}, nav: [] };
       try { site = await api(`/api/tenants/${tenantId}/pages/site/settings`); } catch {}
+      window._pages = pages;
+      window._pageBlocks = window._pageBlocks || [];
+      window._selectedBlock = window._selectedBlock ?? null;
+      window._builderTheme = site.theme || {};
+
       el.innerHTML = `
-        <h2>Website builder</h2>
-        <p style="color:var(--muted);font-size:0.9rem;margin-bottom:1rem">Block pages, theme colors, and navigation for your public guild site.</p>
-        <div class="card">
-          <h3 style="margin-bottom:0.75rem">Theme</h3>
-          <div class="form-row">
-            <div><label>Primary color</label><input id="th-primary" type="color" value="${esc(site.theme?.primary || "#b5501f")}" /></div>
-            <div><label>Style</label>
-              <select id="th-style">
-                <option value="classic" ${site.theme?.style==="classic"?"selected":""}>Classic</option>
-                <option value="modern" ${site.theme?.style==="modern"?"selected":""}>Modern</option>
-                <option value="warm" ${site.theme?.style==="warm"?"selected":""}>Warm</option>
-              </select>
-            </div>
+        <style>
+          .wb-grid { display:grid; grid-template-columns: 160px 1fr 260px; gap:0; min-height:520px; border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--surface); }
+          @media (max-width: 960px) { .wb-grid { grid-template-columns: 1fr; } }
+          .wb-palette { background:var(--surface-2); border-right:1px solid var(--border); padding:0.75rem; overflow-y:auto; }
+          .wb-palette h4 { font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-3); margin:0 0 0.5rem; }
+          .wb-chip { display:flex; align-items:center; gap:0.5rem; padding:0.5rem 0.6rem; margin-bottom:0.35rem; background:#fff; border:1px solid var(--border); border-radius:8px; cursor:grab; font-size:0.85rem; user-select:none; }
+          .wb-chip:hover { border-color:var(--brand); }
+          .wb-chip .ico { width:1.4rem; text-align:center; color:var(--brand); font-weight:700; }
+          .wb-canvas-wrap { display:flex; flex-direction:column; min-height:520px; background:#efe9e0; }
+          .wb-canvas-bar { display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center; padding:0.6rem 0.75rem; background:var(--surface); border-bottom:1px solid var(--border); }
+          .wb-canvas { flex:1; padding:1.25rem; overflow-y:auto; }
+          .wb-page { max-width:640px; margin:0 auto; background:#fff; border-radius:12px; box-shadow:var(--shadow-md); padding:1.25rem 1.5rem; min-height:360px; }
+          .wb-drop { min-height:48px; border:2px dashed transparent; border-radius:8px; transition:border-color .15s, background .15s; }
+          .wb-drop.over { border-color:var(--brand); background:var(--brand-soft); }
+          .wb-block { position:relative; margin:0.35rem 0; padding:0.5rem; border:2px solid transparent; border-radius:8px; cursor:pointer; }
+          .wb-block:hover { border-color:var(--border-strong); }
+          .wb-block.selected { border-color:var(--brand); background:rgba(181,80,31,0.04); }
+          .wb-block .wb-handle { position:absolute; left:-6px; top:50%; transform:translateY(-50%); opacity:0; font-size:0.75rem; color:var(--ink-3); cursor:grab; padding:0.25rem; }
+          .wb-block:hover .wb-handle, .wb-block.selected .wb-handle { opacity:1; }
+          .wb-empty { text-align:center; padding:3rem 1rem; color:var(--ink-3); border:2px dashed var(--border); border-radius:12px; }
+          .wb-props { background:var(--surface-2); border-left:1px solid var(--border); padding:0.75rem; overflow-y:auto; }
+          .wb-props h4 { font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-3); margin:0 0 0.75rem; }
+          .wb-props label { font-size:0.8rem; display:block; margin:0.5rem 0 0.2rem; }
+          .wb-props input, .wb-props select, .wb-props textarea { width:100%; font:inherit; padding:0.45rem 0.55rem; border:1px solid var(--border); border-radius:8px; background:#fff; }
+          .wb-props textarea { min-height:80px; resize:vertical; }
+          .wb-pages-list tr.wb-active { background:var(--brand-soft); }
+        </style>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;margin-bottom:1rem">
+          <div>
+            <h2 style="margin:0">Website builder</h2>
+            <p class="muted" style="margin:0.25rem 0 0;font-size:0.9rem">Drag blocks onto the canvas. Click a block to edit. Saves to your public guild site.</p>
           </div>
-          <div class="form-row">
-            <div><label>Font</label>
-              <select id="th-font">
-                <option value="system" ${!site.theme?.font||site.theme?.font==="system"?"selected":""}>System</option>
-                <option value="serif" ${site.theme?.font==="serif"?"selected":""}>Serif</option>
-                <option value="rounded" ${site.theme?.font==="rounded"?"selected":""}>Rounded</option>
-              </select>
-            </div>
-            <div><label>Custom nav links (JSON array of {label,href})</label>
-              <input id="th-nav" value="${esc(JSON.stringify(site.nav||[]))}" placeholder='[{"label":"QuiltMap","href":"https://…"}]' />
-            </div>
+          <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
+            <button class="secondary" onclick="resetPageForm()">New page</button>
+            <button onclick="savePage()">Save page</button>
+            <a class="secondary" href="/g/${esc(tenantSlug)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;padding:0.5rem 0.9rem;text-decoration:none;border:1px solid var(--border);border-radius:8px">Preview site ↗</a>
           </div>
-          <button onclick="saveSiteTheme()">Save theme &amp; nav</button>
-          <span id="th-msg" class="muted" style="margin-left:0.5rem"></span>
         </div>
-        <div class="card">
-          <h3 style="margin-bottom:0.75rem" id="pg-form-title">New page</h3>
+        <span id="pg-result" class="muted" style="display:block;margin-bottom:0.75rem"></span>
+
+        <div class="card" style="margin-bottom:1rem">
+          <details>
+            <summary style="cursor:pointer;font-weight:600">Theme &amp; site navigation</summary>
+            <div class="form-row" style="margin-top:0.75rem">
+              <div><label>Primary color</label><input id="th-primary" type="color" value="${esc(site.theme?.primary || "#b5501f")}" /></div>
+              <div><label>Style</label>
+                <select id="th-style">
+                  <option value="classic" ${site.theme?.style==="classic"?"selected":""}>Classic</option>
+                  <option value="modern" ${site.theme?.style==="modern"?"selected":""}>Modern</option>
+                  <option value="warm" ${site.theme?.style==="warm"?"selected":""}>Warm</option>
+                </select>
+              </div>
+              <div><label>Font</label>
+                <select id="th-font">
+                  <option value="system" ${!site.theme?.font||site.theme?.font==="system"?"selected":""}>System</option>
+                  <option value="serif" ${site.theme?.font==="serif"?"selected":""}>Serif</option>
+                  <option value="rounded" ${site.theme?.font==="rounded"?"selected":""}>Rounded</option>
+                </select>
+              </div>
+            </div>
+            <label>Extra nav links (JSON)</label>
+            <input id="th-nav" value="${esc(JSON.stringify(site.nav||[]))}" placeholder='[{"label":"QuiltMap","href":"https://…"}]' />
+            <button onclick="saveSiteTheme()" style="margin-top:0.5rem">Save theme</button>
+            <span id="th-msg" class="muted" style="margin-left:0.5rem"></span>
+          </details>
+        </div>
+
+        <div class="card" style="margin-bottom:1rem;padding:0.75rem">
           <input type="hidden" id="pg-id" />
+          <input type="hidden" id="pg-content" value="" />
+          <textarea id="pg-blocks" class="hidden" aria-hidden="true"></textarea>
           <div class="form-row">
-            <div><label>Title</label><input id="pg-title" placeholder="About Our Guild" /></div>
+            <div><label>Page title</label><input id="pg-title" placeholder="About Our Guild" /></div>
             <div style="display:flex;gap:1rem;align-items:end;padding-bottom:0.35rem;flex-wrap:wrap">
               <label style="display:flex;align-items:center;gap:0.35rem;margin:0"><input type="checkbox" id="pg-members" style="width:auto" /> Members only</label>
               <label style="display:flex;align-items:center;gap:0.35rem;margin:0"><input type="checkbox" id="pg-published" checked style="width:auto" /> Published</label>
               <label style="display:flex;align-items:center;gap:0.35rem;margin:0"><input type="checkbox" id="pg-nav" checked style="width:auto" /> Show in nav</label>
             </div>
           </div>
-          <div style="margin:0.75rem 0">
-            <p style="font-size:0.85rem;font-weight:600;margin:0 0 0.4rem">Visual block editor (drag to reorder)</p>
-            <div id="pg-block-list" style="display:flex;flex-direction:column;gap:0.5rem;min-height:40px"></div>
-            <div style="display:flex;flex-wrap:wrap;gap:0.35rem;margin-top:0.5rem">
-              <button type="button" class="secondary" onclick="addPageBlock('heading')">+ Heading</button>
-              <button type="button" class="secondary" onclick="addPageBlock('text')">+ Text</button>
-              <button type="button" class="secondary" onclick="addPageBlock('image')">+ Image</button>
-              <button type="button" class="secondary" onclick="addPageBlock('button')">+ Button</button>
-              <button type="button" class="secondary" onclick="addPageBlock('divider')">+ Divider</button>
-              <button type="button" class="secondary" onclick="addPageBlock('join_cta')">+ Join CTA</button>
-              <button type="button" class="secondary" onclick="addPageBlock('events_list')">+ Events</button>
-              <button type="button" class="secondary" onclick="addPageBlock('store_list')">+ Store</button>
-              <button type="button" class="secondary" onclick="addPageBlock('html')">+ HTML</button>
-              <button type="button" class="secondary" onclick="addPageBlock('spacer')">+ Spacer</button>
+          <p id="pg-form-title" class="muted" style="font-size:0.85rem;margin:0.35rem 0 0">Editing: <strong>New page</strong></p>
+        </div>
+
+        <div class="wb-grid">
+          <aside class="wb-palette">
+            <h4>Blocks</h4>
+            <p class="muted" style="font-size:0.75rem;margin:0 0 0.6rem">Drag onto the page</p>
+            ${BLOCK_PALETTE.map((p) => `
+              <div class="wb-chip" draggable="true"
+                ondragstart="paletteDragStart(event,'${p.type}')"
+                title="Drag to canvas or click to add">
+                <span class="ico">${p.icon}</span> ${esc(p.label)}
+              </div>`).join("")}
+            <p class="muted" style="font-size:0.75rem;margin-top:0.75rem">Or click a chip to append.</p>
+            ${BLOCK_PALETTE.map((p) => `
+              <button type="button" class="secondary" style="width:100%;margin-bottom:0.25rem;font-size:0.8rem"
+                onclick="addPageBlock('${p.type}')">+ ${esc(p.label)}</button>`).join("")}
+          </aside>
+
+          <div class="wb-canvas-wrap">
+            <div class="wb-canvas-bar">
+              <span class="muted" style="font-size:0.85rem">Canvas · drop zones highlight when dragging</span>
+              <button type="button" class="secondary" style="margin-left:auto" onclick="builderDeselect()">Deselect</button>
+            </div>
+            <div class="wb-canvas"
+              ondragover="canvasDragOver(event)"
+              ondrop="canvasDropEnd(event)"
+              ondragleave="canvasDragLeave(event)">
+              <div class="wb-page" id="wb-page" style="--brand:${esc(site.theme?.primary || "#b5501f")}"></div>
             </div>
           </div>
-          <details style="margin-top:0.5rem">
-            <summary class="muted" style="cursor:pointer;font-size:0.85rem">Advanced: raw JSON / HTML</summary>
-            <label style="margin-top:0.5rem">Blocks JSON</label>
-            <textarea id="pg-blocks" rows="3" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px;font:ui-monospace,monospace;font-size:0.8rem"></textarea>
-            <label style="margin-top:0.5rem">Plain HTML content</label>
-            <textarea id="pg-content" rows="3" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px;font:inherit"></textarea>
-          </details>
-          <button onclick="savePage()" style="margin-top:0.5rem">Save</button>
-          <button class="secondary" onclick="resetPageForm()">Clear</button>
-          <span id="pg-result" style="margin-left:0.75rem;color:var(--muted)"></span>
+
+          <aside class="wb-props" id="wb-props">
+            <h4>Properties</h4>
+            <p class="muted" style="font-size:0.85rem">Select a block on the canvas to edit its properties.</p>
+          </aside>
         </div>
-        <div class="card">
-          <table>
+
+        <div class="card" style="margin-top:1rem">
+          <h3 style="margin:0 0 0.75rem">Your pages</h3>
+          <table class="wb-pages-list">
             <thead><tr><th>Title</th><th>Visibility</th><th>Status</th><th>Updated</th><th></th></tr></thead>
             <tbody>
-              ${pages.length === 0 ? "<tr><td colspan='5' style='color:var(--muted)'>No pages yet</td></tr>" : pages.map((p) => `
-                <tr>
+              ${pages.length === 0 ? "<tr><td colspan='5' class='muted'>No pages yet — build one above</td></tr>" : pages.map((p) => `
+                <tr data-page-id="${esc(p.id)}">
                   <td>${esc(p.title)}</td>
                   <td>${p.is_members_only ? "Members only" : "Public"}</td>
                   <td>${p.published ? "Published" : "Draft"}</td>
@@ -1917,120 +2033,275 @@
           </table>
         </div>
       `;
-      window._pages = pages;
-      window._pageBlocks = [];
+
+      // Click palette chips to add (in addition to drag)
+      document.querySelectorAll(".wb-chip").forEach((chip) => {
+        chip.addEventListener("click", () => {
+          const t = chip.getAttribute("ondragstart")?.match(/'([^']+)'/)?.[1];
+          if (t) addPageBlock(t);
+        });
+      });
       renderBlockEditor();
     }
+
     function renderBlockEditor() {
-      const box = document.getElementById("pg-block-list");
-      if (!box) return;
+      const page = document.getElementById("wb-page");
+      if (!page) return;
       const blocks = window._pageBlocks || [];
+      const sel = window._selectedBlock;
+
       if (!blocks.length) {
-        box.innerHTML = `<p class="muted" style="font-size:0.85rem;margin:0">No blocks yet — add some below. Drag handles ⋮⋮ to reorder.</p>`;
+        page.innerHTML = `<div class="wb-empty wb-drop" data-insert="0"
+          ondragover="blockDragOver(event)" ondrop="blockDropAt(event,0)">
+          <p style="margin:0 0 0.35rem;font-weight:600">Empty page</p>
+          <p style="margin:0;font-size:0.9rem">Drag a block from the left, or click a block type to start.</p>
+        </div>`;
         syncBlocksJson();
+        renderBlockProps();
         return;
       }
-      box.innerHTML = blocks.map((b, i) => {
-        const title = b.type + (b.text ? `: ${String(b.text).slice(0, 40)}` : b.label ? `: ${b.label}` : b.url ? `: ${String(b.url).slice(0, 30)}` : "");
-        return `<div class="card" draggable="true" data-bi="${i}" style="padding:0.6rem 0.75rem;margin:0;cursor:grab"
-          ondragstart="blockDragStart(event,${i})" ondragover="event.preventDefault()" ondrop="blockDrop(event,${i})">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem">
-            <span style="font-size:0.9rem"><span class="muted">⋮⋮</span> <strong>${esc(b.type)}</strong> <span class="muted">${esc(title.replace(b.type, "").slice(0, 50))}</span></span>
-            <span>
-              <button type="button" class="secondary" onclick="editPageBlock(${i})">Edit</button>
-              <button type="button" class="secondary" onclick="removePageBlock(${i})">×</button>
-            </span>
+
+      let html = `<div class="wb-drop" data-insert="0" style="min-height:12px"
+        ondragover="blockDragOver(event)" ondrop="blockDropAt(event,0)"></div>`;
+      blocks.forEach((b, i) => {
+        const selected = sel === i ? "selected" : "";
+        html += `
+          <div class="wb-block ${selected}" data-bi="${i}" draggable="true"
+            onclick="selectBlock(${i})"
+            ondragstart="blockDragStart(event,${i})"
+            ondragover="blockDragOver(event)"
+            ondrop="blockDropAt(event,${i})">
+            <span class="wb-handle" title="Drag to reorder">⋮⋮</span>
+            ${blockPreviewHtml(b)}
           </div>
-        </div>`;
-      }).join("");
+          <div class="wb-drop" data-insert="${i + 1}" style="min-height:12px"
+            ondragover="blockDragOver(event)" ondrop="blockDropAt(event,${i + 1})"></div>`;
+      });
+      page.innerHTML = html;
+      syncBlocksJson();
+      renderBlockProps();
+    }
+
+    function renderBlockProps() {
+      const panel = document.getElementById("wb-props");
+      if (!panel) return;
+      const i = window._selectedBlock;
+      const b = typeof i === "number" ? (window._pageBlocks || [])[i] : null;
+      if (!b) {
+        panel.innerHTML = `<h4>Properties</h4><p class="muted" style="font-size:0.85rem">Select a block on the canvas to edit.</p>
+          <button type="button" class="secondary" style="margin-top:0.5rem;width:100%" onclick="addPageBlock('heading')">+ Add heading</button>`;
+        return;
+      }
+      let fields = "";
+      if (b.type === "heading") {
+        fields = `
+          <label>Text</label><input id="bp-text" value="${esc(b.text||"")}" oninput="updateSelectedBlock({text:this.value})" />
+          <label>Level</label>
+          <select id="bp-level" onchange="updateSelectedBlock({level:Number(this.value)})">
+            <option value="1" ${b.level===1?"selected":""}>H1</option>
+            <option value="2" ${b.level===2||!b.level?"selected":""}>H2</option>
+            <option value="3" ${b.level===3?"selected":""}>H3</option>
+          </select>`;
+      } else if (b.type === "text" || b.type === "html") {
+        fields = `<label>HTML</label><textarea id="bp-html" oninput="updateSelectedBlock({html:this.value})">${esc(b.html||"")}</textarea>`;
+      } else if (b.type === "image") {
+        fields = `
+          <label>Image URL</label><input id="bp-url" value="${esc(b.url||"")}" oninput="updateSelectedBlock({url:this.value})" placeholder="https://…" />
+          <label>Alt text</label><input value="${esc(b.alt||"")}" oninput="updateSelectedBlock({alt:this.value})" />
+          <label>Caption</label><input value="${esc(b.caption||"")}" oninput="updateSelectedBlock({caption:this.value})" />`;
+      } else if (b.type === "button") {
+        fields = `
+          <label>Label</label><input value="${esc(b.label||"")}" oninput="updateSelectedBlock({label:this.value})" />
+          <label>Link</label><input value="${esc(b.href||"")}" oninput="updateSelectedBlock({href:this.value})" />
+          <label>Style</label>
+          <select onchange="updateSelectedBlock({style:this.value})">
+            <option value="primary" ${b.style!=="secondary"?"selected":""}>Primary</option>
+            <option value="secondary" ${b.style==="secondary"?"selected":""}>Secondary</option>
+          </select>`;
+      } else if (b.type === "join_cta") {
+        fields = `
+          <label>Title</label><input value="${esc(b.title||"")}" oninput="updateSelectedBlock({title:this.value})" />
+          <label>Body</label><textarea oninput="updateSelectedBlock({body:this.value})">${esc(b.body||"")}</textarea>`;
+      } else if (b.type === "events_list" || b.type === "store_list") {
+        fields = `<label>How many to show</label><input type="number" min="1" max="20" value="${b.limit||5}" oninput="updateSelectedBlock({limit:Number(this.value)||5})" />`;
+      } else if (b.type === "spacer") {
+        fields = `<label>Height (px)</label><input type="number" min="8" max="120" value="${b.height||24}" oninput="updateSelectedBlock({height:Number(this.value)||24})" />`;
+      } else if (b.type === "divider") {
+        fields = `<p class="muted" style="font-size:0.85rem">No options for divider.</p>`;
+      }
+      panel.innerHTML = `
+        <h4>${esc(b.type)} · #${i + 1}</h4>
+        ${fields}
+        <button type="button" class="secondary" style="width:100%;margin-top:1rem;color:var(--danger)"
+          onclick="removePageBlock(${i})">Remove block</button>
+        <button type="button" class="secondary" style="width:100%;margin-top:0.35rem"
+          onclick="duplicateBlock(${i})">Duplicate</button>
+      `;
+    }
+
+    function updateSelectedBlock(patch) {
+      const i = window._selectedBlock;
+      if (typeof i !== "number" || !window._pageBlocks[i]) return;
+      Object.assign(window._pageBlocks[i], patch);
+      // Re-render canvas but keep selection; avoid full props wipe on every keystroke for textareas
+      const page = document.getElementById("wb-page");
+      if (page) {
+        const blockEl = page.querySelector(`.wb-block[data-bi="${i}"]`);
+        if (blockEl) {
+          const handle = `<span class="wb-handle" title="Drag to reorder">⋮⋮</span>`;
+          blockEl.innerHTML = handle + blockPreviewHtml(window._pageBlocks[i]);
+        }
+      }
       syncBlocksJson();
     }
+
+    function selectBlock(i) {
+      window._selectedBlock = i;
+      renderBlockEditor();
+    }
+    function builderDeselect() {
+      window._selectedBlock = null;
+      renderBlockEditor();
+    }
+    function duplicateBlock(i) {
+      const b = window._pageBlocks[i];
+      if (!b) return;
+      window._pageBlocks.splice(i + 1, 0, JSON.parse(JSON.stringify(b)));
+      window._selectedBlock = i + 1;
+      renderBlockEditor();
+    }
+
     function syncBlocksJson() {
       const ta = document.getElementById("pg-blocks");
       if (ta) ta.value = JSON.stringify(window._pageBlocks || [], null, 2);
     }
     function addPageBlock(type) {
-      const b = { type };
-      if (type === "heading") { b.text = "Heading"; b.level = 2; }
-      else if (type === "text") b.html = "<p>Your text here…</p>";
-      else if (type === "image") { b.url = ""; b.alt = ""; }
-      else if (type === "button") { b.label = "Learn more"; b.href = "#"; }
-      else if (type === "join_cta") { b.title = "Become a member"; b.body = ""; }
-      else if (type === "events_list" || type === "store_list") b.limit = 5;
-      else if (type === "html") b.html = "";
-      else if (type === "spacer") b.height = 24;
       window._pageBlocks = window._pageBlocks || [];
-      window._pageBlocks.push(b);
+      window._pageBlocks.push(defaultBlock(type));
+      window._selectedBlock = window._pageBlocks.length - 1;
       renderBlockEditor();
     }
     function removePageBlock(i) {
       window._pageBlocks.splice(i, 1);
+      window._selectedBlock = null;
       renderBlockEditor();
     }
-    function editPageBlock(i) {
-      const b = window._pageBlocks[i];
-      if (!b) return;
-      if (b.type === "heading") {
-        b.text = prompt("Heading text", b.text || "") || b.text;
-        const lv = prompt("Level 1–3", String(b.level || 2));
-        if (lv) b.level = Math.min(3, Math.max(1, Number(lv) || 2));
-      } else if (b.type === "text" || b.type === "html") {
-        b.html = prompt("HTML content", b.html || "") ?? b.html;
-      } else if (b.type === "image") {
-        b.url = prompt("Image URL", b.url || "") ?? b.url;
-        b.alt = prompt("Alt text", b.alt || "") ?? b.alt;
-      } else if (b.type === "button") {
-        b.label = prompt("Button label", b.label || "") ?? b.label;
-        b.href = prompt("Link URL", b.href || "") ?? b.href;
-      } else if (b.type === "join_cta") {
-        b.title = prompt("Title", b.title || "") ?? b.title;
-        b.body = prompt("Body", b.body || "") ?? b.body;
-      } else if (b.type === "events_list" || b.type === "store_list") {
-        const n = prompt("Limit", String(b.limit || 5));
-        if (n) b.limit = Number(n) || 5;
-      } else if (b.type === "spacer") {
-        const n = prompt("Height px", String(b.height || 24));
-        if (n) b.height = Number(n) || 24;
-      }
-      renderBlockEditor();
-    }
+
     let _dragBi = null;
-    function blockDragStart(e, i) { _dragBi = i; e.dataTransfer.effectAllowed = "move"; }
-    function blockDrop(e, i) {
+    let _dragFromPalette = null;
+
+    function paletteDragStart(e, type) {
+      _dragFromPalette = type;
+      _dragBi = null;
+      e.dataTransfer.effectAllowed = "copy";
+      e.dataTransfer.setData("text/plain", "palette:" + type);
+    }
+    function blockDragStart(e, i) {
+      _dragBi = i;
+      _dragFromPalette = null;
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", "block:" + i);
+      e.stopPropagation();
+    }
+    function blockDragOver(e) {
       e.preventDefault();
-      if (_dragBi == null || _dragBi === i) return;
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = _dragFromPalette ? "copy" : "move";
+      document.querySelectorAll(".wb-drop").forEach((el) => el.classList.remove("over"));
+      const drop = e.currentTarget.classList?.contains("wb-drop")
+        ? e.currentTarget
+        : e.currentTarget.querySelector?.(".wb-drop") || e.currentTarget;
+      if (drop && drop.classList) drop.classList.add("over");
+      if (e.currentTarget.classList?.contains("wb-drop")) e.currentTarget.classList.add("over");
+    }
+    function canvasDragOver(e) {
+      e.preventDefault();
+    }
+    function canvasDragLeave(e) {
+      if (!e.currentTarget.contains(e.relatedTarget)) {
+        document.querySelectorAll(".wb-drop.over").forEach((el) => el.classList.remove("over"));
+      }
+    }
+    function canvasDropEnd(e) {
+      // drop on empty canvas area → append
+      if (e.target.id === "wb-page" || e.target.classList?.contains("wb-canvas")) {
+        blockDropAt(e, (window._pageBlocks || []).length);
+      }
+    }
+    function blockDropAt(e, insertAt) {
+      e.preventDefault();
+      e.stopPropagation();
+      document.querySelectorAll(".wb-drop.over").forEach((el) => el.classList.remove("over"));
+      window._pageBlocks = window._pageBlocks || [];
+      if (_dragFromPalette) {
+        const b = defaultBlock(_dragFromPalette);
+        const idx = Math.max(0, Math.min(insertAt, window._pageBlocks.length));
+        window._pageBlocks.splice(idx, 0, b);
+        window._selectedBlock = idx;
+        _dragFromPalette = null;
+        renderBlockEditor();
+        return;
+      }
+      if (_dragBi == null) return;
+      let from = _dragBi;
+      let to = insertAt;
       const arr = window._pageBlocks;
-      const [item] = arr.splice(_dragBi, 1);
-      arr.splice(i, 0, item);
+      const [item] = arr.splice(from, 1);
+      if (to > from) to -= 1;
+      to = Math.max(0, Math.min(to, arr.length));
+      arr.splice(to, 0, item);
+      window._selectedBlock = to;
       _dragBi = null;
       renderBlockEditor();
     }
+    // legacy name used by older handlers
+    function blockDrop(e, i) { blockDropAt(e, i); }
+
     function resetPageForm() {
-      document.getElementById("pg-id").value = "";
-      document.getElementById("pg-title").value = "";
-      document.getElementById("pg-content").value = "";
+      const idEl = document.getElementById("pg-id");
+      if (idEl) idEl.value = "";
+      const title = document.getElementById("pg-title");
+      if (title) title.value = "";
+      const content = document.getElementById("pg-content");
+      if (content) content.value = "";
       window._pageBlocks = [];
+      window._selectedBlock = null;
       renderBlockEditor();
-      document.getElementById("pg-members").checked = false;
-      document.getElementById("pg-published").checked = true;
-      if (document.getElementById("pg-nav")) document.getElementById("pg-nav").checked = true;
-      document.getElementById("pg-form-title").textContent = "New page";
+      const mem = document.getElementById("pg-members");
+      if (mem) mem.checked = false;
+      const pub = document.getElementById("pg-published");
+      if (pub) pub.checked = true;
+      const nav = document.getElementById("pg-nav");
+      if (nav) nav.checked = true;
+      const ft = document.getElementById("pg-form-title");
+      if (ft) ft.innerHTML = `Editing: <strong>New page</strong>`;
+      document.querySelectorAll(".wb-pages-list tr").forEach((tr) => tr.classList.remove("wb-active"));
     }
     function editPage(id) {
       const p = (window._pages || []).find((x) => x.id === id);
       if (!p) return;
       document.getElementById("pg-id").value = p.id;
       document.getElementById("pg-title").value = p.title;
-      document.getElementById("pg-content").value = (JSON.parse(p.content_json || "{}").html) || "";
+      const content = document.getElementById("pg-content");
+      if (content) content.value = (JSON.parse(p.content_json || "{}").html) || "";
       try {
         window._pageBlocks = p.blocks_json ? JSON.parse(p.blocks_json) : [];
         if (!Array.isArray(window._pageBlocks)) window._pageBlocks = [];
       } catch { window._pageBlocks = []; }
+      // If only HTML content, seed a text block so canvas isn't empty
+      if (!window._pageBlocks.length && content?.value) {
+        window._pageBlocks = [{ type: "html", html: content.value }];
+      }
+      window._selectedBlock = null;
       renderBlockEditor();
       document.getElementById("pg-members").checked = !!p.is_members_only;
       document.getElementById("pg-published").checked = !!p.published;
       if (document.getElementById("pg-nav")) document.getElementById("pg-nav").checked = p.show_in_nav !== 0;
-      document.getElementById("pg-form-title").textContent = "Edit page";
+      const ft = document.getElementById("pg-form-title");
+      if (ft) ft.innerHTML = `Editing: <strong>${esc(p.title)}</strong>`;
+      document.querySelectorAll(".wb-pages-list tr").forEach((tr) => {
+        tr.classList.toggle("wb-active", tr.getAttribute("data-page-id") === p.id);
+      });
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
     async function saveSiteTheme() {
@@ -2047,31 +2318,34 @@
           body: JSON.stringify({ theme, nav }),
         });
         document.getElementById("th-msg").textContent = "Saved.";
+        const page = document.getElementById("wb-page");
+        if (page) page.style.setProperty("--brand", theme.primary);
       } catch (e) { document.getElementById("th-msg").textContent = e.message; }
     }
     async function savePage() {
       const id = document.getElementById("pg-id").value;
-      let blocks = window._pageBlocks;
-      const blocksRaw = document.getElementById("pg-blocks")?.value?.trim();
-      if (blocksRaw) {
-        try { blocks = JSON.parse(blocksRaw); window._pageBlocks = blocks; } catch (e) {
-          document.getElementById("pg-result").textContent = "Invalid blocks JSON";
-          return;
-        }
+      let blocks = window._pageBlocks || [];
+      const title = (document.getElementById("pg-title").value || "").trim();
+      if (!title) {
+        document.getElementById("pg-result").textContent = "Page title is required.";
+        return;
       }
+      // Derive plain HTML snapshot for consumers that only read content_json
+      const htmlSnapshot = blocks.map(blockPreviewHtml).join("\n");
       const payload = {
-        title: document.getElementById("pg-title").value,
-        content_html: document.getElementById("pg-content").value,
+        title,
+        content_html: document.getElementById("pg-content")?.value || htmlSnapshot,
+        blocks,
         is_members_only: document.getElementById("pg-members").checked,
         published: document.getElementById("pg-published").checked,
         show_in_nav: document.getElementById("pg-nav")?.checked !== false,
         page_type: "page",
       };
-      if (blocks && blocks.length) payload.blocks = blocks;
       const out = document.getElementById("pg-result");
       try {
         if (id) await api(`/api/tenants/${tenantId}/pages/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
         else await api(`/api/tenants/${tenantId}/pages`, { method: "POST", body: JSON.stringify(payload) });
+        out.textContent = "Saved.";
         navigate("pages");
       } catch (e) { out.textContent = e.message; }
     }
