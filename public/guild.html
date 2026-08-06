@@ -49,11 +49,15 @@
   <main>
     <div id="flash"></div>
 
+    <div id="hero"></div>
+
     <h2>Membership</h2>
     <div id="levels"><p class="muted">Loading membership levels…</p></div>
 
     <h2>Upcoming Events</h2>
     <div id="events"><p class="muted">Loading events…</p></div>
+
+    <div id="donate-section"></div>
 
     <div id="pages"></div>
   </main>
@@ -66,6 +70,7 @@
       <div><label>Last name</label><input id="su-last" /></div>
     </div>
     <label>Email</label><input id="su-email" type="email" placeholder="you@example.com" />
+    <div id="su-custom"></div>
     <div style="display:flex;gap:0.6rem;justify-content:flex-end;margin-top:1.2rem">
       <button class="secondary" onclick="document.getElementById('signup-dialog').close()">Cancel</button>
       <button id="su-submit" onclick="submitSignup()">Continue</button>
@@ -100,12 +105,41 @@
     const qs = new URLSearchParams(location.search);
     if (qs.get("registered")) flash("ok", "You're registered! Check your email for confirmation.");
     if (qs.get("joined")) flash("ok", "Welcome! Your membership is active — check your email.");
+    if (qs.get("donated")) flash("ok", "Thank you for your donation! 💛");
     if (qs.get("cancelled")) flash("err", "Checkout was cancelled. You have not been charged.");
+
+    let joinFields = [];
 
     function openSignup(title, action) {
       signupAction = action;
       $("dialog-title").textContent = title;
       $("dialog-error").classList.add("hidden");
+      // Guild-defined join questions (only on membership joins)
+      const box = $("su-custom");
+      box.replaceChildren();
+      if (action.type === "join") {
+        for (const f of joinFields) {
+          const label = el("label", "", f.label);
+          box.appendChild(label);
+          let input;
+          if (f.type === "select") {
+            input = document.createElement("select");
+            input.style.cssText = "width:100%;padding:0.55rem 0.7rem;border:1px solid #ccc;border-radius:8px;margin-top:0.4rem";
+            const blank = document.createElement("option");
+            blank.value = ""; blank.textContent = "—";
+            input.appendChild(blank);
+            for (const o of f.options || []) {
+              const opt = document.createElement("option");
+              opt.value = o; opt.textContent = o;
+              input.appendChild(opt);
+            }
+          } else {
+            input = document.createElement("input");
+          }
+          input.dataset.cfKey = f.key;
+          box.appendChild(input);
+        }
+      }
       $("signup-dialog").showModal();
     }
 
@@ -122,6 +156,11 @@
       let url;
       if (signupAction.type === "join") {
         body.level_id = signupAction.levelId;
+        const custom = {};
+        document.querySelectorAll("#su-custom [data-cf-key]").forEach((i) => {
+          if (i.value) custom[i.dataset.cfKey] = i.value;
+        });
+        if (Object.keys(custom).length) body.custom_fields = custom;
         url = `${API}/public/${slug}/join`;
       } else {
         body.name = [body.first_name, body.last_name].filter(Boolean).join(" ") || undefined;
@@ -192,15 +231,94 @@
       return card;
     }
 
+    function renderHero(info) {
+      const hero = $("hero");
+      hero.replaceChildren();
+      const p = info.profile || {};
+      if (!p.description && !p.meeting_info && !p.location) return;
+      const card = el("div", "card");
+      if (p.description) card.appendChild(el("p", "", p.description));
+      const meta = el("div", "muted");
+      const bits = [];
+      if (p.meeting_info) bits.push("🗓 " + p.meeting_info);
+      if (p.location) bits.push("📍 " + p.location);
+      meta.textContent = bits.join("  ·  ");
+      if (bits.length) card.appendChild(meta);
+      const links = el("div");
+      links.style.marginTop = "0.5rem";
+      const addLink = (href, text) => {
+        if (!href) return;
+        const a = el("a", "", text);
+        a.href = href.startsWith("http") || href.startsWith("mailto:") ? href : "https://" + href;
+        a.style.marginRight = "1rem";
+        a.style.color = "var(--accent)";
+        links.appendChild(a);
+      };
+      addLink(p.website, "Website");
+      addLink(p.facebook, "Facebook");
+      addLink(p.contact_email ? "mailto:" + p.contact_email : "", "Contact us");
+      if (links.children.length) card.appendChild(links);
+      hero.appendChild(card);
+    }
+
+    function renderDonate(info) {
+      const sec = $("donate-section");
+      sec.replaceChildren();
+      if (!info.profile || info.profile.donations_enabled === false) return;
+      sec.appendChild(el("h2", "", "Support " + info.tenant.name));
+      const card = el("div", "card row");
+      const left = el("div");
+      left.appendChild(el("div", "", "Make a one-time donation to support our programs."));
+      const right = el("div");
+      right.style.textAlign = "right";
+      const amounts = [1000, 2500, 5000];
+      for (const cents of amounts) {
+        const b = el("button", "", money(cents));
+        b.style.marginLeft = "0.5rem";
+        b.addEventListener("click", () => donate(cents));
+        right.appendChild(b);
+      }
+      const other = el("button", "secondary", "Other");
+      other.style.marginLeft = "0.5rem";
+      other.addEventListener("click", () => {
+        const v = prompt("Donation amount in dollars:");
+        const dollars = Number(v);
+        if (Number.isFinite(dollars) && dollars >= 1) donate(Math.round(dollars * 100));
+      });
+      right.appendChild(other);
+      card.append(left, right);
+      sec.appendChild(card);
+    }
+
+    async function donate(cents) {
+      try {
+        const res = await fetch(`${API}/public/${slug}/donate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ amount_cents: cents }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Something went wrong");
+        if (data.checkout_url) location.href = data.checkout_url;
+      } catch (e) {
+        flash("err", e.message);
+      }
+    }
+
     async function load() {
       try {
-        const [levelsRes, eventsRes] = await Promise.all([
+        const [levelsRes, eventsRes, infoRes] = await Promise.all([
           fetch(`${API}/public/${slug}/levels`),
           fetch(`${API}/public/${slug}/events`),
+          fetch(`${API}/public/${slug}/info`),
         ]);
         if (!levelsRes.ok) throw new Error("Guild not found");
         const levelsData = await levelsRes.json();
         const eventsData = await eventsRes.json();
+        const info = infoRes.ok ? await infoRes.json() : { tenant: levelsData.tenant, profile: {}, join_fields: [] };
+        joinFields = info.join_fields || [];
+        renderHero(info);
+        renderDonate(info);
 
         $("guild-name").textContent = levelsData.tenant.name;
         document.title = levelsData.tenant.name + " — QuiltHosting";

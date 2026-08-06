@@ -403,10 +403,11 @@
       const rows = await api(`/api/tenants/${tenantId}/payments`);
       el.innerHTML = `
         <h2>Payments</h2>
+        <div class="toolbar"><button class="secondary" onclick="exportPayments()">Export CSV</button></div>
         <div class="card">
           ${rows.length === 0 ? "<p style='color:var(--muted)'>No payments yet</p>" : `
             <table>
-              <thead><tr><th>Date</th><th>Member</th><th>Type</th><th>Description</th><th>Amount</th><th>Status</th></tr></thead>
+              <thead><tr><th>Date</th><th>Member</th><th>Type</th><th>Description</th><th>Amount</th><th>Status</th><th></th></tr></thead>
               <tbody>
                 ${rows.map((p) => `
                   <tr>
@@ -415,7 +416,8 @@
                     <td>${esc(p.type)}</td>
                     <td>${esc(p.description || "—")}</td>
                     <td>$${(p.amount_cents / 100).toFixed(2)}</td>
-                    <td><span class="badge ${p.status}">${esc(p.status)}</span></td>
+                    <td><span class="badge ${p.status === "succeeded" ? "active" : p.status}">${esc(p.status)}</span></td>
+                    <td>${p.status === "succeeded" ? `<button class="secondary" onclick='refundPayment(${JSON.stringify(p.id)}, ${p.amount_cents})'>Refund</button>` : ""}</td>
                   </tr>
                 `).join("")}
               </tbody>
@@ -423,6 +425,26 @@
           `}
         </div>
       `;
+    }
+    async function refundPayment(id, cents) {
+      if (!confirm(`Refund $${(cents / 100).toFixed(2)} to the payer? This cannot be undone.`)) return;
+      try {
+        await api(`/api/tenants/${tenantId}/payments/${id}/refund`, { method: "POST" });
+        navigate("payments");
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+    async function exportPayments() {
+      const res = await fetch(`${API}/api/tenants/${tenantId}/payments/export.csv`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const blob = await res.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "payments.csv";
+      a.click();
+      URL.revokeObjectURL(a.href);
     }
 
     async function renderMembers(el) {
@@ -476,6 +498,7 @@
             <div><label>Phone</label><input id="em-phone" /></div>
             <div><label>Notes</label><input id="em-notes" /></div>
           </div>
+          <div id="em-custom"></div>
           <button onclick="saveMember()">Save</button>
           <button class="secondary" onclick="hide(document.getElementById('edit-member-form'))">Close</button>
           <button class="secondary" style="color:var(--danger);float:right" onclick="cancelMember()">Cancel membership</button>
@@ -500,7 +523,13 @@
       window._members = members;
     }
 
-    function editMember(id) {
+    async function tenantCustomFields() {
+      if (window._settings) return window._settings.custom_fields || [];
+      const tenant = await api(`/api/tenants/${tenantId}`);
+      try { window._settings = JSON.parse(tenant.settings_json || "{}"); } catch { window._settings = {}; }
+      return window._settings.custom_fields || [];
+    }
+    async function editMember(id) {
       const m = (window._members || []).find((x) => x.id === id);
       if (!m) return;
       document.getElementById("em-id").value = m.id;
@@ -510,11 +539,45 @@
       document.getElementById("em-last").value = m.last_name || "";
       document.getElementById("em-phone").value = m.phone || "";
       document.getElementById("em-notes").value = m.notes || "";
+      // Custom fields defined by this guild
+      const box = document.getElementById("em-custom");
+      box.replaceChildren();
+      const defs = await tenantCustomFields();
+      let vals = {};
+      try { vals = JSON.parse(m.custom_fields_json || "{}"); } catch {}
+      for (const f of defs) {
+        const wrap = document.createElement("div");
+        const label = document.createElement("label");
+        label.textContent = f.label;
+        wrap.appendChild(label);
+        let input;
+        if (f.type === "select") {
+          input = document.createElement("select");
+          const blank = document.createElement("option");
+          blank.value = ""; blank.textContent = "—";
+          input.appendChild(blank);
+          for (const o of f.options || []) {
+            const opt = document.createElement("option");
+            opt.value = o; opt.textContent = o;
+            input.appendChild(opt);
+          }
+        } else {
+          input = document.createElement("input");
+        }
+        input.dataset.cfKey = f.key;
+        input.value = vals[f.key] || "";
+        wrap.appendChild(input);
+        box.appendChild(wrap);
+      }
       show(document.getElementById("edit-member-form"));
       document.getElementById("edit-member-form").scrollIntoView({ behavior: "smooth" });
     }
     async function saveMember() {
       const id = document.getElementById("em-id").value;
+      const custom = {};
+      document.querySelectorAll("#em-custom [data-cf-key]").forEach((i) => {
+        custom[i.dataset.cfKey] = i.value;
+      });
       await api(`/api/tenants/${tenantId}/members/${id}`, {
         method: "PATCH",
         body: JSON.stringify({
@@ -524,6 +587,7 @@
           last_name: document.getElementById("em-last").value || null,
           phone: document.getElementById("em-phone").value || null,
           notes: document.getElementById("em-notes").value || null,
+          custom_fields: custom,
         }),
       });
       navigate("members");
@@ -722,6 +786,7 @@
 
     async function renderEvents(el) {
       const events = await api(`/api/tenants/${tenantId}/events`);
+      window._events = events;
       el.innerHTML = `
         <h2>Events</h2>
         <div class="toolbar"><button onclick="showAddEvent()">Add Event</button></div>
@@ -741,6 +806,7 @@
             <div><label>Non-member price (cents)</label><input id="e-nmprice" type="number" value="0" /></div>
           </div>
           <label style="display:flex;align-items:center;gap:0.4rem"><input type="checkbox" id="e-waitlist" style="width:auto" /> Enable waitlist when full</label>
+          <input type="hidden" id="e-id" />
           <button onclick="addEvent()">Save</button>
           <button class="secondary" onclick="hide(document.getElementById('add-event-form'))">Cancel</button>
         </div>
@@ -756,6 +822,7 @@
                   <td>$${(e.member_price_cents / 100).toFixed(2)}</td>
                   <td>$${(e.non_member_price_cents / 100).toFixed(2)}</td>
                   <td>
+                    <button class="secondary" onclick='editEvent(${JSON.stringify(e.id)})'>Edit</button>
                     <button class="secondary" onclick='toggleRegistration(${JSON.stringify(e.id)}, ${e.registration_open ? 0 : 1})'>
                       ${e.registration_open ? "Close reg" : "Open reg"}
                     </button>
@@ -768,25 +835,53 @@
         <div id="regs-panel"></div>
       `;
     }
-    function showAddEvent() { show(document.getElementById("add-event-form")); }
+    function showAddEvent() {
+      document.getElementById("e-id").value = "";
+      show(document.getElementById("add-event-form"));
+    }
+    function editEvent(id) {
+      const e = (window._events || []).find((x) => x.id === id);
+      if (!e) return;
+      const toLocal = (iso) => {
+        if (!iso) return "";
+        const d = new Date(iso);
+        const pad = (n) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      };
+      document.getElementById("e-id").value = e.id;
+      document.getElementById("e-title").value = e.title;
+      document.getElementById("e-desc").value = e.description || "";
+      document.getElementById("e-start").value = toLocal(e.start_at);
+      document.getElementById("e-end").value = toLocal(e.end_at);
+      document.getElementById("e-location").value = e.location || "";
+      document.getElementById("e-capacity").value = e.capacity ?? "";
+      document.getElementById("e-waitlist").checked = !!e.waitlist_enabled;
+      document.getElementById("e-mprice").value = e.member_price_cents;
+      document.getElementById("e-nmprice").value = e.non_member_price_cents;
+      show(document.getElementById("add-event-form"));
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
     async function addEvent() {
+      const id = document.getElementById("e-id").value;
       const start = document.getElementById("e-start").value;
       const end = document.getElementById("e-end").value;
       const cap = document.getElementById("e-capacity").value;
-      await api(`/api/tenants/${tenantId}/events`, {
-        method: "POST",
-        body: JSON.stringify({
-          title: document.getElementById("e-title").value,
-          description: document.getElementById("e-desc").value || undefined,
-          start_at: new Date(start).toISOString(),
-          end_at: end ? new Date(end).toISOString() : undefined,
-          location: document.getElementById("e-location").value,
-          capacity: cap ? Number(cap) : undefined,
-          waitlist_enabled: document.getElementById("e-waitlist").checked ? 1 : 0,
-          member_price_cents: Number(document.getElementById("e-mprice").value),
-          non_member_price_cents: Number(document.getElementById("e-nmprice").value),
-        }),
-      });
+      const payload = {
+        title: document.getElementById("e-title").value,
+        description: document.getElementById("e-desc").value || undefined,
+        start_at: start ? new Date(start).toISOString() : undefined,
+        end_at: end ? new Date(end).toISOString() : undefined,
+        location: document.getElementById("e-location").value,
+        capacity: cap ? Number(cap) : undefined,
+        waitlist_enabled: document.getElementById("e-waitlist").checked ? 1 : 0,
+        member_price_cents: Number(document.getElementById("e-mprice").value),
+        non_member_price_cents: Number(document.getElementById("e-nmprice").value),
+      };
+      if (id) {
+        await api(`/api/tenants/${tenantId}/events/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+      } else {
+        await api(`/api/tenants/${tenantId}/events`, { method: "POST", body: JSON.stringify(payload) });
+      }
       navigate("events");
     }
     async function viewRegistrations(eventId) {
@@ -872,6 +967,9 @@
           </div>
           <label>Message</label>
           <textarea id="c-body" rows="8" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px;font:inherit"></textarea>
+          <label style="display:flex;align-items:center;gap:0.4rem;margin-top:0.4rem">
+            <input type="checkbox" id="c-html" style="width:auto" /> Message is HTML
+          </label>
           <button onclick="sendBlast()" style="margin-top:0.5rem">Send</button>
           <span id="c-result" style="margin-left:0.75rem;color:var(--muted)"></span>
         </div>
@@ -904,9 +1002,14 @@
       if (!confirm(`Send "${subject}" to ${segment} members?`)) return;
       out.textContent = "Sending…";
       try {
+        const isHtml = document.getElementById("c-html").checked;
         const r = await api(`/api/tenants/${tenantId}/emails`, {
           method: "POST",
-          body: JSON.stringify({ subject, body_text: text, segment }),
+          body: JSON.stringify(
+            isHtml
+              ? { subject, body_html: text, segment }
+              : { subject, body_text: text, segment }
+          ),
         });
         out.textContent = `Sent to ${r.sent} of ${r.recipients} recipients.`;
       } catch (e) {
@@ -1117,7 +1220,12 @@
       navigate("files");
     }
 
-    function renderSettings(el) {
+    async function renderSettings(el) {
+      const tenant = await api(`/api/tenants/${tenantId}`);
+      let settings = {};
+      try { settings = JSON.parse(tenant.settings_json || "{}"); } catch {}
+      const prof = settings.profile || {};
+      window._settings = settings;
       el.innerHTML = `
         <h2>Settings</h2>
         <div class="card">
@@ -1126,6 +1234,50 @@
           <input id="set-name" value="${esc(tenantName || "")}" style="max-width:320px" />
           <button onclick="saveTenantName()" style="margin-top:0.5rem">Save</button>
           <span id="set-saved" class="hidden" style="color:var(--success);margin-left:0.5rem">Saved ✓</span>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:0.75rem">Public profile</h3>
+          <p style="color:var(--muted);font-size:0.85rem;margin-bottom:0.5rem">Shown on your public guild page.</p>
+          <label>About your guild</label>
+          <textarea id="prof-desc" rows="3" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px;font:inherit">${esc(prof.description || "")}</textarea>
+          <div class="form-row">
+            <div><label>Meeting info</label><input id="prof-meeting" value="${esc(prof.meeting_info || "")}" placeholder="2nd Tuesday, 6:30pm, Community Center" /></div>
+            <div><label>Location (city, state)</label><input id="prof-location" value="${esc(prof.location || "")}" placeholder="Cedar Falls, IA" /></div>
+          </div>
+          <div class="form-row">
+            <div><label>Contact email</label><input id="prof-contact" value="${esc(prof.contact_email || "")}" /></div>
+            <div><label>Website</label><input id="prof-website" value="${esc(prof.website || "")}" placeholder="https://…" /></div>
+          </div>
+          <div class="form-row">
+            <div><label>Facebook</label><input id="prof-facebook" value="${esc(prof.facebook || "")}" placeholder="https://facebook.com/…" /></div>
+            <div style="display:flex;align-items:end;padding-bottom:0.4rem">
+              <label style="display:flex;align-items:center;gap:0.4rem;margin:0">
+                <input type="checkbox" id="prof-donations" style="width:auto" ${prof.donations_enabled !== false ? "checked" : ""} /> Accept donations
+              </label>
+            </div>
+          </div>
+          <button onclick="saveProfile()" style="margin-top:0.5rem">Save profile</button>
+          <span id="prof-saved" class="hidden" style="color:var(--success);margin-left:0.5rem">Saved ✓</span>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:0.75rem">Custom member fields</h3>
+          <p style="color:var(--muted);font-size:0.85rem;margin-bottom:0.5rem">Extra questions on your join form and member records (e.g. "Years quilting", "Longarm owner?").</p>
+          <div id="cf-list"></div>
+          <div class="form-row" style="margin-top:0.75rem">
+            <div><label>Field label</label><input id="cf-label" placeholder="Years quilting" /></div>
+            <div><label>Type</label>
+              <select id="cf-type"><option value="text">Text</option><option value="select">Dropdown</option></select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div><label>Dropdown options (comma-separated)</label><input id="cf-options" placeholder="0-5, 5-10, 10+" /></div>
+            <div style="display:flex;align-items:end;padding-bottom:0.4rem">
+              <label style="display:flex;align-items:center;gap:0.4rem;margin:0">
+                <input type="checkbox" id="cf-join" checked style="width:auto" /> Ask on join form
+              </label>
+            </div>
+          </div>
+          <button onclick="addCustomField()">Add field</button>
         </div>
         <div class="card">
           <h3 style="margin-bottom:0.75rem">Public guild page</h3>
@@ -1139,6 +1291,7 @@
           </p>
         </div>
       `;
+      renderCustomFieldList();
     }
     async function saveTenantName() {
       const name = document.getElementById("set-name").value.trim();
@@ -1152,6 +1305,76 @@
       document.getElementById("tenant-label").textContent = t.name;
       show(document.getElementById("set-saved"));
       setTimeout(() => hide(document.getElementById("set-saved")), 2000);
+    }
+    async function saveSettings() {
+      await api(`/api/tenants/${tenantId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ settings: window._settings }),
+      });
+    }
+    async function saveProfile() {
+      window._settings.profile = {
+        description: document.getElementById("prof-desc").value.trim(),
+        meeting_info: document.getElementById("prof-meeting").value.trim(),
+        location: document.getElementById("prof-location").value.trim(),
+        contact_email: document.getElementById("prof-contact").value.trim(),
+        website: document.getElementById("prof-website").value.trim(),
+        facebook: document.getElementById("prof-facebook").value.trim(),
+        donations_enabled: document.getElementById("prof-donations").checked,
+      };
+      await saveSettings();
+      show(document.getElementById("prof-saved"));
+      setTimeout(() => hide(document.getElementById("prof-saved")), 2000);
+    }
+    function renderCustomFieldList() {
+      const list = document.getElementById("cf-list");
+      const fields = window._settings.custom_fields || [];
+      list.replaceChildren();
+      if (!fields.length) {
+        const p = document.createElement("p");
+        p.style.color = "var(--muted)";
+        p.textContent = "No custom fields yet.";
+        list.appendChild(p);
+        return;
+      }
+      for (const f of fields) {
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex;justify-content:space-between;align-items:center;padding:0.4rem 0;border-bottom:1px solid var(--border)";
+        const label = document.createElement("span");
+        label.textContent = `${f.label} (${f.type}${f.show_on_join ? ", on join form" : ""})`;
+        const del = document.createElement("button");
+        del.className = "secondary";
+        del.textContent = "Remove";
+        del.addEventListener("click", async () => {
+          window._settings.custom_fields = fields.filter((x) => x.key !== f.key);
+          await saveSettings();
+          renderCustomFieldList();
+        });
+        row.append(label, del);
+        list.appendChild(row);
+      }
+    }
+    async function addCustomField() {
+      const label = document.getElementById("cf-label").value.trim();
+      if (!label) return;
+      const type = document.getElementById("cf-type").value;
+      const options = document.getElementById("cf-options").value
+        .split(",").map((s) => s.trim()).filter(Boolean);
+      const key = label.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+      if (!key) return;
+      window._settings.custom_fields = window._settings.custom_fields || [];
+      if (window._settings.custom_fields.some((f) => f.key === key)) {
+        alert("A field with that name already exists."); return;
+      }
+      window._settings.custom_fields.push({
+        key, label, type,
+        options: type === "select" ? options : undefined,
+        show_on_join: document.getElementById("cf-join").checked,
+      });
+      await saveSettings();
+      document.getElementById("cf-label").value = "";
+      document.getElementById("cf-options").value = "";
+      renderCustomFieldList();
     }
     function switchTenant() {
       enterApp(true);

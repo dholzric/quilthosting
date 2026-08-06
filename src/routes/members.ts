@@ -126,6 +126,7 @@ memberRoutes.patch("/:memberId", async (c) => {
     phone?: string | null;
     status?: string;
     notes?: string | null;
+    custom_fields?: Record<string, string>;
   }>();
 
   const existing = await first<Member>(
@@ -157,6 +158,12 @@ memberRoutes.patch("/:memberId", async (c) => {
       fields.push(`${key} = ?`);
       params.push(body[key]);
     }
+  }
+  if (body.custom_fields && typeof body.custom_fields === "object") {
+    let current: Record<string, string> = {};
+    try { current = JSON.parse(existing.custom_fields_json || "{}"); } catch {}
+    fields.push("custom_fields_json = ?");
+    params.push(JSON.stringify({ ...current, ...body.custom_fields }));
   }
   if (!fields.length) return c.json({ error: "No fields to update" }, 400);
 

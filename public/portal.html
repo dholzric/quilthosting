@@ -549,9 +549,39 @@
             <input id="p-phone" value="${esc(m.phone || "")}" />
             <label>Email</label>
             <input value="${esc(m.email)}" disabled />
+            <div id="p-custom"></div>
             <button onclick="saveProfile()" style="margin-top:0.5rem">Save</button>
             <span id="profile-msg" class="muted" style="margin-left:0.75rem"></span>
           </div>`;
+        // Guild-defined fields
+        try {
+          const info = await (await fetch(`${API}/public/${slug}/info`)).json();
+          const box = document.getElementById("p-custom");
+          let vals = {};
+          try { vals = JSON.parse(m.custom_fields_json || "{}"); } catch {}
+          for (const f of info.join_fields || []) {
+            const label = document.createElement("label");
+            label.textContent = f.label;
+            box.appendChild(label);
+            let input;
+            if (f.type === "select") {
+              input = document.createElement("select");
+              const blank = document.createElement("option");
+              blank.value = ""; blank.textContent = "—";
+              input.appendChild(blank);
+              for (const o of f.options || []) {
+                const opt = document.createElement("option");
+                opt.value = o; opt.textContent = o;
+                input.appendChild(opt);
+              }
+            } else {
+              input = document.createElement("input");
+            }
+            input.dataset.cfKey = f.key;
+            input.value = vals[f.key] || "";
+            box.appendChild(input);
+          }
+        } catch {}
       } catch (e) {
         el.innerHTML = `<p class="error">${esc(e.message)}</p>`;
       }
@@ -559,12 +589,17 @@
 
     async function saveProfile() {
       try {
+        const custom = {};
+        document.querySelectorAll("#p-custom [data-cf-key]").forEach((i) => {
+          custom[i.dataset.cfKey] = i.value;
+        });
         await api(`/api/portal/${slug}/profile`, {
           method: "PATCH",
           body: JSON.stringify({
             first_name: document.getElementById("p-first").value,
             last_name: document.getElementById("p-last").value,
             phone: document.getElementById("p-phone").value,
+            custom_fields: custom,
           }),
         });
         document.getElementById("profile-msg").textContent = "Saved.";

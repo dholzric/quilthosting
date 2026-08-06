@@ -280,6 +280,7 @@ portalRoutes.patch("/:slug/profile", async (c) => {
     first_name?: string;
     last_name?: string;
     phone?: string;
+    custom_fields?: Record<string, string>;
   }>();
 
   const member = await first<Member>(
@@ -289,12 +290,20 @@ portalRoutes.patch("/:slug/profile", async (c) => {
   );
   if (!member) return c.json({ error: "Not a member" }, 404);
 
+  let customJson: string | null = null;
+  if (body.custom_fields && typeof body.custom_fields === "object") {
+    let current: Record<string, string> = {};
+    try { current = JSON.parse(member.custom_fields_json || "{}"); } catch {}
+    customJson = JSON.stringify({ ...current, ...body.custom_fields });
+  }
+
   const now = new Date().toISOString();
   await c.env.DB.prepare(
     `UPDATE members SET
        first_name = coalesce(?, first_name),
        last_name = coalesce(?, last_name),
        phone = coalesce(?, phone),
+       custom_fields_json = coalesce(?, custom_fields_json),
        updated_at = ?
      WHERE id = ?`
   )
@@ -302,6 +311,7 @@ portalRoutes.patch("/:slug/profile", async (c) => {
       body.first_name ?? null,
       body.last_name ?? null,
       body.phone ?? null,
+      customJson,
       now,
       member.id
     )

@@ -45,7 +45,7 @@ app.get("/", (c) => {
   }
   return c.json({
     name: "QuiltHosting API",
-    version: "0.8.0",
+    version: "0.9.0",
     status: "ok",
     environment: c.env.ENVIRONMENT,
     admin: "/admin",

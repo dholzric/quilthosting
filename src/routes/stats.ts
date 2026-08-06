@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Env, TenantVariables } from "../types";
 import { all, first } from "../lib/db";
+import { stripeRequest } from "../lib/stripe";
 
 export const statsRoutes = new Hono<{
   Bindings: Env;
@@ -104,4 +105,80 @@ paymentRoutes.get("/", async (c) => {
     ).bind(tenant.id, limit)
   );
   return c.json(rows);
+});
+
+// GET /api/tenants/:tenantId/payments/export.csv — bookkeeping export
+paymentRoutes.get("/export.csv", async (c) => {
+  const tenant = c.get("tenant");
+  const rows = await all<Record<string, unknown>>(
+    c.env.DB.prepare(
+      `SELECT p.created_at, p.type, p.description, p.amount_cents, p.currency,
+              p.status, p.stripe_payment_intent_id,
+              m.email member_email, m.first_name, m.last_name
+       FROM payments p LEFT JOIN members m ON m.id = p.member_id
+       WHERE p.tenant_id = ? ORDER BY p.created_at`
+    ).bind(tenant.id)
+  );
+  const cell = (v: unknown) => {
+    const s = v == null ? "" : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const header = "date,type,description,amount,currency,status,member_email,member_name,stripe_id";
+  const lines = rows.map((r) =>
+    [
+      String(r.created_at).slice(0, 10),
+      r.type,
+      r.description,
+      ((r.amount_cents as number) / 100).toFixed(2),
+      r.currency,
+      r.status,
+      r.member_email,
+      [r.first_name, r.last_name].filter(Boolean).join(" "),
+      r.stripe_payment_intent_id,
+    ]
+      .map(cell)
+      .join(",")
+  );
+  return new Response([header, ...lines].join("\n"), {
+    headers: {
+      "Content-Type": "text/csv",
+      "Content-Disposition": 'attachment; filename="payments.csv"',
+    },
+  });
+});
+
+// POST /api/tenants/:tenantId/payments/:paymentId/refund
+paymentRoutes.post("/:paymentId/refund", async (c) => {
+  const tenant = c.get("tenant");
+  const paymentId = c.req.param("paymentId");
+  const payment = await first<{
+    id: string;
+    status: string;
+    stripe_payment_intent_id: string | null;
+    amount_cents: number;
+  }>(
+    c.env.DB.prepare(
+      "SELECT id, status, stripe_payment_intent_id, amount_cents FROM payments WHERE id = ? AND tenant_id = ?"
+    ).bind(paymentId, tenant.id)
+  );
+  if (!payment) return c.json({ error: "Payment not found" }, 404);
+  if (payment.status !== "succeeded") {
+    return c.json({ error: `Cannot refund a ${payment.status} payment` }, 400);
+  }
+  if (!payment.stripe_payment_intent_id || !payment.stripe_payment_intent_id.startsWith("pi_")) {
+    return c.json({ error: "No Stripe payment behind this record" }, 400);
+  }
+  try {
+    await stripeRequest(c.env, "POST", "/refunds", {
+      payment_intent: payment.stripe_payment_intent_id,
+    });
+  } catch (e: any) {
+    return c.json({ error: e.message || "Stripe refund failed" }, 502);
+  }
+  await c.env.DB.prepare(
+    "UPDATE payments SET status = 'refunded', updated_at = ? WHERE id = ?"
+  )
+    .bind(new Date().toISOString(), paymentId)
+    .run();
+  return c.json({ ok: true, refunded_cents: payment.amount_cents });
 });

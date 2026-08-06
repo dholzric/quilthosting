@@ -103,7 +103,23 @@ publicRoutes.post("/:slug/join", async (c) => {
     email: string;
     first_name?: string;
     last_name?: string;
+    custom_fields?: Record<string, string>;
   }>();
+
+  // Only keep answers for fields this guild actually defined
+  let customJson = "{}";
+  if (body.custom_fields && typeof body.custom_fields === "object") {
+    let settings: any = {};
+    try { settings = JSON.parse(tenant.settings_json || "{}"); } catch {}
+    const allowed = new Set(
+      (settings.custom_fields || []).map((f: any) => f && f.key).filter(Boolean)
+    );
+    const filtered: Record<string, string> = {};
+    for (const [k, v] of Object.entries(body.custom_fields)) {
+      if (allowed.has(k) && typeof v === "string") filtered[k] = v.slice(0, 500);
+    }
+    customJson = JSON.stringify(filtered);
+  }
 
   if (!body.level_id || !body.email) {
     return c.json({ error: "level_id and email are required" }, 400);
@@ -133,8 +149,8 @@ publicRoutes.post("/:slug/join", async (c) => {
     const memberId = generateId();
     await c.env.DB.prepare(
       `INSERT INTO members
-       (id, tenant_id, email, first_name, last_name, status, joined_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)`
+       (id, tenant_id, email, first_name, last_name, custom_fields_json, status, joined_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)`
     )
       .bind(
         memberId,
@@ -142,6 +158,7 @@ publicRoutes.post("/:slug/join", async (c) => {
         email,
         body.first_name ?? null,
         body.last_name ?? null,
+        customJson,
         now,
         now,
         now
@@ -151,6 +168,14 @@ publicRoutes.post("/:slug/join", async (c) => {
     member = await first<Member>(
       c.env.DB.prepare("SELECT * FROM members WHERE id = ?").bind(memberId)
     );
+  } else if (customJson !== "{}") {
+    let current: Record<string, string> = {};
+    try { current = JSON.parse(member.custom_fields_json || "{}"); } catch {}
+    await c.env.DB.prepare(
+      "UPDATE members SET custom_fields_json = ?, updated_at = ? WHERE id = ?"
+    )
+      .bind(JSON.stringify({ ...current, ...JSON.parse(customJson) }), now, member.id)
+      .run();
   }
 
   if (!member) {
@@ -463,5 +488,81 @@ publicRoutes.get("/:slug/pages", async (c) => {
       title: p.title,
       html: (JSON.parse(p.content_json || "{}").html as string) || "",
     })),
+  });
+});
+
+/**
+ * POST /public/:slug/donate — one-off donation via Stripe Checkout
+ */
+publicRoutes.post("/:slug/donate", async (c) => {
+  const slug = c.req.param("slug");
+  const tenant = await getTenantBySlug(c.env.DB, slug);
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  const body = await c.req.json<{ amount_cents: number; email?: string; name?: string }>();
+  const amount = Math.floor(Number(body.amount_cents));
+  if (!Number.isFinite(amount) || amount < 100 || amount > 1000000) {
+    return c.json({ error: "Amount must be between $1 and $10,000" }, 400);
+  }
+  if (!c.env.STRIPE_SECRET_KEY) {
+    return c.json({ error: "Payments not configured" }, 503);
+  }
+  const email = (body.email || "").toLowerCase().trim();
+  let memberId: string | undefined;
+  if (email) {
+    const member = await first<{ id: string }>(
+      c.env.DB.prepare(
+        "SELECT id FROM members WHERE tenant_id = ? AND email = ?"
+      ).bind(tenant.id, email)
+    );
+    memberId = member?.id;
+  }
+  const baseUrl = c.env.APP_URL || "http://localhost:8787";
+  let session;
+  try {
+    session = await createCheckoutSession(c.env, {
+      tenantId: tenant.id,
+      tenantSlug: tenant.slug,
+      memberId,
+      email: email || "donor@example.com",
+      name: body.name,
+      amountCents: amount,
+      description: `Donation to ${tenant.name}`,
+      type: "donation",
+      successUrl: `${baseUrl}/g/${tenant.slug}?donated=1`,
+      cancelUrl: `${baseUrl}/g/${tenant.slug}?cancelled=1`,
+      mode: "payment",
+    });
+  } catch (err) {
+    console.error("Donation checkout failed", err);
+    return c.json({ error: "Payment session could not be created" }, 502);
+  }
+  return c.json({ status: "checkout", checkout_url: session.url });
+});
+
+/**
+ * GET /public/:slug/info — guild profile for the public page:
+ * description, contact, links, join custom fields.
+ */
+publicRoutes.get("/:slug/info", async (c) => {
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  let settings: any = {};
+  try { settings = JSON.parse(tenant.settings_json || "{}"); } catch {}
+  const profile = settings.profile || {};
+  const joinFields = (settings.custom_fields || []).filter(
+    (f: any) => f && f.key && f.show_on_join
+  );
+  return c.json({
+    tenant: { name: tenant.name, slug: tenant.slug },
+    profile: {
+      description: profile.description || "",
+      contact_email: profile.contact_email || "",
+      location: profile.location || "",
+      website: profile.website || "",
+      facebook: profile.facebook || "",
+      meeting_info: profile.meeting_info || "",
+      donations_enabled: profile.donations_enabled !== false,
+    },
+    join_fields: joinFields,
   });
 });
