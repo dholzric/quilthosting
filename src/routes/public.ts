@@ -87,17 +87,36 @@ publicRoutes.get("/:slug/events", async (c) => {
   const tenant = await getTenantBySlug(c.env.DB, slug);
   if (!tenant) return c.json({ error: "Guild not found" }, 404);
 
-  const events = await all<Event>(
-    c.env.DB.prepare(
-      `SELECT id, title, description, location, start_at, end_at,
-              member_price_cents, non_member_price_cents, capacity, registration_open,
-              settings_json
-       FROM events
-       WHERE tenant_id = ? AND is_public = 1 AND start_at >= datetime('now')
-       ORDER BY start_at ASC
-       LIMIT 50`
-    ).bind(tenant.id)
-  );
+  // ?month=YYYY-MM returns that whole month (for calendar views);
+  // default stays "next 50 upcoming".
+  const month = c.req.query("month");
+  let events: Event[];
+  if (month && /^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+    events = await all<Event>(
+      c.env.DB.prepare(
+        `SELECT id, title, description, location, start_at, end_at,
+                member_price_cents, non_member_price_cents, capacity, registration_open,
+                settings_json
+         FROM events
+         WHERE tenant_id = ? AND is_public = 1
+           AND substr(start_at, 1, 7) = ?
+         ORDER BY start_at ASC
+         LIMIT 200`
+      ).bind(tenant.id, month)
+    );
+  } else {
+    events = await all<Event>(
+      c.env.DB.prepare(
+        `SELECT id, title, description, location, start_at, end_at,
+                member_price_cents, non_member_price_cents, capacity, registration_open,
+                settings_json
+         FROM events
+         WHERE tenant_id = ? AND is_public = 1 AND start_at >= datetime('now')
+         ORDER BY start_at ASC
+         LIMIT 50`
+      ).bind(tenant.id)
+    );
+  }
 
   return c.json({
     tenant: { name: tenant.name, slug: tenant.slug },

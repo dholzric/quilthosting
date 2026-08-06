@@ -68,8 +68,13 @@
       <div id="levels-page"></div>
     </div>
     <div id="view-events" class="view-hidden">
-      <h2>Upcoming Events</h2>
+      <h2>Events</h2>
+      <div class="qh-view-toggle">
+        <button id="ev-toggle-list" class="on" onclick="setEventsMode('list')">List</button>
+        <button id="ev-toggle-cal" onclick="setEventsMode('calendar')">Calendar</button>
+      </div>
       <div id="events-page"></div>
+      <div id="events-calendar" class="hidden"></div>
     </div>
 
     <!-- CMS content page -->
@@ -102,6 +107,7 @@
     </div>
   </dialog>
 
+  <script src="/qh-cal.js"></script>
   <script>
     // Multi-page guild public site.
     // Paths: /g/:tenantSlug[/pageSlug]  or custom-domain /[/pageSlug]
@@ -195,6 +201,7 @@
         const src = $("events");
         const dst = $("events-page");
         if (src && dst) dst.replaceChildren(...Array.from(src.childNodes).map((n) => n.cloneNode(true)));
+        setEventsMode(p === "calendar" ? "calendar" : "list");
         return;
       }
       const page = pagesBySlug[p] || pagesBySlug[pageSlug];
@@ -206,6 +213,52 @@
       $("page-body").innerHTML = page.html || "";
       document.title = (page.title || "Page") + " — " + (document.getElementById("guild-name")?.textContent || "Guild");
       showView("view-page");
+    }
+
+    // --- Events calendar ---
+    let calCursor = null; // {y, m}
+    function setEventsMode(mode) {
+      const listBtn = $("ev-toggle-list"), calBtn = $("ev-toggle-cal");
+      const listEl = $("events-page"), calEl = $("events-calendar");
+      if (!listBtn) return;
+      if (mode === "calendar") {
+        listBtn.classList.remove("on"); calBtn.classList.add("on");
+        listEl.classList.add("hidden"); calEl.classList.remove("hidden");
+        if (!calCursor) {
+          const now = new Date();
+          calCursor = { y: now.getFullYear(), m: now.getMonth() + 1 };
+        }
+        drawCalendar();
+      } else {
+        calBtn.classList.remove("on"); listBtn.classList.add("on");
+        calEl.classList.add("hidden"); listEl.classList.remove("hidden");
+      }
+    }
+    async function drawCalendar() {
+      const calEl = $("events-calendar");
+      const { y, m } = calCursor;
+      let events = [];
+      try {
+        const res = await fetch(`${API}/public/${slug}/events?month=${y}-${String(m).padStart(2, "0")}`);
+        const data = await res.json();
+        events = data.events || [];
+      } catch {}
+      qhRenderCalendar(calEl, {
+        year: y,
+        month: m,
+        events,
+        onEventClick: (ev) => {
+          if (ev.registration_open) {
+            openSignup("Register — " + ev.title, { type: "event", eventId: ev.id, questions: ev.questions || [] });
+          } else {
+            flash("err", ev.title + " — registration is closed.");
+          }
+        },
+        onMonthChange: (ny, nm) => {
+          calCursor = { y: ny, m: nm };
+          drawCalendar();
+        },
+      });
     }
 
     const qs = new URLSearchParams(location.search);

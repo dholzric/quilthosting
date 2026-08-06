@@ -73,6 +73,7 @@
     </div>
   </div>
 
+  <script src="/qh-cal.js"></script>
   <script>
     const API = window.location.origin.includes("8787") || window.location.protocol === "file:"
       ? (localStorage.getItem("gb_api") || "http://localhost:8787")
@@ -521,6 +522,41 @@
       }
     }
 
+    let pCalCursor = null;
+    function portalEventsMode(mode) {
+      const list = document.getElementById("p-ev-list");
+      const cal = document.getElementById("p-ev-cal");
+      const lb = document.getElementById("p-ev-toggle-list");
+      const cb = document.getElementById("p-ev-toggle-cal");
+      if (!list) return;
+      if (mode === "calendar") {
+        lb.classList.remove("on"); cb.classList.add("on");
+        list.classList.add("hidden"); cal.classList.remove("hidden");
+        if (!pCalCursor) {
+          const now = new Date();
+          pCalCursor = { y: now.getFullYear(), m: now.getMonth() + 1 };
+        }
+        drawPortalCalendar();
+      } else {
+        cb.classList.remove("on"); lb.classList.add("on");
+        cal.classList.add("hidden"); list.classList.remove("hidden");
+      }
+    }
+    async function drawPortalCalendar() {
+      const cal = document.getElementById("p-ev-cal");
+      const { y, m } = pCalCursor;
+      let events = [];
+      try {
+        const res = await fetch(`${API}/public/${slug}/events?month=${y}-${String(m).padStart(2, "0")}`);
+        events = (await res.json()).events || [];
+      } catch {}
+      qhRenderCalendar(cal, {
+        year: y, month: m, events,
+        onEventClick: (ev) => { portalEventsMode("list"); },
+        onMonthChange: (ny, nm) => { pCalCursor = { y: ny, m: nm }; drawPortalCalendar(); },
+      });
+    }
+
     async function loadEvents() {
       const el = document.getElementById("tab-events");
       el.innerHTML = "<p class='muted'>Loading…</p>";
@@ -535,6 +571,14 @@
           return;
         }
         el.innerHTML = `
+          <div class="qh-view-toggle">
+            <button id="p-ev-toggle-list" class="on" onclick="portalEventsMode('list')">List</button>
+            <button id="p-ev-toggle-cal" onclick="portalEventsMode('calendar')">Calendar</button>
+          </div>
+          <div id="p-ev-list"></div>
+          <div id="p-ev-cal" class="hidden"></div>`;
+        const el2 = document.getElementById("p-ev-list");
+        el2.innerHTML = `
           <div class="card">
             <h2>Upcoming events</h2>
             ${data.events.map((e) => {

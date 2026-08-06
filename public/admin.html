@@ -104,6 +104,7 @@
     </main>
   </div>
 
+  <script src="/qh-cal.js"></script>
   <script>
     const API = window.location.origin;
     let token = localStorage.getItem("gb_token");
@@ -1191,7 +1192,14 @@
       window._events = events;
       el.innerHTML = `
         <h2>Events</h2>
-        <div class="toolbar"><button onclick="showAddEvent()">Add Event</button></div>
+        <div class="toolbar">
+          <button onclick="showAddEvent()">Add Event</button>
+          <span class="qh-view-toggle" style="margin-bottom:0">
+            <button id="a-ev-toggle-list" class="on" onclick="adminEventsMode('list')">List</button>
+            <button id="a-ev-toggle-cal" onclick="adminEventsMode('calendar')">Calendar</button>
+          </span>
+        </div>
+        <div id="a-ev-cal" class="hidden"></div>
         <div id="add-event-form" class="card hidden">
           <label>Title</label><input id="e-title" />
           <label>Description</label><input id="e-desc" placeholder="What to bring, who it's for…" />
@@ -1218,6 +1226,7 @@
           <button onclick="addEvent()" style="margin-top:0.75rem">Save</button>
           <button class="secondary" onclick="hide(document.getElementById('add-event-form'))">Cancel</button>
         </div>
+        <div id="a-ev-list">
         <div class="card">
           <table>
             <thead><tr><th>Title</th><th>Date</th><th>Location</th><th>Member $</th><th>Public $</th><th></th></tr></thead>
@@ -1241,8 +1250,39 @@
             </tbody>
           </table>
         </div>
+        </div>
         <div id="regs-panel"></div>
       `;
+    }
+    let aCalCursor = null;
+    function adminEventsMode(mode) {
+      const list = document.getElementById("a-ev-list");
+      const cal = document.getElementById("a-ev-cal");
+      const lb = document.getElementById("a-ev-toggle-list");
+      const cb = document.getElementById("a-ev-toggle-cal");
+      if (!list) return;
+      if (mode === "calendar") {
+        lb.classList.remove("on"); cb.classList.add("on");
+        list.classList.add("hidden"); cal.classList.remove("hidden");
+        if (!aCalCursor) {
+          const now = new Date();
+          aCalCursor = { y: now.getFullYear(), m: now.getMonth() + 1 };
+        }
+        drawAdminCalendar();
+      } else {
+        cb.classList.remove("on"); lb.classList.add("on");
+        cal.classList.add("hidden"); list.classList.remove("hidden");
+      }
+    }
+    function drawAdminCalendar() {
+      const cal = document.getElementById("a-ev-cal");
+      const { y, m } = aCalCursor;
+      qhRenderCalendar(cal, {
+        year: y, month: m,
+        events: window._events || [],
+        onEventClick: (ev) => { adminEventsMode("list"); viewRegistrations(ev.id); },
+        onMonthChange: (ny, nm) => { aCalCursor = { y: ny, m: nm }; drawAdminCalendar(); },
+      });
     }
     function showAddEvent() {
       document.getElementById("e-id").value = "";
