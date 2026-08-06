@@ -74,6 +74,7 @@
     <aside class="sidebar">
       <h1><a href="/" style="color:inherit;text-decoration:none"><span class="thread">✦</span> QuiltHosting</a></h1>
       <nav>
+        <a href="#" data-page="platform" id="nav-platform" class="hidden" style="font-weight:600;color:var(--brand)">Platform</a>
         <a href="#" data-page="dashboard" class="active">Dashboard</a>
         <a href="#" data-page="members">Members</a>
         <a href="#" data-page="levels">Levels</a>
@@ -95,7 +96,8 @@
         <a href="#" data-page="team">Team</a>
         <a href="#" data-page="settings">Settings</a>
       </nav>
-      <div class="guild-tag" id="tenant-label"></div>
+      <div class="guild-tag" id="tenant-label" title="Click to switch guild" style="cursor:pointer" onclick="switchTenant()"></div>
+      <p id="platform-badge" class="hidden" style="font-size:0.7rem;color:var(--brand);margin:0.35rem 0.75rem 0;letter-spacing:0.02em">PLATFORM ADMIN</p>
     </aside>
     <main class="main">
       <div id="page-content"></div>
@@ -109,6 +111,7 @@
     let tenantSlug = localStorage.getItem("gb_tenant_slug") || "";
     let tenantName = localStorage.getItem("gb_tenant_name") || "";
     let tenantRole = localStorage.getItem("gb_tenant_role") || "admin";
+    let isPlatformAdmin = localStorage.getItem("gb_platform_admin") === "1";
 
     async function api(path, opts = {}) {
       const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
@@ -157,22 +160,45 @@
     }
     function applyRoleNav() {
       const role = tenantRole || "admin";
-      // viewer: dashboard + members + events view; membership: + levels; events role: events; owner/admin: all
+      // viewer: dashboard + members + events view; membership: + levels; events role: events; owner/admin/platform: all
       const map = {
         viewer: ["dashboard", "members", "events", "pages"],
         membership: ["dashboard", "members", "levels", "store", "payments", "comms", "pages", "settings"],
         events: ["dashboard", "members", "events", "comms", "pages", "settings"],
         admin: null,
         owner: null,
+        platform: null,
       };
       const allowed = map[role] === undefined ? null : map[role];
       document.querySelectorAll(".sidebar nav a[data-page]").forEach((a) => {
+        if (a.dataset.page === "platform") {
+          a.style.display = isPlatformAdmin ? "" : "none";
+          a.classList.toggle("hidden", !isPlatformAdmin);
+          return;
+        }
         if (!allowed) {
           a.style.display = "";
           return;
         }
         a.style.display = allowed.includes(a.dataset.page) ? "" : "none";
       });
+      const badge = document.getElementById("platform-badge");
+      if (badge) {
+        if (isPlatformAdmin) show(badge);
+        else hide(badge);
+      }
+    }
+
+    async function refreshPlatformFlag() {
+      try {
+        const me = await api("/api/auth/me");
+        isPlatformAdmin = !!(me.user && me.user.is_platform_admin);
+        localStorage.setItem("gb_platform_admin", isPlatformAdmin ? "1" : "0");
+      } catch {
+        isPlatformAdmin = false;
+        localStorage.removeItem("gb_platform_admin");
+      }
+      applyRoleNav();
     }
 
     // After sign-in: auto-select the only guild, or show a picker /
@@ -180,20 +206,47 @@
     async function enterApp(forcePicker = false) {
       hide(document.getElementById("login-view"));
       hide(document.getElementById("app-view"));
+      await refreshPlatformFlag();
       let guilds = [];
       try {
         const data = await api("/api/tenants");
         guilds = data.tenants || [];
+        if (data.platform_admin) {
+          isPlatformAdmin = true;
+          localStorage.setItem("gb_platform_admin", "1");
+        }
       } catch (e) {
         logout();
         return;
       }
+      // Platform admins with multiple guilds always get the picker (unless resuming a session)
       if (guilds.length === 1 && !forcePicker) {
         selectGuild(guilds[0]);
         return;
       }
+      if (isPlatformAdmin && !forcePicker && tenantId && guilds.some((g) => g.id === tenantId)) {
+        const t = guilds.find((g) => g.id === tenantId);
+        selectGuild(t);
+        return;
+      }
       const listEl = document.getElementById("guild-list");
       listEl.textContent = "";
+      if (isPlatformAdmin) {
+        const hdr = document.createElement("p");
+        hdr.style.cssText = "font-size:0.85rem;color:var(--brand);margin:0 0 0.75rem";
+        hdr.textContent = "Platform admin — all hosted guilds";
+        listEl.appendChild(hdr);
+        const platBtn = document.createElement("button");
+        platBtn.style.cssText = "width:100%;margin-bottom:0.75rem";
+        platBtn.textContent = "Open platform overview";
+        platBtn.addEventListener("click", () => {
+          if (guilds[0]) {
+            selectGuild(guilds[0]);
+            setTimeout(() => navigate("platform"), 0);
+          }
+        });
+        listEl.appendChild(platBtn);
+      }
       for (const t of guilds) {
         const btn = document.createElement("button");
         btn.className = "secondary";
@@ -201,7 +254,8 @@
         btn.textContent = t.name + " ";
         const roleSpan = document.createElement("span");
         roleSpan.style.cssText = "color:var(--muted);font-size:0.8rem";
-        roleSpan.textContent = "(" + (t.role || "member") + ")";
+        const roleLabel = t.role === "platform" ? "platform" : (t.role || "member");
+        roleSpan.textContent = "(" + roleLabel + (t.slug ? " · " + t.slug : "") + ")";
         btn.appendChild(roleSpan);
         btn.addEventListener("click", () => selectGuild(t));
         listEl.appendChild(btn);
@@ -242,7 +296,7 @@
       }
     }
 
-    function initApp() {
+    async function initApp() {
       if (!token || !tenantId) {
         show(document.getElementById("login-view"));
         hide(document.getElementById("app-view"));
@@ -251,6 +305,7 @@
       hide(document.getElementById("login-view"));
       show(document.getElementById("app-view"));
       document.getElementById("tenant-label").textContent = tenantName || tenantSlug || "";
+      await refreshPlatformFlag();
       applyRoleNav();
       navigate("dashboard");
     }
@@ -268,7 +323,8 @@
       const el = document.getElementById("page-content");
       el.innerHTML = "<p style='color:var(--muted)'>Loading…</p>";
       try {
-        if (page === "dashboard") await renderDashboard(el);
+        if (page === "platform") await renderPlatform(el);
+        else if (page === "dashboard") await renderDashboard(el);
         else if (page === "members") await renderMembers(el);
         else if (page === "levels") await renderLevels(el);
         else if (page === "events") await renderEvents(el);
@@ -291,6 +347,125 @@
       } catch (e) {
         el.innerHTML = `<p class="error">${e.message}</p>`;
       }
+    }
+
+    function money(cents) {
+      return "$" + ((Number(cents) || 0) / 100).toFixed(2);
+    }
+
+    async function renderPlatform(el) {
+      if (!isPlatformAdmin) {
+        el.innerHTML = `<p class="error">Platform admin access required.</p>`;
+        return;
+      }
+      let data;
+      try {
+        data = await api("/api/platform/overview");
+      } catch (e) {
+        el.innerHTML = `<h2>Platform</h2><p class="error">${esc(e.message)}</p>`;
+        return;
+      }
+      const t = data.tenants;
+      const m = data.members;
+      const r = data.revenue;
+      const guilds = data.guilds || [];
+      el.innerHTML = `
+        <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:0.5rem;margin-bottom:0.5rem">
+          <h2 style="margin:0">Platform overview</h2>
+          <span class="muted" style="font-size:0.85rem">All hosted guilds · updated ${esc(new Date(data.generated_at).toLocaleString())}</span>
+        </div>
+        <p class="muted" style="margin-bottom:1rem;font-size:0.9rem">
+          Super-user console for QuiltHosting operators. Open any guild to manage it; aggregate stats roll up every tenant.
+        </p>
+        <div class="stats">
+          <div class="stat"><div class="label">Guilds</div><div class="value">${t.total}</div><div class="muted" style="font-size:0.75rem">${t.active || 0} active</div></div>
+          <div class="stat"><div class="label">Members (all)</div><div class="value">${m.total}</div><div class="muted" style="font-size:0.75rem">${m.active} active · ${m.pending} pending · ${m.lapsed} lapsed</div></div>
+          <div class="stat"><div class="label">Active memberships</div><div class="value">${data.memberships.active}</div><div class="muted" style="font-size:0.75rem">${data.memberships.expiring_30d} renewals due 30d</div></div>
+          <div class="stat"><div class="label">Revenue (lifetime)</div><div class="value" style="font-size:1.25rem">${money(r.lifetime_cents)}</div><div class="muted" style="font-size:0.75rem">${money(r.this_month_cents)} this month · ${r.payments_this_month} payments</div></div>
+        </div>
+        <div class="stats" style="margin-top:0.75rem">
+          <div class="stat"><div class="label">Upcoming events</div><div class="value">${data.events.upcoming}</div><div class="muted" style="font-size:0.75rem">${data.events.total} total</div></div>
+          <div class="stat"><div class="label">Event signups (month)</div><div class="value">${data.registrations_this_month}</div></div>
+          <div class="stat"><div class="label">New members (month)</div><div class="value">${m.new_this_month}</div></div>
+          <div class="stat"><div class="label">Emails sent (30d)</div><div class="value">${data.emails_sent_30d}</div></div>
+        </div>
+        <div class="card" style="margin-top:1rem">
+          <h3 style="margin-bottom:0.5rem">Plans</h3>
+          <p style="font-size:0.9rem;margin:0">${Object.keys(t.by_plan || {}).length === 0 ? "—" : Object.entries(t.by_plan).map(([p, n]) => `<span class="badge" style="margin-right:0.35rem">${esc(p)}: ${n}</span>`).join("")}</p>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:0.5rem">Revenue by month (all guilds)</h3>
+          ${(r.by_month || []).length === 0 ? "<p class='muted'>No succeeded payments yet</p>" : `
+          <table>
+            <thead><tr><th>Month</th><th>Payments</th><th>Total</th></tr></thead>
+            <tbody>
+              ${(r.by_month || []).map((row) => `
+                <tr>
+                  <td>${esc(row.month)}</td>
+                  <td>${row.payments}</td>
+                  <td>${money(row.total_cents)}</td>
+                </tr>`).join("")}
+            </tbody>
+          </table>`}
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;flex-wrap:wrap;gap:0.5rem">
+            <h3 style="margin:0">All guilds (${guilds.length})</h3>
+            <input id="plat-filter" type="search" placeholder="Filter by name or slug…" style="max-width:240px" oninput="filterPlatformGuilds()" />
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Guild</th>
+                  <th>Plan</th>
+                  <th>Status</th>
+                  <th>Members</th>
+                  <th>Active</th>
+                  <th>Events ↑</th>
+                  <th>Rev 30d</th>
+                  <th>Rev lifetime</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="plat-guild-rows">
+                ${guilds.map((g) => `
+                  <tr data-search="${esc((g.name + " " + g.slug).toLowerCase())}">
+                    <td>
+                      <strong>${esc(g.name)}</strong>
+                      <div class="muted" style="font-size:0.8rem">
+                        <a href="/g/${esc(g.slug)}" target="_blank" rel="noopener">/g/${esc(g.slug)}</a>
+                        ${g.custom_domain ? " · " + esc(g.custom_domain) : ""}
+                      </div>
+                    </td>
+                    <td>${esc(g.plan || "—")}</td>
+                    <td><span class="badge ${esc(g.status || "")}">${esc(g.status || "—")}</span></td>
+                    <td>${g.total_members}${g.pending_members ? ` <span class="muted">(+${g.pending_members} pend)</span>` : ""}</td>
+                    <td>${g.active_members}</td>
+                    <td>${g.upcoming_events}</td>
+                    <td>${money(g.revenue_30d_cents)}</td>
+                    <td>${money(g.revenue_lifetime_cents)}</td>
+                    <td style="white-space:nowrap">
+                      <button class="secondary" onclick='openPlatformGuild(${JSON.stringify(g.id)}, ${JSON.stringify(g.slug)}, ${JSON.stringify(g.name)})'>Open</button>
+                    </td>
+                  </tr>`).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function filterPlatformGuilds() {
+      const q = (document.getElementById("plat-filter")?.value || "").toLowerCase().trim();
+      document.querySelectorAll("#plat-guild-rows tr").forEach((tr) => {
+        const hay = tr.getAttribute("data-search") || "";
+        tr.style.display = !q || hay.includes(q) ? "" : "none";
+      });
+    }
+
+    function openPlatformGuild(id, slug, name) {
+      selectGuild({ id, slug, name, role: "platform" });
     }
 
     async function renderDashboard(el) {
@@ -3424,10 +3599,14 @@
       localStorage.removeItem("gb_tenant_id");
       localStorage.removeItem("gb_tenant_slug");
       localStorage.removeItem("gb_tenant_name");
+      localStorage.removeItem("gb_tenant_role");
+      localStorage.removeItem("gb_platform_admin");
       token = null;
       tenantId = null;
       tenantSlug = "";
       tenantName = "";
+      tenantRole = "admin";
+      isPlatformAdmin = false;
       hide(document.getElementById("guild-view"));
       hide(document.getElementById("app-view"));
       show(document.getElementById("login-view"));

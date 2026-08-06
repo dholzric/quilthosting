@@ -168,13 +168,22 @@ authRoutes.get("/me", async (c) => {
   if (!payload) {
     return c.json({ error: "Invalid or expired token" }, 401);
   }
-  const user = await first<UserRow>(
-    c.env.DB.prepare("SELECT id, email, name FROM users WHERE id = ?").bind(payload.sub)
+  const user = await first<UserRow & { is_platform_admin?: number }>(
+    c.env.DB.prepare(
+      "SELECT id, email, name, is_platform_admin FROM users WHERE id = ?"
+    ).bind(payload.sub)
   );
   if (!user) {
     return c.json({ error: "User not found" }, 404);
   }
-  return c.json({ user: { id: user.id, email: user.email, name: user.name } });
+  return c.json({
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      is_platform_admin: !!(user.is_platform_admin),
+    },
+  });
 });
 
 // --- Google OAuth (shared client with quiltmap/createablock/quiltgen) ---

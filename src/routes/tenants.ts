@@ -13,8 +13,26 @@ export const tenantRoutes = new Hono<{
 tenantRoutes.use("*", requireAuth);
 
 // GET /api/tenants — guilds the current user belongs to
+// Platform admins see every tenant (role = membership role or "platform").
 tenantRoutes.get("/", async (c) => {
   const user = c.get("user");
+  const adminRow = await first<{ is_platform_admin: number }>(
+    c.env.DB.prepare(
+      "SELECT is_platform_admin FROM users WHERE id = ?"
+    ).bind(user.id)
+  );
+  if (adminRow?.is_platform_admin) {
+    const rows = await all<Tenant & { role: string }>(
+      c.env.DB.prepare(
+        `SELECT t.*, COALESCE(tu.role, 'platform') AS role
+         FROM tenants t
+         LEFT JOIN tenant_users tu
+           ON tu.tenant_id = t.id AND tu.user_id = ?
+         ORDER BY t.name COLLATE NOCASE`
+      ).bind(user.id)
+    );
+    return c.json({ tenants: rows, platform_admin: true });
+  }
   const rows = await all<Tenant & { role: string }>(
     c.env.DB.prepare(
       `SELECT t.*, tu.role FROM tenants t
@@ -23,7 +41,7 @@ tenantRoutes.get("/", async (c) => {
        ORDER BY t.created_at`
     ).bind(user.id)
   );
-  return c.json({ tenants: rows });
+  return c.json({ tenants: rows, platform_admin: false });
 });
 
 // POST /api/tenants — create a guild; creator becomes owner
@@ -79,7 +97,7 @@ tenantRoutes.post("/", async (c) => {
   return c.json(tenant, 201);
 });
 
-// GET /api/tenants/:id — members of the guild only
+// GET /api/tenants/:id — members of the guild only (platform admins: any)
 tenantRoutes.get("/:id", async (c) => {
   const user = c.get("user");
   const id = c.req.param("id");
@@ -88,7 +106,16 @@ tenantRoutes.get("/:id", async (c) => {
       "SELECT role FROM tenant_users WHERE tenant_id = ? AND user_id = ?"
     ).bind(id, user.id)
   );
-  if (!membership) return c.json({ error: "Forbidden" }, 403);
+  if (!membership) {
+    const adminRow = await first<{ is_platform_admin: number }>(
+      c.env.DB.prepare(
+        "SELECT is_platform_admin FROM users WHERE id = ?"
+      ).bind(user.id)
+    );
+    if (!adminRow?.is_platform_admin) {
+      return c.json({ error: "Forbidden" }, 403);
+    }
+  }
   const tenant = await first<Tenant>(
     c.env.DB.prepare("SELECT * FROM tenants WHERE id = ?").bind(id)
   );

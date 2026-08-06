@@ -1,6 +1,6 @@
 /* QuiltHosting service worker — network-first for HTML so API shape changes ship;
    cache shell assets for offline check-in. */
-const CACHE = "qh-v22.4";
+const CACHE = "qh-v23.0";
 const PRECACHE = [
   "/qh.css",
   "/manifest.webmanifest",
