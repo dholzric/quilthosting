@@ -43,7 +43,20 @@ function getCookie(header: string | undefined, name: string): string | null {
   return null;
 }
 
-function loginPage(error?: string): string {
+function safeReturnPath(raw: string | null | undefined): string {
+  if (!raw || typeof raw !== "string") return "/";
+  // Only same-origin relative paths (block //evil.com and external URLs)
+  if (!raw.startsWith("/") || raw.startsWith("//")) return "/";
+  if (raw.startsWith("/site-access")) return "/";
+  return raw.slice(0, 500);
+}
+
+function loginPage(error?: string, returnTo?: string): string {
+  const next = safeReturnPath(returnTo);
+  const nextAttr = next
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;");
   return `<!DOCTYPE html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
@@ -67,6 +80,7 @@ p.err{color:#b3261e;font-size:.85rem;margin:.5rem 0 0}
 <h1><span class="t">✦</span> QuiltHosting</h1>
 <p class="sub">Private preview — enter the access password.</p>
 ${error ? `<p class="err">${error}</p>` : ""}
+<input type="hidden" name="return_to" value="${nextAttr}">
 <input type="password" name="password" placeholder="Access password" autofocus>
 <button type="submit">Enter</button>
 <div class="strip"><span style="background:#b5501f"></span><span style="background:#d9a441"></span><span style="background:#5f7d64"></span><span style="background:#5b7ea3"></span><span style="background:#8c5a74"></span></div>
@@ -99,14 +113,15 @@ export const siteGate = createMiddleware<{ Bindings: Env }>(
 
     if (c.req.method === "POST" && path === "/site-access") {
       const form = await c.req.formData();
+      const returnTo = safeReturnPath(String(form.get("return_to") || "/"));
       if (form.get("password") === c.env.SITE_ACCESS_PASSWORD) {
         c.header(
           "Set-Cookie",
           `${COOKIE_NAME}=${expected}; Max-Age=${COOKIE_MAX_AGE}; Path=/; HttpOnly; Secure; SameSite=Lax`
         );
-        return c.redirect("/admin");
+        return c.redirect(returnTo || "/admin");
       }
-      return c.html(loginPage("Wrong password."), 401);
+      return c.html(loginPage("Wrong password.", returnTo), 401);
     }
 
     if (getCookie(c.req.header("Cookie"), COOKIE_NAME) === expected) {
@@ -115,7 +130,8 @@ export const siteGate = createMiddleware<{ Bindings: Env }>(
 
     // Browsers get the login form; API clients get JSON
     if (c.req.header("Accept")?.includes("text/html")) {
-      return c.html(loginPage(), 401);
+      const returnTo = path + (new URL(c.req.url).search || "");
+      return c.html(loginPage(undefined, returnTo), 401);
     }
     return c.json({ error: "Site access required" }, 401);
   }
