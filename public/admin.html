@@ -479,7 +479,8 @@
       if (opts.q) qs.set("q", opts.q);
       if (opts.status) qs.set("status", opts.status);
       const data = await api(`/api/tenants/${tenantId}/members?${qs}`);
-      return Array.isArray(data) ? data : (data.members || []);
+      const list = Array.isArray(data) ? data : data && data.members;
+      return Array.isArray(list) ? list : [];
     }
 
     async function renderMembers(el, page) {
@@ -491,9 +492,11 @@
       if (q) qs.set("q", q);
       if (status) qs.set("status", status);
       const data = await api(`/api/tenants/${tenantId}/members?${qs}`);
-      const members = Array.isArray(data) ? data : (data.members || []);
-      const total = data.total != null ? data.total : members.length;
-      const totalPages = data.total_pages || 1;
+      // API returns { members, total, ... } (paginated). Never call .map on the envelope.
+      const rawList = Array.isArray(data) ? data : data && data.members;
+      const members = Array.isArray(rawList) ? rawList : [];
+      const total = data && data.total != null ? data.total : members.length;
+      const totalPages = (data && data.total_pages) || Math.max(1, Math.ceil(total / 50) || 1);
       el.innerHTML = `
         <h2>Members</h2>
         <p class="muted" style="margin-bottom:0.75rem">${total.toLocaleString()} members · server-side search &amp; pagination (scales to 50k+)</p>
@@ -689,7 +692,8 @@
       }
       // Membership history
       try {
-        const hist = await api(`/api/tenants/${tenantId}/members/${id}/memberships`);
+        const histRaw = await api(`/api/tenants/${tenantId}/members/${id}/memberships`);
+        const hist = Array.isArray(histRaw) ? histRaw : (histRaw && histRaw.memberships) || [];
         const hbox = document.getElementById("em-memberships");
         if (!hist.length) {
           hbox.innerHTML = `<p class="muted" style="font-size:0.85rem;margin:0">No membership records yet — use Assign below (status alone does not set renewals).</p>`;
