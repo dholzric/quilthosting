@@ -85,6 +85,14 @@ publicRoutes.get("/:slug/events/:eventId", async (c) => {
  * POST /public/:slug/join
  * Creates (or finds) a member and starts Stripe Checkout for dues.
  */
+// Legacy checkout return URLs (older Stripe sessions still point here)
+publicRoutes.get("/:slug/join/success", (c) =>
+  c.redirect(`/g/${c.req.param("slug")}?joined=1`)
+);
+publicRoutes.get("/:slug/join", (c) =>
+  c.redirect(`/g/${c.req.param("slug")}${c.req.query("cancelled") ? "?cancelled=1" : ""}`)
+);
+
 publicRoutes.post("/:slug/join", async (c) => {
   const slug = c.req.param("slug");
   const tenant = await getTenantBySlug(c.env.DB, slug);
@@ -214,8 +222,8 @@ publicRoutes.post("/:slug/join", async (c) => {
     description: `${tenant.name} – ${level.name} Membership`,
     type: "dues",
     relatedId: level.id,
-    successUrl: `${baseUrl}/public/${tenant.slug}/join/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancelUrl: `${baseUrl}/public/${tenant.slug}/join?cancelled=1`,
+    successUrl: `${baseUrl}/g/${tenant.slug}?joined=1`,
+    cancelUrl: `${baseUrl}/g/${tenant.slug}?cancelled=1`,
     mode: level.renewal_type === "auto" ? "subscription" : "payment",
     interval: level.duration_months >= 12 ? "year" : "month",
   });
@@ -414,8 +422,8 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
       description: `${tenant.name} – ${event.title}`,
       type: "event",
       relatedId: regId,
-      successUrl: `${baseUrl}/public/${tenant.slug}/events/${eventId}?registered=1`,
-      cancelUrl: `${baseUrl}/public/${tenant.slug}/events/${eventId}?cancelled=1`,
+      successUrl: `${baseUrl}/g/${tenant.slug}?registered=1`,
+      cancelUrl: `${baseUrl}/g/${tenant.slug}?cancelled=1`,
       mode: "payment",
     });
   } catch (err) {
