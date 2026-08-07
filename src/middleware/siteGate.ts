@@ -1,5 +1,6 @@
 import { createMiddleware } from "hono/factory";
 import type { Env } from "../types";
+import { extractBearer, verifyJwt } from "../lib/auth";
 
 /**
  * Private-beta gate: the whole site requires a shared password
@@ -92,6 +93,16 @@ export const siteGate = createMiddleware<{ Bindings: Env }>(
     const path = new URL(c.req.url).pathname;
 
     if (path.startsWith("/api/webhooks/")) return next();
+
+    // Native apps can't hold the gate cookie. A valid session JWT is itself
+    // proof of access — the gate hides the product from the public, it is not
+    // a second authentication layer for users who are already signed in.
+    const bearer = extractBearer(c.req.header("Authorization"));
+    if (bearer && (await verifyJwt(bearer, c.env.JWT_SECRET))) return next();
+
+    // Auth endpoints must stay reachable so an app can obtain that token in
+    // the first place (they expose no guild content and are rate limited).
+    if (path.startsWith("/api/auth/")) return next();
     if (path.startsWith("/t/o/")) return next(); // open-tracking pixels
     if (path.startsWith("/t/c/")) return next(); // click-tracking redirects
     if (path.startsWith("/api/v1/")) return next(); // public API keys (own auth)
