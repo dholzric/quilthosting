@@ -180,6 +180,14 @@ export default function Member() {
 
   return (
     <View style={s.screen}>
+      <View style={s.topBar}>
+        <Text style={s.topBarTitle} numberOfLines={1}>
+          {me?.tenant?.name || slug}
+        </Text>
+        <Pressable style={s.switchBtn} onPress={switchToAdmin}>
+          <Text style={s.switchBtnText}>Admin view →</Text>
+        </Pressable>
+      </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.tabBar}>
         {TABS.map((t) => (
           <Pressable key={t.key} onPress={() => setTab(t.key)} style={s.tabBtn}>
@@ -373,6 +381,24 @@ export default function Member() {
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#faf7f2" },
   center: { alignItems: "center", justifyContent: "center" },
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: "#262019",
+    gap: 12,
+  },
+  topBarTitle: { color: "#efe7da", fontWeight: "700", fontSize: 15, flexShrink: 1 },
+  switchBtn: {
+    borderWidth: 1,
+    borderColor: "#8a7a63",
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  switchBtnText: { color: "#d9a441", fontWeight: "700", fontSize: 12 },
   tabBar: {
     flexGrow: 0,
     backgroundColor: "#fff",
