@@ -46,3 +46,42 @@ Keep TestFlight / internal Play tracks only until the site gate is removed.
 
 Local run: `npx expo run:android` (JAVA_HOME → Android Studio's bundled JBR,
 ANDROID_HOME → the SDK), then `adb reverse tcp:8081 tcp:8081`.
+
+## iOS headless builds (verified Aug 2026)
+
+Building and installing to a device over SSH works — no Xcode GUI needed —
+but three things must be right:
+
+1. **Use the team ID from the provisioning profile, not the certificate name.**
+   `security find-identity` shows `Apple Development: name (H8D2FSM65N)`; that
+   parenthetical is *not* necessarily the team that owns the app. Read the real
+   one from the profile:
+   ```bash
+   security cms -D -i ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles/*.mobileprovision \
+     | plutil -extract Entitlements.application-identifier raw -
+   ```
+   For QuiltHosting the team is **386RBGEN46**. Passing the wrong one yields the
+   misleading `No Account for Team` / `No profiles were found` pair.
+
+2. **Profiles live in `~/Library/Developer/Xcode/UserData/Provisioning Profiles/`**
+   on Xcode 16+, not the legacy `~/Library/MobileDevice/Provisioning Profiles/`.
+
+3. **codesign needs keychain partition access**, or framework signing fails with
+   `errSecInternalComponent`. Unlocking alone is not enough:
+   ```bash
+   security unlock-keychain -p "$PW" ~/Library/Keychains/login.keychain-db
+   security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$PW" \
+     ~/Library/Keychains/login.keychain-db
+   ```
+
+Full working sequence (run as `apple` on the Mac):
+```bash
+export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
+export PATH=/opt/homebrew/opt/ruby@3.3/bin:/opt/homebrew/bin:$PATH
+cd ~/qh-mobile/mobile/ios
+xcodebuild -workspace QuiltHosting.xcworkspace -scheme QuiltHosting \
+  -configuration Debug -destination "id=<device-udid>" \
+  DEVELOPMENT_TEAM=386RBGEN46 -allowProvisioningUpdates build
+xcrun devicectl device install app --device <device-udid> \
+  ~/Library/Developer/Xcode/DerivedData/QuiltHosting-*/Build/Products/Debug-iphoneos/QuiltHosting.app
+```
