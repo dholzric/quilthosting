@@ -111,6 +111,12 @@ export default function Member() {
     router.replace("/");
   }
 
+  /** Same token works for both views — no need to sign out to switch hats. */
+  async function switchToAdmin() {
+    await setSession({ token, slug, mode: "admin" });
+    router.replace("/admin");
+  }
+
   async function renew() {
     try {
       const r = await api(`/api/portal/${slug}/renew`, { method: "POST", body: "{}" });
@@ -350,6 +356,9 @@ export default function Member() {
             <TextInput style={[s.input, s.inputOff]} value={member?.email || ""} editable={false} />
             <Pressable style={s.primary} onPress={saveProfile} disabled={saving}>
               <Text style={s.primaryText}>{saving ? "Saving…" : "Save profile"}</Text>
+            </Pressable>
+            <Pressable style={s.secondary} onPress={switchToAdmin}>
+              <Text style={s.secondaryText}>Switch to admin view</Text>
             </Pressable>
             <Pressable style={s.secondary} onPress={signOut}>
               <Text style={s.secondaryText}>Sign out</Text>

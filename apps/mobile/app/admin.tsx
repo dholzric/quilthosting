@@ -12,7 +12,24 @@ import {
 import { router } from "expo-router";
 import { api, getSession, setSession } from "../lib/api";
 
-type Tab = "dashboard" | "members" | "events";
+type Tab =
+  | "dashboard"
+  | "members"
+  | "events"
+  | "levels"
+  | "payments"
+  | "reports"
+  | "team";
+
+const TAB_LABELS: { key: Tab; label: string }[] = [
+  { key: "dashboard", label: "Dashboard" },
+  { key: "members", label: "Members" },
+  { key: "events", label: "Events" },
+  { key: "levels", label: "Levels" },
+  { key: "payments", label: "Payments" },
+  { key: "reports", label: "Reports" },
+  { key: "team", label: "Team" },
+];
 
 const money = (c?: number) => "$" + ((c || 0) / 100).toFixed(2);
 const day = (iso?: string | null) =>
@@ -38,17 +55,30 @@ export default function Admin() {
   const [stats, setStats] = useState<any>(null);
   const [members, setMembers] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
+  const [levels, setLevels] = useState<any[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
+  const [annual, setAnnual] = useState<any>(null);
+  const [team, setTeam] = useState<any[]>([]);
   const [query, setQuery] = useState("");
 
   const loadTenant = useCallback(async (t: any) => {
-    const [st, mem, ev] = await Promise.allSettled([
+    const year = new Date().getFullYear();
+    const [st, mem, ev, lv, pay, ann, tm] = await Promise.allSettled([
       api(`/api/tenants/${t.id}/stats`),
       api(`/api/tenants/${t.id}/members`),
       api(`/api/tenants/${t.id}/events?upcoming=1`),
+      api(`/api/tenants/${t.id}/levels`),
+      api(`/api/tenants/${t.id}/payments`),
+      api(`/api/tenants/${t.id}/stats/annual?year=${year}`),
+      api(`/api/tenants/${t.id}/team`),
     ]);
     if (st.status === "fulfilled") setStats(st.value);
     if (mem.status === "fulfilled") setMembers(asList(mem.value));
     if (ev.status === "fulfilled") setEvents(asList(ev.value));
+    if (lv.status === "fulfilled") setLevels(asList(lv.value));
+    if (pay.status === "fulfilled") setPayments(asList(pay.value));
+    if (ann.status === "fulfilled") setAnnual(ann.value);
+    if (tm.status === "fulfilled") setTeam(asList(tm.value));
   }, []);
 
   useEffect(() => {
@@ -89,6 +119,17 @@ export default function Admin() {
   async function signOut() {
     await setSession(null);
     router.replace("/");
+  }
+
+  /** Same token serves both views — switching hats never requires a re-login. */
+  async function switchToMember() {
+    const sess = await getSession();
+    await setSession({
+      token: sess?.token || "",
+      slug: tenant?.slug || sess?.slug || "",
+      mode: "member",
+    });
+    router.replace("/member");
   }
 
   if (loading) {
@@ -136,12 +177,10 @@ export default function Admin() {
   return (
     <View style={s.screen}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.tabBar}>
-        {(["dashboard", "members", "events"] as Tab[]).map((t) => (
-          <Pressable key={t} onPress={() => setTab(t)} style={s.tabBtn}>
-            <Text style={[s.tabLabel, tab === t && s.tabLabelOn]}>
-              {t === "dashboard" ? "Dashboard" : t === "members" ? "Members" : "Events"}
-            </Text>
-            {tab === t && <View style={s.tabUnderline} />}
+        {TAB_LABELS.map((t) => (
+          <Pressable key={t.key} onPress={() => setTab(t.key)} style={s.tabBtn}>
+            <Text style={[s.tabLabel, tab === t.key && s.tabLabelOn]}>{t.label}</Text>
+            {tab === t.key && <View style={s.tabUnderline} />}
           </Pressable>
         ))}
       </ScrollView>
@@ -174,9 +213,100 @@ export default function Admin() {
               <Text style={s.muted}>No payments yet.</Text>
             )}
 
+            <Pressable style={s.secondary} onPress={switchToMember}>
+              <Text style={s.secondaryText}>Switch to member view</Text>
+            </Pressable>
             <Pressable style={s.secondary} onPress={signOut}>
               <Text style={s.secondaryText}>Sign out</Text>
             </Pressable>
+          </>
+        )}
+
+        {tab === "levels" && (
+          <>
+            {levels.map((l) => (
+              <View key={l.id} style={s.card}>
+                <View style={s.row}>
+                  <Text style={s.itemTitle}>{l.name}</Text>
+                  <Text style={s.itemTitle}>
+                    {l.price_cents ? money(l.price_cents) : "Free"}
+                  </Text>
+                </View>
+                {!!l.description && <Text style={s.muted}>{l.description}</Text>}
+                <Text style={s.muted}>
+                  {l.duration_months} months · {l.renewal_type === "auto" ? "auto-renews" : "manual renewal"}
+                </Text>
+              </View>
+            ))}
+            {!levels.length && <Text style={s.muted}>No membership levels yet.</Text>}
+          </>
+        )}
+
+        {tab === "payments" && (
+          <>
+            {payments.slice(0, 100).map((p) => (
+              <View key={p.id} style={s.card}>
+                <View style={s.row}>
+                  <Text style={s.itemTitle}>{money(p.amount_cents)}</Text>
+                  <Text style={[s.badge, p.status === "succeeded" ? s.badgeOk : s.badgeWarn]}>
+                    {p.status}
+                  </Text>
+                </View>
+                <Text style={s.muted}>
+                  {[p.first_name, p.last_name].filter(Boolean).join(" ") || p.member_email || "—"}
+                </Text>
+                <Text style={s.muted}>
+                  {p.type} · {day(p.created_at)}
+                </Text>
+              </View>
+            ))}
+            {!payments.length && <Text style={s.muted}>No payments yet.</Text>}
+          </>
+        )}
+
+        {tab === "reports" && (
+          <>
+            <Text style={s.h2}>{annual?.year || new Date().getFullYear()} summary</Text>
+            <View style={s.tiles}>
+              <Tile label="Gross revenue" value={money(annual?.revenue?.gross_cents)} />
+              <Tile label="Refunded" value={money(annual?.revenue?.refunded_cents)} />
+              <Tile label="Net" value={money(annual?.revenue?.net_cents)} />
+              <Tile label="Members joined" value={annual?.members?.joined ?? "—"} />
+              <Tile label="Events held" value={annual?.events?.count ?? "—"} />
+              <Tile label="Registrations" value={annual?.events?.registrations ?? "—"} />
+            </View>
+
+            <Text style={s.h2}>Revenue by category</Text>
+            {(annual?.revenue?.by_type || []).map((r: any) => (
+              <View key={r.type} style={[s.card, s.row]}>
+                <Text style={s.itemTitle}>{r.type}</Text>
+                <Text style={s.itemTitle}>{money(r.total_cents)}</Text>
+              </View>
+            ))}
+
+            <Text style={s.h2}>Top events</Text>
+            {(annual?.events?.top || []).map((r: any, i: number) => (
+              <View key={i} style={[s.card, s.row]}>
+                <Text style={s.itemTitle}>{r.title}</Text>
+                <Text style={s.muted}>{r.registrations}</Text>
+              </View>
+            ))}
+            {!annual && <Text style={s.muted}>No report data yet.</Text>}
+          </>
+        )}
+
+        {tab === "team" && (
+          <>
+            {team.map((t, i) => (
+              <View key={i} style={s.card}>
+                <View style={s.row}>
+                  <Text style={s.itemTitle}>{t.name || t.email}</Text>
+                  <Text style={[s.badge, s.badgeOk]}>{t.role}</Text>
+                </View>
+                <Text style={s.muted}>{t.email}</Text>
+              </View>
+            ))}
+            {!team.length && <Text style={s.muted}>No team members yet.</Text>}
           </>
         )}
 
