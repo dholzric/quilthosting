@@ -60,6 +60,7 @@ export default function Admin() {
   const [annual, setAnnual] = useState<any>(null);
   const [team, setTeam] = useState<any[]>([]);
   const [query, setQuery] = useState("");
+  const [loadError, setLoadError] = useState("");
 
   const loadTenant = useCallback(async (t: any) => {
     const year = new Date().getFullYear();
@@ -91,16 +92,35 @@ export default function Admin() {
       try {
         const list = (await api("/api/tenants")).tenants || [];
         setGuilds(list);
+        setLoadError("");
         if (list.length === 1) {
           setTenant(list[0]);
           await loadTenant(list[0]);
         }
-      } catch {
-        /* surfaced as an empty guild list */
+      } catch (e: any) {
+        // Never render a failure as "no guilds" — that sends people hunting
+        // for a permissions problem when the real cause is auth or network.
+        setLoadError(e?.message || "Could not reach the server.");
       }
       setLoading(false);
     })();
   }, [loadTenant]);
+
+  async function retryLoad() {
+    setLoading(true);
+    setLoadError("");
+    try {
+      const list = (await api("/api/tenants")).tenants || [];
+      setGuilds(list);
+      if (list.length === 1) {
+        setTenant(list[0]);
+        await loadTenant(list[0]);
+      }
+    } catch (e: any) {
+      setLoadError(e?.message || "Could not reach the server.");
+    }
+    setLoading(false);
+  }
 
   async function pickGuild(g: any) {
     setTenant(g);
@@ -145,13 +165,27 @@ export default function Admin() {
     return (
       <ScrollView style={s.screen} contentContainerStyle={s.body}>
         <Text style={s.h1}>Your guilds</Text>
+
+        {!!loadError && (
+          <View style={[s.card, { borderColor: "#b3261e" }]}>
+            <Text style={s.itemTitle}>Couldn't load your guilds</Text>
+            <Text style={s.muted}>{loadError}</Text>
+            <Pressable style={s.primary} onPress={retryLoad}>
+              <Text style={s.primaryText}>Try again</Text>
+            </Pressable>
+            <Pressable style={s.secondary} onPress={signOut}>
+              <Text style={s.secondaryText}>Sign in again</Text>
+            </Pressable>
+          </View>
+        )}
+
         {guilds.map((g) => (
           <Pressable key={g.id} style={s.card} onPress={() => pickGuild(g)}>
             <Text style={s.itemTitle}>{g.name}</Text>
             <Text style={s.muted}>{g.role || "admin"}</Text>
           </Pressable>
         ))}
-        {!guilds.length && (
+        {!guilds.length && !loadError && (
           <Text style={s.muted}>
             No guilds on this account. Sign in with the address that was invited.
           </Text>
