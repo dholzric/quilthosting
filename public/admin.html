@@ -3738,8 +3738,10 @@
                   <td style="font-size:0.8rem;word-break:break-all">${esc(r.url)}</td>
                   <td style="font-size:0.8rem">${esc(r.events_json||"")}</td>
                   <td>${r.is_active?"active":"off"} · fails ${r.fail_count||0}
+                    ${r.disabled_reason?`<br><span class="badge cancelled">auto-disabled</span> <span class="muted">${esc(r.disabled_reason)}</span>`:""}
                     ${r.last_success_at?`<br><span class="muted">ok ${new Date(r.last_success_at).toLocaleString()}</span>`:""}</td>
                   <td>
+                    ${r.disabled_reason?`<button class="secondary" onclick='enableWebhook(${JSON.stringify(r.id)})'>Re-enable</button>`:""}
                     <button class="secondary" onclick='testWebhook(${JSON.stringify(r.id)})'>Test</button>
                     <button class="secondary" onclick='deleteWebhook(${JSON.stringify(r.id)})'>Delete</button>
                   </td>
@@ -3751,8 +3753,50 @@
           <h3 style="margin-bottom:0.5rem">Events</h3>
           <code style="font-size:0.8rem" id="webhookEventCatalog">loading…</code>
           <p class="muted" style="font-size:0.85rem;margin-top:0.5rem">Signature header <code>X-QH-Signature</code> = HMAC-SHA256 hex of <code>{X-QH-Timestamp}.{body}</code> with your secret.</p>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:0.5rem">Recent deliveries</h3>
+          <p class="muted" style="font-size:0.85rem">Delivery is retried for about 12 hours. Failed events stay here so you can replay them.</p>
+          <div id="wh-outbox">loading…</div>
         </div>`;
       loadWebhookEventCatalog();
+      loadWebhookOutbox();
+    }
+    /** Delivery history + replay. Makes retry/dead state visible instead of silent. */
+    async function loadWebhookOutbox() {
+      const el = document.getElementById("wh-outbox");
+      if (!el) return;
+      let rows = [];
+      try {
+        const res = await api(`/api/tenants/${tenantId}/webhooks/outbox`);
+        rows = res.outbox || [];
+      } catch (e) {
+        el.innerHTML = `<p class="muted">Unavailable (${esc(e.message)}). Run migration 0013.</p>`;
+        return;
+      }
+      if (!rows.length) { el.innerHTML = `<p class="muted">No events yet.</p>`; return; }
+      const badge = (s) => s === "delivered" ? "ok" : s === "dead" ? "cancelled" : "pending";
+      el.innerHTML = `<table>
+        <thead><tr><th>Event</th><th>Status</th><th>Tries</th><th>Last error</th><th>When</th><th></th></tr></thead>
+        <tbody>${rows.map(r=>`
+          <tr>
+            <td><code>${esc(r.event)}</code></td>
+            <td><span class="badge ${badge(r.status)}">${esc(r.status)}</span></td>
+            <td>${r.attempts||0}</td>
+            <td class="muted" style="font-size:0.85rem">${r.last_error?esc(String(r.last_error)).slice(0,60):"—"}</td>
+            <td class="muted" style="font-size:0.85rem">${new Date(r.created_at).toLocaleString()}</td>
+            <td>${r.status==="delivered"?"":`<button class="secondary" onclick='replayOutbox(${JSON.stringify(r.id)})'>Replay</button>`}</td>
+          </tr>`).join("")}</tbody></table>`;
+    }
+    async function replayOutbox(id) {
+      try {
+        await api(`/api/tenants/${tenantId}/webhooks/outbox/${id}/replay`, { method: "POST" });
+        setTimeout(loadWebhookOutbox, 1500);
+      } catch (e) { alert(e.message); }
+    }
+    async function enableWebhook(id) {
+      await api(`/api/tenants/${tenantId}/webhooks/${id}/enable`, { method: "POST" });
+      navigate("webhooks");
     }
     /** Read the catalog from the API so the UI can never advertise an event the server does not emit. */
     async function loadWebhookEventCatalog() {

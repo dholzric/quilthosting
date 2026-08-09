@@ -16,13 +16,71 @@ const EVENT_OPTIONS = WEBHOOK_SUBSCRIBE_OPTIONS;
 
 outboundWebhookRoutes.get("/events", (c) => c.json({ events: EVENT_OPTIONS }));
 
+/**
+ * Outbox visibility. fail_count used to be incremented and never consumed;
+ * these three routes make delivery state actionable for a volunteer admin.
+ */
+outboundWebhookRoutes.get("/outbox", async (c) => {
+  const tenant = c.get("tenant");
+  const status = c.req.query("status") || "";
+  try {
+    const rows = await all(
+      c.env.DB.prepare(
+        `SELECT id, event, status, attempts, last_status, last_error,
+                created_at, next_attempt_at
+         FROM webhook_outbox
+         WHERE tenant_id = ? AND (? = '' OR status = ?)
+         ORDER BY created_at DESC LIMIT 100`
+      ).bind(tenant.id, status, status)
+    );
+    return c.json({ outbox: rows });
+  } catch {
+    return c.json({ outbox: [] });
+  }
+});
+
+/** Re-drive a failed or dead event. Resets attempts so backoff starts over. */
+outboundWebhookRoutes.post("/outbox/:outboxId/replay", async (c) => {
+  const tenant = c.get("tenant");
+  const id = c.req.param("outboxId");
+  const row = await first<{ id: string }>(
+    c.env.DB.prepare(
+      "SELECT id FROM webhook_outbox WHERE id = ? AND tenant_id = ?"
+    ).bind(id, tenant.id)
+  );
+  if (!row) return c.json({ error: "Not found" }, 404);
+  await c.env.DB.prepare(
+    `UPDATE webhook_outbox SET status = 'pending', attempts = 0,
+     next_attempt_at = null, updated_at = ? WHERE id = ?`
+  )
+    .bind(new Date().toISOString(), id)
+    .run();
+  if (c.env.WEBHOOK_QUEUE) {
+    c.executionCtx.waitUntil(c.env.WEBHOOK_QUEUE.send({ outboxId: id }));
+  }
+  return c.json({ replayed: true });
+});
+
+/** Clear an auto-disable so the endpoint starts receiving again. */
+outboundWebhookRoutes.post("/:endpointId/enable", async (c) => {
+  const tenant = c.get("tenant");
+  const id = c.req.param("endpointId");
+  await c.env.DB.prepare(
+    `UPDATE webhook_endpoints SET is_active = 1, fail_count = 0,
+     disabled_reason = null, updated_at = ? WHERE id = ? AND tenant_id = ?`
+  )
+    .bind(new Date().toISOString(), id, tenant.id)
+    .run();
+  return c.json({ enabled: true });
+});
+
 outboundWebhookRoutes.get("/", async (c) => {
   const tenant = c.get("tenant");
   try {
     const rows = await all(
       c.env.DB.prepare(
         `SELECT id, url, events_json, is_active, fail_count, last_status, last_error,
-                last_success_at, created_at, updated_at,
+                last_success_at, disabled_reason, created_at, updated_at,
                 CASE WHEN secret IS NOT NULL AND secret != '' THEN 1 ELSE 0 END as has_secret
          FROM webhook_endpoints WHERE tenant_id = ? ORDER BY created_at DESC`
       ).bind(tenant.id)

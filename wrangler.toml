@@ -58,7 +58,9 @@ queue = "quilthosting-webhooks"
 [[queues.consumers]]
 queue = "quilthosting-webhooks"
 max_batch_size = 10
-max_batch_timeout = 5
+# 1s, not the 5s default: this is a user-visible trigger latency budget — a Zap
+# firing 5s late reads as broken. Batching still kicks in under load.
+max_batch_timeout = 1
 max_retries = 5
 dead_letter_queue = "quilthosting-webhooks-dlq"
 
