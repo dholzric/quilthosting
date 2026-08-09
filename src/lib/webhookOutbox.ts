@@ -64,9 +64,16 @@ export function validateHookUrl(raw: string): string | null {
   return null;
 }
 
+/**
+ * Structural type rather than ExecutionContext: Hono's `c.executionCtx` and the
+ * workers-types `ExecutionContext<unknown>` are not assignable to each other,
+ * and waitUntil is all this needs.
+ */
+type WaitUntilCtx = { waitUntil(promise: Promise<unknown>): void };
+
 export async function enqueueEvent(
   env: Env,
-  ctx: ExecutionContext | undefined,
+  ctx: WaitUntilCtx | undefined,
   tenantId: string,
   event: WebhookEventName,
   data: Record<string, unknown>
