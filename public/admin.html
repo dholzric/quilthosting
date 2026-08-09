@@ -3801,6 +3801,11 @@
           <label>Key name</label>
           <input id="ak-name" placeholder="Zapier production" style="max-width:280px" />
           <button onclick="createApiKey()" style="margin-left:0.5rem">Create key</button>
+          <div style="margin-top:0.75rem;font-size:0.9rem">
+            <label style="display:block;margin-bottom:0.3rem"><input type="checkbox" checked disabled /> <strong>read</strong> — list members, events, payments, levels</label>
+            <label style="display:block;margin-bottom:0.3rem"><input type="checkbox" id="ak-hooks-write" /> <strong>hooks:write</strong> — allow Zapier/Make to subscribe to events <span class="muted">(required even for trigger-only Zaps)</span></label>
+            <label style="display:block"><input type="checkbox" id="ak-members-write" /> <strong>members:write</strong> — allow creating and updating members</label>
+          </div>
           <div id="ak-once" style="margin-top:0.75rem"></div>
         </div>
         <div class="card">
@@ -3826,14 +3831,20 @@
             <li><code>GET /api/v1/events</code></li>
             <li><code>GET /api/v1/payments</code></li>
             <li><code>GET /api/v1/levels</code></li>
+            <li><code>POST /api/v1/members</code> <span class="muted">· members:write · supports Idempotency-Key</span></li>
+            <li><code>PATCH /api/v1/members/:id</code> <span class="muted">· members:write</span></li>
+            <li><code>GET|POST /api/v1/hooks</code> · <code>DELETE /api/v1/hooks/:id</code> <span class="muted">· hooks:write</span></li>
           </ul>
           <p class="muted" style="font-size:0.85rem">Zapier: Webhooks by Zapier + Code by Zapier, or custom integration using these endpoints.</p>
         </div>`;
     }
     async function createApiKey() {
+      const scopes = ["read"];
+      if (document.getElementById("ak-hooks-write")?.checked) scopes.push("hooks:write");
+      if (document.getElementById("ak-members-write")?.checked) scopes.push("members:write");
       const r = await api(`/api/tenants/${tenantId}/api-keys`, {
         method: "POST",
-        body: JSON.stringify({ name: document.getElementById("ak-name").value || "API key", scopes: ["read"] }),
+        body: JSON.stringify({ name: document.getElementById("ak-name").value || "API key", scopes }),
       });
       document.getElementById("ak-once").innerHTML =
         `<p class="notice ok"><strong>Copy now — shown once:</strong><br><code style="word-break:break-all">${esc(r.api_key)}</code></p>`;

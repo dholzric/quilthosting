@@ -316,7 +316,8 @@ memberRoutes.post("/:memberId/memberships", async (c) => {
   return c.json({ ok: true, membership }, 201);
 });
 
-const MEMBER_STATUSES = ["pending", "active", "lapsed", "cancelled"];
+/** Exported so routes/v1.ts validates against the same list rather than a copy. */
+export const MEMBER_STATUSES = ["pending", "active", "lapsed", "cancelled"];
 
 memberRoutes.patch("/:memberId", async (c) => {
   const tenant = c.get("tenant");

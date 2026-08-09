@@ -8,6 +8,15 @@ export const apiKeyRoutes = new Hono<{
   Variables: TenantVariables;
 }>();
 
+/**
+ * Granular scopes. A trigger-only Zap needs hooks:write but must not be able
+ * to mutate members, so the two are separate.
+ *
+ * The legacy "write" scope is still accepted on mint and still grants both, so
+ * keys issued before v0.27.0 keep working. Do not offer it in new UI.
+ */
+export const API_SCOPES = ["read", "members:write", "hooks:write"] as const;
+
 apiKeyRoutes.get("/", async (c) => {
   const tenant = c.get("tenant");
   try {
@@ -28,7 +37,7 @@ apiKeyRoutes.post("/", async (c) => {
   const body = await c.req.json<{ name?: string; scopes?: string[] }>();
   const name = (body.name || "API key").trim().slice(0, 80);
   const scopes = Array.isArray(body.scopes)
-    ? body.scopes.filter((s) => ["read", "write"].includes(s))
+    ? body.scopes.filter((s) => [...API_SCOPES, "write"].includes(s))
     : ["read"];
   if (!scopes.length) scopes.push("read");
   const { id, raw, prefix, hash } = await mintApiKey();
