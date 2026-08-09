@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "event": "member.created",
+  "data": {
+    "member_id": "mem_sample",
+    "email": "member@example.com",
+    "first_name": "Ada",
+    "last_name": "Lovelace",
+    "status": "pending",
+    "source": "join_form"
+  }
+}

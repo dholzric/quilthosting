@@ -3749,9 +3749,21 @@
         </div>
         <div class="card">
           <h3 style="margin-bottom:0.5rem">Events</h3>
-          <code style="font-size:0.8rem">member.created · member.activated · membership.activated · payment.succeeded · event.registration · form.response · *</code>
-          <p class="muted" style="font-size:0.85rem;margin-top:0.5rem">Signature header <code>X-QH-Signature</code> = HMAC-SHA256 hex of raw body with your secret.</p>
+          <code style="font-size:0.8rem" id="webhookEventCatalog">loading…</code>
+          <p class="muted" style="font-size:0.85rem;margin-top:0.5rem">Signature header <code>X-QH-Signature</code> = HMAC-SHA256 hex of <code>{X-QH-Timestamp}.{body}</code> with your secret.</p>
         </div>`;
+      loadWebhookEventCatalog();
+    }
+    /** Read the catalog from the API so the UI can never advertise an event the server does not emit. */
+    async function loadWebhookEventCatalog() {
+      const el = document.getElementById("webhookEventCatalog");
+      if (!el) return;
+      try {
+        const res = await api(`/api/tenants/${tenantId}/webhooks/events`);
+        el.textContent = (res.events || []).join(" · ");
+      } catch {
+        el.textContent = "unavailable";
+      }
     }
     async function createWebhook() {
       const events = document.getElementById("wh-events").value.split(",").map(s=>s.trim()).filter(Boolean);

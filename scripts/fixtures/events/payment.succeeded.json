@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "event": "payment.succeeded",
+  "data": {
+    "type": "dues",
+    "amount_cents": 3500,
+    "email": "member@example.com",
+    "related_id": "lvl_sample",
+    "source": "stripe"
+  }
+}

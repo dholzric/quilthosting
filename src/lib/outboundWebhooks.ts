@@ -6,15 +6,8 @@ import type { Env } from "../types";
 import { all, first } from "./db";
 import { generateId } from "./utils/id";
 
-export type WebhookEvent =
-  | "member.created"
-  | "member.activated"
-  | "member.updated"
-  | "membership.activated"
-  | "payment.succeeded"
-  | "event.registration"
-  | "form.response"
-  | "*";
+import type { WebhookEvent } from "./webhookEvents";
+export type { WebhookEvent };
 
 type Endpoint = {
   id: string;

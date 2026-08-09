@@ -2,22 +2,14 @@ import { Hono } from "hono";
 import type { Env, TenantVariables } from "../types";
 import { all, first } from "../lib/db";
 import { generateId } from "../lib/utils/id";
+import { WEBHOOK_SUBSCRIBE_OPTIONS } from "../lib/webhookEvents";
 
 export const outboundWebhookRoutes = new Hono<{
   Bindings: Env;
   Variables: TenantVariables;
 }>();
 
-const EVENT_OPTIONS = [
-  "*",
-  "member.created",
-  "member.activated",
-  "member.updated",
-  "membership.activated",
-  "payment.succeeded",
-  "event.registration",
-  "form.response",
-];
+const EVENT_OPTIONS = WEBHOOK_SUBSCRIBE_OPTIONS;
 
 outboundWebhookRoutes.get("/events", (c) => c.json({ events: EVENT_OPTIONS }));
 
@@ -49,9 +41,23 @@ outboundWebhookRoutes.post("/", async (c) => {
   if (!url.startsWith("https://") && !url.startsWith("http://")) {
     return c.json({ error: "url must be http(s)" }, 400);
   }
-  const events = Array.isArray(body.events) && body.events.length
-    ? body.events.filter((e) => EVENT_OPTIONS.includes(e))
-    : ["*"];
+  // Reject unknown names outright. Silently filtering a typo produces a
+  // subscription that never fires and is indistinguishable from the
+  // advertised-but-dead-event bug this whole module exists to prevent.
+  const requested =
+    Array.isArray(body.events) && body.events.length ? body.events : ["*"];
+  const unknown = requested.filter((e) => !EVENT_OPTIONS.includes(e));
+  if (unknown.length) {
+    return c.json(
+      {
+        error: `Unknown event(s): ${unknown.join(", ")}`,
+        code: "unknown_event",
+        valid: EVENT_OPTIONS,
+      },
+      400
+    );
+  }
+  const events = requested;
   const id = generateId();
   const now = new Date().toISOString();
   const secret = body.secret?.trim() || generateId().replace(/-/g, "");
