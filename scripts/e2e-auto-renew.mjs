@@ -249,7 +249,30 @@ async function main() {
   );
   assert(payments3.length === 2, "replay does not add third payment");
 
+  // 6) Outbound events from the Stripe path.
+  //
+  // These payloads predate the event catalog. When schema validation landed in
+  // v0.27.0 they became silently droppable — enqueueEvent logs and returns if a
+  // payload does not match, so the paid path would stop emitting with no visible
+  // failure anywhere else in this script. Assert them explicitly.
+  //
+  // NOTE: this must run BEFORE the cleanup below. webhook_outbox has
+  // ON DELETE CASCADE on tenant_id, so deleting the seed tenant erases them.
+  console.log("\n6) outbound webhook events (Stripe path)");
+  const outbox = await d1(
+    `SELECT event, payload_json FROM webhook_outbox WHERE tenant_id = '${tenantId}'`
+  );
+  const byEvent = new Map(outbox.map((r) => [r.event, JSON.parse(r.payload_json)]));
+  for (const name of ["membership.activated", "member.activated", "payment.succeeded"]) {
+    assert(byEvent.has(name), `${name} enqueued`);
+    assert(
+      byEvent.get(name).source === "stripe",
+      `${name} carries source="stripe" (schema requires it)`
+    );
+  }
+
   // cleanup seed (best effort)
+  await d1(`DELETE FROM webhook_outbox WHERE tenant_id = '${tenantId}'`);
   await d1(`DELETE FROM payments WHERE tenant_id = '${tenantId}'`);
   await d1(`DELETE FROM memberships WHERE tenant_id = '${tenantId}'`);
   await d1(`DELETE FROM members WHERE tenant_id = '${tenantId}'`);

@@ -293,6 +293,24 @@ publicRoutes.post("/:slug/join", async (c) => {
       /* optional */
     }
 
+    // Order mirrors the Stripe path in routes/webhooks.ts: membership.activated
+    // carries the level metadata, member.activated is the coarser signal.
+    const { enqueueEvent } = await import("../lib/webhookOutbox");
+    await enqueueEvent(c.env, c.executionCtx, tenant.id, "membership.activated", {
+      member_id: member.id,
+      email,
+      level_id: level.id,
+      level_name: level.name,
+      membership_id: membershipId,
+      source: "join_form",
+    });
+    await enqueueEvent(c.env, c.executionCtx, tenant.id, "member.activated", {
+      member_id: member.id,
+      email,
+      level_id: level.id,
+      source: "join_form",
+    });
+
     return c.json({
       status: "active",
       member_id: member.id,

@@ -270,34 +270,36 @@ webhookRoutes.post("/stripe", async (c) => {
           } catch (e) {
             console.warn("automation enroll failed", e);
           }
-          try {
-            const { emitTenantEvent } = await import("../lib/outboundWebhooks");
-            await emitTenantEvent(c.env, tenantId, "membership.activated", {
-              member_id: memberId,
-              email: member.email,
-              level_id: level.id,
-              level_name: level.name,
-            });
-            await emitTenantEvent(c.env, tenantId, "member.activated", {
-              member_id: memberId,
-              email: member.email,
-            });
-          } catch {}
+          const { enqueueEvent } = await import("../lib/webhookOutbox");
+          await enqueueEvent(c.env, c.executionCtx, tenantId, "membership.activated", {
+            member_id: memberId,
+            email: member.email,
+            level_id: level.id,
+            level_name: level.name,
+            membership_id: null,
+            source: "stripe",
+          });
+          await enqueueEvent(c.env, c.executionCtx, tenantId, "member.activated", {
+            member_id: memberId,
+            email: member.email,
+            level_id: level.id,
+            source: "stripe",
+          });
         }
       }
     }
 
     // Payment succeeded outbound webhook (dues/event/store)
     if (tenantId && session.amount_total != null && paymentType) {
-      try {
-        const { emitTenantEvent } = await import("../lib/outboundWebhooks");
-        await emitTenantEvent(c.env, tenantId, "payment.succeeded", {
-          type: paymentType,
-          amount_cents: session.amount_total,
-          email: session.customer_email || session.metadata?.email,
-          related_id: relatedId,
-        });
-      } catch {}
+      const { enqueueEvent } = await import("../lib/webhookOutbox");
+      await enqueueEvent(c.env, c.executionCtx, tenantId, "payment.succeeded", {
+        type: paymentType,
+        amount_cents: session.amount_total,
+        // Schema requires string|null, and Stripe can hand back undefined here.
+        email: session.customer_email || session.metadata?.email || null,
+        related_id: relatedId ?? null,
+        source: "stripe",
+      });
     }
 
     // Multi-SKU store cart orders

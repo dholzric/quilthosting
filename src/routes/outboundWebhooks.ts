@@ -2,7 +2,10 @@ import { Hono } from "hono";
 import type { Env, TenantVariables } from "../types";
 import { all, first } from "../lib/db";
 import { generateId } from "../lib/utils/id";
-import { WEBHOOK_SUBSCRIBE_OPTIONS } from "../lib/webhookEvents";
+import {
+  WEBHOOK_SUBSCRIBE_OPTIONS,
+  EVENT_SCHEMA_VERSION,
+} from "../lib/webhookEvents";
 
 export const outboundWebhookRoutes = new Hono<{
   Bindings: Env;
@@ -147,18 +150,22 @@ outboundWebhookRoutes.post("/:id/test", async (c) => {
     ).bind(c.req.param("id"), tenant.id)
   );
   if (!ep) return c.json({ error: "Not found" }, 404);
-  const { emitTenantEvent } = await import("../lib/outboundWebhooks");
-  // Temporarily emit only to this URL via direct fetch
+  // Direct fetch to this one endpoint — a test ping is not a domain event and
+  // must not enter the outbox (it would retry and pollute delivery history).
   const body = JSON.stringify({
     id: generateId(),
+    schema_version: EVENT_SCHEMA_VERSION,
     event: "test.ping",
     created_at: new Date().toISOString(),
     tenant_id: tenant.id,
     data: { message: "QuiltHosting Zapier/Make test webhook" },
   });
+  const timestamp = Math.floor(Date.now() / 1000).toString();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     "X-QH-Event": "test.ping",
+    "X-QH-Timestamp": timestamp,
+    "X-QH-Schema-Version": String(EVENT_SCHEMA_VERSION),
   };
   if (ep.secret) {
     const key = await crypto.subtle.importKey(
@@ -168,10 +175,11 @@ outboundWebhookRoutes.post("/:id/test", async (c) => {
       false,
       ["sign"]
     );
+    // Must match dispatchOutboxRow: HMAC over `{timestamp}.{body}`, not body alone.
     const mac = await crypto.subtle.sign(
       "HMAC",
       key,
-      new TextEncoder().encode(body)
+      new TextEncoder().encode(`${timestamp}.${body}`)
     );
     headers["X-QH-Signature"] = [...new Uint8Array(mac)]
       .map((b) => b.toString(16).padStart(2, "0"))
