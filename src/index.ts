@@ -43,6 +43,8 @@ import { runAutomationJob } from "./lib/automations";
 import { processQueuedBlasts } from "./lib/blastSend";
 import { generateId } from "./lib/utils/id";
 import { getTenantByHost } from "./lib/tenantHost";
+import { handleWebhookQueue } from "./consumers/webhookConsumer";
+import { sweepOutbox } from "./lib/webhookOutbox";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -383,13 +385,29 @@ app.notFound((c) => {
   return c.json({ error: "Not found" }, 404);
 });
 
+/** Cron expression for the outbox sweeper — must match wrangler.toml exactly. */
+const SWEEP_CRON = "* * * * *";
+
 export default {
   fetch: app.fetch,
+  async queue(batch: MessageBatch<{ outboxId: string }>, env: Env) {
+    await handleWebhookQueue(batch, env);
+  },
   async scheduled(
-    _event: ScheduledEvent,
+    event: ScheduledEvent,
     env: Env,
     ctx: ExecutionContext
   ) {
+    // Two schedules share this handler. Branch on the expression so the daily
+    // job never runs on the one-minute sweep tick.
+    if (event.cron === SWEEP_CRON) {
+      ctx.waitUntil(
+        sweepOutbox(env).then((r) => {
+          if (r.swept) console.log("outbox sweep", r);
+        })
+      );
+      return;
+    }
     ctx.waitUntil(
       runDailyJobs(env).then((r) => {
         console.log("Cron daily jobs", r);

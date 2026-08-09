@@ -51,5 +51,18 @@ CLOUDFLARE_ZONE_ID = "c6fd07d190feb5b47b3d9ea76e786fdd"
 CLOUDFLARE_WORKER_NAME = "quilthosting"
 SAAS_CNAME_TARGET = "customers.quilthosting.com"
 
+[[queues.producers]]
+binding = "WEBHOOK_QUEUE"
+queue = "quilthosting-webhooks"
+
+[[queues.consumers]]
+queue = "quilthosting-webhooks"
+max_batch_size = 10
+max_batch_timeout = 5
+max_retries = 5
+dead_letter_queue = "quilthosting-webhooks-dlq"
+
 [triggers]
-crons = ["0 8 * * *"]
+# 0 8 * * *  daily jobs (renewals, reminders, blasts, automations)
+# * * * * *  outbox sweeper — safety net for rows the queue never acknowledged
+crons = ["0 8 * * *", "* * * * *"]

@@ -1,44 +1,20 @@
 /**
- * Outbound webhooks for Zapier / Make / custom integrations.
- * Fire-and-forget from domain events; failures logged, never block main flow.
+ * Compatibility shim over the durable outbox.
+ *
+ * The inline fetch loop that used to live here was removed in v0.27.0: it
+ * awaited delivery inside the user request (slow endpoints blocked the
+ * response) and lost events entirely if the Worker was cancelled between the
+ * database commit and the fetch. All delivery now goes through
+ * lib/webhookOutbox.ts.
+ *
+ * Prefer calling enqueueEvent() directly — it takes an ExecutionContext, so
+ * the queue send happens in waitUntil instead of on the request path. This
+ * shim exists for call sites that do not have a ctx handy.
  */
 import type { Env } from "../types";
-import { all, first } from "./db";
-import { generateId } from "./utils/id";
+import type { WebhookEvent, WebhookEventName } from "./webhookEvents";
 
-import type { WebhookEvent } from "./webhookEvents";
 export type { WebhookEvent };
-
-type Endpoint = {
-  id: string;
-  tenant_id: string;
-  url: string;
-  secret: string | null;
-  events_json: string;
-  is_active: number;
-};
-
-function wantsEvent(eventsJson: string, event: string): boolean {
-  try {
-    const arr = JSON.parse(eventsJson || "[]");
-    if (!Array.isArray(arr) || !arr.length) return true;
-    return arr.includes("*") || arr.includes(event);
-  } catch {
-    return true;
-  }
-}
-
-async function signBody(secret: string, body: string): Promise<string> {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  const mac = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body));
-  return [...new Uint8Array(mac)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
 
 export async function emitTenantEvent(
   env: Env,
@@ -46,92 +22,8 @@ export async function emitTenantEvent(
   event: WebhookEvent,
   data: Record<string, unknown>
 ): Promise<void> {
-  try {
-    const endpoints = await all<Endpoint>(
-      env.DB.prepare(
-        `SELECT * FROM webhook_endpoints
-         WHERE tenant_id = ? AND is_active = 1`
-      ).bind(tenantId)
-    );
-    if (!endpoints.length) return;
-
-    const payload = {
-      id: generateId(),
-      event,
-      created_at: new Date().toISOString(),
-      tenant_id: tenantId,
-      data,
-    };
-    const body = JSON.stringify(payload);
-
-    await Promise.all(
-      endpoints.map(async (ep) => {
-        if (!wantsEvent(ep.events_json, event)) return;
-        const headers: Record<string, string> = {
-          "Content-Type": "application/json",
-          "User-Agent": "QuiltHosting-Webhooks/1.0",
-          "X-QH-Event": event,
-          "X-QH-Delivery": payload.id,
-        };
-        if (ep.secret) {
-          headers["X-QH-Signature"] = await signBody(ep.secret, body);
-        }
-        let statusCode: number | null = null;
-        let success = 0;
-        let error: string | null = null;
-        try {
-          const res = await fetch(ep.url, {
-            method: "POST",
-            headers,
-            body,
-          });
-          statusCode = res.status;
-          success = res.ok ? 1 : 0;
-          if (!res.ok) error = `HTTP ${res.status}`;
-        } catch (e: any) {
-          error = e?.message || "fetch failed";
-          success = 0;
-        }
-        const now = new Date().toISOString();
-        try {
-          await env.DB.prepare(
-            `INSERT INTO webhook_deliveries
-             (id, tenant_id, endpoint_id, event, payload_json, status_code, success, error, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-          )
-            .bind(
-              generateId(),
-              tenantId,
-              ep.id,
-              event,
-              body.slice(0, 8000),
-              statusCode,
-              success,
-              error,
-              now
-            )
-            .run();
-          if (success) {
-            await env.DB.prepare(
-              `UPDATE webhook_endpoints SET fail_count = 0, last_status = ?, last_error = null,
-               last_success_at = ?, updated_at = ? WHERE id = ?`
-            )
-              .bind(statusCode, now, now, ep.id)
-              .run();
-          } else {
-            await env.DB.prepare(
-              `UPDATE webhook_endpoints SET fail_count = coalesce(fail_count,0) + 1,
-               last_status = ?, last_error = ?, updated_at = ? WHERE id = ?`
-            )
-              .bind(statusCode, error, now, ep.id)
-              .run();
-          }
-        } catch (e) {
-          console.warn("webhook log failed", e);
-        }
-      })
-    );
-  } catch (e) {
-    console.warn("emitTenantEvent", e);
-  }
+  // "*" is a subscription filter, never an emitted name.
+  if (event === "*") return;
+  const { enqueueEvent } = await import("./webhookOutbox");
+  await enqueueEvent(env, undefined, tenantId, event as WebhookEventName, data);
 }

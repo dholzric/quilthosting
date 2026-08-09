@@ -4,6 +4,11 @@ export type Env = {
   FILES: R2Bucket;
   KV: KVNamespace;
   ASSETS: Fetcher;
+  /**
+   * Outbound webhook dispatch queue. Optional so local dev and tests still run
+   * without the binding — enqueueEvent falls back to the cron sweeper.
+   */
+  WEBHOOK_QUEUE?: Queue<{ outboxId: string }>;
   SITE_ACCESS_PASSWORD?: string;
   /** When "true", site is public even if SITE_ACCESS_PASSWORD is unset. Default: open when password unset. */
   PUBLIC_LAUNCH?: string;
