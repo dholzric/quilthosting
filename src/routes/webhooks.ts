@@ -221,6 +221,23 @@ webhookRoutes.post("/stripe", async (c) => {
             html,
           });
         }
+
+        // Emitted here, after the reg/event lookups, so the payload is complete.
+        // The seat is only real once Stripe confirms — never emit at
+        // pending_payment. At-least-once delivery means a Stripe retry can
+        // re-emit; consumers dedupe on the envelope id.
+        const { enqueueEvent } = await import("../lib/webhookOutbox");
+        await enqueueEvent(c.env, c.executionCtx, tenantId, "event.registration", {
+          registration_id: relatedId,
+          event_id: reg.event_id,
+          event_title: eventRow?.title ?? "",
+          email: reg.email,
+          name: reg.name ?? null,
+          status: "registered",
+          amount_paid_cents: session.amount_total || 0,
+          ticket_code: reg.ticket_code ?? null,
+          source: "stripe",
+        });
       }
     }
 

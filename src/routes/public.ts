@@ -487,6 +487,21 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
       )
       .run();
 
+    {
+      const { enqueueEvent } = await import("../lib/webhookOutbox");
+      await enqueueEvent(c.env, c.executionCtx, tenant.id, "event.registration", {
+        registration_id: regId,
+        event_id: eventId,
+        event_title: event.title,
+        email,
+        name: body.name ?? null,
+        status,
+        amount_paid_cents: 0,
+        ticket_code: ticketCode,
+        source: "public",
+      });
+    }
+
     if (status === "registered") {
       const eventDate = new Date(event.start_at).toLocaleString("en-US", {
         dateStyle: "full",
