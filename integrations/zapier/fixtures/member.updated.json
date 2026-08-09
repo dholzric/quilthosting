@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "event": "member.updated",
+  "data": {
+    "member_id": "mem_sample",
+    "email": "member@example.com",
+    "status": "active",
+    "previous_status": "pending",
+    "changed": [
+      "status"
+    ],
+    "source": "admin"
+  }
+}

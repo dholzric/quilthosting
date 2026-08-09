@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "event": "event.registration",
+  "data": {
+    "registration_id": "reg_sample",
+    "event_id": "evt_sample",
+    "event_title": "Fall Quilt Show & Tell",
+    "email": "attendee@example.com",
+    "name": "Katherine Johnson",
+    "status": "registered",
+    "amount_paid_cents": 0,
+    "ticket_code": "QH-ABC123",
+    "source": "public"
+  }
+}

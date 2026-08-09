@@ -1,0 +1,16 @@
+{
+  "name": "quilthosting-zapier",
+  "version": "1.0.0",
+  "description": "QuiltHosting Zapier integration \u2014 membership, events, and payments for quilt guilds.",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "test": "zapier-platform validate"
+  },
+  "dependencies": {
+    "zapier-platform-core": "19.1.0"
+  },
+  "devDependencies": {
+    "zapier-platform-cli": "^19.1.0"
+  }
+}

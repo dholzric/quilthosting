@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "event": "membership.activated",
+  "data": {
+    "member_id": "mem_sample",
+    "email": "member@example.com",
+    "level_id": "lvl_sample",
+    "level_name": "Annual Membership",
+    "membership_id": "mbr_sample",
+    "source": "join_form"
+  }
+}

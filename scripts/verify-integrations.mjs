@@ -12,7 +12,7 @@
  */
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 const ROOT = resolve(import.meta.dirname, "..");
@@ -85,28 +85,77 @@ function check(label, cond, detail = "") {
   console.log(`  ok  ${label}`);
 }
 
+/**
+ * The Zapier package keeps its own copy of the fixtures so it stays
+ * self-contained. Assert the copies match, or a Zap's sample data silently
+ * drifts from what the API actually sends.
+ */
+function checkFixtureDrift() {
+  const src = resolve(ROOT, "scripts/fixtures/events");
+  const dst = resolve(ROOT, "integrations/zapier/fixtures");
+  let names;
+  try {
+    names = readdirSync(src);
+  } catch {
+    return;
+  }
+  for (const n of names) {
+    let a, b;
+    try {
+      a = readFileSync(resolve(src, n), "utf8");
+      b = readFileSync(resolve(dst, n), "utf8");
+    } catch {
+      throw new Error(`fixture ${n} missing from integrations/zapier/fixtures`);
+    }
+    if (a.trim() !== b.trim()) {
+      throw new Error(
+        `fixture ${n} has drifted between scripts/fixtures/events and integrations/zapier/fixtures`
+      );
+    }
+  }
+  console.log(`fixtures in sync (${names.length})`);
+}
+
 async function main() {
   loadDevVars();
+  checkFixtureDrift();
   await startSink();
   console.log(`sink on :${SINK_PORT}`);
 
   const stamp = randomUUID().slice(0, 8);
 
-  const reg = await json("/api/auth/register", {
+  // Reuse one stable account across runs. Registering a fresh user each time
+  // burns the /register rate limit (10 per 10 min) after a handful of runs and
+  // the harness becomes unrunnable; /login allows 30 per 10 min.
+  const HARNESS_EMAIL = "harness@example.test";
+  const HARNESS_PASSWORD = "harness-password-1";
+
+  let jwt;
+  const login = await json("/api/auth/login", {
     method: "POST",
-    body: JSON.stringify({
-      email: `harness-${stamp}@example.test`,
-      password: "harness-password-1",
-      name: "Harness Admin",
-    }),
+    body: JSON.stringify({ email: HARNESS_EMAIL, password: HARNESS_PASSWORD }),
   });
-  if (reg.status >= 400) {
-    throw new Error(
-      `register failed (${reg.status}). Set GOOGLE_AUTH_REQUIRED=false in .dev.vars. ` +
-        JSON.stringify(reg.body)
-    );
+  if (login.status === 200 && login.body.token) {
+    jwt = login.body.token;
+  } else {
+    const reg = await json("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify({
+        email: HARNESS_EMAIL,
+        password: HARNESS_PASSWORD,
+        name: "Harness Admin",
+      }),
+    });
+    if (reg.status >= 400) {
+      throw new Error(
+        `could not log in or register the harness account (login ${login.status}, ` +
+          `register ${reg.status}). If register says 403, set ` +
+          `GOOGLE_AUTH_REQUIRED=false in .dev.vars. If 429, the rate limit ` +
+          `window is 10 minutes. ${JSON.stringify(reg.body)}`
+      );
+    }
+    jwt = reg.body.token;
   }
-  const jwt = reg.body.token;
   const auth = { Authorization: `Bearer ${jwt}` };
   // siteGate accepts ANY valid Bearer JWT, so the same header opens /public/*.
   // Without it every public drive returns the private-preview HTML, not JSON.
