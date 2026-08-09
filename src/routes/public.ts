@@ -239,6 +239,15 @@ publicRoutes.post("/:slug/join", async (c) => {
     member = await first<Member>(
       c.env.DB.prepare("SELECT * FROM members WHERE id = ?").bind(memberId)
     );
+    const { enqueueEvent } = await import("../lib/webhookOutbox");
+    await enqueueEvent(c.env, c.executionCtx, tenant.id, "member.created", {
+      member_id: memberId,
+      email,
+      first_name: body.first_name ?? null,
+      last_name: body.last_name ?? null,
+      status: "pending",
+      source: "join_form",
+    });
   } else if (customJson !== "{}") {
     let current: Record<string, string> = {};
     try { current = JSON.parse(member.custom_fields_json || "{}"); } catch {}

@@ -91,6 +91,15 @@ memberRoutes.post("/", async (c) => {
   const member = await first<Member>(
     c.env.DB.prepare("SELECT * FROM members WHERE id = ?").bind(id)
   );
+  const { enqueueEvent } = await import("../lib/webhookOutbox");
+  await enqueueEvent(c.env, c.executionCtx, tenant.id, "member.created", {
+    member_id: id,
+    email: body.email.toLowerCase(),
+    first_name: body.first_name ?? null,
+    last_name: body.last_name ?? null,
+    status,
+    source: "admin",
+  });
   return c.json(member, 201);
 });
 
@@ -597,6 +606,9 @@ memberRoutes.post("/import", async (c) => {
       );
       updated++;
     } else {
+      // No per-row member.created here: a 500-row import would write 500 outbox
+      // rows and 500 queue sends inside one invocation. A members.import.completed
+      // summary event is planned (see wildapricot-master-program.md Phase 3).
       memberId = generateId();
       byEmail.set(email, memberId);
       stmts.push(
