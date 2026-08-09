@@ -399,6 +399,19 @@ memberRoutes.patch("/:memberId", async (c) => {
   const updated = await first<Member>(
     c.env.DB.prepare("SELECT * FROM members WHERE id = ?").bind(memberId)
   );
+  const { enqueueEvent } = await import("../lib/webhookOutbox");
+  await enqueueEvent(c.env, c.executionCtx, tenant.id, "member.updated", {
+    member_id: memberId,
+    email: updated?.email ?? existing.email,
+    status: updated?.status ?? existing.status,
+    previous_status: existing.status,
+    // Column names the caller actually changed, so a Zap can filter on them
+    // without diffing the whole record.
+    changed: fields
+      .map((f) => f.split(" = ")[0])
+      .filter((f) => f !== "updated_at"),
+    source: "admin",
+  });
   return c.json(updated);
 });
 
