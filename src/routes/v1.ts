@@ -320,27 +320,25 @@ v1Routes.post("/members", async (c) => {
     const { generateId } = await import("../lib/utils/id");
     const id = generateId();
     const now = new Date().toISOString();
-    await c.env.DB.prepare(
+    const insertMemberStmt = c.env.DB.prepare(
       `INSERT INTO members
        (id, tenant_id, email, first_name, last_name, phone, status, joined_at, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-      .bind(
-        id,
-        auth.tenant.id,
-        email,
-        body.first_name ?? null,
-        body.last_name ?? null,
-        body.phone ?? null,
-        status,
-        now,
-        now,
-        now
-      )
-      .run();
+    ).bind(
+      id,
+      auth.tenant.id,
+      email,
+      body.first_name ?? null,
+      body.last_name ?? null,
+      body.phone ?? null,
+      status,
+      now,
+      now,
+      now
+    );
 
-    const { enqueueEvent } = await import("../lib/webhookOutbox");
-    await enqueueEvent(c.env, c.executionCtx, auth.tenant.id, "member.created", {
+    const { prepareEvent, scheduleDispatch } = await import("../lib/webhookOutbox");
+    const ev = prepareEvent(c.env, auth.tenant.id, "member.created", {
       member_id: id,
       email,
       first_name: body.first_name ?? null,
@@ -348,6 +346,28 @@ v1Routes.post("/members", async (c) => {
       status,
       source: "api",
     });
+    if (!ev) {
+      return {
+        status: 500,
+        json: {
+          error: "Could not record the change event; nothing was saved.",
+          code: "event_prepare_failed",
+        },
+      };
+    }
+    try {
+      await c.env.DB.batch([insertMemberStmt, ev.stmt]);
+    } catch (e) {
+      console.error("v1 member create: outbox batch failed, member NOT saved", e);
+      return {
+        status: 500,
+        json: {
+          error: "Could not record the change event; nothing was saved.",
+          code: "event_prepare_failed",
+        },
+      };
+    }
+    await scheduleDispatch(c.env, c.executionCtx, ev.id);
 
     const member = await first(
       c.env.DB.prepare(
@@ -432,11 +452,49 @@ v1Routes.patch("/members/:memberId", async (c) => {
 
     fields.push("updated_at = ?");
     params.push(new Date().toISOString(), memberId, auth.tenant.id);
-    await c.env.DB.prepare(
+    const updateMemberStmt = c.env.DB.prepare(
       `UPDATE members SET ${fields.join(", ")} WHERE id = ? AND tenant_id = ?`
-    )
-      .bind(...params)
-      .run();
+    ).bind(...params);
+
+    // member row after the update, computed from what we're about to write
+    // (not yet committed) so the event payload matches the row once it lands.
+    const nextEmail = existing.email;
+    const nextStatus =
+      (body.status as string | undefined) ?? existing.status;
+
+    const { prepareEvent, scheduleDispatch } = await import("../lib/webhookOutbox");
+    const ev = prepareEvent(c.env, auth.tenant.id, "member.updated", {
+      member_id: memberId,
+      email: nextEmail,
+      status: nextStatus,
+      previous_status: existing.status,
+      changed: fields
+        .map((f) => f.split(" = ")[0])
+        .filter((f) => f !== "updated_at"),
+      source: "api",
+    });
+    if (!ev) {
+      return {
+        status: 500,
+        json: {
+          error: "Could not record the change event; nothing was saved.",
+          code: "event_prepare_failed",
+        },
+      };
+    }
+    try {
+      await c.env.DB.batch([updateMemberStmt, ev.stmt]);
+    } catch (e) {
+      console.error("v1 member update: outbox batch failed, member NOT saved", e);
+      return {
+        status: 500,
+        json: {
+          error: "Could not record the change event; nothing was saved.",
+          code: "event_prepare_failed",
+        },
+      };
+    }
+    await scheduleDispatch(c.env, c.executionCtx, ev.id);
 
     const member = await first<{ email: string; status: string }>(
       c.env.DB.prepare(
@@ -444,18 +502,6 @@ v1Routes.patch("/members/:memberId", async (c) => {
          FROM members WHERE id = ?`
       ).bind(memberId)
     );
-
-    const { enqueueEvent } = await import("../lib/webhookOutbox");
-    await enqueueEvent(c.env, c.executionCtx, auth.tenant.id, "member.updated", {
-      member_id: memberId,
-      email: member?.email ?? existing.email,
-      status: member?.status ?? existing.status,
-      previous_status: existing.status,
-      changed: fields
-        .map((f) => f.split(" = ")[0])
-        .filter((f) => f !== "updated_at"),
-      source: "api",
-    });
 
     return { status: 200, json: { member } };
   });

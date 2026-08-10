@@ -18,6 +18,55 @@ import {
 
 export const webhookRoutes = new Hono<{ Bindings: Env }>();
 
+/**
+ * Stripe-webhook-only commit helper.
+ *
+ * Batches a mutation with its outbox event atomically when it can, but NEVER
+ * lets an event-recording problem block the mutation itself or turn into a
+ * non-2xx response. Stripe retries the whole webhook body on any non-2xx,
+ * and everything in this file past `paymentAlreadyRecorded` is not safely
+ * re-runnable (activating a membership twice, double-decrementing store
+ * inventory, etc.) -- so on any failure here we log loudly, fall back to
+ * running the mutation alone (best effort), and let the request finish 200.
+ * Losing an outbound webhook event is recoverable (the outbox row can be
+ * replayed manually); returning 500 and inviting Stripe to redeliver a
+ * payment we already recorded is not.
+ */
+async function commitStripeMutationWithEvent(
+  env: Env,
+  ctx: { waitUntil(p: Promise<unknown>): void } | undefined,
+  mutationStmt: D1PreparedStatement,
+  ev: { id: string; stmt: D1PreparedStatement } | null,
+  label: string
+): Promise<void> {
+  const { scheduleDispatch } = await import("../lib/webhookOutbox");
+  if (!ev) {
+    console.error(
+      `stripe webhook: prepareEvent failed for ${label}; running the mutation without an event record`
+    );
+    try {
+      await mutationStmt.run();
+    } catch (e) {
+      console.error(`stripe webhook: mutation for ${label} failed`, e);
+    }
+    return;
+  }
+  try {
+    await env.DB.batch([mutationStmt, ev.stmt]);
+    await scheduleDispatch(env, ctx, ev.id);
+  } catch (e) {
+    console.error(
+      `stripe webhook: outbox batch failed for ${label}; retrying the mutation alone so the payment side effect is not lost`,
+      e
+    );
+    try {
+      await mutationStmt.run();
+    } catch (e2) {
+      console.error(`stripe webhook: fallback mutation for ${label} also failed`, e2);
+    }
+  }
+}
+
 /** Skip if we already recorded this Stripe object id (payment_intent, session, or invoice). */
 async function paymentAlreadyRecorded(
   db: D1Database,
@@ -168,15 +217,10 @@ webhookRoutes.post("/stripe", async (c) => {
     }
 
     if (paymentType === "event" && relatedId) {
-      await c.env.DB.prepare(
-        `UPDATE event_registrations
-         SET amount_paid_cents = ?, status = 'registered', updated_at = ?
-         WHERE id = ? AND tenant_id = ? AND status IN ('pending_payment', 'registered')`
-      )
-        .bind(session.amount_total || 0, now, relatedId, tenantId)
-        .run();
-
-      // Confirmation email with ticket (free path already emails; paid waits for webhook)
+      // Read before the update: none of these columns (email, name,
+      // ticket_code, event_id) are touched by the UPDATE below, so reading
+      // first lets the UPDATE itself stay unexecuted until it can be batched
+      // with its outbox event further down.
       const reg = await first<{
         email: string;
         name: string | null;
@@ -188,6 +232,12 @@ webhookRoutes.post("/stripe", async (c) => {
            WHERE id = ? AND tenant_id = ?`
         ).bind(relatedId, tenantId)
       );
+      const updateRegStmt = c.env.DB.prepare(
+        `UPDATE event_registrations
+         SET amount_paid_cents = ?, status = 'registered', updated_at = ?
+         WHERE id = ? AND tenant_id = ? AND status IN ('pending_payment', 'registered')`
+      ).bind(session.amount_total || 0, now, relatedId, tenantId);
+
       if (reg) {
         const eventRow = await first<{
           title: string;
@@ -226,8 +276,11 @@ webhookRoutes.post("/stripe", async (c) => {
         // The seat is only real once Stripe confirms — never emit at
         // pending_payment. At-least-once delivery means a Stripe retry can
         // re-emit; consumers dedupe on the envelope id.
-        const { enqueueEvent } = await import("../lib/webhookOutbox");
-        await enqueueEvent(c.env, c.executionCtx, tenantId, "event.registration", {
+        //
+        // Batched with updateRegStmt (prepared above, not yet run) so the
+        // 'registered' status flip and its outbox event commit together.
+        const { prepareEvent } = await import("../lib/webhookOutbox");
+        const ev = prepareEvent(c.env, tenantId, "event.registration", {
           registration_id: relatedId,
           event_id: reg.event_id,
           event_title: eventRow?.title ?? "",
@@ -238,6 +291,13 @@ webhookRoutes.post("/stripe", async (c) => {
           ticket_code: reg.ticket_code ?? null,
           source: "stripe",
         });
+        await commitStripeMutationWithEvent(
+          c.env,
+          c.executionCtx,
+          updateRegStmt,
+          ev,
+          "event.registration"
+        );
       }
     }
 
@@ -287,8 +347,26 @@ webhookRoutes.post("/stripe", async (c) => {
           } catch (e) {
             console.warn("automation enroll failed", e);
           }
-          const { enqueueEvent } = await import("../lib/webhookOutbox");
-          await enqueueEvent(c.env, c.executionCtx, tenantId, "membership.activated", {
+          // NOT atomic with the activation itself: activateMembership() above
+          // already ran and committed its own statements (expire prior
+          // actives, insert membership, flip member status) individually
+          // before we get here — same situation as the free-join path in
+          // routes/public.ts, and for the same reason: decomposing
+          // activateMembership into pre-built statements this route could
+          // batch would mean threading that change through all five of its
+          // call sites, which is bigger than this task's scope. What we CAN
+          // still guarantee is that these two events land together (both
+          // outbox rows commit or neither does), so a subscriber never sees
+          // member.activated without membership.activated or vice versa.
+          //
+          // Also never turns into a 500: this is the Stripe webhook path
+          // (see commitStripeMutationWithEvent above for why), and by this
+          // point the membership is already active regardless of whether the
+          // outbox rows land.
+          const { prepareEvent, scheduleDispatch } = await import(
+            "../lib/webhookOutbox"
+          );
+          const membershipEv = prepareEvent(c.env, tenantId, "membership.activated", {
             member_id: memberId,
             email: member.email,
             level_id: level.id,
@@ -296,20 +374,49 @@ webhookRoutes.post("/stripe", async (c) => {
             membership_id: null,
             source: "stripe",
           });
-          await enqueueEvent(c.env, c.executionCtx, tenantId, "member.activated", {
+          const memberEv = prepareEvent(c.env, tenantId, "member.activated", {
             member_id: memberId,
             email: member.email,
             level_id: level.id,
             source: "stripe",
           });
+          if (!membershipEv || !memberEv) {
+            console.error(
+              "stripe webhook: prepareEvent failed for membership/member.activated; activation already committed, events lost",
+              { hasMembershipEv: !!membershipEv, hasMemberEv: !!memberEv }
+            );
+          } else {
+            try {
+              await c.env.DB.batch([membershipEv.stmt, memberEv.stmt]);
+              await scheduleDispatch(c.env, c.executionCtx, membershipEv.id);
+              await scheduleDispatch(c.env, c.executionCtx, memberEv.id);
+            } catch (e) {
+              console.error(
+                "stripe webhook: outbox batch failed for membership/member.activated; activation already committed, events lost",
+                e
+              );
+            }
+          }
         }
       }
     }
 
     // Payment succeeded outbound webhook (dues/event/store)
+    //
+    // NOT atomic with the `payments` row: that INSERT ran and committed far
+    // above (right after the paymentAlreadyRecorded guard), before any of
+    // the type-specific branches (donation/store/event/dues) that sit
+    // between it and here. Deferring that INSERT down to this point so it
+    // could batch with this event would mean moving the dedupe-guarded write
+    // across ~200 lines of email sends and inventory/registration mutations
+    // that don't otherwise depend on its timing — a much larger restructure
+    // of the highest-risk file in this task than "batch each event with its
+    // own mutation" calls for. So there is nothing left to pair this INSERT
+    // with; it goes in on its own via prepareEvent, same log-and-continue,
+    // never-500 rule as the rest of this handler.
     if (tenantId && session.amount_total != null && paymentType) {
-      const { enqueueEvent } = await import("../lib/webhookOutbox");
-      await enqueueEvent(c.env, c.executionCtx, tenantId, "payment.succeeded", {
+      const { prepareEvent, scheduleDispatch } = await import("../lib/webhookOutbox");
+      const ev = prepareEvent(c.env, tenantId, "payment.succeeded", {
         type: paymentType,
         amount_cents: session.amount_total,
         // Schema requires string|null, and Stripe can hand back undefined here.
@@ -317,6 +424,21 @@ webhookRoutes.post("/stripe", async (c) => {
         related_id: relatedId ?? null,
         source: "stripe",
       });
+      if (!ev) {
+        console.error(
+          "stripe webhook: prepareEvent failed for payment.succeeded; payment already recorded, event lost"
+        );
+      } else {
+        try {
+          await c.env.DB.batch([ev.stmt]);
+          await scheduleDispatch(c.env, c.executionCtx, ev.id);
+        } catch (e) {
+          console.error(
+            "stripe webhook: outbox insert failed for payment.succeeded; payment already recorded, event lost",
+            e
+          );
+        }
+      }
     }
 
     // Multi-SKU store cart orders

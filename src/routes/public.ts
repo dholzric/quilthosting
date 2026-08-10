@@ -218,29 +218,24 @@ publicRoutes.post("/:slug/join", async (c) => {
 
   if (!member) {
     const memberId = generateId();
-    await c.env.DB.prepare(
+    const insertMemberStmt = c.env.DB.prepare(
       `INSERT INTO members
        (id, tenant_id, email, first_name, last_name, custom_fields_json, status, joined_at, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)`
-    )
-      .bind(
-        memberId,
-        tenant.id,
-        email,
-        body.first_name ?? null,
-        body.last_name ?? null,
-        customJson,
-        now,
-        now,
-        now
-      )
-      .run();
-
-    member = await first<Member>(
-      c.env.DB.prepare("SELECT * FROM members WHERE id = ?").bind(memberId)
+    ).bind(
+      memberId,
+      tenant.id,
+      email,
+      body.first_name ?? null,
+      body.last_name ?? null,
+      customJson,
+      now,
+      now,
+      now
     );
-    const { enqueueEvent } = await import("../lib/webhookOutbox");
-    await enqueueEvent(c.env, c.executionCtx, tenant.id, "member.created", {
+
+    const { prepareEvent, scheduleDispatch } = await import("../lib/webhookOutbox");
+    const ev = prepareEvent(c.env, tenant.id, "member.created", {
       member_id: memberId,
       email,
       first_name: body.first_name ?? null,
@@ -248,6 +243,32 @@ publicRoutes.post("/:slug/join", async (c) => {
       status: "pending",
       source: "join_form",
     });
+    if (!ev) {
+      return c.json(
+        {
+          error: "Could not record the change event; nothing was saved.",
+          code: "event_prepare_failed",
+        },
+        500
+      );
+    }
+    try {
+      await c.env.DB.batch([insertMemberStmt, ev.stmt]);
+    } catch (e) {
+      console.error("join: member-create outbox batch failed, member NOT saved", e);
+      return c.json(
+        {
+          error: "Could not record the change event; nothing was saved.",
+          code: "event_prepare_failed",
+        },
+        500
+      );
+    }
+    await scheduleDispatch(c.env, c.executionCtx, ev.id);
+
+    member = await first<Member>(
+      c.env.DB.prepare("SELECT * FROM members WHERE id = ?").bind(memberId)
+    );
   } else if (customJson !== "{}") {
     let current: Record<string, string> = {};
     try { current = JSON.parse(member.custom_fields_json || "{}"); } catch {}
@@ -295,8 +316,21 @@ publicRoutes.post("/:slug/join", async (c) => {
 
     // Order mirrors the Stripe path in routes/webhooks.ts: membership.activated
     // carries the level metadata, member.activated is the coarser signal.
-    const { enqueueEvent } = await import("../lib/webhookOutbox");
-    await enqueueEvent(c.env, c.executionCtx, tenant.id, "membership.activated", {
+    //
+    // NOT fully atomic: activateMembership() above already ran and committed
+    // its own three statements (expire prior actives, insert membership,
+    // flip member status) as separate .run() calls before we ever get here —
+    // decomposing it into pre-built statements this route could batch would
+    // mean threading that change through every one of its five call sites
+    // (members.ts import + CSV-import paths, portal.ts, webhooks.ts), which
+    // is a bigger and riskier refactor than this task's scope. What we CAN
+    // still guarantee is that these two events land together: either both
+    // outbox rows commit or neither does, so a subscriber never sees
+    // member.activated without membership.activated (or vice versa) even
+    // though the activation itself happened moments earlier and outside
+    // this batch.
+    const { prepareEvent, scheduleDispatch } = await import("../lib/webhookOutbox");
+    const membershipEv = prepareEvent(c.env, tenant.id, "membership.activated", {
       member_id: member.id,
       email,
       level_id: level.id,
@@ -304,12 +338,29 @@ publicRoutes.post("/:slug/join", async (c) => {
       membership_id: membershipId,
       source: "join_form",
     });
-    await enqueueEvent(c.env, c.executionCtx, tenant.id, "member.activated", {
+    const memberEv = prepareEvent(c.env, tenant.id, "member.activated", {
       member_id: member.id,
       email,
       level_id: level.id,
       source: "join_form",
     });
+    if (!membershipEv || !memberEv) {
+      console.error(
+        "join: free-activation event prepare failed; activation already committed, events lost",
+        { hasMembershipEv: !!membershipEv, hasMemberEv: !!memberEv }
+      );
+    } else {
+      try {
+        await c.env.DB.batch([membershipEv.stmt, memberEv.stmt]);
+        await scheduleDispatch(c.env, c.executionCtx, membershipEv.id);
+        await scheduleDispatch(c.env, c.executionCtx, memberEv.id);
+      } catch (e) {
+        console.error(
+          "join: free-activation outbox batch failed; activation already committed, events lost",
+          e
+        );
+      }
+    }
 
     return c.json({
       status: "active",
@@ -467,29 +518,27 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
 
   // Free or waitlist — register immediately
   if (priceCents === 0 || status === "waitlist") {
-    await c.env.DB.prepare(
+    const insertRegStmt = c.env.DB.prepare(
       `INSERT INTO event_registrations
        (id, tenant_id, event_id, member_id, email, name, status, amount_paid_cents, ticket_code, custom_answers_json, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)`
-    )
-      .bind(
-        regId,
-        tenant.id,
-        eventId,
-        memberId,
-        email,
-        body.name ?? null,
-        status,
-        ticketCode,
-        answersJson,
-        now,
-        now
-      )
-      .run();
+    ).bind(
+      regId,
+      tenant.id,
+      eventId,
+      memberId,
+      email,
+      body.name ?? null,
+      status,
+      ticketCode,
+      answersJson,
+      now,
+      now
+    );
 
     {
-      const { enqueueEvent } = await import("../lib/webhookOutbox");
-      await enqueueEvent(c.env, c.executionCtx, tenant.id, "event.registration", {
+      const { prepareEvent, scheduleDispatch } = await import("../lib/webhookOutbox");
+      const ev = prepareEvent(c.env, tenant.id, "event.registration", {
         registration_id: regId,
         event_id: eventId,
         event_title: event.title,
@@ -500,6 +549,31 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
         ticket_code: ticketCode,
         source: "public",
       });
+      if (!ev) {
+        return c.json(
+          {
+            error: "Could not record the change event; nothing was saved.",
+            code: "event_prepare_failed",
+          },
+          500
+        );
+      }
+      try {
+        await c.env.DB.batch([insertRegStmt, ev.stmt]);
+      } catch (e) {
+        console.error(
+          "event registration: outbox batch failed, registration NOT saved",
+          e
+        );
+        return c.json(
+          {
+            error: "Could not record the change event; nothing was saved.",
+            code: "event_prepare_failed",
+          },
+          500
+        );
+      }
+      await scheduleDispatch(c.env, c.executionCtx, ev.id);
     }
 
     if (status === "registered") {
@@ -1133,29 +1207,49 @@ publicRoutes.post("/:slug/forms/:formSlug", async (c) => {
     );
     memberId = m?.id ?? null;
   }
-  await c.env.DB.prepare(
+  const insertResponseStmt = c.env.DB.prepare(
     `INSERT INTO form_responses (id, tenant_id, form_id, member_id, email, name, answers_json, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-  )
-    .bind(
-      id,
-      tenant.id,
-      form.id,
-      memberId,
-      email || null,
-      body.name?.trim() || null,
-      JSON.stringify(validated.answers),
-      now
-    )
-    .run();
-  const { enqueueEvent } = await import("../lib/webhookOutbox");
-  await enqueueEvent(c.env, c.executionCtx, tenant.id, "form.response", {
+  ).bind(
+    id,
+    tenant.id,
+    form.id,
+    memberId,
+    email || null,
+    body.name?.trim() || null,
+    JSON.stringify(validated.answers),
+    now
+  );
+  const { prepareEvent, scheduleDispatch } = await import("../lib/webhookOutbox");
+  const ev = prepareEvent(c.env, tenant.id, "form.response", {
     form_id: form.id,
     response_id: id,
     email: email || null,
     answers: validated.answers,
     source: "public",
   });
+  if (!ev) {
+    return c.json(
+      {
+        error: "Could not record the change event; nothing was saved.",
+        code: "event_prepare_failed",
+      },
+      500
+    );
+  }
+  try {
+    await c.env.DB.batch([insertResponseStmt, ev.stmt]);
+  } catch (e) {
+    console.error("form response: outbox batch failed, response NOT saved", e);
+    return c.json(
+      {
+        error: "Could not record the change event; nothing was saved.",
+        code: "event_prepare_failed",
+      },
+      500
+    );
+  }
+  await scheduleDispatch(c.env, c.executionCtx, ev.id);
   return c.json({ ok: true, id }, 201);
 });
 
