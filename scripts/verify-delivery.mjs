@@ -49,9 +49,15 @@ const bad = await json(`/api/tenants/${tenantId}/members`, {
   body: JSON.stringify({ email: `atomic-${stamp}@example.test`, first_name: "Atomic" }),
 });
 const after = await json(`/api/tenants/${tenantId}/members`, { headers: auth });
+// Guard against a vacuous pass: if either list call itself failed (e.g. tenant
+// creation failed and tenantId is undefined), before/after would both be
+// `undefined ?? 0 === undefined ?? 0` -> 0 === 0 -> green on a broken run.
+check("before/after member list calls succeeded",
+  typeof before.body.total === "number" && typeof after.body.total === "number",
+  `before ${before.status} ${JSON.stringify(before.body)}, after ${after.status} ${JSON.stringify(after.body)}`);
 check("forced outbox failure rejects the request", bad.status >= 400, `got ${bad.status}`);
 check("forced outbox failure leaves NO member behind",
-  (after.body.total ?? 0) === (before.body.total ?? 0),
+  after.body.total === before.body.total,
   `${before.body.total} -> ${after.body.total}`);
 
 console.log(failures ? `\n${failures} failure(s)` : "\nall delivery checks passed");

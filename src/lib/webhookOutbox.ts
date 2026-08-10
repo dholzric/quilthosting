@@ -112,17 +112,22 @@ export function prepareEvent(
   return { id, stmt };
 }
 
-/** Hand a committed outbox id to the queue. Safe to call after the batch. */
-export function scheduleDispatch(
+/**
+ * Hand a committed outbox id to the queue. Safe to call after the batch.
+ * Mirrors enqueueEvent's ctx handling: fire-and-forget via waitUntil when a
+ * ctx is available, otherwise awaited directly so the send isn't abandoned.
+ */
+export async function scheduleDispatch(
   env: Env,
   ctx: { waitUntil(p: Promise<unknown>): void } | undefined,
   outboxId: string
-): void {
+): Promise<void> {
   const send = Promise.resolve(env.WEBHOOK_QUEUE?.send({ outboxId })).catch((e) => {
     // Recoverable: the row is committed, so the sweeper will pick it up.
     console.warn("outbox: queue send failed, sweeper will retry", outboxId, e);
   });
   if (ctx) ctx.waitUntil(send);
+  else await send;
 }
 
 /**

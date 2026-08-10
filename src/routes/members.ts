@@ -96,22 +96,51 @@ memberRoutes.post("/", async (c) => {
     status,
     source: "admin",
   });
-  // Development-only failure injection so the atomicity guarantee is testable.
-  const forceFail =
-    c.env.ENVIRONMENT === "development" &&
-    c.req.header("X-QH-Force-Outbox-Failure") === "1";
-  if (!ev || forceFail) {
+  if (!ev) {
+    // Genuine schema failure: a programming error. Nothing has been written yet.
     return c.json(
       { error: "Could not record the change event; nothing was saved.",
         code: "event_prepare_failed" },
       500
     );
   }
-  await c.env.DB.batch([insertMemberStmt, ev.stmt]);
-  scheduleDispatch(c.env, c.executionCtx, ev.id);
+
+  // Development-only failure injection so batch atomicity is provable end to
+  // end. This must break the BATCH ITSELF, not short-circuit before it runs —
+  // an early return here would prove nothing about atomicity (it would pass
+  // just as well against the old non-atomic .run()-then-enqueue shape). So on
+  // the forced-failure header, the real outbox insert is swapped for one that
+  // binds NULL into the NOT NULL tenant_id column, guaranteeing the insert —
+  // and with it the whole batch, member row included — fails to commit.
+  const forceFail =
+    c.env.ENVIRONMENT === "development" &&
+    c.req.header("X-QH-Force-Outbox-Failure") === "1";
+  const outboxStmt = forceFail
+    ? c.env.DB.prepare(
+        `INSERT INTO webhook_outbox
+         (id, tenant_id, event, schema_version, payload_json, status, attempts,
+          next_attempt_at, created_at, updated_at)
+         VALUES (?, NULL, ?, ?, ?, 'pending', 0, ?, ?, ?)`
+      ).bind(ev.id, "member.created", 1, "{}", now, now, now)
+    : ev.stmt;
+
+  try {
+    await c.env.DB.batch([insertMemberStmt, outboxStmt]);
+  } catch (e) {
+    console.error("member create: outbox batch failed, member NOT saved", e);
+    return c.json(
+      { error: "Could not record the change event; nothing was saved.",
+        code: "event_prepare_failed" },
+      500
+    );
+  }
+  await scheduleDispatch(c.env, c.executionCtx, ev.id);
 
   const member = await first<Member>(
-    c.env.DB.prepare("SELECT * FROM members WHERE id = ?").bind(id)
+    c.env.DB.prepare("SELECT * FROM members WHERE id = ? AND tenant_id = ?").bind(
+      id,
+      tenant.id
+    )
   );
   return c.json(member, 201);
 });
