@@ -85,6 +85,11 @@ export function isCacheableResponse(status: number, json: unknown): boolean {
   // request: plan tier, a count against a limit, or transient server health.
   // Do not cache; release the reservation so the identical request can
   // legitimately get a different answer once that condition changes.
+  // (429 hook_limit is listed for forward-looking completeness, not current
+  // coverage: POST /v1/hooks does not go through withIdempotency today, so
+  // no 429 actually reaches this predicate yet -- only the two member routes
+  // do. Don't read this branch as evidence hook creation is idempotency-
+  // wrapped.)
   return false;
 }
 

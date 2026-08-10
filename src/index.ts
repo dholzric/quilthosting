@@ -354,8 +354,22 @@ async function runDailyJobs(env: Env) {
   }
   // Belongs on the daily cadence, not the one-minute outbox sweep below --
   // idempotency records are retained for RETENTION_HOURS (24h), so a daily
-  // pass is more than frequent enough to bound PII retention.
-  const idempotency = await sweepExpired(env);
+  // pass is more than frequent enough to bound PII retention. sweepExpired
+  // is capped at `limit` (500) deletions per call, so a single call is a
+  // hard ceiling of 500/day regardless of how many rows are actually
+  // expired -- any tenant issuing more than 500 keyed writes/day would
+  // accumulate PII-bearing rows forever. Drain in a loop until a pass
+  // deletes fewer than the limit (i.e. nothing expired is left), same idiom
+  // as the queued-blast extra-passes loop above, with an iteration cap so a
+  // pathological backlog cannot spin the cron invocation forever.
+  const IDEM_SWEEP_BATCH = 500;
+  let idemDeleted = 0;
+  for (let i = 0; i < 50; i++) {
+    const r = await sweepExpired(env, IDEM_SWEEP_BATCH);
+    idemDeleted += r.deleted;
+    if (r.deleted < IDEM_SWEEP_BATCH) break;
+  }
+  const idempotency = { deleted: idemDeleted };
   return {
     renewals,
     events,

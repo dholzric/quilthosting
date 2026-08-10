@@ -66,18 +66,36 @@ function d1Query(sql) {
 }
 
 async function json(path, opts = {}) {
-  const res = await fetch(`${BASE}${path}`, {
-    ...opts,
-    headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
-  });
-  const text = await res.text();
-  let body;
-  try {
-    body = JSON.parse(text);
-  } catch {
-    body = { raw: text.slice(0, 300) };
+  // One immediate retry on a bare network-level failure (undici "fetch
+  // failed" / ECONNRESET). Seen after this script shells out to the
+  // wrangler D1 CLI (a separate process touching the same local sqlite
+  // file) right before a heavy request like the drain-loop /__scheduled
+  // call: the previously pooled keep-alive socket to wrangler dev gets
+  // reset and the NEXT fetch on it fails, even though the request itself
+  // is fine -- a fresh connection succeeds immediately after. This is not
+  // masking a real failure mode under test: the retry only fires on a
+  // thrown network error before any response was received, never on a
+  // returned status code.
+  let lastErr;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(`${BASE}${path}`, {
+        ...opts,
+        headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
+      });
+      const text = await res.text();
+      let body;
+      try {
+        body = JSON.parse(text);
+      } catch {
+        body = { raw: text.slice(0, 300) };
+      }
+      return { status: res.status, body };
+    } catch (e) {
+      lastErr = e;
+    }
   }
-  return { status: res.status, body };
+  throw lastErr;
 }
 
 let failures = 0;
@@ -485,6 +503,29 @@ async function main() {
     `got ${JSON.stringify(preSweep)}`
   );
 
+  /**
+   * /__scheduled runs the WHOLE of runDailyJobs -- renewals, event
+   * reminders, scheduled blasts, and automations -- against this developer's
+   * local D1 and the live RESEND_API_KEY in .dev.vars, not just the
+   * idempotency sweep. That's fine against today's fixtures (nothing here
+   * has a due date), but it is a property of today's data, not of this
+   * test. If a future run has real seed data sitting in a blast queue,
+   * calling this route would mail real people. Assert those three counts
+   * are exactly zero on every /__scheduled call in this file so the suite
+   * fails loudly the moment that would happen, instead of quietly sending
+   * mail.
+   */
+  function assertNoSideEffects(label, body) {
+    check(
+      `${label}: renewals/blasts/automations sent nothing (guards against real email)`,
+      (body?.renewals?.reminders_sent ?? -1) === 0 &&
+        (body?.renewals?.winbacks_sent ?? -1) === 0 &&
+        (body?.blasts?.emails ?? -1) === 0 &&
+        (body?.automations?.sent ?? -1) === 0,
+      `got renewals=${JSON.stringify(body?.renewals)} blasts=${JSON.stringify(body?.blasts)} automations=${JSON.stringify(body?.automations)}`
+    );
+  }
+
   const sweepRun = await json("/__scheduled", {
     method: "POST",
     // Two different secrets, two different jobs: the harness session JWT
@@ -501,6 +542,7 @@ async function main() {
     sweepRun.status === 200 && typeof sweepRun.body.idempotency?.deleted === "number",
     `got ${sweepRun.status} ${JSON.stringify(sweepRun.body)}`
   );
+  assertNoSideEffects("single-pass sweep", sweepRun.body);
 
   const postSweep = d1Query(
     `SELECT id FROM api_idempotency WHERE id IN ('${expiredId}', '${liveId}');`
@@ -510,6 +552,71 @@ async function main() {
     "sweep deletes exactly the expired row and leaves the live row, by id",
     postIds.length === 1 && postIds[0] === liveId,
     `got ${JSON.stringify(postIds)} expected only [${liveId}]`
+  );
+
+  console.log("--- 8. sweep drains multiple batches in one daily run (limit=500 is per-pass, not per-day) ---");
+  // Seed more expired rows than a single sweepExpired() pass can delete
+  // (limit=500) to prove runDailyJobs loops until a pass comes back empty
+  // rather than stopping after the first 500 and leaving PII-bearing rows
+  // to accumulate forever.
+  const DRAIN_COUNT = 510;
+  const drainIds = Array.from({ length: DRAIN_COUNT }, () => randomUUID());
+  const drainPast = new Date(Date.now() - 3600_000).toISOString();
+  const drainNow = new Date().toISOString();
+  const drainOp = `drain-test-${stamp}`;
+  // D1/SQLite caps a single statement's length (SQLITE_TOOBIG on one big
+  // INSERT for 510 rows), so seed in chunks -- still one d1Exec() call with
+  // several statements in the file, not 510 separate round trips.
+  const DRAIN_CHUNK = 100;
+  let insertStatements = "";
+  for (let start = 0; start < drainIds.length; start += DRAIN_CHUNK) {
+    const chunk = drainIds.slice(start, start + DRAIN_CHUNK);
+    const valuesClause = chunk
+      .map(
+        (id, j) =>
+          `('${id}', '${tenantId}', '${drainOp}', 'drain-key-${start + j}', 'hash-drain-${start + j}', 'completed', 200, '{}', '${drainPast}', '${drainPast}', '${drainNow}', '${drainNow}')`
+      )
+      .join(",\n       ");
+    insertStatements += `INSERT INTO api_idempotency
+       (id, tenant_id, operation, idempotency_key, request_hash, status,
+        response_status, response_json, reserved_until, expires_at, created_at, updated_at)
+     VALUES
+       ${valuesClause};\n`;
+  }
+  d1Exec(insertStatements);
+
+  const preDrainCount = d1Query(
+    `SELECT COUNT(*) as cnt FROM api_idempotency WHERE operation = '${drainOp}';`
+  );
+  check(
+    `all ${DRAIN_COUNT} seeded drain rows exist before the sweep`,
+    Number(preDrainCount[0]?.cnt) === DRAIN_COUNT,
+    `got ${JSON.stringify(preDrainCount)}`
+  );
+
+  const drainRun = await json("/__scheduled", {
+    method: "POST",
+    headers: { ...auth, "X-Cron-Secret": jwtSecret },
+  });
+  check(
+    "/__scheduled succeeds on the drain run",
+    drainRun.status === 200,
+    `got ${drainRun.status} ${JSON.stringify(drainRun.body)}`
+  );
+  assertNoSideEffects("drain-batch sweep", drainRun.body);
+  check(
+    `reported deleted count covers all ${DRAIN_COUNT} drain rows in one run (proves the loop, not just one 500-row pass)`,
+    (drainRun.body.idempotency?.deleted ?? 0) >= DRAIN_COUNT,
+    `got idempotency=${JSON.stringify(drainRun.body.idempotency)}`
+  );
+
+  const postDrain = d1Query(
+    `SELECT id FROM api_idempotency WHERE operation = '${drainOp}';`
+  );
+  check(
+    "every one of the drain rows is gone, by id count (not replaying stale data)",
+    postDrain.length === 0,
+    `${postDrain.length} rows still present, expected 0: ${JSON.stringify(postDrain.slice(0, 5))}`
   );
 
   if (failures) {

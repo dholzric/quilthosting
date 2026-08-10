@@ -241,7 +241,10 @@ async function withIdempotency(
   // see the comment there for the full policy (2xx and deterministic 4xx are
   // cached; 402/429/5xx are transient refusals and must be released so a
   // retry after the underlying condition changes is not replayed the stale
-  // answer). Both writes are fenced by the lease reserve() handed out: if
+  // answer). Only the two member routes below call withIdempotency, so in
+  // practice only 402 plan_limit is exercised here today -- the 429
+  // hook_limit case is forward-looking, not currently reachable. Both writes
+  // are fenced by the lease reserve() handed out: if
   // this caller's reservation was taken over mid-handler (it ran past
   // RESERVATION_SECONDS), the write is silently dropped rather than
   // clobbering -- or, for release, deleting -- the new owner's row. The
