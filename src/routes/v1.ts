@@ -176,14 +176,6 @@ function requireScope(
   );
 }
 
-async function hashRequest(body: unknown): Promise<string> {
-  const data = new TextEncoder().encode(JSON.stringify(body ?? null));
-  const buf = await crypto.subtle.digest("SHA-256", data);
-  return [...new Uint8Array(buf)]
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
 /**
  * Idempotency-Key handling.
  *
@@ -191,10 +183,16 @@ async function hashRequest(body: unknown): Promise<string> {
  * duplicate-email guard, returns 409, and the Zap reports failure for a member
  * that was in fact created. Replays the original response for a matching
  * retry; 422 when the same key is reused with a different body.
+ *
+ * The reservation is taken atomically BEFORE the handler runs (see
+ * src/lib/idempotency.ts) so two concurrent first requests cannot both
+ * mutate, and it is scoped by `operation` so the same key reused across a
+ * Zap's steps (e.g. create then update) does not collide.
  */
 async function withIdempotency(
   c: any,
   tenantId: string,
+  operation: string,
   body: unknown,
   handler: () => Promise<{ status: number; json: unknown }>
 ): Promise<Response> {
@@ -203,53 +201,37 @@ async function withIdempotency(
     const r = await handler();
     return c.json(r.json, r.status);
   }
-  const hash = await hashRequest(body);
-  const prior = await first<{
-    request_hash: string;
-    response_status: number;
-    response_json: string;
-  }>(
-    c.env.DB.prepare(
-      `SELECT request_hash, response_status, response_json FROM api_idempotency
-       WHERE tenant_id = ? AND idempotency_key = ?`
-    ).bind(tenantId, key)
-  );
-  if (prior) {
-    if (prior.request_hash !== hash) {
-      return c.json(
-        {
-          error: "Idempotency-Key reused with a different request body",
-          code: "idempotency_key_reuse",
-        },
-        422
-      );
-    }
-    return c.json(JSON.parse(prior.response_json), prior.response_status);
+
+  const idem = await import("../lib/idempotency");
+  const hash = await idem.hashRequest(body);
+  const outcome = await idem.reserve(c.env, tenantId, operation, key, hash);
+
+  if (outcome.kind === "replay") return c.json(outcome.json, outcome.status);
+  if (outcome.kind === "conflict") {
+    return c.json(
+      {
+        error: "Idempotency-Key reused with a different request body",
+        code: "idempotency_key_reuse",
+      },
+      422
+    );
   }
+  if (outcome.kind === "in_progress") {
+    c.header("Retry-After", "2");
+    return c.json(
+      {
+        error: "A request with this Idempotency-Key is still in progress.",
+        code: "idempotency_in_progress",
+      },
+      409
+    );
+  }
+
   const r = await handler();
-  // Never cache a 5xx: the caller must be able to retry a transient failure.
-  if (r.status < 500) {
-    const { generateId } = await import("../lib/utils/id");
-    try {
-      await c.env.DB.prepare(
-        `INSERT INTO api_idempotency
-         (id, tenant_id, idempotency_key, request_hash, response_status, response_json, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
-      )
-        .bind(
-          generateId(),
-          tenantId,
-          key,
-          hash,
-          r.status,
-          JSON.stringify(r.json),
-          new Date().toISOString()
-        )
-        .run();
-    } catch {
-      /* unique-index race: a concurrent attempt already stored it */
-    }
-  }
+  // 5xx is never cached: the caller must be able to retry a transient failure,
+  // and a released reservation lets them win the slot again.
+  if (r.status >= 500) await idem.release(c.env, outcome.recordId);
+  else await idem.complete(c.env, outcome.recordId, r.status, r.json);
   return c.json(r.json, r.status);
 }
 
@@ -267,7 +249,7 @@ v1Routes.post("/members", async (c) => {
     status?: string;
   }>();
 
-  return withIdempotency(c, auth.tenant.id, body, async () => {
+  return withIdempotency(c, auth.tenant.id, "POST /v1/members", body, async () => {
     if (!body.email) {
       return {
         status: 400,
@@ -398,7 +380,12 @@ v1Routes.patch("/members/:memberId", async (c) => {
     status?: string;
   }>();
 
-  return withIdempotency(c, auth.tenant.id, { memberId, ...body }, async () => {
+  return withIdempotency(
+    c,
+    auth.tenant.id,
+    "PATCH /v1/members/:memberId",
+    { memberId, ...body },
+    async () => {
     const existing = await first<{ id: string; email: string; status: string }>(
       c.env.DB.prepare(
         "SELECT id, email, status FROM members WHERE id = ? AND tenant_id = ?"
@@ -504,7 +491,8 @@ v1Routes.patch("/members/:memberId", async (c) => {
     );
 
     return { status: 200, json: { member } };
-  });
+    }
+  );
 });
 
 /* -------------------------------------------------------------------------

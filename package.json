@@ -12,6 +12,7 @@
     "cf-typegen": "wrangler types",
     "test:scale": "node scripts/verify-scale.mjs",
     "test:integrations": "node scripts/verify-integrations.mjs",
+    "test:idempotency": "node scripts/verify-idempotency.mjs",
     "test:import": "node scripts/verify-import.mjs",
     "test:delivery": "node scripts/verify-delivery.mjs"
   },
