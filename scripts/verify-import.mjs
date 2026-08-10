@@ -1004,5 +1004,148 @@ check("the persisted warnings_json round-trips to include unparseable_join_date"
   persistedJoinWarnings.some((w) => w.code === "unparseable_join_date"),
   JSON.stringify(persistedJoinWarnings));
 
+console.log("\n--- layer 4h: a lapsed/cancelled file status is silently overridden to active by a level (fix round 4, item 1) ---");
+
+// Status is a VALID MEMBER_STATUS ("lapsed"), so invalid_status's check
+// never fires -- but the row also names a real level, so importStatus
+// forces "pending" and activateMembership then forces "active" regardless
+// of what the file said. That coercion is not being changed here; the
+// point is that it must be visible.
+const lapsedOverrideRows = [
+  ["lapsedoverride1@example.test", "Lapsed", "One", "Lapsed", "Annual Membership", ""],
+];
+const lapsedOverrideImport = await json(`/api/tenants/${recoTenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ header: richHeader, raw_rows: lapsedOverrideRows, mapping: richMapping }),
+});
+check("lapsed-override import still creates the member and assigns the membership",
+  lapsedOverrideImport.body.created === 1 && lapsedOverrideImport.body.memberships_assigned === 1,
+  JSON.stringify(lapsedOverrideImport.body));
+check("lapsed-override import reports partial, not completed (THE BUG)",
+  lapsedOverrideImport.body.status === "partial", `got ${lapsedOverrideImport.body.status}`);
+check("lapsed-override import records a status_overridden_by_level error naming the row",
+  (lapsedOverrideImport.body.errors || []).some(
+    (e) => e.kind === "status_overridden_by_level" && e.row_number === 1 &&
+      e.email === "lapsedoverride1@example.test"),
+  JSON.stringify(lapsedOverrideImport.body.errors));
+// The coercion itself is unchanged: the member really does end up active.
+const lapsedOverrideList = await json(
+  `/api/tenants/${recoTenantId}/members?q=lapsedoverride1@example.test`, { headers: auth }
+);
+check("the coercion is unchanged: the member ends up active despite the file saying Lapsed",
+  (lapsedOverrideList.body.members || [])[0]?.status === "active",
+  JSON.stringify(lapsedOverrideList.body.members));
+
+console.log("\n--- layer 4i: joined_at is silently discarded on UPDATE, even when valid (fix round 4, item 2) ---");
+
+// Insert first (no level, to isolate from item 1/activateMembership entirely
+// -- this is purely about the members.joined_at column).
+const joinUpdateHeader = ["Email", "First Name", "Last Name", "Member Since"];
+const joinUpdateMapping = {
+  0: { kind: "known", target: "email" },
+  1: { kind: "known", target: "first_name" },
+  2: { kind: "known", target: "last_name" },
+  3: { kind: "known", target: "joined_at" },
+};
+const joinInsertRows = [["joinupdate1@example.test", "Join", "One", "2020-01-01"]];
+const joinInsertImport = await json(`/api/tenants/${recoTenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ header: joinUpdateHeader, raw_rows: joinInsertRows, mapping: joinUpdateMapping }),
+});
+check("baseline insert succeeds and is completed (nothing lossy about a fresh, valid joined_at)",
+  joinInsertImport.body.created === 1 && joinInsertImport.body.status === "completed",
+  JSON.stringify(joinInsertImport.body));
+
+// Now re-import the SAME email with a DIFFERENT (still perfectly valid)
+// joined_at. This is an update -- the UPDATE statement has no joined_at
+// column at all, so the new value must be silently discarded and the
+// ORIGINAL value must survive untouched.
+const joinUpdateRows = [["joinupdate1@example.test", "Join", "One-Updated", "2021-06-01"]];
+const joinUpdateImport = await json(`/api/tenants/${recoTenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ header: joinUpdateHeader, raw_rows: joinUpdateRows, mapping: joinUpdateMapping }),
+});
+check("update import still updates the member",
+  joinUpdateImport.body.updated === 1, JSON.stringify(joinUpdateImport.body));
+check("update import reports partial, not completed (THE BUG)",
+  joinUpdateImport.body.status === "partial", `got ${joinUpdateImport.body.status}`);
+check("update import records a joined_at_ignored_on_update error naming the row",
+  (joinUpdateImport.body.errors || []).some(
+    (e) => e.kind === "joined_at_ignored_on_update" && e.row_number === 1 &&
+      e.email === "joinupdate1@example.test"),
+  JSON.stringify(joinUpdateImport.body.errors));
+const joinUpdateList = await json(
+  `/api/tenants/${recoTenantId}/members?q=joinupdate1@example.test`, { headers: auth }
+);
+const joinUpdateMember = (joinUpdateList.body.members || [])[0];
+check("the ORIGINAL joined_at survives -- the new value was truly discarded, not silently applied",
+  joinUpdateMember?.joined_at?.startsWith("2020-01-01"), JSON.stringify(joinUpdateMember));
+check("last_name WAS updated (proves this is a real update, not a no-op) while joined_at was not",
+  joinUpdateMember?.last_name === "One-Updated", JSON.stringify(joinUpdateMember));
+
+console.log("\n--- layer 4j: a valid renewal date with no level is silently dropped (fix round 4, item 3) ---");
+
+const endDateNoLevelHeader = ["Email", "First Name", "Last Name", "Renewal"];
+const endDateNoLevelMapping = {
+  0: { kind: "known", target: "email" },
+  1: { kind: "known", target: "first_name" },
+  2: { kind: "known", target: "last_name" },
+  3: { kind: "known", target: "end_date" },
+};
+const endDateNoLevelRows = [["enddatenolevel1@example.test", "End", "NoLevel", "2027-01-01"]];
+const endDateNoLevelImport = await json(`/api/tenants/${recoTenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ header: endDateNoLevelHeader, raw_rows: endDateNoLevelRows, mapping: endDateNoLevelMapping }),
+});
+check("end-date-without-level import still creates the member (no membership -- no level named)",
+  endDateNoLevelImport.body.created === 1 && endDateNoLevelImport.body.memberships_assigned === 0,
+  JSON.stringify(endDateNoLevelImport.body));
+check("end-date-without-level import reports partial, not completed (THE BUG)",
+  endDateNoLevelImport.body.status === "partial", `got ${endDateNoLevelImport.body.status}`);
+check("end-date-without-level import records an end_date_without_level error naming the row",
+  (endDateNoLevelImport.body.errors || []).some(
+    (e) => e.kind === "end_date_without_level" && e.row_number === 1 &&
+      e.email === "enddatenolevel1@example.test"),
+  JSON.stringify(endDateNoLevelImport.body.errors));
+
+console.log("\n--- layer 4k: re-importing with no Status column must not reactivate a lapsed member (fix round 4, item 4 -- behavior change) ---");
+
+// Seed a lapsed member directly (not via import -- isolates this scenario
+// from every other status-computation path).
+const lapsedSeedEmail = `lapsedseed-${stamp}@example.test`;
+const lapsedSeed = await json(`/api/tenants/${recoTenantId}/members`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ email: lapsedSeedEmail, first_name: "Lapsed", last_name: "Seed", status: "lapsed" }),
+});
+check("seed: lapsed member created directly", lapsedSeed.status === 201 || lapsedSeed.status === 200,
+  `got ${lapsedSeed.status} ${JSON.stringify(lapsedSeed.body)}`);
+
+// Re-import the SAME email through a header with NO Status column at all
+// (and no Level column either) -- exactly what a guild's routine
+// "update everyone's phone number" re-import would look like.
+const noStatusHeader = ["Email", "First Name", "Last Name"];
+const noStatusMapping = {
+  0: { kind: "known", target: "email" },
+  1: { kind: "known", target: "first_name" },
+  2: { kind: "known", target: "last_name" },
+};
+const noStatusRows = [[lapsedSeedEmail, "Lapsed", "StillLapsed"]];
+const noStatusImport = await json(`/api/tenants/${recoTenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ header: noStatusHeader, raw_rows: noStatusRows, mapping: noStatusMapping }),
+});
+check("no-status-column re-import still updates the member",
+  noStatusImport.body.updated === 1, JSON.stringify(noStatusImport.body));
+check("no-status-column re-import is a clean completed (nothing lossy fired)",
+  noStatusImport.body.status === "completed", `got ${noStatusImport.body.status}`);
+const noStatusList = await json(
+  `/api/tenants/${recoTenantId}/members?q=${encodeURIComponent(lapsedSeedEmail)}`, { headers: auth }
+);
+const noStatusMember = (noStatusList.body.members || [])[0];
+check("THE BEHAVIOR CHANGE: the member is STILL lapsed after a re-import with no Status column (THE BUG was: reactivated to active)",
+  noStatusMember?.status === "lapsed", JSON.stringify(noStatusMember));
+check("last_name WAS updated (proves this is a real update) while status was correctly left alone",
+  noStatusMember?.last_name === "StillLapsed", JSON.stringify(noStatusMember));
+
 console.log(failures ? `\n${failures} failure(s)` : "\nall layers passed");
 if (failures) process.exit(1);

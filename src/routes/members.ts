@@ -480,8 +480,29 @@ memberRoutes.delete("/:memberId", async (c) => {
   return c.json({ ok: true, status: "cancelled" });
 });
 
+// Fix round 4, item 5: this used to be a bare `string`, which meant a
+// typo'd literal in LOSSY_WARNING_CODES silently meant "not lossy" ->
+// "completed" -- a silent-drift hazard inside the very mechanism meant to
+// prevent silent drift. Now every code buildWarnings can emit is listed
+// here once, and both `ImportWarning.code` and `LOSSY_WARNING_CODES` are
+// checked against it, so a typo or a forgotten entry is a compile error,
+// not something a future review has to catch by reading carefully.
+type ImportWarningCode =
+  | "unmapped_column"
+  | "duplicate_target"
+  | "duplicate_custom_key"
+  | "unparseable_date"
+  | "unparseable_join_date"
+  | "joined_at_ignored_on_update"
+  | "invalid_status"
+  | "status_overridden_by_level"
+  | "level_not_found"
+  | "end_date_without_level"
+  | "column_count_mismatch"
+  | "plan_limit_will_hold";
+
 type ImportWarning = {
-  code: string;
+  code: ImportWarningCode;
   message: string;
   count: number;
   sample_rows: number[];
@@ -495,24 +516,69 @@ type ImportWarning = {
 // import's own plan_limited counter and per-row plan_limited error rows).
 //
 // A real import must never report "completed" while any lossy code fired.
-// To add a new lossy condition later: add its buildWarnings() code to this
-// set. Nothing else needs to change -- the real-import status, and the
-// `warnings` field returned to the admin, are both DERIVED from this set,
-// not enumerated separately. (This is the THIRD time a lossy condition
-// buildWarnings already knew about, or should have, was missing from the
-// real-import status predicate -- level_not_found in fix round 1,
-// unparseable_date and invalid_status in fix round 2, unparseable_join_date
-// in fix round 3. Do not grow a second, hand-maintained list anywhere else;
-// extend this one.)
-const LOSSY_WARNING_CODES = new Set([
-  "level_not_found",         // member imports with no membership at all
-  "unparseable_date",        // membership gets a FABRICATED end date (start + level duration), not the guild's real one
-  "unparseable_join_date",   // members.joined_at is stored EXACTLY AS TYPED, unvalidated -- unlike end_date there is no fallback for a non-empty bad string
-  "invalid_status",          // Suspended/Archived rows are coerced to active -- consumes a plan slot, gets guild email
-  "unmapped_column",         // an entire column of data is silently discarded
-  "duplicate_target",        // a column's data is silently discarded (the later of two columns claiming one target)
-  "column_count_mismatch",   // the row is skipped outright
+// To add a new lossy condition later: add its code to ImportWarningCode
+// above AND to this set -- TypeScript will refuse to compile a typo'd or
+// unlisted literal in either place. Nothing else needs to change -- the
+// real-import status, and the `warnings` field returned to the admin, are
+// both DERIVED from this set, not enumerated separately. (This is the
+// FOURTH time a lossy condition buildWarnings already knew about, or
+// should have, was missing from the real-import status predicate --
+// level_not_found in fix round 1, unparseable_date and invalid_status in
+// fix round 2, unparseable_join_date in fix round 3, and in fix round 4:
+// status_overridden_by_level, joined_at_ignored_on_update, and
+// end_date_without_level, all at once. Do not grow a second,
+// hand-maintained list anywhere else; extend this one.)
+const LOSSY_WARNING_CODES = new Set<ImportWarningCode>([
+  "level_not_found",             // member imports with no membership at all
+  "unparseable_date",            // membership gets a FABRICATED end date (start + level duration), not the guild's real one
+  "unparseable_join_date",       // members.joined_at is stored EXACTLY AS TYPED, unvalidated -- unlike end_date there is no fallback for a non-empty bad string (insert rows only -- see joined_at_ignored_on_update for update rows)
+  "joined_at_ignored_on_update", // members.joined_at is NEVER WRITTEN on an update, valid date or not -- the UPDATE statement has no joined_at column
+  "invalid_status",              // Suspended/Archived rows are coerced to active -- consumes a plan slot, gets guild email
+  "status_overridden_by_level",  // a VALID file status (pending/lapsed/cancelled) is overridden to active because the row also names a level -- invalid_status's check can't see this, since the status IS valid
+  "end_date_without_level",      // a perfectly good renewal/expiry date is silently dropped because the row has no level to attach a membership (and its end_date) to
+  "unmapped_column",             // an entire column of data is silently discarded
+  "duplicate_target",            // a column's data is silently discarded (the later of two columns claiming one target)
+  "column_count_mismatch",       // the row is skipped outright
 ]);
+
+// Row-level error kinds (persisted to import_batch_errors, returned as
+// `errors`). Overlaps with ImportWarningCode where a warning has a
+// per-row downloadable counterpart, but also includes kinds that are
+// purely counted by the main loop with no corresponding buildWarnings
+// warning at all (skipped, membership_failed, plan_limited -- these are
+// runtime/row facts, not something buildWarnings can see from the file
+// content alone).
+type BatchErrorKind =
+  | "skipped"
+  | "membership_failed"
+  | "level_not_found"
+  | "plan_limited"
+  | "unparseable_date"
+  | "unparseable_join_date"
+  | "joined_at_ignored_on_update"
+  | "invalid_status"
+  | "status_overridden_by_level"
+  | "end_date_without_level";
+
+// Fix round 4, item 5: server-supplied so the admin UI never has to
+// hand-maintain a parallel list of error kinds. `Record<BatchErrorKind,
+// string>` (not `Record<string, string>`) means adding a new kind to the
+// union above WITHOUT adding a label here is a compile error, not a row
+// that silently vanishes from "Needs attention" and the download with no
+// error anywhere -- which is exactly what happened before this map
+// existed, when public/admin.html hand-filtered `errors` by kind.
+const ERROR_KIND_LABELS: Record<BatchErrorKind, string> = {
+  skipped: "row(s) skipped",
+  membership_failed: "membership(s) failed to assign",
+  level_not_found: "row(s) named a level that wasn't found",
+  plan_limited: "row(s) held at the free-plan limit",
+  unparseable_date: "row(s) had an unreadable renewal date",
+  unparseable_join_date: 'row(s) had an unreadable "member since" date',
+  joined_at_ignored_on_update: 'row(s) had a "member since" date that was not applied (existing member)',
+  invalid_status: "row(s) had a status not recognized (imported as active)",
+  status_overridden_by_level: "row(s) had a file status overridden to active by a level",
+  end_date_without_level: "row(s) had a renewal date but no level to store it against",
+};
 
 /**
  * Aggregate per-row observations into one warning per code+column.
@@ -541,6 +607,11 @@ function buildWarnings(args: {
   planWillHold: number;
   duplicateKeys: Array<{ key: string; headers: string[]; indices: number[] }>;
   phase: "preview" | "applied";
+  // Lowercased, trimmed emails that already exist in this tenant (built
+  // from the same byEmail lookup the route does before either branch runs)
+  // -- needed to tell an update row from an insert row, because joined_at
+  // behaves differently on each (fix round 4, item 2).
+  existingEmails: Set<string>;
 }): ImportWarning[] {
   const out: ImportWarning[] = [];
   const applied = args.phase === "applied";
@@ -592,20 +663,46 @@ function buildWarnings(args: {
 
   const badDates: number[] = [];
   const badJoinDates: number[] = [];
+  const joinedAtIgnored: number[] = [];
   const badStatus: number[] = [];
   const badLevel: number[] = [];
+  const statusOverridden: number[] = [];
+  const endWithoutLevel: number[] = [];
   args.normalizedRows.forEach((row, i) => {
     const endRaw = row.end_date || row.expiry || row.renewal_date || row.expiration || "";
-    if (endRaw && Number.isNaN(new Date(endRaw).getTime())) badDates.push(i + 1);
-    // Unlike endRaw, joined_at has no "|| fallback" for a non-empty bad
-    // string -- `row.joined_at || now` only substitutes `now` when the
-    // field is EMPTY. An unparseable-but-non-empty joined_at is bound
-    // straight into members.joined_at exactly as typed.
-    if (row.joined_at && Number.isNaN(new Date(row.joined_at).getTime())) badJoinDates.push(i + 1);
+    const lv = (row.level_name || row.level || "").trim();
+    const hasMatchedLevel = lv !== "" && args.levelByName.has(lv.toLowerCase());
+    if (endRaw) {
+      if (Number.isNaN(new Date(endRaw).getTime())) badDates.push(i + 1);
+      // A perfectly good date with nowhere to go: no level means no
+      // membership row, and members has no end_date column of its own.
+      else if (!hasMatchedLevel) endWithoutLevel.push(i + 1);
+    }
+    const emailNorm = (row.email || "").toLowerCase().trim();
+    const isUpdateRow = args.existingEmails.has(emailNorm);
+    if (row.joined_at) {
+      if (isUpdateRow) {
+        // The UPDATE statement never has a joined_at column, valid date or
+        // not -- so on an update row this is where the bad-vs-good split
+        // stops mattering; either way it's silently dropped.
+        joinedAtIgnored.push(i + 1);
+      } else if (Number.isNaN(new Date(row.joined_at).getTime())) {
+        // Unlike endRaw, joined_at has no "|| fallback" for a non-empty
+        // bad string on an INSERT -- `row.joined_at || now` only
+        // substitutes `now` when the field is EMPTY. An unparseable
+        // joined_at on a brand-new member is bound straight into
+        // members.joined_at exactly as typed.
+        badJoinDates.push(i + 1);
+      }
+    }
     const st = (row.status || "").toLowerCase();
     if (st && !args.memberStatuses.includes(st)) badStatus.push(i + 1);
-    const lv = (row.level_name || row.level || "").trim();
-    if (lv && !args.levelByName.has(lv.toLowerCase())) badLevel.push(i + 1);
+    if (lv && !hasMatchedLevel) badLevel.push(i + 1);
+    // A VALID file status (pending/lapsed/cancelled -- so badStatus above
+    // never fires for it) that a level will silently override to active.
+    if (hasMatchedLevel && st && args.memberStatuses.includes(st) && st !== "active") {
+      statusOverridden.push(i + 1);
+    }
   });
 
   if (badDates.length)
@@ -614,18 +711,36 @@ function buildWarnings(args: {
         ? "Some renewal/expiry dates could not be read; where a level was assigned, the membership end date was computed from the level's duration instead of the date in the file"
         : "Some renewal/expiry dates could not be read and will be left blank",
       count: badDates.length, sample_rows: badDates.slice(0, 3) });
+  if (endWithoutLevel.length)
+    out.push({ code: "end_date_without_level",
+      message: applied
+        ? "Some rows had a valid renewal/expiry date but no membership level, so the date was not stored"
+        : "Some rows have a valid renewal/expiry date but no membership level -- the date will not be stored",
+      count: endWithoutLevel.length, sample_rows: endWithoutLevel.slice(0, 3) });
   if (badJoinDates.length)
     out.push({ code: "unparseable_join_date",
       message: applied
         ? "Some \"member since\" dates could not be read; they were stored exactly as typed, without validation"
         : "Some \"member since\" dates could not be read; they will be stored exactly as typed, without validation",
       count: badJoinDates.length, sample_rows: badJoinDates.slice(0, 3) });
+  if (joinedAtIgnored.length)
+    out.push({ code: "joined_at_ignored_on_update",
+      message: applied
+        ? "Some \"member since\" dates were not applied because these rows update an existing member -- an import never changes joined_at on update"
+        : "Some \"member since\" dates will not be applied because these rows update an existing member -- an import never changes joined_at on update",
+      count: joinedAtIgnored.length, sample_rows: joinedAtIgnored.slice(0, 3) });
   if (badStatus.length)
     out.push({ code: "invalid_status",
       message: applied
         ? `Some statuses are not one of: ${args.memberStatuses.join(", ")}. Those rows were imported as active.`
         : `Some statuses are not one of: ${args.memberStatuses.join(", ")}. Those rows import as active.`,
       count: badStatus.length, sample_rows: badStatus.slice(0, 3) });
+  if (statusOverridden.length)
+    out.push({ code: "status_overridden_by_level",
+      message: applied
+        ? "Some rows had a file status (pending, lapsed, or cancelled) that was overridden to active because the row also names a membership level"
+        : "Some rows have a file status (pending, lapsed, or cancelled) that will be overridden to active because the row also names a membership level",
+      count: statusOverridden.length, sample_rows: statusOverridden.slice(0, 3) });
   if (badLevel.length)
     out.push({ code: "level_not_found",
       message: applied
@@ -876,6 +991,7 @@ memberRoutes.post("/import", async (c) => {
         header: body.header, rawRows: body.raw_rows, mapping, unmapped, duplicates,
         normalizedRows, levelByName, memberStatuses: MEMBER_STATUSES,
         columnMismatchRows, planWillHold, duplicateKeys, phase: "preview",
+        existingEmails: new Set(byEmail.keys()),
       }),
       // Full list, not capped: the error CSV in the UI depends on it.
       skipped,
@@ -946,14 +1062,7 @@ memberRoutes.post("/import", async (c) => {
   // lost — not just how many rows.
   const batchErrors: Array<{
     row_number: number;
-    kind:
-      | "skipped"
-      | "membership_failed"
-      | "level_not_found"
-      | "plan_limited"
-      | "unparseable_date"
-      | "unparseable_join_date"
-      | "invalid_status";
+    kind: BatchErrorKind;
     reason: string;
     email: string | null;
   }> = [];
@@ -1030,6 +1139,7 @@ memberRoutes.post("/import", async (c) => {
     header: body.header, rawRows: body.raw_rows, mapping, unmapped, duplicates,
     normalizedRows, levelByName, memberStatuses: MEMBER_STATUSES,
     columnMismatchRows, planWillHold: 0, duplicateKeys, phase: "applied",
+    existingEmails: new Set(byEmail.keys()),
   });
   const lossyWarningFired = warnings.some((w) => LOSSY_WARNING_CODES.has(w.code));
 
@@ -1073,24 +1183,49 @@ memberRoutes.post("/import", async (c) => {
         });
       }
 
-      if (row.joined_at && Number.isNaN(new Date(row.joined_at).getTime())) {
-        // Same predicate buildWarnings uses for "unparseable_join_date"
-        // below. Unlike endRaw above, there is no fallback for a non-empty
-        // bad string here: `row.joined_at || now` further down only
-        // substitutes `now` when the field is EMPTY, so this exact string
-        // is bound straight into members.joined_at with zero validation.
-        // That storage behavior is unchanged by this fix -- what's new is
-        // that it's surfaced instead of silent. (It was previously masked
-        // whenever the row also named a level: activateMembership's
-        // `new Date(startDate).toISOString()` throws a RangeError on this
-        // same bad string, surfacing only as an opaque membership_failed
-        // reason; rows with no level got no signal at all.)
-        batchErrors.push({
-          row_number: rowIndex + 1,
-          kind: "unparseable_join_date",
-          reason: `"member since" date "${row.joined_at}" could not be read; it was stored exactly as typed, without validation`,
-          email,
-        });
+      // This row's email already exists in D1 (from before this import
+      // started -- a duplicate email within the same file is already
+      // skipped above, so no earlier row in this same run could have
+      // created it), so this row will UPDATE, not INSERT. joined_at (right
+      // below) and status (further down, fix round 4 item 4) both behave
+      // differently on update vs. insert.
+      const isUpdate = byEmail.has(email);
+
+      if (row.joined_at) {
+        if (isUpdate) {
+          // The UPDATE statement below has no joined_at column at all --
+          // an existing member's joined_at is never touched by an import,
+          // valid date or not. Previously the only signal here was for an
+          // UNPARSEABLE date, and even that reason string was wrong for
+          // update rows ("it was stored exactly as typed" -- it was not
+          // stored at all). Split into its own code so the message is
+          // unconditionally true either way.
+          batchErrors.push({
+            row_number: rowIndex + 1,
+            kind: "joined_at_ignored_on_update",
+            reason: `"member since" date "${row.joined_at}" was not applied; an import never changes an existing member's joined_at`,
+            email,
+          });
+        } else if (Number.isNaN(new Date(row.joined_at).getTime())) {
+          // Same predicate buildWarnings uses for "unparseable_join_date"
+          // below. Unlike endRaw further down, there is no fallback for a
+          // non-empty bad string on an INSERT -- `row.joined_at || now`
+          // only substitutes `now` when the field is EMPTY, so this exact
+          // string is bound straight into members.joined_at with zero
+          // validation. That storage behavior is unchanged by this fix --
+          // what's new is that it's surfaced instead of silent. (It was
+          // previously masked whenever the row also named a level:
+          // activateMembership's `new Date(startDate).toISOString()`
+          // throws a RangeError on this same bad string, surfacing only as
+          // an opaque membership_failed reason; rows with no level got no
+          // signal at all.)
+          batchErrors.push({
+            row_number: rowIndex + 1,
+            kind: "unparseable_join_date",
+            reason: `"member since" date "${row.joined_at}" could not be read; it was stored exactly as typed, without validation`,
+            email,
+          });
+        }
       }
 
       const levelName = (row.level_name || row.level || "").trim();
@@ -1117,8 +1252,22 @@ memberRoutes.post("/import", async (c) => {
       let endDate: string | undefined;
       if (endRaw) {
         const d = new Date(endRaw);
-        if (!Number.isNaN(d.getTime())) endDate = d.toISOString();
-        else {
+        if (!Number.isNaN(d.getTime())) {
+          endDate = d.toISOString();
+          if (!level) {
+            // A perfectly good date, but this row has no level -- either
+            // none was named, or the named one didn't match (level_not_found
+            // above). There is nowhere to store it: members has no end_date
+            // column, and (see below) no membership row is created without
+            // a level. Silently dropped today; this makes that visible.
+            batchErrors.push({
+              row_number: rowIndex + 1,
+              kind: "end_date_without_level",
+              reason: `renewal/expiry date "${endRaw}" was provided but this row has no membership level, so it could not be stored`,
+              email,
+            });
+          }
+        } else {
           // Same predicate buildWarnings uses for "unparseable_date" below.
           // This is not merely a lost date: when `level` is set,
           // activateMembership computes endDate from start + the level's
@@ -1135,9 +1284,40 @@ memberRoutes.post("/import", async (c) => {
         }
       }
 
+      if (level && status !== "active") {
+        // The file explicitly said this member's status is `status`
+        // (pending, lapsed, or cancelled -- a VALID MEMBER_STATUS, so
+        // invalid_status's check above never fires for it), but naming a
+        // level here means activateMembership will force status to
+        // 'active' below regardless. Do NOT change this coercion --
+        // activating on a level is existing, intentional behavior (a
+        // renewal or signup with payment) -- but it consumes a free-plan
+        // slot and starts sending guild email exactly like invalid_status
+        // does. Make the override visible.
+        batchErrors.push({
+          row_number: rowIndex + 1,
+          kind: "status_overridden_by_level",
+          reason: `status "${status}" in the file was overridden to active because the row names level "${levelName}"`,
+          email,
+        });
+      }
+
+      // For an UPDATE row with no status opinion at all (the Status
+      // column absent from the file entirely, or blank for this row), the
+      // row says nothing about status and must not touch it -- not the
+      // free-plan cap accounting below, not the final write. Previously
+      // importStatus defaulted straight to "active" whenever rawStatus was
+      // empty, insert or update alike, so a routine re-import that simply
+      // omitted the Status column silently reactivated every lapsed and
+      // cancelled member -- data corruption from a routine action.
+      // Inserts are unaffected: a brand-new member with no status given
+      // still defaults to active, exactly as before.
+      const statusOpinionGiven = !isUpdate || !!rawStatus;
+
       // Cap free-plan actives when importing status=active without a level
       let importStatus = level ? "pending" : status;
       if (
+        statusOpinionGiven &&
         !level &&
         importStatus === "active" &&
         activeSlotsLeft != null
@@ -1199,8 +1379,13 @@ memberRoutes.post("/import", async (c) => {
             row.last_name || null,
             row.phone || null,
             row.notes || null,
-            // Only force status when no level will set active via membership
-            level ? null : importStatus,
+            // Force status only when the row expressed a real opinion: a
+            // level (which drives status via activateMembership instead --
+            // see status_overridden_by_level above), or an explicit status
+            // the file gave (statusOpinionGiven). Otherwise bind null so
+            // coalesce(?, status) leaves the existing member's status
+            // untouched.
+            level ? null : (statusOpinionGiven ? importStatus : null),
             mergedCustomJson,
             now,
             memberId
@@ -1405,6 +1590,11 @@ memberRoutes.post("/import", async (c) => {
       skipped_rows: skippedRows,
       errors: batchErrors,
       warnings,
+      // Fix round 4, item 5: lets the admin UI itemize `errors` generically
+      // (group by kind, look up the label) instead of hand-writing a
+      // filter per kind -- see ERROR_KIND_LABELS above for why this can't
+      // silently fall out of sync with BatchErrorKind.
+      error_kind_labels: ERROR_KIND_LABELS,
     });
   } catch (e) {
     // Whatever went wrong (a constraint violation in the member statement

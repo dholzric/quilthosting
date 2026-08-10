@@ -1141,37 +1141,37 @@
         const mem = r.memberships_assigned ? `, ${r.memberships_assigned} memberships assigned` : "";
         const lim = r.plan_limited ? `, ${r.plan_limited} held at free-plan limit` : "";
 
-        // Rows the import loses land in several places: skipped_rows
-        // (never even reached), plan_limited rows (held pending, no active
-        // slot), level_not_found (named a level that matches nothing
-        // active), membership_failures (member created but their
-        // membership was not), unparseable_date/invalid_status (fix round
-        // 2 — fabricated expiry or a silently-coerced status), and — as of
-        // fix round 3 — unparseable_join_date, where the "member since"
-        // value is stored exactly as typed with zero validation. A batch
-        // with any of these must NOT be presented as a clean success —
-        // that is exactly what let a guild's renewal season find out 240
-        // memberships never got assigned.
-        const skippedRows = r.skipped_rows || [];
+        // Fix round 4, item 5: every row-level loss (skipped, plan-limited,
+        // membership failures, level_not_found, unparseable dates, an
+        // overridden status, ...) lands in `errors` with a `kind`. Group by
+        // kind and look the kind up in the server-supplied
+        // `error_kind_labels` map instead of hand-writing one
+        // `.filter((e) => e.kind === "...")` per kind here -- that's what
+        // let rows silently vanish from both "Needs attention" and the
+        // download whenever a new kind was added on the server but this
+        // file wasn't updated to match. A batch with anything in `errors`
+        // must NOT be presented as a clean success — that is exactly what
+        // let a guild's renewal season find out 240 memberships never got
+        // assigned.
         const errors = r.errors || [];
-        const membershipErrors = errors.filter((e) => e.kind === "membership_failed");
-        const levelNotFoundErrors = errors.filter((e) => e.kind === "level_not_found");
-        const planLimitedErrors = errors.filter((e) => e.kind === "plan_limited");
-        const dateErrors = errors.filter((e) => e.kind === "unparseable_date");
-        const joinDateErrors = errors.filter((e) => e.kind === "unparseable_join_date");
-        const statusErrors = errors.filter((e) => e.kind === "invalid_status");
+        const labels = r.error_kind_labels || {};
         const warnings = r.warnings || [];
         const isPartial = r.status === "partial";
 
+        const byKind = {};
+        for (const e of errors) {
+          (byKind[e.kind] = byKind[e.kind] || []).push(e);
+        }
+        // Falls back to the raw kind string if the server ever forgets a
+        // label (can't happen today -- ERROR_KIND_LABELS is typed so a
+        // missing label is a compile error -- but the fallback means an
+        // older client talking to a newer server still shows SOMETHING
+        // rather than a blank).
+        const lost = Object.keys(byKind).map(
+          (k) => `${byKind[k].length} ${labels[k] || k}`
+        );
+
         if (isPartial) {
-          const lost = [];
-          if (skippedRows.length) lost.push(`${skippedRows.length} row(s) skipped`);
-          if (r.plan_limited) lost.push(`${r.plan_limited} row(s) held at the free-plan limit`);
-          if (membershipErrors.length) lost.push(`${membershipErrors.length} membership(s) failed to assign`);
-          if (r.level_not_found) lost.push(`${r.level_not_found} row(s) named a level that wasn't found`);
-          if (dateErrors.length) lost.push(`${dateErrors.length} row(s) had an unreadable renewal date`);
-          if (joinDateErrors.length) lost.push(`${joinDateErrors.length} row(s) had an unreadable "member since" date (stored as typed)`);
-          if (statusErrors.length) lost.push(`${statusErrors.length} row(s) had a status not recognized (imported as active)`);
           // A <div>, not a <p>: the conditional <ul> below is block content,
           // which a <p> would force-close early (invalid nesting).
           out.innerHTML = `<div class="notice warn">` +
@@ -1184,18 +1184,12 @@
           out.innerHTML = `<p class="notice ok">Imported: ${r.created} new, ${r.updated} updated, ${r.skipped} skipped${mem}${cf}${lim}.</p>`;
         }
 
-        // Combine every loss kind into one downloadable list — all of these
-        // need the guild's attention, and all are rows they'll want to fix
-        // and re-import.
-        const allProblemRows = [
-          ...skippedRows.map((sk) => ({ row: sk.row, reason: sk.reason })),
-          ...membershipErrors.map((e) => ({ row: e.row_number, reason: `membership not assigned: ${e.reason}` })),
-          ...levelNotFoundErrors.map((e) => ({ row: e.row_number, reason: e.reason })),
-          ...planLimitedErrors.map((e) => ({ row: e.row_number, reason: e.reason })),
-          ...dateErrors.map((e) => ({ row: e.row_number, reason: e.reason })),
-          ...joinDateErrors.map((e) => ({ row: e.row_number, reason: e.reason })),
-          ...statusErrors.map((e) => ({ row: e.row_number, reason: e.reason })),
-        ];
+        // Every row-level error is downloadable and re-importable, derived
+        // straight from `errors` -- no per-kind list to keep in sync here.
+        const allProblemRows = errors.map((e) => ({
+          row: e.row_number,
+          reason: labels[e.kind] ? `${labels[e.kind]}: ${e.reason}` : e.reason,
+        }));
         if (allProblemRows.length) {
           // Let the guild fix and re-import just the failures rather than
           // re-running the whole file and guessing what went wrong. Stay on
