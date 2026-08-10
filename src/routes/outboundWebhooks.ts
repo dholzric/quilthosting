@@ -6,6 +6,7 @@ import {
   WEBHOOK_SUBSCRIBE_OPTIONS,
   EVENT_SCHEMA_VERSION,
 } from "../lib/webhookEvents";
+import { validateHookInput } from "../lib/hookValidation";
 
 export const outboundWebhookRoutes = new Hono<{
   Bindings: Env;
@@ -118,27 +119,32 @@ outboundWebhookRoutes.post("/", async (c) => {
     secret?: string;
     events?: string[];
   }>();
-  const url = (body.url || "").trim();
-  if (!url.startsWith("https://") && !url.startsWith("http://")) {
-    return c.json({ error: "url must be http(s)" }, 400);
-  }
-  // Reject unknown names outright. Silently filtering a typo produces a
-  // subscription that never fires and is indistinguishable from the
-  // advertised-but-dead-event bug this whole module exists to prevent.
+  // Default missing/empty events to ["*"] BEFORE validating, same as the v1
+  // route -- validateHookInput only validates events it is given, it does
+  // not decide the default.
   const requested =
     Array.isArray(body.events) && body.events.length ? body.events : ["*"];
-  const unknown = requested.filter((e) => !EVENT_OPTIONS.includes(e));
-  if (unknown.length) {
+  const countRow = await first<{ cnt: number }>(
+    c.env.DB.prepare(
+      `SELECT COUNT(*) as cnt FROM webhook_endpoints WHERE tenant_id = ?`
+    ).bind(tenant.id)
+  );
+  const result = validateHookInput(
+    { url: body.url || "", events: requested },
+    { existingCount: countRow?.cnt ?? 0 }
+  );
+  if (!result.ok) {
     return c.json(
       {
-        error: `Unknown event(s): ${unknown.join(", ")}`,
-        code: "unknown_event",
-        valid: EVENT_OPTIONS,
+        error: result.error,
+        code: result.code,
+        ...(result.valid ? { valid: result.valid } : {}),
       },
-      400
+      result.status
     );
   }
-  const events = requested;
+  const url = result.url!;
+  const events = result.events!;
   const id = generateId();
   const now = new Date().toISOString();
   const secret = body.secret?.trim() || generateId().replace(/-/g, "");
@@ -155,7 +161,8 @@ outboundWebhookRoutes.post("/", async (c) => {
       url,
       events,
       secret,
-      message: "Copy the secret now — used as X-QH-Signature HMAC-SHA256 of the body.",
+      message:
+        "Copy the secret now — used as X-QH-Signature, HMAC-SHA256 of `{timestamp}.{body}`.",
     },
     201
   );
@@ -175,6 +182,19 @@ outboundWebhookRoutes.patch("/:id", async (c) => {
     is_active?: boolean;
     events?: string[];
   }>();
+  // No existingCount here: editing an existing hook never trips the
+  // per-tenant hook limit, only creating a new one does.
+  const result = validateHookInput({ url: body.url, events: body.events });
+  if (!result.ok) {
+    return c.json(
+      {
+        error: result.error,
+        code: result.code,
+        ...(result.valid ? { valid: result.valid } : {}),
+      },
+      result.status
+    );
+  }
   const now = new Date().toISOString();
   await c.env.DB.prepare(
     `UPDATE webhook_endpoints SET
@@ -182,14 +202,15 @@ outboundWebhookRoutes.patch("/:id", async (c) => {
        is_active = coalesce(?, is_active),
        events_json = coalesce(?, events_json),
        updated_at = ?
-     WHERE id = ?`
+     WHERE id = ? AND tenant_id = ?`
   )
     .bind(
-      body.url?.trim() || null,
+      result.url || null,
       body.is_active === undefined ? null : body.is_active ? 1 : 0,
-      body.events ? JSON.stringify(body.events) : null,
+      result.events ? JSON.stringify(result.events) : null,
       now,
-      id
+      id,
+      tenant.id
     )
     .run();
   return c.json({ ok: true });

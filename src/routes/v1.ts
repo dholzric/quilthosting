@@ -511,8 +511,6 @@ v1Routes.patch("/members/:memberId", async (c) => {
  * REST hooks (what Zapier calls on Zap on/off)
  * ---------------------------------------------------------------------- */
 
-const MAX_HOOKS_PER_TENANT = 25;
-
 v1Routes.get("/hooks", async (c) => {
   const auth = await requireApiKey(c);
   if (isResponse(auth)) return auth;
@@ -547,42 +545,28 @@ v1Routes.post("/hooks", async (c) => {
     return c.json({ error: "url is required", code: "missing_field" }, 400);
   }
 
-  const { validateHookUrl } = await import("../lib/webhookOutbox");
-  const urlError = validateHookUrl(body.url);
-  if (urlError) {
-    return c.json({ error: urlError, code: "invalid_hook_url" }, 400);
-  }
-
-  // Reject unknown names outright; never silently filter a typo.
-  const { WEBHOOK_SUBSCRIBE_OPTIONS } = await import("../lib/webhookEvents");
+  // Default missing/empty events to ["*"] before validating -- same shared
+  // rule the admin route uses, from src/lib/hookValidation.ts.
   const requested =
     Array.isArray(body.events) && body.events.length ? body.events : ["*"];
-  const unknown = requested.filter(
-    (e) => !WEBHOOK_SUBSCRIBE_OPTIONS.includes(e)
-  );
-  if (unknown.length) {
-    return c.json(
-      {
-        error: `Unknown event(s): ${unknown.join(", ")}`,
-        code: "unknown_event",
-        valid: WEBHOOK_SUBSCRIBE_OPTIONS,
-      },
-      400
-    );
-  }
-
+  const { validateHookInput } = await import("../lib/hookValidation");
   const countRow = await first<{ cnt: number }>(
     c.env.DB.prepare(
       `SELECT COUNT(*) as cnt FROM webhook_endpoints WHERE tenant_id = ?`
     ).bind(auth.tenant.id)
   );
-  if ((countRow?.cnt ?? 0) >= MAX_HOOKS_PER_TENANT) {
+  const result = validateHookInput(
+    { url: body.url, events: requested },
+    { existingCount: countRow?.cnt ?? 0 }
+  );
+  if (!result.ok) {
     return c.json(
       {
-        error: `Limit of ${MAX_HOOKS_PER_TENANT} hooks reached`,
-        code: "hook_limit",
+        error: result.error,
+        code: result.code,
+        ...(result.valid ? { valid: result.valid } : {}),
       },
-      429
+      result.status
     );
   }
 
@@ -597,11 +581,14 @@ v1Routes.post("/hooks", async (c) => {
      (id, tenant_id, url, secret, events_json, is_active, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, 1, ?, ?)`
   )
-    .bind(id, auth.tenant.id, body.url, secret, JSON.stringify(requested), now, now)
+    .bind(id, auth.tenant.id, result.url, secret, JSON.stringify(result.events), now, now)
     .run();
 
   // Shown once. Zapier ignores it; Make and custom consumers should verify.
-  return c.json({ hook: { id, url: body.url, events: requested, secret } }, 201);
+  return c.json(
+    { hook: { id, url: result.url, events: result.events, secret } },
+    201
+  );
 });
 
 v1Routes.delete("/hooks/:hookId", async (c) => {

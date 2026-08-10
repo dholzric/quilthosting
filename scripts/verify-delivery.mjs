@@ -53,6 +53,31 @@ async function d1Select(sql) {
   return result.at(-1)?.results ?? [];
 }
 
+/**
+ * Seeds a webhook endpoint straight into D1, bypassing the admin route.
+ *
+ * Task 6 made the admin route require https and apply validateHookUrl's
+ * deny list (loopback, private ranges, link-local/metadata, our own
+ * domains) -- correctly, since the Worker later fetches whatever URL is
+ * stored there. But this harness's dispatch/lease/fan-out/retry tests need
+ * to point real outbox dispatch at host-loopback sinks the local Worker can
+ * actually reach, which that same rule now (rightly) forbids through the
+ * route. Insert the row directly instead of weakening the route's
+ * validation. Mirrors the admin POST response shape ({status, body:{id}})
+ * so call sites need no other changes.
+ */
+async function seedHook(tId, url, events) {
+  const id = randomUUID();
+  const now = new Date().toISOString();
+  const eventsJson = JSON.stringify(events).replace(/'/g, "''");
+  await runD1(
+    `INSERT INTO webhook_endpoints
+       (id, tenant_id, url, secret, events_json, is_active, created_at, updated_at)
+     VALUES ('${id}', '${tId}', '${url}', NULL, '${eventsJson}', 1, '${now}', '${now}');`
+  );
+  return { status: 201, body: { id } };
+}
+
 // Stable harness account — registering per run exhausts the 10-per-10-min limit.
 const EMAIL = "harness@example.test", PASSWORD = "harness-password-1";
 let jwt;
@@ -101,10 +126,7 @@ console.log("--- lease ---");
 // most 1, so `attempts <= 2` is unfalsifiable regardless of whether the two
 // concurrent replays actually double-dispatched. Kept for basic endpoint
 // sanity; see "--- lease (real dispatch) ---" below for the actual guard.
-const hook = await json(`/api/tenants/${tenantId}/webhooks`, {
-  method: "POST", headers: auth,
-  body: JSON.stringify({ url: "http://127.0.0.1:8798/never-listens", events: ["*"] }),
-});
+const hook = await seedHook(tenantId, "http://127.0.0.1:8798/never-listens", ["*"]);
 await json(`/api/tenants/${tenantId}/members`, {
   method: "POST", headers: auth,
   body: JSON.stringify({ email: `lease-${stamp}@example.test` }),
@@ -158,11 +180,8 @@ const slow = createServer((req, res) => {
 });
 await new Promise((resolve) => slow.listen(slowPort, "127.0.0.1", resolve));
 
-const slowHook = await json(`/api/tenants/${tenantId}/webhooks`, {
-  method: "POST", headers: auth,
-  body: JSON.stringify({ url: `http://127.0.0.1:${slowPort}/slow`, events: ["*"] }),
-});
-check("slow webhook endpoint created", slowHook.status === 201, `got ${slowHook.status}`);
+const slowHook = await seedHook(tenantId, `http://127.0.0.1:${slowPort}/slow`, ["*"]);
+check("slow webhook endpoint seeded", slowHook.status === 201, `got ${slowHook.status}`);
 
 const obBefore = await json(`/api/tenants/${tenantId}/webhooks/outbox`, { headers: auth });
 const beforeIds = new Set((obBefore.body.outbox || []).map((r) => r.id));
@@ -293,17 +312,11 @@ const healthy = createServer((req, res) => {
 });
 await new Promise((resolve) => healthy.listen(healthyPort, "127.0.0.1", resolve));
 
-const healthyHook = await json(`/api/tenants/${tenantId}/webhooks`, {
-  method: "POST", headers: auth,
-  body: JSON.stringify({ url: `http://127.0.0.1:${healthyPort}/ok`, events: ["*"] }),
-});
-check("healthy fan-out endpoint created", healthyHook.status === 201, `got ${healthyHook.status}`);
+const healthyHook = await seedHook(tenantId, `http://127.0.0.1:${healthyPort}/ok`, ["*"]);
+check("healthy fan-out endpoint seeded", healthyHook.status === 201, `got ${healthyHook.status}`);
 // Nothing listens on this port -> every send fails with ECONNREFUSED, fast.
-const deadHook = await json(`/api/tenants/${tenantId}/webhooks`, {
-  method: "POST", headers: auth,
-  body: JSON.stringify({ url: "http://127.0.0.1:8795/dead", events: ["*"] }),
-});
-check("dead fan-out endpoint created", deadHook.status === 201, `got ${deadHook.status}`);
+const deadHook = await seedHook(tenantId, "http://127.0.0.1:8795/dead", ["*"]);
+check("dead fan-out endpoint seeded", deadHook.status === 201, `got ${deadHook.status}`);
 
 const obBeforeFanout = await json(`/api/tenants/${tenantId}/webhooks/outbox`, { headers: auth });
 const beforeFanoutIds = new Set((obBeforeFanout.body.outbox || []).map((r) => r.id));
@@ -393,10 +406,7 @@ console.log("--- retry pacing ---");
 const paceTenant = await json("/api/tenants", { method: "POST", headers: auth,
   body: JSON.stringify({ name: `Pace ${stamp}`, slug: `pace-${stamp}` }) });
 const paceTenantId = paceTenant.body.id;
-await json(`/api/tenants/${paceTenantId}/webhooks`, {
-  method: "POST", headers: auth,
-  body: JSON.stringify({ url: "http://127.0.0.1:8799/never-listens", events: ["*"] }),
-});
+await seedHook(paceTenantId, "http://127.0.0.1:8799/never-listens", ["*"]);
 await json(`/api/tenants/${paceTenantId}/members`, {
   method: "POST", headers: auth,
   body: JSON.stringify({ email: `pace-${stamp}@example.test` }),
@@ -490,6 +500,30 @@ check("consumer source has a msg.retry(...) call", retryCalls.length > 0, "no ms
 check("every msg.retry() call passes delaySeconds (no immediate bare retry)",
   retryCalls.length > 0 && retryCalls.every((c) => /\bdelaySeconds\b/.test(c)),
   `retry calls: ${JSON.stringify(retryCalls)}`);
+
+console.log("--- hook validation parity ---");
+// The admin route used to accept http://, skip validateHookUrl entirely, and
+// let PATCH write events_json with no validation at all. These assert the
+// admin route now rejects exactly what the v1 route already rejects.
+for (const [payload, label] of [
+  [{ url: "http://insecure.example.com/h" }, "http"],
+  [{ url: "https://127.0.0.1/h" }, "loopback"],
+  [{ url: "https://quilthosting.com/h" }, "self-loop"],
+  [{ url: "https://hooks.zapier.com/h", events: ["member.creatd"] }, "typo'd event"],
+]) {
+  const r = await json(`/api/tenants/${tenantId}/webhooks`, {
+    method: "POST", headers: auth, body: JSON.stringify(payload),
+  });
+  check(`admin POST rejects ${label}`, r.status === 400, `got ${r.status}`);
+}
+const good = await json(`/api/tenants/${tenantId}/webhooks`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ url: "https://hooks.zapier.com/ok", events: ["member.created"] }),
+});
+const patched = await json(`/api/tenants/${tenantId}/webhooks/${good.body.id}`, {
+  method: "PATCH", headers: auth, body: JSON.stringify({ events: ["member.creatd"] }),
+});
+check("admin PATCH rejects a typo'd event", patched.status === 400, `got ${patched.status}`);
 
 rmSync(d1WorkDir, { recursive: true, force: true });
 

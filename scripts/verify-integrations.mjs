@@ -12,12 +12,61 @@
  */
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
-import { readFileSync, readdirSync } from "node:fs";
-import { resolve } from "node:path";
+import { spawn } from "node:child_process";
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { resolve, join } from "node:path";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const BASE = process.env.QH_BASE || "http://127.0.0.1:8787";
 const SINK_PORT = Number(process.env.QH_SINK_PORT || 8799);
+
+// Task 6 made the admin webhook route require https and apply validateHookUrl's
+// deny list (loopback, private ranges, link-local/metadata, our own domains).
+// This harness's sink is a host-loopback HTTP server the local Worker can
+// reach, which that rule now (rightly) forbids through the route. Seed the
+// row directly into D1 instead of weakening the route's validation -- same
+// pattern scripts/verify-delivery.mjs uses.
+const d1WorkDir = mkdtempSync(join(tmpdir(), "qh-d1-"));
+function runD1(sql) {
+  const file = join(d1WorkDir, `${randomUUID()}.sql`);
+  writeFileSync(file, sql, "utf8");
+  return new Promise((res, rej) => {
+    const p = spawn(
+      "npx",
+      ["wrangler", "d1", "execute", "quilthosting-db", "--local", "--json", "--file", file],
+      { shell: true }
+    );
+    let out = "", err = "";
+    p.stdout.on("data", (d) => (out += d));
+    p.stderr.on("data", (d) => (err += d));
+    p.on("close", (code) => {
+      if (code !== 0) return rej(new Error(`wrangler d1 execute failed: ${err || out}`));
+      resolve_(out);
+    });
+    function resolve_(out) {
+      try { res(JSON.parse(out)); }
+      catch (e) { rej(new Error(`could not parse d1 output: ${out}`)); }
+    }
+  });
+}
+/**
+ * Seeds a webhook endpoint (with a real signing secret, since this harness
+ * asserts X-QH-Signature is present on delivery) straight into D1, mirroring
+ * the admin POST response shape ({status, body:{id}}).
+ */
+async function seedHook(tenantId, url, events) {
+  const id = randomUUID();
+  const secret = randomUUID().replace(/-/g, "");
+  const now = new Date().toISOString();
+  const eventsJson = JSON.stringify(events).replace(/'/g, "''");
+  await runD1(
+    `INSERT INTO webhook_endpoints
+       (id, tenant_id, url, secret, events_json, is_active, created_at, updated_at)
+     VALUES ('${id}', '${tenantId}', '${url}', '${secret}', '${eventsJson}', 1, '${now}', '${now}');`
+  );
+  return { status: 201, body: { id } };
+}
 
 function loadDevVars() {
   const out = {};
@@ -170,11 +219,7 @@ async function main() {
   const tenantId = tenant.body.id;
   const slug = tenant.body.slug;
 
-  const hook = await json(`/api/tenants/${tenantId}/webhooks`, {
-    method: "POST",
-    headers: auth,
-    body: JSON.stringify({ url: `http://127.0.0.1:${SINK_PORT}/hook`, events: ["*"] }),
-  });
+  const hook = await seedHook(tenantId, `http://127.0.0.1:${SINK_PORT}/hook`, ["*"]);
   if (hook.status >= 400) throw new Error(`hook: ${JSON.stringify(hook.body)}`);
 
   const catalog = await json(`/api/tenants/${tenantId}/webhooks/events`, { headers: auth });
@@ -305,6 +350,7 @@ async function main() {
 
   if (failed) {
     sink.close();
+    rmSync(d1WorkDir, { recursive: true, force: true });
     console.error(`\n${failed} advertised event(s) never fired.`);
     process.exit(1);
   }
@@ -314,6 +360,7 @@ async function main() {
   if (v1Probe.status === 404) {
     console.log("\nv1 write/hook endpoints not implemented yet — skipping (Tasks 8-9).");
     sink.close();
+    rmSync(d1WorkDir, { recursive: true, force: true });
     console.log("\nAll driven events delivered.");
     return;
   }
@@ -410,11 +457,13 @@ async function main() {
   check("hook unsubscribe succeeds", unsub.status === 200, `got ${unsub.status}`);
 
   sink.close();
+  rmSync(d1WorkDir, { recursive: true, force: true });
   console.log("\nAll driven events delivered; v1 contract verified.");
 }
 
 main().catch((e) => {
   console.error(`\n${e.message}`);
   sink?.close();
+  rmSync(d1WorkDir, { recursive: true, force: true });
   process.exit(1);
 });
