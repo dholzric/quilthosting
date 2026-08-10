@@ -428,30 +428,46 @@ if (round1) {
     `next_attempt_at=${round1.next_attempt_at}`);
 }
 
-// The live check above is necessarily weak on its own: claimOutboxRow's lease
-// guard (Task 3) already blocks an immediate same-lease re-claim for
-// LEASE_SECONDS, so an undelayed msg.retry() no longer visibly "burns
-// attempts in seconds" the way it did before Task 3 -- it just gets bounced
-// by the lease and silently ack'd as a dropped pre-backoff redelivery (see
-// the consumer's ack comment), leaving ZERO trace in the outbox row. Worse,
-// dispatchOutboxRow and the consumer each independently call backoffFor(),
-// so even a correctly-fixed queue-driven retry and the row's own
-// next_attempt_at are two different random draws from the same jittered
-// range -- meaning "does a second attempt land via the queue before some
-// deadline" is a genuine coin flip even on correct code, not a reliable
-// pass/fail signal. Waiting it out would make this test flaky on GOOD code,
-// not just discriminating on BAD code, so it is the wrong tool here.
-// What actually is deterministic: whether the consumer passes delaySeconds
-// to msg.retry() at all. Assert that directly on the shipped source, so this
-// fails immediately and reliably if that one call is ever reverted to a bare
-// msg.retry() -- which is the literal regression this test exists to catch.
+// !! THIS IS A PROXY FOR BEHAVIOUR, NOT A BEHAVIOURAL CHECK. !!
+// It reads the shipped source instead of observing what the system does,
+// which is normally the wrong shape for a test. It is here because the
+// behaviour it guards is, by construction, unobservable from outside:
+//
+// claimOutboxRow's lease guard (Task 3) already blocks an immediate
+// same-lease re-claim for LEASE_SECONDS, so an undelayed msg.retry() no
+// longer visibly "burns attempts in seconds" the way it did before Task 3 --
+// it gets bounced by the lease and silently ack'd as a dropped pre-backoff
+// redelivery (see the consumer's ack comment), leaving ZERO trace in the
+// outbox row, in webhook_deliveries, or anywhere else this harness can read.
+// There is no state to assert on.
+//
+// The remaining timing-based option -- "does a second attempt land via the
+// queue before some deadline" -- is not usable either: backoffFor is jittered
+// over [base/2, base), and the first real retry is 150-300s out, so a truthful
+// wait would dominate the harness runtime and still only sample one draw.
+// Waiting it out would make this flaky on GOOD code, not discriminating on
+// BAD code.
+//
+// So: assert on the one deterministic thing, that the consumer hands
+// msg.retry() a delaySeconds at all. It fails immediately and reliably if that
+// call is ever reverted to a bare msg.retry() -- the literal regression this
+// exists to catch -- and it is honest about being a stand-in for the
+// behavioural test that cannot be written here.
+//
+// (Fix round 1: dispatchOutboxRow now draws the backoff ONCE and ships the
+// exact seconds on the thrown error, so the queue delay and the row's
+// next_attempt_at are the same number rather than two independent jittered
+// draws. Under the old double-draw the queue undershot the row's own deadline
+// about half the time and those retries were silently dropped.)
 const consumerPath = fileURLToPath(new URL("../src/consumers/webhookConsumer.ts", import.meta.url));
 const consumerSrc = readFileSync(consumerPath, "utf8");
 // Strip comments first: the consumer's own comments discuss the bare
 // `msg.retry()` this check forbids, and a naive scan of raw source reads those
 // as real call sites. Then walk balanced parens rather than using `[^)]*`,
 // which truncates `msg.retry({ delaySeconds: backoffFor(attempts) })` at the
-// inner call's `)` and loses the closing brace.
+// inner call's `)` and loses the closing brace. The delaySeconds match is
+// deliberately name-only, not `delaySeconds\s*:`, so the shorthand form
+// `msg.retry({ delaySeconds })` counts -- a bare `msg.retry()` still fails.
 const codeOnly = consumerSrc
   .replace(/\/\*[\s\S]*?\*\//g, "")
   .replace(/(^|[^:])\/\/.*$/gm, "$1");
@@ -472,7 +488,7 @@ function extractCalls(src, needle) {
 const retryCalls = extractCalls(codeOnly, "msg.retry(");
 check("consumer source has a msg.retry(...) call", retryCalls.length > 0, "no msg.retry call found");
 check("every msg.retry() call passes delaySeconds (no immediate bare retry)",
-  retryCalls.length > 0 && retryCalls.every((c) => /delaySeconds\s*:/.test(c)),
+  retryCalls.length > 0 && retryCalls.every((c) => /\bdelaySeconds\b/.test(c)),
   `retry calls: ${JSON.stringify(retryCalls)}`);
 
 rmSync(d1WorkDir, { recursive: true, force: true });

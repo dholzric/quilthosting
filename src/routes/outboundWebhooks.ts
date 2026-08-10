@@ -39,7 +39,19 @@ outboundWebhookRoutes.get("/outbox", async (c) => {
   }
 });
 
-/** Re-drive a failed or dead event. Resets attempts so backoff starts over. */
+/**
+ * Re-drive a failed or dead event. Resets attempts so backoff starts over.
+ *
+ * KNOWN NARROW RACE (accepted, not fixed): this reset is not fenced against a
+ * dispatch that is already in flight. If a delivery is mid-fetch when an admin
+ * hits replay, that dispatch's own writes land after this reset -- its target
+ * upsert can re-mark an endpoint 'delivered' for the replay we just cleared,
+ * and its fenced outbox write still holds the live lease, so the replay's
+ * queue message is refused by claimOutboxRow and dropped. Consequence is a
+ * replay that quietly does nothing until the sweeper re-drives the row; no
+ * duplicate send and no lost event. Closing it properly means fencing the
+ * replay on lease_until too, which is a larger change than this window earns.
+ */
 outboundWebhookRoutes.post("/outbox/:outboxId/replay", async (c) => {
   const tenant = c.get("tenant");
   const id = c.req.param("outboxId");

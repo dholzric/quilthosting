@@ -514,7 +514,14 @@ export async function dispatchOutboxRow(
     return;
   }
 
-  const nextAt = new Date(Date.now() + backoffFor(attempts) * 1000).toISOString();
+  // Drawn ONCE. backoffFor applies full jitter over [base/2, base), so calling
+  // it again in the consumer to build delaySeconds would be an independent
+  // draw from the same range: roughly half the time the queue's delay lands
+  // SHORTER than this next_attempt_at, claimOutboxRow refuses the early
+  // redelivery, and the consumer acks it as a pre-backoff drop. Those retries
+  // would silently never accrue toward the DLQ. One draw, shared by both.
+  const delaySeconds = backoffFor(attempts);
+  const nextAt = new Date(Date.now() + delaySeconds * 1000).toISOString();
   const won = await fencedComplete(
     env,
     outboxId,
@@ -530,13 +537,15 @@ export async function dispatchOutboxRow(
     return;
   }
   // Signals the queue to redeliver; after max_retries the message lands in the
-  // DLQ. The attempt count rides on the error so the consumer can delay the
-  // redelivery by the same backoff window this row just recorded, instead of
-  // having the queue bounce it back instantly.
+  // DLQ. The exact delay just written into next_attempt_at rides on the error
+  // so the consumer can hold the redelivery until the same instant this row
+  // says it is next due, instead of having the queue bounce it back instantly.
   const err = new Error(`webhook delivery failed, attempt ${attempts}`) as Error & {
     attempts: number;
+    delaySeconds: number;
   };
   err.attempts = attempts;
+  err.delaySeconds = delaySeconds;
   throw err;
 }
 
