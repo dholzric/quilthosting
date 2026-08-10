@@ -36,14 +36,26 @@ const BLOCKED_HOST_PATTERNS = [
   /^192\.168\./,
   /^172\.(1[6-9]|2\d|3[01])\./,
   /^169\.254\./, // link-local + cloud metadata
-  /^\[?::1\]?$/, // IPv6 loopback
-  /^\[?::\]?$/, // IPv6 unspecified address, the ::/0.0.0.0 equivalent
-  /^\[?::ffff:/i, // IPv4-mapped IPv6 (e.g. ::ffff:127.0.0.1 -> ::ffff:7f00:1);
+  // Every IPv6 pattern below is anchored on a literal leading `[`: a DNS
+  // hostname can never contain `[` or `:`, so requiring it is not a weaker
+  // match, it is the fix for a real false-positive class. Bracket-optional
+  // versions of these (the pre-round-2 shape) matched hostnames that merely
+  // started with the same letters as an IPv6 literal -- e.g. `/^f[cd]/i`
+  // rejected fcm.googleapis.com (Firebase Cloud Messaging), a thoroughly
+  // plausible guild webhook target, as if it were an fc00::/7 ULA literal.
+  /^\[::1\]$/, // IPv6 loopback
+  /^\[::\]$/, // IPv6 unspecified address, the ::/0.0.0.0 equivalent
+  /^\[::ffff:/i, // IPv4-mapped IPv6 (e.g. ::ffff:127.0.0.1 -> ::ffff:7f00:1);
   // any address in this form can smuggle an arbitrary IPv4 target past the
   // dotted-quad patterns above, so the whole ::ffff:/96 block is denied
   // rather than re-decoding the embedded IPv4 and re-testing it.
-  /^\[?fe[89a-f][0-9a-f]:/i, // IPv6 link-local, fe80::/10 (NOT unique-local)
-  /^\[?f[cd]/i, // IPv6 unique-local, fc00::/7
+  /^\[fe[89a-f][0-9a-f]:/i, // IPv6 fe80::/10 link-local, plus fec0::/10
+  // (deprecated site-local) and the unassigned fe80-feff range above it --
+  // a superset of just link-local, kept broad since none of that range is
+  // ever a legitimate public webhook target.
+  /^\[f[cd][0-9a-f]{2}:/i, // IPv6 unique-local, fc00::/7. Requires the
+  // bracket plus the next 2 hex digits and a colon (the full first 16-bit
+  // group), not just the letters "fc"/"fd", so it cannot match a hostname.
   /(^|\.)quilthosting\.com$/i, // no self-loop
   /(^|\.)workers\.dev$/i,
 ];

@@ -552,6 +552,24 @@ for (const [payload, label] of [
   check(`admin POST rejects ${label}`, r.status === 400, `got ${r.status}`);
 }
 
+console.log("--- hook validation parity (unique-local pattern false positives, fix round 2) ---");
+// Round 1's bracket-optional /^\[?f[cd]/i matched any hostname merely
+// STARTING with "fc"/"fd", not just IPv6 ULA literals -- fcm.googleapis.com
+// (Firebase Cloud Messaging, a thoroughly plausible guild webhook target)
+// got flatly rejected with no way to tell our over-broad rule from a real
+// problem with the URL. Positive controls, not just negative ones: round 1
+// only proved bad URLs get blocked, never that ordinary good ones survive.
+for (const [payload, label] of [
+  [{ url: "https://fcm.googleapis.com/send" }, "fcm.googleapis.com (Firebase)"],
+  [{ url: "https://fd-webhooks.example.com/h" }, "fd-webhooks.example.com"],
+  [{ url: "https://fcbank.example.com/h" }, "fcbank.example.com"],
+]) {
+  const r = await json(`/api/tenants/${tenantId}/webhooks`, {
+    method: "POST", headers: auth, body: JSON.stringify(payload),
+  });
+  check(`admin POST accepts ${label}`, r.status === 201, `got ${r.status} ${JSON.stringify(r.body)}`);
+}
+
 console.log("--- hook validation parity (malformed PATCH body) ---");
 // PATCH used to parse the body with a TypeScript generic and no runtime
 // check, so a malformed field (null where a string is expected, a bare
