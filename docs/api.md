@@ -92,6 +92,129 @@ and the Zap reports failure for a member that was in fact created.
 - Same key, different body → `422 idempotency_key_reuse`.
 - 5xx responses are never cached, so transient failures stay retryable.
 
+## Bulk member import (Admin UI, not the v1 API)
+
+`POST /api/tenants/:tenantId/members/import` — powers the CSV importer in
+Admin → Members → Import. This is a **tenant-admin route** authenticated
+with the admin's JWT session, not an `/api/v1` endpoint — API keys cannot
+call it. Documented here because it's the primary bulk-write path for
+members and this is where the members section of the docs lives.
+
+### Request
+
+Exactly one of `rows` or `raw_rows` may be present:
+
+- **Legacy shape (unchanged, still fully supported):**
+  `{ "rows": [{ "email": "...", "first_name": "...", "level_name": "...", ... }] }`
+  — an array of already-normalized row objects. This is the shape the
+  public v1 API and existing migration scripts have always sent; it needs
+  no `header` and no `mapping`.
+- **Column-mapping shape:**
+  `{ "header": [...], "raw_rows": [[...], ...], "mapping"?: {...}, "dry_run"?: true }`
+  — `raw_rows` is the file's data rows as raw string arrays (no header
+  row); `header` (required whenever `raw_rows` is sent) is the file's
+  header row. `mapping` is optional — when omitted, the server proposes one
+  (`proposeMapping()` in `src/lib/importMapping.ts`) and returns it in the
+  response so a UI can render a column table and let the admin adjust it.
+
+| Condition | Response |
+|---|---|
+| Both `rows` and `raw_rows` present | `400 { "error": "Send either rows or raw_rows, not both", "code": "ambiguous_payload" }` |
+| `raw_rows` present, `header` missing | `400 { "error": "raw_rows requires header", "code": "missing_header" }` |
+| Neither present (or `rows` is empty) | `400 { "error": "rows array is required" }` |
+| More than 5000 rows | `400 { "error": "Max 5000 rows per import — split larger files" }` |
+
+`dry_run: true` runs every check and returns the full reconciliation
+**without writing anything** — no members, no memberships, no custom-field
+definitions are created or changed.
+
+### `mapping` shape
+
+Keyed by **column index** (a stringified integer in JSON, e.g. `"0"`,
+`"1"`) rather than header text, because CSV headers are not unique — an
+export can have two "Notes" columns. Each entry is one of:
+
+```json
+{ "kind": "known", "target": "email" }
+{ "kind": "custom", "key": "quilt_guild_number", "label": "Guild #" }
+{ "kind": "ignore" }
+```
+
+`target` is one of the known member fields: `email`, `first_name`,
+`last_name`, `phone`, `status`, `notes`, `level_name`, `end_date`,
+`joined_at`. Header synonyms (matched case/punctuation-insensitively) live
+in `TARGET_SYNONYMS` in `src/lib/importMapping.ts` — e.g. `end_date`
+matches `Expiry`, `Expiration`, `Renewal Date`, `Membership Expires`;
+`joined_at` matches `Joined`, `Join Date`, `Member Since`.
+
+A `"custom"` entry creates a new custom-field definition on a real import
+(never on a dry run) unless a field with that `key` already exists on the
+tenant. Custom-field definitions are **additive only** — import never
+renames, reorders, or removes an existing definition. On update, incoming
+custom-field values are merged over the member's existing custom fields
+(incoming wins per-key, everything else is kept), so hand-entered data
+already on a member's record is never wiped by a re-import.
+
+### Warnings
+
+Computed identically for a dry run and a real import:
+
+| Code | Message | When it fires |
+|---|---|---|
+| `unmapped_column` | `"<header>" will not be imported` | A column is unmapped/ignored **and** at least one row has a non-empty value in it. A column that is entirely empty produces no warning. |
+| `duplicate_target` | `"<header>" also matches <target>; the first column wins and this one is ignored` | Two columns map to the same known target — the first (lowest index) wins; the rest report this warning and are ignored. |
+| `unparseable_date` | Some renewal/expiry dates could not be read and will be left blank | A row's end/expiry/renewal/expiration value doesn't parse as a date. |
+| `invalid_status` | Some statuses are not one of: pending, active, lapsed, cancelled. Those rows import as active. | A row's status value isn't one of the four known statuses. |
+| `level_not_found` | Some membership levels do not exist in this guild; those members import without a membership | A row's level name doesn't match any active level for the tenant. |
+| `column_count_mismatch` | Some rows have a different number of columns than the header and will be skipped | A raw row's length doesn't match `header.length`; the row is skipped entirely rather than risk misaligning fields. |
+| `plan_limit_will_hold` | Free plan allows 30 active members; N row(s) will import as pending until you upgrade | Tenant is on the free plan and more rows want `active` status than there are remaining active-member slots. This is an estimate — see note below. |
+
+Each warning object: `{ code, message, count, sample_rows: number[] (1-based row numbers, up to 3), header? }`.
+
+`plan_limit_will_hold` is only an estimate: it counts rows wanting `active`
+against remaining slots, but the real import loop also checks whether an
+existing member (by email) was *already* active, so the dry-run count can
+over-report slightly on a re-import of a partially-imported file.
+
+### Dry-run response
+
+```json
+{
+  "dry_run": true,
+  "total_rows": 120,
+  "will_create": 80,
+  "will_update": 35,
+  "will_skip": 5,
+  "header": [...],
+  "mapping": {...},
+  "unmapped": [{ "index": 4, "header": "Notes 2" }],
+  "warnings": [...],
+  "skipped": [{ "row": 12, "reason": "missing or invalid email" }],
+  "sample": [{ "email": "...", "name": "...", "action": "create", "custom": "{}" }]
+}
+```
+
+### Real import response
+
+```json
+{
+  "ok": true,
+  "created": 80,
+  "updated": 35,
+  "skipped": 5,
+  "memberships_assigned": 60,
+  "plan_limited": 0,
+  "custom_fields_created": [{ "key": "guild_number", "label": "Guild #" }],
+  "skipped_rows": [{ "row": 12, "reason": "missing or invalid email" }]
+}
+```
+
+`skipped_rows` uses the same shape and the same `reason` strings as the dry
+run's `skipped` array — the admin UI's error-CSV download depends on this
+matching exactly. Upsert is keyed on lowercased `email`; a row whose email
+already exists on the tenant updates that member instead of creating a
+duplicate.
+
 ## Hook endpoints (REST hooks)
 
 ### `GET /api/v1/hooks`
