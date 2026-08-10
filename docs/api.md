@@ -106,7 +106,7 @@ concurrent requests carrying the same key cannot both execute the mutation
 — see Limitation 1 below for what happens when it runs longer than that.
 
 - Same key + same request body → the original response is replayed verbatim,
-  for as long as the record is retained (see Limitation 4 below — the real
+  for as long as the record is retained (see Limitation 5 below — the real
   window is looser than a clean 24-hour cutoff).
 - Same key + a different request body → `422` with
   `{ "code": "idempotency_key_reuse" }`. What's fenced is the request body
