@@ -617,3 +617,98 @@ v1Routes.delete("/hooks/:hookId", async (c) => {
     .run();
   return c.json({ deleted: true });
 });
+
+/* -------------------------------------------------------------------------
+ * Dev-only test harness routes -- prove idempotency reservation concurrency.
+ *
+ * Two separate HTTP requests to a fast local wrangler dev are not guaranteed
+ * to actually overlap, so a race "proven" only over HTTP can pass without
+ * ever exercising the contended path -- unfalsified, not verified. These
+ * routes let scripts/verify-idempotency.mjs fire N reserve() calls with
+ * Promise.all from inside a single Worker invocation instead, where the
+ * interleaving at await boundaries is deterministic every run.
+ *
+ * Gated on c.env.ENVIRONMENT === "development" and nothing else, checked
+ * before any client-controlled input (Authorization header, body) is read --
+ * same shape as the X-QH-Force-Outbox-Failure gate in src/routes/members.ts.
+ * In production this 404s exactly as if the route were never registered.
+ * ---------------------------------------------------------------------- */
+
+v1Routes.post("/_dev/idempotency/reserve", async (c) => {
+  if (c.env.ENVIRONMENT !== "development") return c.notFound();
+
+  const auth = await requireApiKey(c);
+  if (isResponse(auth)) return auth;
+
+  const body = await c.req.json<{
+    operation?: string;
+    key?: string;
+    requestHash?: string;
+    calls?: number;
+  }>();
+  if (!body.operation || !body.key || !body.requestHash) {
+    return c.json({ error: "operation, key, requestHash are required" }, 400);
+  }
+  // Bounded so a stray large value can't be used to hammer D1, even in dev.
+  const calls = Math.min(Math.max(Math.trunc(body.calls ?? 1), 1), 10);
+
+  const idem = await import("../lib/idempotency");
+  const outcomes = await Promise.all(
+    Array.from({ length: calls }, () =>
+      idem.reserve(
+        c.env,
+        auth.tenant.id,
+        body.operation!,
+        body.key!,
+        body.requestHash!
+      )
+    )
+  );
+  return c.json({ outcomes });
+});
+
+v1Routes.post("/_dev/idempotency/complete", async (c) => {
+  if (c.env.ENVIRONMENT !== "development") return c.notFound();
+
+  const auth = await requireApiKey(c);
+  if (isResponse(auth)) return auth;
+
+  const body = await c.req.json<{
+    recordId?: string;
+    reservedUntil?: string;
+    status?: number;
+    json?: unknown;
+  }>();
+  if (
+    !body.recordId ||
+    !body.reservedUntil ||
+    typeof body.status !== "number"
+  ) {
+    return c.json(
+      { error: "recordId, reservedUntil, status are required" },
+      400
+    );
+  }
+
+  // Tenant-scoped: complete() itself is keyed only by record id (it fences
+  // on reserved_until, not tenant), so confirm this API key's tenant
+  // actually owns the row before touching it.
+  const owned = await first<{ id: string }>(
+    c.env.DB.prepare(
+      `SELECT id FROM api_idempotency WHERE id = ? AND tenant_id = ?`
+    ).bind(body.recordId, auth.tenant.id)
+  );
+  if (!owned) {
+    return c.json({ error: "Reservation not found for this tenant" }, 404);
+  }
+
+  const idem = await import("../lib/idempotency");
+  const won = await idem.complete(
+    c.env,
+    body.recordId,
+    body.reservedUntil,
+    body.status,
+    body.json ?? null
+  );
+  return c.json({ won });
+});

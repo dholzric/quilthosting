@@ -11,6 +11,10 @@
  * /register rate limit (10 per 10 min) makes the harness unrunnable.
  */
 import { randomUUID } from "node:crypto";
+import { execFileSync } from "node:child_process";
+import { writeFileSync, unlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const BASE = process.env.QH_BASE || "http://127.0.0.1:8787";
 
@@ -36,6 +40,61 @@ function check(label, cond, detail = "") {
     console.log(`FAIL  ${label}  ${detail}`);
   } else {
     console.log(`  ok  ${label}`);
+  }
+}
+
+/**
+ * Fire `calls` concurrent reserve() calls, all with the same
+ * (tenant, operation, key, requestHash), from INSIDE a single Worker
+ * invocation via the dev-only route. Two separate HTTP requests to a fast
+ * local wrangler dev are not guaranteed to actually overlap -- the first can
+ * complete its whole D1 round trip before the second is even dispatched, in
+ * which case the contended path (the unique-constraint catch, or the
+ * takeover UPDATE's compare-and-swap) never runs and a passing assertion
+ * proves nothing. Promise.all inside one request guarantees the calls are
+ * in flight together every run.
+ */
+async function devReserve(writeAuth, operation, key, requestHash, calls = 1) {
+  return json("/api/v1/_dev/idempotency/reserve", {
+    method: "POST",
+    headers: writeAuth,
+    body: JSON.stringify({ operation, key, requestHash, calls }),
+  });
+}
+
+async function devComplete(writeAuth, recordId, reservedUntil, status, respJson) {
+  return json("/api/v1/_dev/idempotency/complete", {
+    method: "POST",
+    headers: writeAuth,
+    body: JSON.stringify({ recordId, reservedUntil, status, json: respJson }),
+  });
+}
+
+/** Seed a lapsed ('reserved', reserved_until in the past) row directly in D1. */
+function seedLapsedReservation({ id, tenantId, operation, key, requestHash }) {
+  const past = new Date(Date.now() - 120_000).toISOString(); // well past RESERVATION_SECONDS=60
+  const farFuture = new Date(Date.now() + 3600_000).toISOString();
+  const now = new Date().toISOString();
+  const sql = `INSERT INTO api_idempotency
+    (id, tenant_id, operation, idempotency_key, request_hash, status, reserved_until, expires_at, created_at, updated_at)
+    VALUES ('${id}', '${tenantId}', '${operation}', '${key}', '${requestHash}', 'reserved', '${past}', '${farFuture}', '${now}', '${now}');`;
+  const sqlPath = join(tmpdir(), `qh-idem-seed-${id}.sql`);
+  writeFileSync(sqlPath, sql, "utf8");
+  try {
+    // execFileSync + arg array (no shell string interpolation) even though
+    // every value here is our own randomUUID()/ISO-timestamp output, not
+    // externally-controlled input.
+    // On Windows, npx resolves to npx.cmd, which node can only invoke via a
+    // shell (spawnSync fails with EINVAL otherwise). `shell: true` still
+    // passes args as an array -- node quotes each element itself, so this
+    // is not the same as building a shell string by hand.
+    execFileSync(
+      "npx",
+      ["wrangler", "d1", "execute", "quilthosting-db", "--local", `--file=${sqlPath}`],
+      { stdio: "pipe", shell: true }
+    );
+  } finally {
+    unlinkSync(sqlPath);
   }
 }
 
@@ -179,6 +238,108 @@ async function main() {
     body: JSON.stringify({ email: `nokey-${stamp}@example.test` }),
   });
   check("create without a key succeeds", n1.status === 201, `got ${n1.status} ${JSON.stringify(n1.body)}`);
+
+  console.log("--- 5. deterministic proof of reservation exclusivity (drives reserve() directly, not over HTTP) ---");
+
+  // 5.1: two concurrent reserve() calls, same (tenant, operation, key) ->
+  // exactly one execute, one in_progress.
+  const op1 = "dev-race-op-1";
+  const key1 = `race-${stamp}-1`;
+  const hash1 = "hash-a";
+  const race1 = await devReserve(writeAuth, op1, key1, hash1, 2);
+  check(
+    "dev idempotency route reachable",
+    race1.status === 200,
+    `got ${race1.status} ${JSON.stringify(race1.body)}`
+  );
+  const kinds1 = (race1.body.outcomes || []).map((o) => o.kind).sort();
+  check(
+    "assertion 1: two concurrent reserve() calls yield exactly one execute + one in_progress",
+    JSON.stringify(kinds1) === JSON.stringify(["execute", "in_progress"]),
+    `got ${JSON.stringify(kinds1)} full=${JSON.stringify(race1.body)}`
+  );
+  const executeOutcome1 = (race1.body.outcomes || []).find((o) => o.kind === "execute");
+
+  // 5.2: after complete(), a third reserve() replays the stored status+body.
+  const respBody = { hello: "world", stamp };
+  const comp = await devComplete(
+    writeAuth,
+    executeOutcome1?.recordId,
+    executeOutcome1?.reservedUntil,
+    201,
+    respBody
+  );
+  check(
+    "complete() succeeds on the winning reservation",
+    comp.status === 200 && comp.body.won === true,
+    `got ${comp.status} ${JSON.stringify(comp.body)}`
+  );
+  const race1b = await devReserve(writeAuth, op1, key1, hash1, 1);
+  const replay = race1b.body.outcomes?.[0];
+  check(
+    "assertion 2: reserve() after complete() replays the stored status + body",
+    replay?.kind === "replay" &&
+      replay.status === 201 &&
+      JSON.stringify(replay.json) === JSON.stringify(respBody),
+    `got ${JSON.stringify(replay)}`
+  );
+
+  // 5.3: same key, different requestHash -> conflict.
+  const race1c = await devReserve(writeAuth, op1, key1, "hash-b-different", 1);
+  const conflict = race1c.body.outcomes?.[0];
+  check(
+    "assertion 3: reserve() with a different requestHash returns conflict",
+    conflict?.kind === "conflict",
+    `got ${JSON.stringify(conflict)}`
+  );
+
+  // 5.4: a lapsed reservation (reserved_until in the past) is taken over,
+  // keeping the EXISTING record id rather than minting a fresh one.
+  const takeoverOp4 = "dev-race-op-2";
+  const takeoverKey4 = `race-${stamp}-2`;
+  const takeoverHash4 = "hash-takeover-4";
+  const seededId4 = randomUUID();
+  seedLapsedReservation({
+    id: seededId4,
+    tenantId,
+    operation: takeoverOp4,
+    key: takeoverKey4,
+    requestHash: takeoverHash4,
+  });
+  const race4 = await devReserve(writeAuth, takeoverOp4, takeoverKey4, takeoverHash4, 1);
+  const takeoverOutcome = race4.body.outcomes?.[0];
+  check(
+    "assertion 4: reserve() takes over a lapsed reservation, keeping the existing record id",
+    takeoverOutcome?.kind === "execute" && takeoverOutcome.recordId === seededId4,
+    `got ${JSON.stringify(takeoverOutcome)} expected recordId=${seededId4}`
+  );
+
+  // 5.5: the takeover itself is exclusive -- two concurrent takeover
+  // attempts on the SAME lapsed reservation yield exactly one execute.
+  const takeoverOp5 = "dev-race-op-3";
+  const takeoverKey5 = `race-${stamp}-3`;
+  const takeoverHash5 = "hash-takeover-5";
+  const seededId5 = randomUUID();
+  seedLapsedReservation({
+    id: seededId5,
+    tenantId,
+    operation: takeoverOp5,
+    key: takeoverKey5,
+    requestHash: takeoverHash5,
+  });
+  const race5 = await devReserve(writeAuth, takeoverOp5, takeoverKey5, takeoverHash5, 2);
+  const kinds5 = (race5.body.outcomes || []).map((o) => o.kind).sort();
+  check(
+    "assertion 5: two concurrent takeover attempts on the same lapsed reservation yield exactly one execute",
+    JSON.stringify(kinds5) === JSON.stringify(["execute", "in_progress"]),
+    `got ${JSON.stringify(kinds5)} full=${JSON.stringify(race5.body)}`
+  );
+  const winningOutcome5 = (race5.body.outcomes || []).find((o) => o.kind === "execute");
+  check(
+    "assertion 5b: the winning takeover carries the existing seeded record id, not a fresh one",
+    winningOutcome5?.recordId === seededId5,
+    `got ${JSON.stringify(winningOutcome5)} expected recordId=${seededId5}`
+  );
 
   if (failures) {
     console.error(`\n${failures} assertion(s) failed.`);
