@@ -1087,7 +1087,7 @@
           <tbody>${s.header.map((h, i) => `
             <tr>
               <td><code>${esc(h)}</code></td>
-              <td class="muted" style="font-size:0.85rem">${esc(sampleFor(i)).slice(0,40)}</td>
+              <td class="muted" style="font-size:0.85rem">${esc(sampleFor(i).slice(0,40))}</td>
               <td><select onchange="setImportTarget(${i}, this.value)">${optionsFor(i)}</select></td>
             </tr>`).join("")}</tbody></table>
         </div>
@@ -1138,13 +1138,16 @@
         out.innerHTML = `<p class="notice ok">Imported: ${r.created} new, ${r.updated} updated, ${r.skipped} skipped${mem}${cf}${lim}.</p>`;
         if ((r.skipped_rows || []).length) {
           // Let the guild fix and re-import just the failures rather than
-          // re-running the whole file and guessing what went wrong.
-          out.innerHTML += `<button class="secondary" onclick="downloadImportErrors()">Download ${r.skipped_rows.length} skipped rows</button>`;
+          // re-running the whole file and guessing what went wrong. Stay on
+          // screen — auto-navigating would tear the download button out from
+          // under the admin before they can use it.
+          out.innerHTML += `<button class="secondary" onclick="downloadImportErrors()">Download ${r.skipped_rows.length} skipped rows</button>` +
+            ` <button class="secondary" onclick="navigate('members')">Back to members</button>`;
           _importState.skippedRows = r.skipped_rows;
         } else {
           _importState = null;
+          setTimeout(() => navigate("members"), 2500);
         }
-        setTimeout(() => navigate("members"), 2500);
       } catch (e) { out.textContent = e.message; }
     }
 

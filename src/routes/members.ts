@@ -591,6 +591,26 @@ memberRoutes.post("/import", async (c) => {
     const header = body.header!;
     if (body.mapping) {
       mapping = body.mapping;
+      // Re-derive unmapped/duplicates from the SUPPLIED mapping (not via
+      // proposeMapping, which would re-propose over the admin's explicit
+      // choices). setImportTarget re-POSTs the whole mapping on every edit,
+      // so this must run every time or warnings for every other column
+      // silently vanish the moment one column is touched.
+      const seenTargets = new Set<string>();
+      header.forEach((h, index) => {
+        const entry = mapping![index] || { kind: "ignore" as const };
+        if (entry.kind === "ignore") {
+          unmapped.push({ index, header: h });
+          return;
+        }
+        if (entry.kind === "known") {
+          if (seenTargets.has(entry.target)) {
+            duplicates.push({ index, header: h, target: entry.target });
+          } else {
+            seenTargets.add(entry.target);
+          }
+        }
+      });
     } else {
       const proposed = proposeMapping(header, existingCustomFields);
       mapping = proposed.mapping;

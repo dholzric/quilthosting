@@ -235,6 +235,32 @@ let cf = [];
 try { cf = JSON.parse(settings.body.settings_json || "{}").custom_fields || []; } catch {}
 check("dry run created no custom fields", cf.length === 0, JSON.stringify(cf));
 
+// Task 5 fix round 1: setImportTarget re-POSTs the WHOLE mapping on every
+// column edit. When body.mapping is supplied, the route must re-derive
+// unmapped/duplicates from it rather than leaving them empty — otherwise
+// promoting one column silently erases the unmapped_column warning for
+// every OTHER column the admin hasn't touched yet.
+{
+  const oneEdited = { ...dry.body.mapping };
+  const committeeEntry = dry.body.unmapped.find((u) => u.header === "Committee");
+  oneEdited[String(committeeEntry.index)] =
+    { kind: "custom", key: "committee", label: "Committee" };
+
+  const afterEdit = await json(`/api/tenants/${tenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header, raw_rows: rawRows, dry_run: true, mapping: oneEdited }),
+  });
+  const editedHeaders = (afterEdit.body.warnings || [])
+    .filter((w) => w.code === "unmapped_column").map((w) => w.header);
+
+  check("promoted column (Committee) no longer warns as unmapped",
+    !editedHeaders.includes("Committee"), JSON.stringify(editedHeaders));
+  check("STALE-WARNING REGRESSION: untouched columns still warn (Machine Type)",
+    editedHeaders.includes("Machine Type"), JSON.stringify(editedHeaders));
+  check("STALE-WARNING REGRESSION: untouched columns still warn (Bee Group)",
+    editedHeaders.includes("Bee Group"), JSON.stringify(editedHeaders));
+}
+
 console.log("\n--- layer 3: real import ---");
 
 // Promote the unmapped columns to custom fields, as the UI will. The fixture
