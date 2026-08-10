@@ -31,6 +31,17 @@ export const webhookRoutes = new Hono<{ Bindings: Env }>();
  * Losing an outbound webhook event is recoverable (the outbox row can be
  * replayed manually); returning 500 and inviting Stripe to redeliver a
  * payment we already recorded is not.
+ *
+ * PRECONDITION: `mutationStmt` MUST be idempotent (safe to execute twice).
+ * On a batch failure this helper re-runs the mutation alone as a fallback,
+ * and that fallback can itself be interrupted (e.g. the client disconnects
+ * after the retry commits but before we observe success) -- so a
+ * non-idempotent statement such as `inventory = inventory - ?` could
+ * double-apply if routed through here. Every current caller passes either
+ * an INSERT bound to a single, already-`generateId()`-fixed primary key
+ * (re-running it fails on the PK constraint instead of creating a second
+ * row) or a status-flag UPDATE whose WHERE clause is a no-op once already
+ * applied.
  */
 async function commitStripeMutationWithEvent(
   env: Env,
@@ -153,25 +164,54 @@ webhookRoutes.post("/stripe", async (c) => {
     }
 
     const paymentId = generateId();
-    await c.env.DB.prepare(
+    const insertPaymentStmt = c.env.DB.prepare(
       `INSERT INTO payments
        (id, tenant_id, member_id, type, amount_cents, currency, stripe_payment_intent_id,
         status, description, related_id, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, 'usd', ?, 'succeeded', ?, ?, ?, ?)`
-    )
-      .bind(
-        paymentId,
-        tenantId,
-        memberId || null,
-        paymentType || "dues",
-        session.amount_total || 0,
-        stripeRef,
-        `Checkout ${session.id}`,
-        relatedId || null,
-        now,
-        now
-      )
-      .run();
+    ).bind(
+      paymentId,
+      tenantId,
+      memberId || null,
+      paymentType || "dues",
+      session.amount_total || 0,
+      stripeRef,
+      `Checkout ${session.id}`,
+      relatedId || null,
+      now,
+      now
+    );
+
+    // payment.succeeded outbound webhook — batched with the payments INSERT
+    // right above (same statement, same spot; not moved) so it cannot be
+    // permanently lost. Without this, a Worker death in the window between
+    // that INSERT committing and a separate outbox insert would leave the
+    // payment recorded; a Stripe retry then hits `paymentAlreadyRecorded`
+    // above and returns early, so the retry would never re-attempt the
+    // event — it would be gone for good, not just delayed. This runs before
+    // any of the type-specific branches below (donation/store/event/dues):
+    // those do their own independent mutations and don't need to have run
+    // first for this payload, which only needs fields already in scope here.
+    if (paymentType && session.amount_total != null) {
+      const { prepareEvent } = await import("../lib/webhookOutbox");
+      const ev = prepareEvent(c.env, tenantId, "payment.succeeded", {
+        type: paymentType,
+        amount_cents: session.amount_total,
+        // Schema requires string|null, and Stripe can hand back undefined here.
+        email: session.customer_email || session.metadata?.email || null,
+        related_id: relatedId ?? null,
+        source: "stripe",
+      });
+      await commitStripeMutationWithEvent(
+        c.env,
+        c.executionCtx,
+        insertPaymentStmt,
+        ev,
+        "payment.succeeded"
+      );
+    } else {
+      await insertPaymentStmt.run();
+    }
 
     if (paymentType === "donation" || paymentType === "store") {
       const email =
@@ -401,45 +441,10 @@ webhookRoutes.post("/stripe", async (c) => {
       }
     }
 
-    // Payment succeeded outbound webhook (dues/event/store)
-    //
-    // NOT atomic with the `payments` row: that INSERT ran and committed far
-    // above (right after the paymentAlreadyRecorded guard), before any of
-    // the type-specific branches (donation/store/event/dues) that sit
-    // between it and here. Deferring that INSERT down to this point so it
-    // could batch with this event would mean moving the dedupe-guarded write
-    // across ~200 lines of email sends and inventory/registration mutations
-    // that don't otherwise depend on its timing — a much larger restructure
-    // of the highest-risk file in this task than "batch each event with its
-    // own mutation" calls for. So there is nothing left to pair this INSERT
-    // with; it goes in on its own via prepareEvent, same log-and-continue,
-    // never-500 rule as the rest of this handler.
-    if (tenantId && session.amount_total != null && paymentType) {
-      const { prepareEvent, scheduleDispatch } = await import("../lib/webhookOutbox");
-      const ev = prepareEvent(c.env, tenantId, "payment.succeeded", {
-        type: paymentType,
-        amount_cents: session.amount_total,
-        // Schema requires string|null, and Stripe can hand back undefined here.
-        email: session.customer_email || session.metadata?.email || null,
-        related_id: relatedId ?? null,
-        source: "stripe",
-      });
-      if (!ev) {
-        console.error(
-          "stripe webhook: prepareEvent failed for payment.succeeded; payment already recorded, event lost"
-        );
-      } else {
-        try {
-          await c.env.DB.batch([ev.stmt]);
-          await scheduleDispatch(c.env, c.executionCtx, ev.id);
-        } catch (e) {
-          console.error(
-            "stripe webhook: outbox insert failed for payment.succeeded; payment already recorded, event lost",
-            e
-          );
-        }
-      }
-    }
+    // payment.succeeded is now emitted right after the payments INSERT,
+    // above — see the comment there. (Left this marker so a future reader
+    // scanning for "payment.succeeded" from the bottom of the handler up
+    // finds a pointer instead of nothing.)
 
     // Multi-SKU store cart orders
     if (paymentType === "store" && session.metadata?.order_id) {

@@ -499,8 +499,8 @@ v1Routes.patch("/members/:memberId", async (c) => {
     const member = await first<{ email: string; status: string }>(
       c.env.DB.prepare(
         `SELECT id, email, first_name, last_name, phone, status, joined_at, created_at
-         FROM members WHERE id = ?`
-      ).bind(memberId)
+         FROM members WHERE id = ? AND tenant_id = ?`
+      ).bind(memberId, auth.tenant.id)
     );
 
     return { status: 200, json: { member } };

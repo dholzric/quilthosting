@@ -267,7 +267,10 @@ publicRoutes.post("/:slug/join", async (c) => {
     await scheduleDispatch(c.env, c.executionCtx, ev.id);
 
     member = await first<Member>(
-      c.env.DB.prepare("SELECT * FROM members WHERE id = ?").bind(memberId)
+      c.env.DB.prepare("SELECT * FROM members WHERE id = ? AND tenant_id = ?").bind(
+        memberId,
+        tenant.id
+      )
     );
   } else if (customJson !== "{}") {
     let current: Record<string, string> = {};
