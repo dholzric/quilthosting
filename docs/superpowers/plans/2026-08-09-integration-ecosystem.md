@@ -2,23 +2,47 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **POST-EXECUTION CORRECTION (2026-08-10).** This plan was executed and shipped
-> as v0.27.0-preview, and two of its delivery claims turned out to be false of
-> the code it produced. Do not re-implement or quote them:
+> **POST-EXECUTION CORRECTION (2026-08-10), UPDATED (2026-08-10).** This plan
+> was executed and shipped as v0.27.0-preview, and two of its delivery claims
+> were false of the code it produced at that time. **These claims were false in
+> v0.27.0-preview and were made true in v0.29.0-preview by
+> `docs/superpowers/plans/2026-08-10-delivery-reliability.md`.** The original
+> finding is kept below for history — do not delete it — followed by the
+> resolution.
 >
-> 1. **"Events are written inside the database transaction"** — they are not.
->    `enqueueEvent` writes the outbox row *after* the domain mutation commits,
->    as a separate statement, and swallows its own insert errors. The event can
->    be lost while the mutation survives. This is the exact gap an outbox exists
->    to close.
-> 2. **"Up to 6 attempts over ~12 hours"** — the queue consumer calls
->    `msg.retry()` with no delay and `dispatchOutboxRow` never checks
->    `next_attempt_at`, so retries fire immediately and a failing endpoint burns
->    all attempts in seconds. Only the cron sweeper honours the backoff.
+> Original finding, false as of v0.27.0-preview:
+>
+> 1. **"Events are written inside the database transaction"** — they were not.
+>    `enqueueEvent` wrote the outbox row *after* the domain mutation committed,
+>    as a separate statement, and swallowed its own insert errors. The event
+>    could be lost while the mutation survived. This was the exact gap an
+>    outbox exists to close.
+> 2. **"Up to 6 attempts over ~12 hours"** — the queue consumer called
+>    `msg.retry()` with no delay and `dispatchOutboxRow` never checked
+>    `next_attempt_at`, so retries fired immediately and a failing endpoint
+>    burned all attempts in seconds. Only the cron sweeper honoured the
+>    backoff.
 >
 > Found by an external Codex review on 2026-08-10 and confirmed against the
-> code. `docs/zapier-webhooks.md` and the admin UI copy have been corrected;
-> the code fix is tracked as P0 remediation.
+> code. `docs/zapier-webhooks.md` and the admin UI copy were corrected to state
+> the gap plainly, and the code fix was tracked as P0 remediation.
+>
+> Resolution, true as of v0.29.0-preview:
+>
+> 1. The outbox row now commits in the same `DB.batch()` as the mutation that
+>    caused it, at every converted call site (`prepareEvent` +
+>    `env.DB.batch([mutationStmt, ev.stmt])`). One admin route
+>    (`PATCH /members/:memberId`) and the Stripe webhook's own event-prepare
+>    failure path remain non-atomic by deliberate, documented exception — see
+>    `docs/zapier-webhooks.md` → Delivery semantics → Limitations.
+> 2. Each failed attempt now draws one jittered backoff and hands the exact
+>    same `delaySeconds` to the queue's `msg.retry()`, so the queue and the
+>    row's `next_attempt_at` agree on when the next attempt is due. A leased
+>    compare-and-set claim also prevents the queue and the cron sweeper from
+>    dispatching the same event concurrently.
+>
+> Full detail: `docs/superpowers/plans/2026-08-10-delivery-reliability.md` and
+> `docs/zapier-webhooks.md`.
 
 **Revision 2 (2026-08-09).** Revision 1 was reviewed by Grok and Codex and found **not executable as written**. Both reviews are preserved verbatim in `2026-08-09-integration-foundation-reviews.md`. Every blocking claim was independently re-verified against the codebase before this revision — see "Verified review findings" below. This revision incorporates all of Grok's P0/P1/P2 corrections and all of Codex's P0 reliability gates, including the durable outbox.
 

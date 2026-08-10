@@ -3824,7 +3824,7 @@
         </div>
         <div class="card">
           <h3 style="margin-bottom:0.5rem">Recent deliveries</h3>
-          <p class="muted" style="font-size:0.85rem">Failed events are retried a few times immediately, then kept here so you can fix the problem and press Replay.</p>
+          <p class="muted" style="font-size:0.85rem">If a delivery fails, we automatically try again — starting about a minute later, then with longer gaps between tries (up to several hours) if it keeps failing, for up to 6 attempts total. If it still hasn't gone through, it's kept here so you can fix the problem and press Replay.</p>
           <div id="wh-outbox">loading…</div>
         </div>`;
       loadWebhookEventCatalog();
