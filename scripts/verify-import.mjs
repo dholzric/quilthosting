@@ -394,5 +394,44 @@ check("hand-entered field survives an all-ignore import (coalesce branch)",
 check("committee value also survives an all-ignore import",
   adaCustom3.committee === "Raffle", JSON.stringify(adaCustom3));
 
+console.log("\n--- fix round 1: admin-created duplicate known-target must not let the later column win ---");
+
+// setImportTarget in admin.html has no dedup guard, so an admin can set two
+// dropdowns to the same known target by hand — here, column 1 ("First name")
+// and column 8 ("Notes") both claim first_name. The duplicate_target warning
+// promises "the first column wins and this one is ignored"; the route must
+// make that literally true in the mapping it applies, not just report it.
+const dupMapping = {
+  0: { kind: "known", target: "email" },
+  1: { kind: "known", target: "first_name" },
+  2: { kind: "known", target: "last_name" },
+  8: { kind: "known", target: "first_name" },
+};
+
+const dupDry = await json(`/api/tenants/${tenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ header, raw_rows: rawRows, dry_run: true, mapping: dupMapping }),
+});
+const dupDryDuplicate = (dupDry.body.warnings || []).find(
+  (w) => w.code === "duplicate_target" && w.header === "Notes"
+);
+check("duplicate_target warning reported for the higher-index column (Notes)",
+  !!dupDryDuplicate, JSON.stringify(dupDry.body.warnings));
+check("echoed mapping demotes the duplicate column to ignore (not left as the admin's raw choice)",
+  dupDry.body.mapping?.["8"]?.kind === "ignore", JSON.stringify(dupDry.body.mapping?.["8"]));
+check("demoted duplicate also warns unmapped_column since it carries data (Notes)",
+  (dupDry.body.warnings || []).some((w) => w.code === "unmapped_column" && w.header === "Notes"),
+  JSON.stringify(dupDry.body.warnings));
+
+const dupRun = await json(`/api/tenants/${tenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ header, raw_rows: rawRows, mapping: dupMapping }),
+});
+check("duplicate-mapping import succeeds", dupRun.status === 200, JSON.stringify(dupRun.body).slice(0, 200));
+
+const adaAfterDup = await json(`/api/tenants/${tenantId}/members/${ada.id}`, { headers: auth });
+check("FIRST COLUMN WINS: first_name came from the lower-index column (First name = Ada), not the higher-index one (Notes = Founding member)",
+  adaAfterDup.body.first_name === "Ada", `got ${JSON.stringify(adaAfterDup.body.first_name)}`);
+
 console.log(failures ? `\n${failures} failure(s)` : "\nall layers passed");
 if (failures) process.exit(1);

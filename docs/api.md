@@ -162,7 +162,7 @@ Computed identically for a dry run and a real import:
 | Code | Message | When it fires |
 |---|---|---|
 | `unmapped_column` | `"<header>" will not be imported` | A column is unmapped/ignored **and** at least one row has a non-empty value in it. A column that is entirely empty produces no warning. |
-| `duplicate_target` | `"<header>" also matches <target>; the first column wins and this one is ignored` | Two columns map to the same known target — the first (lowest index) wins; the rest report this warning and are ignored. |
+| `duplicate_target` | `"<header>" also matches <target>; the first column wins and this one is ignored` | Two columns map to the same known target — the first (lowest index) wins; the rest report this warning and **are actually demoted to ignore** in the mapping the server applies. This holds whether the duplicate came from the server's own auto-proposed mapping or from an admin explicitly setting two columns to the same target by hand (the UI has no client-side guard against this) — the server re-derives and enforces it either way, so the warning text is never just advice the code doesn't follow. |
 | `unparseable_date` | Some renewal/expiry dates could not be read and will be left blank | A row's end/expiry/renewal/expiration value doesn't parse as a date. |
 | `invalid_status` | Some statuses are not one of: pending, active, lapsed, cancelled. Those rows import as active. | A row's status value isn't one of the four known statuses. |
 | `level_not_found` | Some membership levels do not exist in this guild; those members import without a membership | A row's level name doesn't match any active level for the tenant. |
@@ -170,6 +170,14 @@ Computed identically for a dry run and a real import:
 | `plan_limit_will_hold` | Free plan allows 30 active members; N row(s) will import as pending until you upgrade | Tenant is on the free plan and more rows want `active` status than there are remaining active-member slots. This is an estimate — see note below. |
 
 Each warning object: `{ code, message, count, sample_rows: number[] (1-based row numbers, up to 3), header? }`.
+
+A column demoted to ignore by the `duplicate_target` rule is treated exactly
+like any other ignored column afterward: if it carries data it also produces
+an `unmapped_column` warning (both warnings can legitimately appear for the
+same column), and the `mapping` object echoed back in the dry-run response
+reflects the demotion — a supplied `{kind:"known", target:"first_name"}` on
+a losing column comes back as `{kind:"ignore"}`, not as the admin's original
+(losing) choice, so a UI re-rendering that response shows the true state.
 
 `plan_limit_will_hold` is only an estimate: it counts rows wanting `active`
 against remaining slots, but the real import loop also checks whether an

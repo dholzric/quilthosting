@@ -590,7 +590,18 @@ memberRoutes.post("/import", async (c) => {
   if (usingMapping) {
     const header = body.header!;
     if (body.mapping) {
-      mapping = body.mapping;
+      const suppliedMapping = body.mapping;
+      // Build the mapping that is actually applied. A duplicate known-target
+      // column must be DEMOTED to ignore here, not just reported — applyMapping
+      // writes "known" entries in ascending index order, so if both entries
+      // stayed "known" the later column would silently overwrite the earlier
+      // one's value, the opposite of what the duplicate_target warning below
+      // tells the admin ("the first column wins and this one is ignored").
+      // This mirrors proposeMapping's own semantics (importMapping.ts:96-100),
+      // just applied to an admin-supplied mapping instead of a proposed one.
+      const effectiveMapping: import("../lib/importMapping").ImportMapping = {
+        ...suppliedMapping,
+      };
       // Re-derive unmapped/duplicates from the SUPPLIED mapping (not via
       // proposeMapping, which would re-propose over the admin's explicit
       // choices). setImportTarget re-POSTs the whole mapping on every edit,
@@ -598,7 +609,7 @@ memberRoutes.post("/import", async (c) => {
       // silently vanish the moment one column is touched.
       const seenTargets = new Set<string>();
       header.forEach((h, index) => {
-        const entry = mapping![index] || { kind: "ignore" as const };
+        const entry = suppliedMapping[index] || { kind: "ignore" as const };
         if (entry.kind === "ignore") {
           unmapped.push({ index, header: h });
           return;
@@ -606,11 +617,20 @@ memberRoutes.post("/import", async (c) => {
         if (entry.kind === "known") {
           if (seenTargets.has(entry.target)) {
             duplicates.push({ index, header: h, target: entry.target });
+            effectiveMapping[index] = { kind: "ignore" };
+            // Demoted to ignore, so it is subject to the same unmapped_column
+            // warning as any other ignored column when it carries data.
+            unmapped.push({ index, header: h });
           } else {
             seenTargets.add(entry.target);
           }
         }
       });
+      // mapping (used below for applyMapping, custom-field creation, and the
+      // dry-run response) is the EFFECTIVE mapping, never the raw supplied
+      // one — so a demoted duplicate can't leak back out as if the admin had
+      // chosen it, and the UI re-renders it as ignored.
+      mapping = effectiveMapping;
     } else {
       const proposed = proposeMapping(header, existingCustomFields);
       mapping = proposed.mapping;
