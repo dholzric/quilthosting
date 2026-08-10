@@ -104,5 +104,127 @@ console.log("--- layer 1: mapping vocabulary ---");
 check("normalizeHeader strips punctuation", normalizeHeader("E-Mail Address!") === "emailaddress");
 check("slugifyKey produces a safe key", slugifyKey("T-Shirt Size") === "t_shirt_size");
 
-console.log(failures ? `\n${failures} failure(s)` : "\nlayer 1 passed");
+console.log("\n--- layer 2: dry run over HTTP ---");
+
+import { readFileSync } from "node:fs";
+const BASE = process.env.QH_BASE || "http://127.0.0.1:8787";
+
+async function json(path, opts = {}) {
+  const res = await fetch(`${BASE}${path}`, {
+    ...opts,
+    headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
+  });
+  const text = await res.text();
+  let body; try { body = JSON.parse(text); } catch { body = { raw: text.slice(0, 300) }; }
+  return { status: res.status, body };
+}
+
+// Same stable-account trick as verify-integrations.mjs: registering per run
+// exhausts the 10-per-10-minute limit and the harness stops working.
+const HARNESS_EMAIL = "harness@example.test";
+const HARNESS_PASSWORD = "harness-password-1";
+let jwt;
+{
+  const login = await json("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email: HARNESS_EMAIL, password: HARNESS_PASSWORD }),
+  });
+  if (login.status === 200) jwt = login.body.token;
+  else {
+    const reg = await json("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ email: HARNESS_EMAIL, password: HARNESS_PASSWORD, name: "Harness" }),
+    });
+    if (reg.status >= 400) {
+      throw new Error(`auth failed (login ${login.status}, register ${reg.status}). ` +
+        `Set GOOGLE_AUTH_REQUIRED=false in .dev.vars; if 429 the window is 10 minutes.`);
+    }
+    jwt = reg.body.token;
+  }
+}
+const auth = { Authorization: `Bearer ${jwt}` };
+const stamp = Math.random().toString(16).slice(2, 10);
+
+const tenant = await json("/api/tenants", {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ name: `Import ${stamp}`, slug: `import-${stamp}` }),
+});
+const tenantId = tenant.body.id;
+
+// A level the fixture's "Annual Membership" rows can match.
+await json(`/api/tenants/${tenantId}/levels`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ name: "Annual Membership", price_cents: 0,
+                         duration_months: 12, renewal_type: "manual" }),
+});
+
+// Parse the fixture the same way the browser does.
+function parseCsv(text) {
+  const rows = []; let row = [], cell = "", inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQ) { if (ch === '"') { if (text[i+1] === '"') { cell += '"'; i++; } else inQ = false; } else cell += ch; }
+    else if (ch === '"') inQ = true;
+    else if (ch === ",") { row.push(cell); cell = ""; }
+    else if (ch === "\n" || ch === "\r") {
+      if (ch === "\r" && text[i+1] === "\n") i++;
+      row.push(cell); cell = "";
+      if (row.some((c) => c !== "")) rows.push(row);
+      row = [];
+    } else cell += ch;
+  }
+  row.push(cell);
+  if (row.some((c) => c !== "")) rows.push(row);
+  return rows;
+}
+
+const csv = parseCsv(readFileSync(join(ROOT, "scripts/fixtures/wa-export-sample.csv"), "utf8"));
+const header = csv[0];
+const rawRows = csv.slice(1);
+
+const membersBefore = await json(`/api/tenants/${tenantId}/members`, { headers: auth });
+
+const dry = await json(`/api/tenants/${tenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ header, raw_rows: rawRows, dry_run: true }),
+});
+check("dry run succeeds", dry.status === 200, JSON.stringify(dry.body).slice(0, 200));
+
+const codes = (dry.body.warnings || []).map((w) => w.code);
+const warnFor = (code) => (dry.body.warnings || []).find((w) => w.code === code);
+
+check("proposes a mapping", !!dry.body.mapping);
+check("E-Mail mapped to email", dry.body.mapping?.["0"]?.target === "email");
+check("Committee reported unmapped",
+  (dry.body.unmapped || []).some((u) => u.header === "Committee"));
+check("unmapped_column warning present", codes.includes("unmapped_column"));
+
+// The empty Fax column must NOT nag.
+const unmappedWarnHeaders = (dry.body.warnings || [])
+  .filter((w) => w.code === "unmapped_column").map((w) => w.header);
+check("empty column produces no warning", !unmappedWarnHeaders.includes("Fax"),
+  JSON.stringify(unmappedWarnHeaders));
+
+check("unparseable_date warned", codes.includes("unparseable_date"));
+check("invalid_status warned", codes.includes("invalid_status"));
+check("level_not_found warned", codes.includes("level_not_found"));
+check("warning carries a count", (warnFor("unmapped_column")?.count ?? 0) > 0);
+
+check("duplicate email skipped", (dry.body.skipped || []).some((s) => /duplicate/i.test(s.reason)));
+check("missing email skipped", (dry.body.skipped || []).some((s) => /email/i.test(s.reason)));
+check("will_create counts the 5 valid rows", dry.body.will_create === 5,
+  `got ${dry.body.will_create}`);
+
+// The promise the whole preview rests on.
+const membersAfter = await json(`/api/tenants/${tenantId}/members`, { headers: auth });
+check("DRY RUN WROTE NOTHING",
+  (membersAfter.body.total ?? 0) === (membersBefore.body.total ?? 0),
+  `${membersBefore.body.total} -> ${membersAfter.body.total}`);
+
+const settings = await json(`/api/tenants/${tenantId}`, { headers: auth });
+let cf = [];
+try { cf = JSON.parse(settings.body.settings_json || "{}").custom_fields || []; } catch {}
+check("dry run created no custom fields", cf.length === 0, JSON.stringify(cf));
+
+console.log(failures ? `\n${failures} failure(s)` : "\nall layers passed");
 if (failures) process.exit(1);

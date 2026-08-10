@@ -438,6 +438,93 @@ memberRoutes.delete("/:memberId", async (c) => {
   return c.json({ ok: true, status: "cancelled" });
 });
 
+type ImportWarning = {
+  code: string;
+  message: string;
+  count: number;
+  sample_rows: number[];
+  header?: string;
+};
+
+/** Aggregate per-row observations into one warning per code+column. */
+function buildWarnings(args: {
+  header: string[] | undefined;
+  rawRows: string[][] | undefined;
+  mapping: import("../lib/importMapping").ImportMapping | null;
+  unmapped: Array<{ index: number; header: string }>;
+  duplicates: Array<{ index: number; header: string; target: string }>;
+  normalizedRows: Array<Record<string, string>>;
+  levelByName: Map<string, unknown>;
+  memberStatuses: string[];
+  columnMismatchRows: number[];
+  planWillHold: number;
+}): ImportWarning[] {
+  const out: ImportWarning[] = [];
+
+  // Only warn about an ignored column when it actually carries data —
+  // an all-empty column in the export is noise, not a loss.
+  for (const u of args.unmapped) {
+    const rowsWithData: number[] = [];
+    (args.rawRows || []).forEach((r, i) => {
+      if ((r[u.index] || "").trim() !== "") rowsWithData.push(i + 1);
+    });
+    if (!rowsWithData.length) continue;
+    out.push({
+      code: "unmapped_column",
+      header: u.header,
+      message: `"${u.header}" will not be imported`,
+      count: rowsWithData.length,
+      sample_rows: rowsWithData.slice(0, 3),
+    });
+  }
+
+  for (const d of args.duplicates) {
+    out.push({
+      code: "duplicate_target",
+      header: d.header,
+      message: `"${d.header}" also matches ${d.target}; the first column wins and this one is ignored`,
+      count: 1,
+      sample_rows: [],
+    });
+  }
+
+  const badDates: number[] = [];
+  const badStatus: number[] = [];
+  const badLevel: number[] = [];
+  args.normalizedRows.forEach((row, i) => {
+    const endRaw = row.end_date || row.expiry || row.renewal_date || row.expiration || "";
+    if (endRaw && Number.isNaN(new Date(endRaw).getTime())) badDates.push(i + 1);
+    const st = (row.status || "").toLowerCase();
+    if (st && !args.memberStatuses.includes(st)) badStatus.push(i + 1);
+    const lv = (row.level_name || row.level || "").trim();
+    if (lv && !args.levelByName.has(lv.toLowerCase())) badLevel.push(i + 1);
+  });
+
+  if (badDates.length)
+    out.push({ code: "unparseable_date",
+      message: "Some renewal/expiry dates could not be read and will be left blank",
+      count: badDates.length, sample_rows: badDates.slice(0, 3) });
+  if (badStatus.length)
+    out.push({ code: "invalid_status",
+      message: `Some statuses are not one of: ${args.memberStatuses.join(", ")}. Those rows import as active.`,
+      count: badStatus.length, sample_rows: badStatus.slice(0, 3) });
+  if (badLevel.length)
+    out.push({ code: "level_not_found",
+      message: "Some membership levels do not exist in this guild; those members import without a membership",
+      count: badLevel.length, sample_rows: badLevel.slice(0, 3) });
+  if (args.columnMismatchRows.length)
+    out.push({ code: "column_count_mismatch",
+      message: "Some rows have a different number of columns than the header and will be skipped",
+      count: args.columnMismatchRows.length,
+      sample_rows: args.columnMismatchRows.slice(0, 3) });
+  if (args.planWillHold > 0)
+    out.push({ code: "plan_limit_will_hold",
+      message: `Free plan allows ${30} active members; ${args.planWillHold} row(s) will import as pending until you upgrade`,
+      count: args.planWillHold, sample_rows: [] });
+
+  return out;
+}
+
 /**
  * POST /api/tenants/:tenantId/members/import
  * Bulk upsert by email — the Wild Apricot migration path.
@@ -448,22 +535,92 @@ memberRoutes.delete("/:memberId", async (c) => {
 memberRoutes.post("/import", async (c) => {
   const tenant = c.get("tenant");
   const body = await c.req.json<{
-    rows: Array<Record<string, string>>;
+    rows?: Array<Record<string, string>>;
+    header?: string[];
+    raw_rows?: string[][];
+    mapping?: import("../lib/importMapping").ImportMapping;
     dry_run?: boolean;
   }>();
-  if (!Array.isArray(body.rows) || !body.rows.length) {
+
+  const usingMapping = Array.isArray(body.raw_rows);
+  if (usingMapping && Array.isArray(body.rows)) {
+    return c.json(
+      { error: "Send either rows or raw_rows, not both", code: "ambiguous_payload" },
+      400
+    );
+  }
+  if (usingMapping && !Array.isArray(body.header)) {
+    return c.json(
+      { error: "raw_rows requires header", code: "missing_header" },
+      400
+    );
+  }
+  if (!usingMapping && (!Array.isArray(body.rows) || !body.rows.length)) {
     return c.json({ error: "rows array is required" }, 400);
   }
-  // 5k rows/request; clients can loop for larger migrations
-  if (body.rows.length > 5000) {
+
+  const rowCount = usingMapping ? body.raw_rows!.length : body.rows!.length;
+  if (rowCount > 5000) {
     return c.json({ error: "Max 5000 rows per import — split larger files" }, 400);
+  }
+
+  // Existing custom-field definitions, used to recognise columns the guild
+  // already models.
+  let existingCustomFields: Array<{ key: string; label: string }> = [];
+  try {
+    const t = await first<{ settings_json: string | null }>(
+      c.env.DB.prepare("SELECT settings_json FROM tenants WHERE id = ?").bind(tenant.id)
+    );
+    existingCustomFields = JSON.parse(t?.settings_json || "{}").custom_fields || [];
+  } catch { /* no settings yet */ }
+
+  const {
+    proposeMapping, applyMapping,
+  } = await import("../lib/importMapping");
+
+  let mapping: import("../lib/importMapping").ImportMapping | null = null;
+  let unmapped: Array<{ index: number; header: string }> = [];
+  let duplicates: Array<{ index: number; header: string; target: string }> = [];
+  const columnMismatchRows: number[] = [];
+
+  // Rows in the legacy object shape; every downstream line already expects this.
+  let normalizedRows: Array<Record<string, string>>;
+  let customFieldsByRow: Array<Record<string, string>> = [];
+
+  if (usingMapping) {
+    const header = body.header!;
+    if (body.mapping) {
+      mapping = body.mapping;
+    } else {
+      const proposed = proposeMapping(header, existingCustomFields);
+      mapping = proposed.mapping;
+      unmapped = proposed.unmapped;
+      duplicates = proposed.duplicates;
+    }
+    normalizedRows = [];
+    body.raw_rows!.forEach((raw, i) => {
+      if (raw.length !== header.length) {
+        // A ragged row would misalign every field after the gap. Skip it
+        // loudly rather than importing shifted data.
+        columnMismatchRows.push(i + 1);
+        normalizedRows.push({});
+        customFieldsByRow.push({});
+        return;
+      }
+      const { member, customFields } = applyMapping(raw, mapping!);
+      normalizedRows.push(member);
+      customFieldsByRow.push(customFields);
+    });
+  } else {
+    normalizedRows = body.rows!;
+    customFieldsByRow = normalizedRows.map(() => ({}));
   }
 
   // Build email map in batches (do not SELECT entire 50k-member table)
   const byEmail = new Map<string, string>();
   const emailsInFile = [
     ...new Set(
-      body.rows
+      normalizedRows
         .map((r) => (r.email || "").toLowerCase().trim())
         .filter((e) => e.includes("@"))
     ),
@@ -477,46 +634,6 @@ memberRoutes.post("/import", async (c) => {
       ).bind(tenant.id, ...slice)
     );
     for (const m of found) byEmail.set(m.email, m.id);
-  }
-
-  // Dry run: report exactly what a real import would do, write nothing.
-  if (body.dry_run) {
-    const seenEmails = new Set<string>();
-    let willCreate = 0;
-    let willUpdate = 0;
-    const skipped: Array<{ row: number; reason: string }> = [];
-    const sample: Array<Record<string, string>> = [];
-    body.rows.forEach((r, idx) => {
-      const email = (r.email || "").toLowerCase().trim();
-      if (!email || !email.includes("@")) {
-        skipped.push({ row: idx + 1, reason: "missing or invalid email" });
-        return;
-      }
-      if (seenEmails.has(email)) {
-        skipped.push({ row: idx + 1, reason: "duplicate email in file" });
-        return;
-      }
-      seenEmails.add(email);
-      const existing = byEmail.has(email);
-      if (existing) willUpdate++;
-      else willCreate++;
-      if (sample.length < 5) {
-        sample.push({
-          email,
-          name: [r.first_name, r.last_name].filter(Boolean).join(" "),
-          action: existing ? "update" : "create",
-        });
-      }
-    });
-    return c.json({
-      dry_run: true,
-      total_rows: body.rows.length,
-      will_create: willCreate,
-      will_update: willUpdate,
-      will_skip: skipped.length,
-      skipped: skipped.slice(0, 20),
-      sample,
-    });
   }
 
   const levels = await all<MembershipLevel>(
@@ -535,6 +652,68 @@ memberRoutes.post("/import", async (c) => {
     activeSlotsLeft = Math.max(0, FREE_ACTIVE_MEMBER_LIMIT - active);
   }
 
+  // Dry run: report exactly what a real import would do, write nothing.
+  if (body.dry_run) {
+    const seenEmails = new Set<string>();
+    let willCreate = 0, willUpdate = 0;
+    const skipped: Array<{ row: number; reason: string }> = [];
+    const sample: Array<Record<string, string>> = [];
+
+    normalizedRows.forEach((r, idx) => {
+      if (columnMismatchRows.includes(idx + 1)) {
+        skipped.push({ row: idx + 1, reason: "column count does not match header" });
+        return;
+      }
+      const email = (r.email || "").toLowerCase().trim();
+      if (!email || !email.includes("@")) {
+        skipped.push({ row: idx + 1, reason: "missing or invalid email" });
+        return;
+      }
+      if (seenEmails.has(email)) {
+        skipped.push({ row: idx + 1, reason: "duplicate email in file" });
+        return;
+      }
+      seenEmails.add(email);
+      byEmail.has(email) ? willUpdate++ : willCreate++;
+      if (sample.length < 5) {
+        sample.push({
+          email,
+          name: [r.first_name, r.last_name].filter(Boolean).join(" "),
+          action: byEmail.has(email) ? "update" : "create",
+          custom: JSON.stringify(customFieldsByRow[idx] || {}),
+        });
+      }
+    });
+
+    // How many rows the free plan will hold below active.
+    let planWillHold = 0;
+    if (activeSlotsLeft != null) {
+      const wantActive = normalizedRows.filter(
+        (r) => ((r.status || "active").toLowerCase() === "active")
+      ).length;
+      planWillHold = Math.max(0, wantActive - activeSlotsLeft);
+    }
+
+    return c.json({
+      dry_run: true,
+      total_rows: normalizedRows.length,
+      will_create: willCreate,
+      will_update: willUpdate,
+      will_skip: skipped.length,
+      header: body.header ?? null,
+      mapping,
+      unmapped,
+      warnings: buildWarnings({
+        header: body.header, rawRows: body.raw_rows, mapping, unmapped, duplicates,
+        normalizedRows, levelByName, memberStatuses: MEMBER_STATUSES,
+        columnMismatchRows, planWillHold,
+      }),
+      // Full list, not capped: the error CSV in the UI depends on it.
+      skipped,
+      sample,
+    });
+  }
+
   const now = new Date().toISOString();
   let created = 0,
     updated = 0,
@@ -551,7 +730,7 @@ memberRoutes.post("/import", async (c) => {
     startDate?: string;
   }> = [];
 
-  for (const row of body.rows) {
+  for (const row of normalizedRows) {
     const email = (row.email || "").toLowerCase().trim();
     if (!email || !email.includes("@") || seen.has(email)) {
       skipped++;
