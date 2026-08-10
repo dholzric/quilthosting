@@ -1,0 +1,8 @@
+E-Mail,First name,Last Name,Phone Number,Membership status,Membership level,Renewal due,Member since,Notes,Committee,Machine Type,Bee Group,Fax
+ada@example.test,Ada,Lovelace,512-555-0101,Active,Annual Membership,2027-01-15,2019-03-02,Founding member,Raffle,Bernina 770,Tuesday Bee,
+grace@example.test,Grace,Hopper,512-555-0102,Active,Annual Membership,2027-02-20,2020-06-11,,Programs,Juki TL-2010Q,Tuesday Bee,
+katherine@example.test,Katherine,Johnson,,Active,Annual Membership,not a date,2018-09-30,,Hospitality,Singer 4423,Thursday Bee,
+mary@example.test,Mary,Jackson,512-555-0104,Bogus Status,Annual Membership,2027-04-01,2021-01-05,,,Handi Quilter,Thursday Bee,
+dorothy@example.test,Dorothy,Vaughan,512-555-0105,Active,Nonexistent Level,2027-05-12,2017-11-19,,Raffle,Baby Lock,Tuesday Bee,
+ada@example.test,Ada,Duplicate,512-555-0106,Active,Annual Membership,2027-06-01,2019-03-02,,,,,
+,Missing,Email,512-555-0107,Active,Annual Membership,2027-07-04,2022-02-14,,,,,
