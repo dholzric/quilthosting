@@ -212,6 +212,15 @@ check("warning carries a count", (warnFor("unmapped_column")?.count ?? 0) > 0);
 
 check("duplicate email skipped", (dry.body.skipped || []).some((s) => /duplicate/i.test(s.reason)));
 check("missing email skipped", (dry.body.skipped || []).some((s) => /email/i.test(s.reason)));
+
+// Row 2 is a ragged row (fewer cells than the header) — it must be reported
+// as a column-count mismatch and skipped, not misread or left to shift the
+// rows after it.
+check("ragged row reported as column mismatch",
+  (dry.body.skipped || []).some((s) => s.row === 2 && /column count/i.test(s.reason)),
+  JSON.stringify(dry.body.skipped));
+check("column_count_mismatch warning present", codes.includes("column_count_mismatch"));
+
 check("will_create counts the 5 valid rows", dry.body.will_create === 5,
   `got ${dry.body.will_create}`);
 
@@ -251,6 +260,22 @@ check("reports custom fields created",
   (run1.body.custom_fields_created || []).length === 4,
   JSON.stringify(run1.body.custom_fields_created));
 
+// The real-import path must report the same full skipped list the dry run
+// does — Task 5's error-CSV download is built on skipped_rows.
+check("skipped count is 3 (ragged + duplicate + missing email)",
+  run1.body.skipped === 3, `got ${run1.body.skipped}`);
+check("skipped_rows has 3 entries",
+  (run1.body.skipped_rows || []).length === 3, JSON.stringify(run1.body.skipped_rows));
+check("skipped_rows reports the ragged row",
+  (run1.body.skipped_rows || []).some((s) => s.row === 2 && /column count/i.test(s.reason)),
+  JSON.stringify(run1.body.skipped_rows));
+check("skipped_rows reports the duplicate email",
+  (run1.body.skipped_rows || []).some((s) => /duplicate/i.test(s.reason)),
+  JSON.stringify(run1.body.skipped_rows));
+check("skipped_rows reports the missing email",
+  (run1.body.skipped_rows || []).some((s) => /missing or invalid email/i.test(s.reason)),
+  JSON.stringify(run1.body.skipped_rows));
+
 const settings2 = await json(`/api/tenants/${tenantId}`, { headers: auth });
 const cf2 = JSON.parse(settings2.body.settings_json || "{}").custom_fields || [];
 check("definitions persisted", cf2.some((f) => f.key === "committee"), JSON.stringify(cf2));
@@ -262,6 +287,19 @@ const adaCustom = JSON.parse(adaFull.body.custom_fields_json || "{}");
 check("custom value stored", adaCustom.committee === "Raffle", JSON.stringify(adaCustom));
 check("second custom value stored", adaCustom.machine_type === "Bernina 770");
 
+// Grace is the row immediately after the ragged row (row 2). If rowIndex
+// ever desynced from customFieldsByRow after a skipped row, her values would
+// silently come from the wrong row (or be empty). This is the assertion
+// that actually proves no index shift, not just that the ragged row itself
+// was skipped.
+const grace = list.body.members.find((m) => m.email === "grace@example.test");
+const graceFull = await json(`/api/tenants/${tenantId}/members/${grace.id}`, { headers: auth });
+const graceCustom = JSON.parse(graceFull.body.custom_fields_json || "{}");
+check("row after ragged row lands on the correct member (committee)",
+  graceCustom.committee === "Programs", JSON.stringify(graceCustom));
+check("row after ragged row lands on the correct member (machine_type)",
+  graceCustom.machine_type === "Juki TL-2010Q", JSON.stringify(graceCustom));
+
 // Re-running the same file must converge, not duplicate.
 const run2 = await json(`/api/tenants/${tenantId}/members/import`, {
   method: "POST", headers: auth,
@@ -272,6 +310,18 @@ check("re-run updates the same 5", run2.body.updated === 5, `got ${run2.body.upd
 const list2 = await json(`/api/tenants/${tenantId}/members?limit=100`, { headers: auth });
 check("no duplicate members", list2.body.total === list.body.total,
   `${list.body.total} -> ${list2.body.total}`);
+
+// Re-running the same mapping must not create a second copy of any
+// definition. Length alone would not catch a rename or reorder, so compare
+// the exact key sequence, not just the count.
+check("re-run creates no new definitions",
+  (run2.body.custom_fields_created || []).length === 0,
+  JSON.stringify(run2.body.custom_fields_created));
+const settings3 = await json(`/api/tenants/${tenantId}`, { headers: auth });
+const cf3 = JSON.parse(settings3.body.settings_json || "{}").custom_fields || [];
+check("definition key sequence unchanged after re-run",
+  JSON.stringify(cf3.map((f) => f.key)) === JSON.stringify(cf2.map((f) => f.key)),
+  `${JSON.stringify(cf2.map((f) => f.key))} -> ${JSON.stringify(cf3.map((f) => f.key))}`);
 
 // A hand-entered value must survive a re-import that omits its column.
 await json(`/api/tenants/${tenantId}/members/${ada.id}`, {
@@ -293,6 +343,30 @@ check("hand-entered custom field survives re-import", adaCustom2.hand_entered ==
 check("existing definitions not removed",
   JSON.parse((await json(`/api/tenants/${tenantId}`, { headers: auth })).body.settings_json || "{}")
     .custom_fields.length >= 3);
+
+// Import again with every custom column ignored — this exercises the
+// coalesce(?, custom_fields_json) branch specifically, with hand_entered
+// as the canary: it was written only by the PATCH above, never by any
+// import mapping, so it can only survive if custom_fields_json really is
+// coalesced rather than unconditionally overwritten. An implementation
+// that wrote `custom_fields_json = ?` instead of
+// `coalesce(?, custom_fields_json)` would pass every check above (every
+// prior import mapped at least one custom column) yet silently wipe every
+// member's custom fields, including hand-entered ones, right here.
+const allIgnore = { ...mapping };
+for (const [k, v] of Object.entries(allIgnore)) {
+  if (v.kind === "custom") allIgnore[k] = { kind: "ignore" };
+}
+await json(`/api/tenants/${tenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ header, raw_rows: rawRows, mapping: allIgnore }),
+});
+const adaAllIgnore = await json(`/api/tenants/${tenantId}/members/${ada.id}`, { headers: auth });
+const adaCustom3 = JSON.parse(adaAllIgnore.body.custom_fields_json || "{}");
+check("hand-entered field survives an all-ignore import (coalesce branch)",
+  adaCustom3.hand_entered === "keep me", JSON.stringify(adaCustom3));
+check("committee value also survives an all-ignore import",
+  adaCustom3.committee === "Raffle", JSON.stringify(adaCustom3));
 
 console.log(failures ? `\n${failures} failure(s)` : "\nall layers passed");
 if (failures) process.exit(1);

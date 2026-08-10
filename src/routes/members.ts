@@ -749,6 +749,9 @@ memberRoutes.post("/import", async (c) => {
     skipped = 0,
     membershipsAssigned = 0,
     planLimited = 0;
+  // Same shape and same reason strings as the dry run — Task 5's error-CSV
+  // download depends on this matching.
+  const skippedRows: Array<{ row: number; reason: string }> = [];
   const stmts: D1PreparedStatement[] = [];
   const seen = new Set<string>();
   // After batch inserts, assign memberships (need member ids)
@@ -761,10 +764,20 @@ memberRoutes.post("/import", async (c) => {
 
   for (let rowIndex = 0; rowIndex < normalizedRows.length; rowIndex++) {
     const row = normalizedRows[rowIndex];
-    if (columnMismatchRows.includes(rowIndex + 1)) { skipped++; continue; }
-    const email = (row.email || "").toLowerCase().trim();
-    if (!email || !email.includes("@") || seen.has(email)) {
+    if (columnMismatchRows.includes(rowIndex + 1)) {
       skipped++;
+      skippedRows.push({ row: rowIndex + 1, reason: "column count does not match header" });
+      continue;
+    }
+    const email = (row.email || "").toLowerCase().trim();
+    if (!email || !email.includes("@")) {
+      skipped++;
+      skippedRows.push({ row: rowIndex + 1, reason: "missing or invalid email" });
+      continue;
+    }
+    if (seen.has(email)) {
+      skipped++;
+      skippedRows.push({ row: rowIndex + 1, reason: "duplicate email in file" });
       continue;
     }
     seen.add(email);
@@ -815,7 +828,9 @@ memberRoutes.post("/import", async (c) => {
       let mergedCustomJson: string | null = null;
       if (hasCustom) {
         const cur = await first<{ custom_fields_json: string | null }>(
-          c.env.DB.prepare("SELECT custom_fields_json FROM members WHERE id = ?").bind(memberId)
+          c.env.DB.prepare(
+            "SELECT custom_fields_json FROM members WHERE id = ? AND tenant_id = ?"
+          ).bind(memberId, tenant.id)
         );
         let existingVals: Record<string, string> = {};
         try { existingVals = JSON.parse(cur?.custom_fields_json || "{}"); } catch {}
@@ -927,5 +942,6 @@ memberRoutes.post("/import", async (c) => {
     memberships_assigned: membershipsAssigned,
     plan_limited: planLimited,
     custom_fields_created: customFieldsCreated,
+    skipped_rows: skippedRows,
   });
 });
