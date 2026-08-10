@@ -433,5 +433,33 @@ const adaAfterDup = await json(`/api/tenants/${tenantId}/members/${ada.id}`, { h
 check("FIRST COLUMN WINS: first_name came from the lower-index column (First name = Ada), not the higher-index one (Notes = Founding member)",
   adaAfterDup.body.first_name === "Ada", `got ${JSON.stringify(adaAfterDup.body.first_name)}`);
 
+console.log("\n--- fix round 2: colliding custom-field keys must be reported, not silently merged ---");
+
+// Two headers that collapse to the same key must be REPORTED, not silently
+// merged. Today the second overwrites the first with no warning at all.
+const collideHeader = ["E-Mail", "Bee Group", "Bee-Group"];
+const collideRows = [["a@example.test", "Tuesday", "Thursday"]];
+const collideMapping = {
+  0: { kind: "known", target: "email" },
+  1: { kind: "custom", key: "bee_group", label: "Bee Group" },
+  2: { kind: "custom", key: "bee_group", label: "Bee-Group" },
+};
+const dryCollide = await json(`/api/tenants/${tenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ header: collideHeader, raw_rows: collideRows,
+                         mapping: collideMapping, dry_run: true }),
+});
+check("collision is warned in the dry run",
+  (dryCollide.body.warnings || []).some((w) => w.code === "duplicate_custom_key"),
+  JSON.stringify(dryCollide.body.warnings));
+
+const realCollide = await json(`/api/tenants/${tenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ header: collideHeader, raw_rows: collideRows, mapping: collideMapping }),
+});
+check("collision is rejected on the real import",
+  realCollide.status === 400 && realCollide.body.code === "duplicate_custom_key",
+  `got ${realCollide.status} ${JSON.stringify(realCollide.body)}`);
+
 console.log(failures ? `\n${failures} failure(s)` : "\nall layers passed");
 if (failures) process.exit(1);

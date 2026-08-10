@@ -500,6 +500,7 @@ function buildWarnings(args: {
   memberStatuses: string[];
   columnMismatchRows: number[];
   planWillHold: number;
+  duplicateKeys: Array<{ key: string; headers: string[]; indices: number[] }>;
 }): ImportWarning[] {
   const out: ImportWarning[] = [];
 
@@ -526,6 +527,15 @@ function buildWarnings(args: {
       header: d.header,
       message: `"${d.header}" also matches ${d.target}; the first column wins and this one is ignored`,
       count: 1,
+      sample_rows: [],
+    });
+  }
+
+  for (const d of args.duplicateKeys) {
+    out.push({
+      code: "duplicate_custom_key",
+      message: `"${d.headers.join('" and "')}" would both import into the same custom field. Rename one column, or set one to "Do not import".`,
+      count: d.indices.length,
       sample_rows: [],
     });
   }
@@ -617,12 +627,13 @@ memberRoutes.post("/import", async (c) => {
   } catch { /* no settings yet */ }
 
   const {
-    proposeMapping, applyMapping, uniqueCustomKey,
+    proposeMapping, applyMapping, findDuplicateCustomKeys,
   } = await import("../lib/importMapping");
 
   let mapping: import("../lib/importMapping").ImportMapping | null = null;
   let unmapped: Array<{ index: number; header: string }> = [];
   let duplicates: Array<{ index: number; header: string; target: string }> = [];
+  let duplicateKeys: Array<{ key: string; headers: string[]; indices: number[] }> = [];
   const columnMismatchRows: number[] = [];
 
   // Rows in the legacy object shape; every downstream line already expects this.
@@ -679,6 +690,9 @@ memberRoutes.post("/import", async (c) => {
       unmapped = proposed.unmapped;
       duplicates = proposed.duplicates;
     }
+    // Two headers slugifying to the same custom key would otherwise have the
+    // second silently overwrite the first — report it before it can happen.
+    duplicateKeys = findDuplicateCustomKeys(mapping!, header);
     normalizedRows = [];
     body.raw_rows!.forEach((raw, i) => {
       if (raw.length !== header.length) {
@@ -788,12 +802,26 @@ memberRoutes.post("/import", async (c) => {
       warnings: buildWarnings({
         header: body.header, rawRows: body.raw_rows, mapping, unmapped, duplicates,
         normalizedRows, levelByName, memberStatuses: MEMBER_STATUSES,
-        columnMismatchRows, planWillHold,
+        columnMismatchRows, planWillHold, duplicateKeys,
       }),
       // Full list, not capped: the error CSV in the UI depends on it.
       skipped,
       sample,
     });
+  }
+
+  // Refuse before writing anything: two columns mapped to the same custom
+  // key would otherwise have the second silently overwrite the first, with
+  // no signal anywhere that a whole column of data was lost.
+  if (duplicateKeys.length) {
+    return c.json(
+      {
+        error: "Two or more columns map to the same custom field.",
+        code: "duplicate_custom_key",
+        duplicates: duplicateKeys,
+      },
+      400
+    );
   }
 
   // Additive only: append definitions for custom targets the guild does not
@@ -806,9 +834,8 @@ memberRoutes.post("/import", async (c) => {
     for (const entry of Object.values(mapping)) {
       if (entry.kind !== "custom") continue;
       if (takenKeys.has(entry.key)) continue;
-      const key = uniqueCustomKey(entry.key, takenKeys);
-      takenKeys.add(key);
-      const def = { key, label: entry.label };
+      takenKeys.add(entry.key);
+      const def = { key: entry.key, label: entry.label };
       next.push(def);
       customFieldsCreated.push(def);
     }

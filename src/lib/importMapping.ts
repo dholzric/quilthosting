@@ -144,15 +144,29 @@ export function applyMapping(
 }
 
 /**
- * Ensure a proposed custom key does not collide with an existing definition
- * or another new one in the same import. Returns the key to actually use.
+ * Two different headers can slugify to the same custom key — "Bee Group" and
+ * "Bee-Group" both give bee_group. Before this check the second silently
+ * overwrote the first, so a guild lost a whole column with no signal.
+ *
+ * We report rather than auto-rename: a generated `bee_group_2` is meaningless
+ * to the admin, and renaming the definition without also remapping the values
+ * (which is what the dead uniqueCustomKey path would have done) puts the
+ * definition and the data out of step.
  */
-export function uniqueCustomKey(
-  desired: string,
-  taken: Set<string>
-): string {
-  if (!taken.has(desired)) return desired;
-  let n = 2;
-  while (taken.has(`${desired}_${n}`)) n++;
-  return `${desired}_${n}`;
+export function findDuplicateCustomKeys(
+  mapping: ImportMapping,
+  header: string[]
+): Array<{ key: string; headers: string[]; indices: number[] }> {
+  const byKey = new Map<string, { headers: string[]; indices: number[] }>();
+  for (const [idxRaw, entry] of Object.entries(mapping)) {
+    if (entry.kind !== "custom") continue;
+    const idx = Number(idxRaw);
+    const slot = byKey.get(entry.key) ?? { headers: [], indices: [] };
+    slot.headers.push(header[idx] ?? `column ${idx}`);
+    slot.indices.push(idx);
+    byKey.set(entry.key, slot);
+  }
+  return [...byKey.entries()]
+    .filter(([, v]) => v.indices.length > 1)
+    .map(([key, v]) => ({ key, headers: v.headers, indices: v.indices }));
 }
