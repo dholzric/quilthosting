@@ -71,6 +71,70 @@ export function validateHookUrl(raw: string): string | null {
  */
 type WaitUntilCtx = { waitUntil(promise: Promise<unknown>): void };
 
+/**
+ * Validate a payload and return the outbox INSERT as a statement, so the
+ * caller can commit it in the SAME DB.batch() as the mutation that caused it.
+ *
+ * This is the atomic path. enqueueEvent below is the non-atomic fallback for
+ * callers that cannot batch — it can lose the event if the Worker stops
+ * between the mutation commit and the outbox write.
+ *
+ * Returns null when the payload fails its schema, which is a programming
+ * error: the caller must treat null as fatal and not commit the mutation.
+ */
+export function prepareEvent(
+  env: Env,
+  tenantId: string,
+  event: WebhookEventName,
+  data: Record<string, unknown>
+): { id: string; stmt: D1PreparedStatement } | null {
+  const schema = eventPayloadSchemas[event];
+  if (!schema) {
+    console.error("prepareEvent: unknown event name", event);
+    return null;
+  }
+  const parsed = schema.safeParse(data);
+  if (!parsed.success) {
+    console.error("prepareEvent: payload failed schema", event, parsed.error.issues);
+    return null;
+  }
+  const id = generateId();
+  const now = new Date().toISOString();
+  const stmt = env.DB.prepare(
+    `INSERT INTO webhook_outbox
+     (id, tenant_id, event, schema_version, payload_json, status, attempts,
+      next_attempt_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, 'pending', 0, ?, ?, ?)`
+  ).bind(
+    id, tenantId, event, EVENT_SCHEMA_VERSION,
+    JSON.stringify(parsed.data), now, now, now
+  );
+  return { id, stmt };
+}
+
+/** Hand a committed outbox id to the queue. Safe to call after the batch. */
+export function scheduleDispatch(
+  env: Env,
+  ctx: { waitUntil(p: Promise<unknown>): void } | undefined,
+  outboxId: string
+): void {
+  const send = Promise.resolve(env.WEBHOOK_QUEUE?.send({ outboxId })).catch((e) => {
+    // Recoverable: the row is committed, so the sweeper will pick it up.
+    console.warn("outbox: queue send failed, sweeper will retry", outboxId, e);
+  });
+  if (ctx) ctx.waitUntil(send);
+}
+
+/**
+ * Non-atomic fallback: writes the outbox row AFTER the caller's mutation has
+ * already committed, as a separate statement. There is a real window between
+ * the mutation commit and this insert — if the Worker dies there, or this
+ * insert itself fails, the mutation stands but its event is silently lost.
+ *
+ * Prefer `prepareEvent` + `env.DB.batch([mutationStmt, ev.stmt])` for any new
+ * call site, which commits the domain row and its event atomically. This
+ * function exists only for call sites not yet converted to that pattern.
+ */
 export async function enqueueEvent(
   env: Env,
   ctx: WaitUntilCtx | undefined,

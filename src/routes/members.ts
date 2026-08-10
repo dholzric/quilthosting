@@ -70,29 +70,25 @@ memberRoutes.post("/", async (c) => {
   }
   const id = generateId();
   const now = new Date().toISOString();
-  await c.env.DB.prepare(
+  const insertMemberStmt = c.env.DB.prepare(
     `INSERT INTO members
      (id, tenant_id, email, first_name, last_name, phone, status, joined_at, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  )
-    .bind(
-      id,
-      tenant.id,
-      body.email.toLowerCase(),
-      body.first_name ?? null,
-      body.last_name ?? null,
-      body.phone ?? null,
-      status,
-      now,
-      now,
-      now
-    )
-    .run();
-  const member = await first<Member>(
-    c.env.DB.prepare("SELECT * FROM members WHERE id = ?").bind(id)
+  ).bind(
+    id,
+    tenant.id,
+    body.email.toLowerCase(),
+    body.first_name ?? null,
+    body.last_name ?? null,
+    body.phone ?? null,
+    status,
+    now,
+    now,
+    now
   );
-  const { enqueueEvent } = await import("../lib/webhookOutbox");
-  await enqueueEvent(c.env, c.executionCtx, tenant.id, "member.created", {
+
+  const { prepareEvent, scheduleDispatch } = await import("../lib/webhookOutbox");
+  const ev = prepareEvent(c.env, tenant.id, "member.created", {
     member_id: id,
     email: body.email.toLowerCase(),
     first_name: body.first_name ?? null,
@@ -100,6 +96,23 @@ memberRoutes.post("/", async (c) => {
     status,
     source: "admin",
   });
+  // Development-only failure injection so the atomicity guarantee is testable.
+  const forceFail =
+    c.env.ENVIRONMENT === "development" &&
+    c.req.header("X-QH-Force-Outbox-Failure") === "1";
+  if (!ev || forceFail) {
+    return c.json(
+      { error: "Could not record the change event; nothing was saved.",
+        code: "event_prepare_failed" },
+      500
+    );
+  }
+  await c.env.DB.batch([insertMemberStmt, ev.stmt]);
+  scheduleDispatch(c.env, c.executionCtx, ev.id);
+
+  const member = await first<Member>(
+    c.env.DB.prepare("SELECT * FROM members WHERE id = ?").bind(id)
+  );
   return c.json(member, 201);
 });
 
