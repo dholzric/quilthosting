@@ -49,12 +49,20 @@ outboundWebhookRoutes.post("/outbox/:outboxId/replay", async (c) => {
     ).bind(id, tenant.id)
   );
   if (!row) return c.json({ error: "Not found" }, 404);
-  await c.env.DB.prepare(
-    `UPDATE webhook_outbox SET status = 'pending', attempts = 0,
-     next_attempt_at = null, updated_at = ? WHERE id = ?`
-  )
-    .bind(new Date().toISOString(), id)
-    .run();
+  const nowIso = new Date().toISOString();
+  await c.env.DB.batch([
+    c.env.DB.prepare(
+      `UPDATE webhook_outbox SET status = 'pending', attempts = 0,
+       next_attempt_at = null, updated_at = ? WHERE id = ?`
+    ).bind(nowIso, id),
+    // Clear the per-endpoint markers too. Dispatch skips any target already
+    // marked 'delivered', so without this a replay of a partially- (or fully-)
+    // delivered event would silently send to nobody and just flip the row back
+    // to 'delivered' -- the opposite of what the admin pressed the button for.
+    c.env.DB.prepare(
+      `DELETE FROM webhook_delivery_targets WHERE outbox_id = ? AND tenant_id = ?`
+    ).bind(id, tenant.id),
+  ]);
   if (c.env.WEBHOOK_QUEUE) {
     c.executionCtx.waitUntil(c.env.WEBHOOK_QUEUE.send({ outboxId: id }));
   }

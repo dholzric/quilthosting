@@ -5,9 +5,10 @@
 import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 const BASE = process.env.QH_BASE || "http://127.0.0.1:8787";
 let failures = 0;
 const check = (label, cond, detail = "") => {
@@ -276,6 +277,204 @@ check("the reclaimed row is no longer stuck in 'delivering'",
   `status=${afterSweep[0]?.status}`);
 
 await runD1(`DELETE FROM webhook_outbox WHERE id = '${stuckId}';`);
+
+console.log("--- fan-out (per-endpoint retry) ---");
+// Two endpoints subscribed to the same event: one healthy, one that never
+// answers. A naive fan-out retries BOTH when the row is redriven, so the
+// healthy endpoint sees an avoidable duplicate. This drives the SHIPPED
+// dispatch path twice (real member.created event, real queue-triggered
+// dispatchOutboxRow, then a real sweep-triggered redispatch) and asserts on
+// webhook_deliveries counts, which can only move if a real send happened --
+// unlike an attempts counter, this is falsifiable in both directions.
+const healthyPort = 8796;
+const healthy = createServer((req, res) => {
+  res.writeHead(200);
+  res.end("ok");
+});
+await new Promise((resolve) => healthy.listen(healthyPort, "127.0.0.1", resolve));
+
+const healthyHook = await json(`/api/tenants/${tenantId}/webhooks`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ url: `http://127.0.0.1:${healthyPort}/ok`, events: ["*"] }),
+});
+check("healthy fan-out endpoint created", healthyHook.status === 201, `got ${healthyHook.status}`);
+// Nothing listens on this port -> every send fails with ECONNREFUSED, fast.
+const deadHook = await json(`/api/tenants/${tenantId}/webhooks`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ url: "http://127.0.0.1:8795/dead", events: ["*"] }),
+});
+check("dead fan-out endpoint created", deadHook.status === 201, `got ${deadHook.status}`);
+
+const obBeforeFanout = await json(`/api/tenants/${tenantId}/webhooks/outbox`, { headers: auth });
+const beforeFanoutIds = new Set((obBeforeFanout.body.outbox || []).map((r) => r.id));
+
+await json(`/api/tenants/${tenantId}/members`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ email: `fanout-${stamp}@example.test` }),
+});
+
+async function pollOutboxFanout(pred, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const ob = await json(`/api/tenants/${tenantId}/webhooks/outbox`, { headers: auth });
+    const found = (ob.body.outbox || []).find(
+      (r) => !beforeFanoutIds.has(r.id) && r.event === "member.created" && pred(r)
+    );
+    if (found) return found;
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  return null;
+}
+
+// Wait for the first round to fully settle: attempts >= 1 and no longer
+// 'delivering' (the dead endpoint fails, so this lands back in 'pending').
+const fanoutRow = await pollOutboxFanout(
+  (r) => r.attempts >= 1 && r.status !== "delivering",
+  8000
+);
+check("fan-out outbox row exists after round 1", !!fanoutRow);
+
+if (fanoutRow) {
+  const healthyDeliveries1 = await d1Select(
+    `SELECT COUNT(*) as n FROM webhook_deliveries
+     WHERE tenant_id = '${tenantId}' AND endpoint_id = '${healthyHook.body.id}' AND event = 'member.created'`
+  );
+  check("healthy endpoint received exactly one delivery after round 1",
+    Number(healthyDeliveries1[0]?.n) === 1, `deliveries=${healthyDeliveries1[0]?.n}`);
+
+  // Force round 2 immediately rather than waiting out the real backoff:
+  // clear the lease and back-date next_attempt_at. This exercises the same
+  // claim/dispatch code as production, just without the wait.
+  await runD1(
+    `UPDATE webhook_outbox SET status = 'pending', lease_until = NULL,
+       next_attempt_at = datetime('now','-5 seconds')
+     WHERE id = '${fanoutRow.id}';`
+  );
+  const sweepTrigger2 = await fetch(
+    `${BASE}/cdn-cgi/handler/scheduled?cron=${encodeURIComponent("* * * * *")}`
+  );
+  console.log(`  ..  scheduled sweep trigger (round 2) responded ${sweepTrigger2.status}`);
+  await new Promise((r) => setTimeout(r, 4000));
+
+  const healthyDeliveries2 = await d1Select(
+    `SELECT COUNT(*) as n FROM webhook_deliveries
+     WHERE tenant_id = '${tenantId}' AND endpoint_id = '${healthyHook.body.id}' AND event = 'member.created'`
+  );
+  check("healthy endpoint still has exactly one delivery after round 2 (not re-sent)",
+    Number(healthyDeliveries2[0]?.n) === 1, `deliveries=${healthyDeliveries2[0]?.n}`);
+
+  const deadDeliveries2 = await d1Select(
+    `SELECT COUNT(*) as n FROM webhook_deliveries
+     WHERE tenant_id = '${tenantId}' AND endpoint_id = '${deadHook.body.id}' AND event = 'member.created'`
+  );
+  check("dead endpoint was retried and now has two deliveries",
+    Number(deadDeliveries2[0]?.n) === 2, `deliveries=${deadDeliveries2[0]?.n}`);
+}
+
+await new Promise((resolve) => healthy.close(resolve));
+// Remove this block's endpoints rather than leaving them registered-but-dead:
+// the retry-pacing test below dispatches to every subscribed endpoint
+// sequentially, and each additional dead one it has to fail through eats
+// into its fixed 8s observation window.
+if (healthyHook.body?.id) {
+  await json(`/api/tenants/${tenantId}/webhooks/${healthyHook.body.id}`, { method: "DELETE", headers: auth });
+}
+if (deadHook.body?.id) {
+  await json(`/api/tenants/${tenantId}/webhooks/${deadHook.body.id}`, { method: "DELETE", headers: auth });
+}
+
+console.log("--- retry pacing ---");
+// Isolated tenant with exactly one freshly-created dead endpoint: the shared
+// `tenantId` above has accumulated several dead endpoints from earlier
+// blocks, and dispatchOutboxRow fetches each sequentially, so their combined
+// (non-instant, workerd-local) connection-refusal latency alone can eat a
+// short observation window and produce a false failure unrelated to retry
+// pacing.
+const paceTenant = await json("/api/tenants", { method: "POST", headers: auth,
+  body: JSON.stringify({ name: `Pace ${stamp}`, slug: `pace-${stamp}` }) });
+const paceTenantId = paceTenant.body.id;
+await json(`/api/tenants/${paceTenantId}/webhooks`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ url: "http://127.0.0.1:8799/never-listens", events: ["*"] }),
+});
+await json(`/api/tenants/${paceTenantId}/members`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ email: `pace-${stamp}@example.test` }),
+});
+
+async function pollPaceOutbox(pred, timeoutMs, intervalMs = 2000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const ob = await json(`/api/tenants/${paceTenantId}/webhooks/outbox`, { headers: auth });
+    const row = ob.body.outbox?.[0];
+    if (row && pred(row)) return row;
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+  return null;
+}
+
+// Round 1 settles quickly (a single dead endpoint fails fast): the row goes
+// back to 'pending' with attempts=1 and a next_attempt_at computed by
+// backoffFor(1) (150-300s out). Capture it as the ground truth for how long
+// the retry must actually wait.
+const round1 = await pollPaceOutbox((r) => r.attempts >= 1 && r.status !== "delivering", 20000);
+check("round 1 settles (dead endpoint fails fast, row back to pending)", !!round1, JSON.stringify(round1));
+
+if (round1) {
+  check("failing delivery is not dead after round 1", round1.status !== "dead", `status=${round1.status}`);
+  check("attempts did not run away in round 1", round1.attempts <= 2, `attempts=${round1.attempts}`);
+  check("next_attempt_at is in the future after round 1",
+    !!round1.next_attempt_at && new Date(round1.next_attempt_at) > new Date(),
+    `next_attempt_at=${round1.next_attempt_at}`);
+}
+
+// The live check above is necessarily weak on its own: claimOutboxRow's lease
+// guard (Task 3) already blocks an immediate same-lease re-claim for
+// LEASE_SECONDS, so an undelayed msg.retry() no longer visibly "burns
+// attempts in seconds" the way it did before Task 3 -- it just gets bounced
+// by the lease and silently ack'd as a dropped pre-backoff redelivery (see
+// the consumer's ack comment), leaving ZERO trace in the outbox row. Worse,
+// dispatchOutboxRow and the consumer each independently call backoffFor(),
+// so even a correctly-fixed queue-driven retry and the row's own
+// next_attempt_at are two different random draws from the same jittered
+// range -- meaning "does a second attempt land via the queue before some
+// deadline" is a genuine coin flip even on correct code, not a reliable
+// pass/fail signal. Waiting it out would make this test flaky on GOOD code,
+// not just discriminating on BAD code, so it is the wrong tool here.
+// What actually is deterministic: whether the consumer passes delaySeconds
+// to msg.retry() at all. Assert that directly on the shipped source, so this
+// fails immediately and reliably if that one call is ever reverted to a bare
+// msg.retry() -- which is the literal regression this test exists to catch.
+const consumerPath = fileURLToPath(new URL("../src/consumers/webhookConsumer.ts", import.meta.url));
+const consumerSrc = readFileSync(consumerPath, "utf8");
+// Strip comments first: the consumer's own comments discuss the bare
+// `msg.retry()` this check forbids, and a naive scan of raw source reads those
+// as real call sites. Then walk balanced parens rather than using `[^)]*`,
+// which truncates `msg.retry({ delaySeconds: backoffFor(attempts) })` at the
+// inner call's `)` and loses the closing brace.
+const codeOnly = consumerSrc
+  .replace(/\/\*[\s\S]*?\*\//g, "")
+  .replace(/(^|[^:])\/\/.*$/gm, "$1");
+function extractCalls(src, needle) {
+  const out = [];
+  let i = 0;
+  while ((i = src.indexOf(needle, i)) !== -1) {
+    let depth = 0, j = i + needle.length - 1;
+    for (; j < src.length; j++) {
+      if (src[j] === "(") depth++;
+      else if (src[j] === ")" && --depth === 0) break;
+    }
+    out.push(src.slice(i, j + 1));
+    i = j + 1;
+  }
+  return out;
+}
+const retryCalls = extractCalls(codeOnly, "msg.retry(");
+check("consumer source has a msg.retry(...) call", retryCalls.length > 0, "no msg.retry call found");
+check("every msg.retry() call passes delaySeconds (no immediate bare retry)",
+  retryCalls.length > 0 && retryCalls.every((c) => /delaySeconds\s*:/.test(c)),
+  `retry calls: ${JSON.stringify(retryCalls)}`);
+
 rmSync(d1WorkDir, { recursive: true, force: true });
 
 console.log(failures ? `\n${failures} failure(s)` : "\nall delivery checks passed");

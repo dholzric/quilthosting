@@ -331,6 +331,18 @@ export async function dispatchOutboxRow(
   const targets = endpoints.filter((ep) => wantsEvent(ep.events_json, row.event));
   const now = new Date().toISOString();
 
+  // Per-(event, endpoint) state. Without it the outbox row carries ONE status
+  // for the whole fan-out, so a retry driven by a single failing endpoint
+  // re-sends to the healthy ones too and they see avoidable duplicates.
+  const doneRows = await all<{ endpoint_id: string }>(
+    env.DB.prepare(
+      `SELECT endpoint_id FROM webhook_delivery_targets
+       WHERE outbox_id = ? AND tenant_id = ? AND status = 'delivered'`
+    ).bind(outboxId, row.tenant_id)
+  );
+  const alreadyDelivered = new Set(doneRows.map((r) => r.endpoint_id));
+  const pendingTargets = targets.filter((ep) => !alreadyDelivered.has(ep.id));
+
   if (!targets.length) {
     await fencedComplete(
       env,
@@ -356,7 +368,11 @@ export async function dispatchOutboxRow(
   let lastStatus: number | null = null;
   let lastError: string | null = null;
 
-  for (const ep of targets) {
+  // Only the endpoints that have NOT already taken this event. anyFailed is
+  // therefore computed from this round's attempts alone -- computing it from
+  // every target would let an event with one already-delivered endpoint fail
+  // forever, since that endpoint is never re-sent and so never re-succeeds.
+  for (const ep of pendingTargets) {
     const timestamp = Math.floor(Date.now() / 1000).toString();
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
@@ -406,6 +422,32 @@ export async function dispatchOutboxRow(
         )
         .run();
 
+      // The durable per-endpoint marker. Once this says 'delivered' the loop
+      // above skips this endpoint on every later attempt of the same event.
+      await env.DB.prepare(
+        `INSERT INTO webhook_delivery_targets
+         (id, outbox_id, endpoint_id, tenant_id, status, attempts, last_status, last_error, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
+         ON CONFLICT(outbox_id, endpoint_id) DO UPDATE SET
+           status = excluded.status,
+           attempts = webhook_delivery_targets.attempts + 1,
+           last_status = excluded.last_status,
+           last_error = excluded.last_error,
+           updated_at = excluded.updated_at`
+      )
+        .bind(
+          generateId(),
+          outboxId,
+          ep.id,
+          row.tenant_id,
+          ok ? "delivered" : "pending",
+          statusCode,
+          error,
+          now,
+          now
+        )
+        .run();
+
       if (ok) {
         await env.DB.prepare(
           `UPDATE webhook_endpoints SET fail_count = 0, last_status = ?, last_error = null,
@@ -436,6 +478,10 @@ export async function dispatchOutboxRow(
   }
 
   const attempts = row.attempts + 1;
+  // The parent row is 'delivered' only when EVERY subscribed target is
+  // delivered. anyFailed covers this round's pendingTargets; the targets
+  // excluded from that list were excluded precisely because their marker
+  // already said 'delivered'. So !anyFailed => all targets delivered.
   if (!anyFailed) {
     await fencedComplete(
       env,
@@ -448,7 +494,7 @@ export async function dispatchOutboxRow(
   }
 
   if (attempts >= MAX_ATTEMPTS) {
-    await fencedComplete(
+    const wonDead = await fencedComplete(
       env,
       outboxId,
       lease,
@@ -456,6 +502,15 @@ export async function dispatchOutboxRow(
        last_error = ?, updated_at = ?`,
       [attempts, lastStatus, lastError, now]
     );
+    // Only after we know the parent write landed: a lost lease means another
+    // worker owns this row's fate, and burying its targets would misreport
+    // endpoints that worker may still be delivering to.
+    if (wonDead) {
+      await env.DB.prepare(
+        `UPDATE webhook_delivery_targets SET status = 'dead', updated_at = ?
+         WHERE outbox_id = ? AND tenant_id = ? AND status = 'pending'`
+      ).bind(now, outboxId, row.tenant_id).run();
+    }
     return;
   }
 
@@ -474,8 +529,15 @@ export async function dispatchOutboxRow(
     // redeliver a message whose outcome we can no longer safely record.
     return;
   }
-  // Signals the queue to redeliver; after max_retries the message lands in the DLQ.
-  throw new Error(`webhook delivery failed, attempt ${attempts}`);
+  // Signals the queue to redeliver; after max_retries the message lands in the
+  // DLQ. The attempt count rides on the error so the consumer can delay the
+  // redelivery by the same backoff window this row just recorded, instead of
+  // having the queue bounce it back instantly.
+  const err = new Error(`webhook delivery failed, attempt ${attempts}`) as Error & {
+    attempts: number;
+  };
+  err.attempts = attempts;
+  throw err;
 }
 
 /** Cron safety net for rows the queue never acknowledged. */
