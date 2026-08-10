@@ -12,11 +12,58 @@
  */
 import { randomUUID } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { writeFileSync, unlinkSync } from "node:fs";
+import { writeFileSync, unlinkSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
+const ROOT = resolve(import.meta.dirname, "..");
 const BASE = process.env.QH_BASE || "http://127.0.0.1:8787";
+
+/** Same .dev.vars parser as scripts/e2e-auto-renew.mjs. */
+function loadDevVars() {
+  const text = readFileSync(resolve(ROOT, ".dev.vars"), "utf8");
+  const out = {};
+  for (const line of text.split(/\r?\n/)) {
+    if (!line || line.trim().startsWith("#")) continue;
+    const i = line.indexOf("=");
+    if (i < 0) continue;
+    out[line.slice(0, i).trim()] = line.slice(i + 1).trim();
+  }
+  return out;
+}
+
+/** Run a D1 statement against the local database and return nothing -- for
+ * seeding/mutating rows directly, mirroring seedLapsedReservation() below. */
+function d1Exec(sql) {
+  const sqlPath = join(tmpdir(), `qh-idem-exec-${randomUUID()}.sql`);
+  writeFileSync(sqlPath, sql, "utf8");
+  try {
+    execFileSync(
+      "npx",
+      ["wrangler", "d1", "execute", "quilthosting-db", "--local", `--file=${sqlPath}`],
+      { stdio: "pipe", shell: true }
+    );
+  } finally {
+    unlinkSync(sqlPath);
+  }
+}
+
+/** Run a D1 SELECT against the local database and return the parsed rows. */
+function d1Query(sql) {
+  const sqlPath = join(tmpdir(), `qh-idem-query-${randomUUID()}.sql`);
+  writeFileSync(sqlPath, sql, "utf8");
+  try {
+    const out = execFileSync(
+      "npx",
+      ["wrangler", "d1", "execute", "quilthosting-db", "--local", `--file=${sqlPath}`, "--json"],
+      { stdio: "pipe", shell: true }
+    ).toString("utf8");
+    const parsed = JSON.parse(out);
+    return parsed[0]?.results ?? [];
+  } finally {
+    unlinkSync(sqlPath);
+  }
+}
 
 async function json(path, opts = {}) {
   const res = await fetch(`${BASE}${path}`, {
@@ -339,6 +386,130 @@ async function main() {
     "assertion 5b: the winning takeover carries the existing seeded record id, not a fresh one",
     winningOutcome5?.recordId === seededId5,
     `got ${JSON.stringify(winningOutcome5)} expected recordId=${seededId5}`
+  );
+
+  console.log("--- 6. transient refusal (402 plan_limit) is NOT cached: retry after upgrade must execute ---");
+  const planTenant = await json("/api/tenants", {
+    method: "POST",
+    headers: auth,
+    body: JSON.stringify({ name: `Plan Limit Guild ${stamp}`, slug: `planlimit-${stamp}` }),
+  });
+  if (planTenant.status >= 400) throw new Error(`plan tenant: ${JSON.stringify(planTenant.body)}`);
+  const planTenantId = planTenant.body.id;
+
+  // New tenants get a 30-day trial, which counts as "starter" (unlimited)
+  // for plan-limit purposes -- see effectivePlan() in src/lib/plans.ts. Clear
+  // it so this tenant is actually on the free plan's 30-active-member cap.
+  d1Exec(`UPDATE tenants SET trial_ends_at = NULL WHERE id = '${planTenantId}';`);
+
+  const planWriteKey = await json(`/api/tenants/${planTenantId}/api-keys`, {
+    method: "POST",
+    headers: auth,
+    body: JSON.stringify({ name: "plan-write", scopes: ["read", "members:write"] }),
+  });
+  if (planWriteKey.status >= 400) throw new Error(`plan api-key: ${JSON.stringify(planWriteKey.body)}`);
+  const planWriteAuth = { Authorization: `Bearer ${planWriteKey.body.api_key}` };
+
+  // Fill to FREE_ACTIVE_MEMBER_LIMIT (30) active members.
+  for (let i = 0; i < 30; i++) {
+    const r = await json("/api/v1/members", {
+      method: "POST",
+      headers: planWriteAuth,
+      body: JSON.stringify({ email: `fill-${stamp}-${i}@example.test`, status: "active" }),
+    });
+    if (r.status !== 201) {
+      throw new Error(`filling active member ${i} failed: ${r.status} ${JSON.stringify(r.body)}`);
+    }
+  }
+
+  const planKey = `planlimit-${stamp}`;
+  const planBody = JSON.stringify({ email: `over-${stamp}@example.test`, status: "active" });
+  const over1 = await json("/api/v1/members", {
+    method: "POST",
+    headers: { ...planWriteAuth, "Idempotency-Key": planKey },
+    body: planBody,
+  });
+  check(
+    "31st active member is refused with 402 plan_limit",
+    over1.status === 402 && over1.body.code === "plan_limit",
+    `got ${over1.status} ${JSON.stringify(over1.body)}`
+  );
+
+  // Upgrade the tenant the way the plan-limit brief prescribes: raise the
+  // limit directly in D1 (mirrors what the Stripe subscription webhook does
+  // in production), then retry with the SAME Idempotency-Key and body.
+  d1Exec(`UPDATE tenants SET plan = 'starter' WHERE id = '${planTenantId}';`);
+
+  const over2 = await json("/api/v1/members", {
+    method: "POST",
+    headers: { ...planWriteAuth, "Idempotency-Key": planKey },
+    body: planBody,
+  });
+  // Against the OLD `status >= 500` cache rule this would replay the cached
+  // 402 forever (it is well under 500), which is exactly the bug: the guild
+  // upgraded and the retry should now succeed.
+  check(
+    "same key + same body after upgrade executes for real, not a replayed 402",
+    over2.status === 201 && over2.body.member?.email === `over-${stamp}@example.test`,
+    `got ${over2.status} ${JSON.stringify(over2.body)}`
+  );
+
+  console.log("--- 7. sweepExpired deletes only expired rows (checked by id, not just a count) ---");
+  const devVars = loadDevVars();
+  const jwtSecret = devVars.JWT_SECRET;
+  if (!jwtSecret) throw new Error("JWT_SECRET not found in .dev.vars -- cannot authorize /__scheduled");
+
+  const expiredId = randomUUID();
+  const liveId = randomUUID();
+  const past = new Date(Date.now() - 3600_000).toISOString(); // expired an hour ago
+  const future = new Date(Date.now() + 3600_000).toISOString(); // expires an hour from now
+  const nowIso = new Date().toISOString();
+  const sweepOp = `sweep-test-${stamp}`;
+  d1Exec(
+    `INSERT INTO api_idempotency
+       (id, tenant_id, operation, idempotency_key, request_hash, status,
+        response_status, response_json, reserved_until, expires_at, created_at, updated_at)
+     VALUES
+       ('${expiredId}', '${tenantId}', '${sweepOp}', 'expired-key', 'hash-expired', 'completed',
+        200, '{}', '${past}', '${past}', '${nowIso}', '${nowIso}'),
+       ('${liveId}', '${tenantId}', '${sweepOp}', 'live-key', 'hash-live', 'completed',
+        200, '{}', '${future}', '${future}', '${nowIso}', '${nowIso}');`
+  );
+
+  const preSweep = d1Query(
+    `SELECT id FROM api_idempotency WHERE id IN ('${expiredId}', '${liveId}');`
+  );
+  check(
+    "both seeded rows exist before the sweep",
+    preSweep.length === 2,
+    `got ${JSON.stringify(preSweep)}`
+  );
+
+  const sweepRun = await json("/__scheduled", {
+    method: "POST",
+    // Two different secrets, two different jobs: the harness session JWT
+    // (`auth`) satisfies siteGate's bypass (a valid session JWT is itself
+    // proof of access -- /__scheduled is not in siteGate's exempt-path
+    // list), while X-Cron-Secret satisfies authorizeScheduled() in
+    // src/index.ts, which checks that header (or Authorization: Bearer
+    // <JWT_SECRET>, which would NOT be a valid session JWT and so would
+    // fail siteGate instead) independently.
+    headers: { ...auth, "X-Cron-Secret": jwtSecret },
+  });
+  check(
+    "/__scheduled (runDailyJobs) runs and reports the idempotency sweep count",
+    sweepRun.status === 200 && typeof sweepRun.body.idempotency?.deleted === "number",
+    `got ${sweepRun.status} ${JSON.stringify(sweepRun.body)}`
+  );
+
+  const postSweep = d1Query(
+    `SELECT id FROM api_idempotency WHERE id IN ('${expiredId}', '${liveId}');`
+  );
+  const postIds = postSweep.map((r) => r.id).sort();
+  check(
+    "sweep deletes exactly the expired row and leaves the live row, by id",
+    postIds.length === 1 && postIds[0] === liveId,
+    `got ${JSON.stringify(postIds)} expected only [${liveId}]`
   );
 
   if (failures) {

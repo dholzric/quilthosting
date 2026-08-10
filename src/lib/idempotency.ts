@@ -34,6 +34,83 @@ export async function hashRequest(body: unknown): Promise<string> {
 }
 
 /**
+ * Whether a handler's response is safe to CACHE under this Idempotency-Key
+ * for RETENTION_HOURS, versus being a transient refusal that must instead
+ * release the reservation so a retry -- after whatever moving condition
+ * produced the refusal has changed -- actually re-runs the handler.
+ *
+ * The dividing line is not "sub-500 vs 5xx". It is whether the response is a
+ * pure function of the REQUEST (same tenant + operation + body -> the same
+ * answer, forever) or depends on OTHER state that can legitimately change
+ * between retries of the identical request (plan tier, a count against a
+ * moving limit, server health). Caching the former is what makes retries
+ * safe for integrators; caching the latter would let one refusal outlive the
+ * condition that caused it -- e.g. a guild that upgrades off the free plan
+ * and retries with the same key would get the stale 402 replayed at them
+ * for up to RETENTION_HOURS instead of the create actually going through.
+ *
+ * This is the single place that policy is decided; everything that follows
+ * a reserve() should route its completion through this, not re-derive the
+ * rule from a status-code comparison.
+ */
+export function isCacheableResponse(status: number, json: unknown): boolean {
+  // 2xx: the mutation already happened. The response is the durable record
+  // of it, so replaying it on retry is correct, not stale.
+  if (status >= 200 && status < 300) return true;
+
+  // 400 (missing_field / invalid_status / invalid_hook_url) and 422
+  // (no_fields / idempotency conflict shape) are validation failures against
+  // the request body itself -- the identical body fails the identical check
+  // every time, so caching saves the retry a wasted round trip.
+  if (status === 400 || status === 422) return true;
+
+  // 404: the id referenced in the request does not exist for this tenant.
+  // The key is fenced to the request hash, so a retry with the SAME key
+  // necessarily references the SAME id -- it does not spontaneously appear.
+  if (status === 404) return true;
+
+  // 409: only "duplicate_email" is deterministic here -- the email is part
+  // of the request body, so retrying it is guaranteed to find the same
+  // existing row. (idempotency_in_progress is also a 409, but it is returned
+  // by withIdempotency BEFORE the handler runs and never reaches complete()/
+  // this predicate, so no other 409 code needs to be handled here.) Scoped
+  // narrowly to the one code rather than caching all 409s.
+  if (status === 409) {
+    const code = (json as { code?: string } | null | undefined)?.code;
+    return code === "duplicate_email";
+  }
+
+  // Everything else -- 402 plan_limit, 429 hook_limit / rate limits, and all
+  // 5xx -- reflects a moving condition rather than a property of the
+  // request: plan tier, a count against a limit, or transient server health.
+  // Do not cache; release the reservation so the identical request can
+  // legitimately get a different answer once that condition changes.
+  return false;
+}
+
+/**
+ * Delete expired records. Bounds retention of response bodies (member PII):
+ * without this, api_idempotency becomes a second, unmanaged copy of member
+ * data that never ages out.
+ *
+ * Deliberately cross-tenant -- this is a maintenance sweep over the whole
+ * table by `expires_at`, not a per-tenant read, so it does not (and should
+ * not) filter by tenant_id the way request-serving queries must.
+ */
+export async function sweepExpired(
+  env: Env,
+  limit = 500
+): Promise<{ deleted: number }> {
+  const res = await env.DB.prepare(
+    `DELETE FROM api_idempotency
+      WHERE id IN (SELECT id FROM api_idempotency WHERE expires_at <= ? LIMIT ?)`
+  )
+    .bind(new Date().toISOString(), limit)
+    .run();
+  return { deleted: res.meta?.changes ?? 0 };
+}
+
+/**
  * True for a D1 unique-constraint violation on the insert -- the expected,
  * benign outcome of losing the reservation race. Anything else (a genuine D1
  * outage, a network blip) must NOT be swallowed here: misreading an outage as

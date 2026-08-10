@@ -45,6 +45,7 @@ import { generateId } from "./lib/utils/id";
 import { getTenantByHost } from "./lib/tenantHost";
 import { handleWebhookQueue } from "./consumers/webhookConsumer";
 import { sweepOutbox } from "./lib/webhookOutbox";
+import { sweepExpired } from "./lib/idempotency";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -351,6 +352,10 @@ async function runDailyJobs(env: Env) {
     extra += r.emails;
     if (r.emails === 0) break;
   }
+  // Belongs on the daily cadence, not the one-minute outbox sweep below --
+  // idempotency records are retained for RETENTION_HOURS (24h), so a daily
+  // pass is more than frequent enough to bound PII retention.
+  const idempotency = await sweepExpired(env);
   return {
     renewals,
     events,
@@ -360,6 +365,7 @@ async function runDailyJobs(env: Env) {
       ...queuedBlasts,
       extra_emails: extra,
     },
+    idempotency,
   };
 }
 

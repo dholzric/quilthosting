@@ -237,16 +237,22 @@ async function withIdempotency(
     await idem.release(c.env, outcome.recordId, outcome.reservedUntil);
     throw e;
   }
-  // 5xx is never cached: the caller must be able to retry a transient failure,
-  // and a released reservation lets them win the slot again. Both writes are
-  // fenced by the lease reserve() handed out: if this caller's reservation
-  // was taken over mid-handler (it ran past RESERVATION_SECONDS), the write
-  // is silently dropped rather than clobbering -- or, for release, deleting
-  // -- the new owner's row. The response below is still the real result of
-  // the mutation this caller ran, so it is returned regardless; it is simply
-  // not cached under a slot that no longer belongs to this caller.
-  if (r.status >= 500) await idem.release(c.env, outcome.recordId, outcome.reservedUntil);
-  else await idem.complete(c.env, outcome.recordId, outcome.reservedUntil, r.status, r.json);
+  // What gets cached vs. released is decided by idem.isCacheableResponse --
+  // see the comment there for the full policy (2xx and deterministic 4xx are
+  // cached; 402/429/5xx are transient refusals and must be released so a
+  // retry after the underlying condition changes is not replayed the stale
+  // answer). Both writes are fenced by the lease reserve() handed out: if
+  // this caller's reservation was taken over mid-handler (it ran past
+  // RESERVATION_SECONDS), the write is silently dropped rather than
+  // clobbering -- or, for release, deleting -- the new owner's row. The
+  // response below is still the real result of the mutation this caller
+  // ran, so it is returned regardless; it is simply not cached under a slot
+  // that no longer belongs to this caller.
+  if (idem.isCacheableResponse(r.status, r.json)) {
+    await idem.complete(c.env, outcome.recordId, outcome.reservedUntil, r.status, r.json);
+  } else {
+    await idem.release(c.env, outcome.recordId, outcome.reservedUntil);
+  }
   return c.json(r.json, r.status);
 }
 
@@ -639,6 +645,11 @@ v1Routes.post("/_dev/idempotency/reserve", async (c) => {
 
   const auth = await requireApiKey(c);
   if (isResponse(auth)) return auth;
+  // Every other v1 write route requires a scope; this test-only harness
+  // drives the same reservation path a real write would, so a read-only key
+  // should not be able to exercise it either.
+  const denied = requireScope(c, auth, "members:write");
+  if (denied) return denied;
 
   const body = await c.req.json<{
     operation?: string;
@@ -672,6 +683,11 @@ v1Routes.post("/_dev/idempotency/complete", async (c) => {
 
   const auth = await requireApiKey(c);
   if (isResponse(auth)) return auth;
+  // Same convention as every other v1 write route (and the reserve harness
+  // route above) -- a read-only key should not be able to force a
+  // reservation to completed.
+  const denied = requireScope(c, auth, "members:write");
+  if (denied) return denied;
 
   const body = await c.req.json<{
     recordId?: string;
