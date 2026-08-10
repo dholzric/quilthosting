@@ -575,7 +575,7 @@ memberRoutes.post("/import", async (c) => {
   } catch { /* no settings yet */ }
 
   const {
-    proposeMapping, applyMapping,
+    proposeMapping, applyMapping, uniqueCustomKey,
   } = await import("../lib/importMapping");
 
   let mapping: import("../lib/importMapping").ImportMapping | null = null;
@@ -714,6 +714,35 @@ memberRoutes.post("/import", async (c) => {
     });
   }
 
+  // Additive only: append definitions for custom targets the guild does not
+  // already have. Never rename, reorder, or remove — an import must not be
+  // able to corrupt an existing schema.
+  const customFieldsCreated: Array<{ key: string; label: string }> = [];
+  if (usingMapping && mapping) {
+    const takenKeys = new Set(existingCustomFields.map((f) => f.key));
+    const next = [...existingCustomFields];
+    for (const entry of Object.values(mapping)) {
+      if (entry.kind !== "custom") continue;
+      if (takenKeys.has(entry.key)) continue;
+      const key = uniqueCustomKey(entry.key, takenKeys);
+      takenKeys.add(key);
+      const def = { key, label: entry.label };
+      next.push(def);
+      customFieldsCreated.push(def);
+    }
+    if (customFieldsCreated.length) {
+      const t = await first<{ settings_json: string | null }>(
+        c.env.DB.prepare("SELECT settings_json FROM tenants WHERE id = ?").bind(tenant.id)
+      );
+      let settings: Record<string, unknown> = {};
+      try { settings = JSON.parse(t?.settings_json || "{}"); } catch {}
+      settings.custom_fields = next;
+      await c.env.DB.prepare(
+        "UPDATE tenants SET settings_json = ?, updated_at = ? WHERE id = ?"
+      ).bind(JSON.stringify(settings), new Date().toISOString(), tenant.id).run();
+    }
+  }
+
   const now = new Date().toISOString();
   let created = 0,
     updated = 0,
@@ -730,13 +759,17 @@ memberRoutes.post("/import", async (c) => {
     startDate?: string;
   }> = [];
 
-  for (const row of normalizedRows) {
+  for (let rowIndex = 0; rowIndex < normalizedRows.length; rowIndex++) {
+    const row = normalizedRows[rowIndex];
+    if (columnMismatchRows.includes(rowIndex + 1)) { skipped++; continue; }
     const email = (row.email || "").toLowerCase().trim();
     if (!email || !email.includes("@") || seen.has(email)) {
       skipped++;
       continue;
     }
     seen.add(email);
+    const rowCustom = customFieldsByRow[rowIndex] || {};
+    const hasCustom = Object.keys(rowCustom).length > 0;
     const status = MEMBER_STATUSES.includes((row.status || "").toLowerCase())
       ? (row.status || "").toLowerCase()
       : "active";
@@ -779,12 +812,24 @@ memberRoutes.post("/import", async (c) => {
 
     let memberId = byEmail.get(email);
     if (memberId) {
+      let mergedCustomJson: string | null = null;
+      if (hasCustom) {
+        const cur = await first<{ custom_fields_json: string | null }>(
+          c.env.DB.prepare("SELECT custom_fields_json FROM members WHERE id = ?").bind(memberId)
+        );
+        let existingVals: Record<string, string> = {};
+        try { existingVals = JSON.parse(cur?.custom_fields_json || "{}"); } catch {}
+        // Incoming values win; anything the guild typed by hand is preserved.
+        mergedCustomJson = JSON.stringify({ ...existingVals, ...rowCustom });
+      }
       stmts.push(
         c.env.DB.prepare(
           `UPDATE members SET
              first_name = coalesce(?, first_name), last_name = coalesce(?, last_name),
              phone = coalesce(?, phone), notes = coalesce(?, notes),
-             status = coalesce(?, status), updated_at = ?
+             status = coalesce(?, status),
+             custom_fields_json = coalesce(?, custom_fields_json),
+             updated_at = ?
            WHERE id = ?`
         ).bind(
           row.first_name || null,
@@ -793,6 +838,7 @@ memberRoutes.post("/import", async (c) => {
           row.notes || null,
           // Only force status when no level will set active via membership
           level ? null : importStatus,
+          mergedCustomJson,
           now,
           memberId
         )
@@ -806,8 +852,8 @@ memberRoutes.post("/import", async (c) => {
       byEmail.set(email, memberId);
       stmts.push(
         c.env.DB.prepare(
-          `INSERT INTO members (id, tenant_id, email, first_name, last_name, phone, notes, status, joined_at, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          `INSERT INTO members (id, tenant_id, email, first_name, last_name, phone, notes, status, custom_fields_json, joined_at, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         ).bind(
           memberId,
           tenant.id,
@@ -817,6 +863,7 @@ memberRoutes.post("/import", async (c) => {
           row.phone || null,
           row.notes || null,
           importStatus, // activateMembership flips to active when level set
+          hasCustom ? JSON.stringify(rowCustom) : "{}",
           row.joined_at || now,
           now,
           now
@@ -879,5 +926,6 @@ memberRoutes.post("/import", async (c) => {
     skipped,
     memberships_assigned: membershipsAssigned,
     plan_limited: planLimited,
+    custom_fields_created: customFieldsCreated,
   });
 });

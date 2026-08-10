@@ -226,5 +226,73 @@ let cf = [];
 try { cf = JSON.parse(settings.body.settings_json || "{}").custom_fields || []; } catch {}
 check("dry run created no custom fields", cf.length === 0, JSON.stringify(cf));
 
+console.log("\n--- layer 3: real import ---");
+
+// Promote the unmapped columns to custom fields, as the UI will. The fixture
+// has 4 (Committee, Machine Type, Bee Group, and an entirely-empty Fax
+// column) — Fax carries no *warning* (it has no data in any row) but
+// dry.body.unmapped is unfiltered by data-presence (Task 3's committed
+// behavior), so it is still offered for promotion like the rest.
+const mapping = { ...dry.body.mapping };
+for (const u of dry.body.unmapped) {
+  const key = u.header.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  mapping[String(u.index)] = { kind: "custom", key, label: u.header };
+}
+check("fixture has 4 unmapped columns", dry.body.unmapped.length === 4,
+  JSON.stringify(dry.body.unmapped));
+
+const run1 = await json(`/api/tenants/${tenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ header, raw_rows: rawRows, mapping }),
+});
+check("import succeeds", run1.status === 200, JSON.stringify(run1.body).slice(0, 200));
+check("created 5 members", run1.body.created === 5, `got ${run1.body.created}`);
+check("reports custom fields created",
+  (run1.body.custom_fields_created || []).length === 4,
+  JSON.stringify(run1.body.custom_fields_created));
+
+const settings2 = await json(`/api/tenants/${tenantId}`, { headers: auth });
+const cf2 = JSON.parse(settings2.body.settings_json || "{}").custom_fields || [];
+check("definitions persisted", cf2.some((f) => f.key === "committee"), JSON.stringify(cf2));
+
+const list = await json(`/api/tenants/${tenantId}/members?limit=100`, { headers: auth });
+const ada = list.body.members.find((m) => m.email === "ada@example.test");
+const adaFull = await json(`/api/tenants/${tenantId}/members/${ada.id}`, { headers: auth });
+const adaCustom = JSON.parse(adaFull.body.custom_fields_json || "{}");
+check("custom value stored", adaCustom.committee === "Raffle", JSON.stringify(adaCustom));
+check("second custom value stored", adaCustom.machine_type === "Bernina 770");
+
+// Re-running the same file must converge, not duplicate.
+const run2 = await json(`/api/tenants/${tenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ header, raw_rows: rawRows, mapping }),
+});
+check("re-run creates nothing", run2.body.created === 0, `got ${run2.body.created}`);
+check("re-run updates the same 5", run2.body.updated === 5, `got ${run2.body.updated}`);
+const list2 = await json(`/api/tenants/${tenantId}/members?limit=100`, { headers: auth });
+check("no duplicate members", list2.body.total === list.body.total,
+  `${list.body.total} -> ${list2.body.total}`);
+
+// A hand-entered value must survive a re-import that omits its column.
+await json(`/api/tenants/${tenantId}/members/${ada.id}`, {
+  method: "PATCH", headers: auth,
+  body: JSON.stringify({ custom_fields: { hand_entered: "keep me" } }),
+});
+const narrow = { ...mapping };
+for (const [k, v] of Object.entries(narrow)) {
+  if (v.kind === "custom" && v.key !== "committee") narrow[k] = { kind: "ignore" };
+}
+await json(`/api/tenants/${tenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ header, raw_rows: rawRows, mapping: narrow }),
+});
+const adaAfter = await json(`/api/tenants/${tenantId}/members/${ada.id}`, { headers: auth });
+const adaCustom2 = JSON.parse(adaAfter.body.custom_fields_json || "{}");
+check("hand-entered custom field survives re-import", adaCustom2.hand_entered === "keep me",
+  JSON.stringify(adaCustom2));
+check("existing definitions not removed",
+  JSON.parse((await json(`/api/tenants/${tenantId}`, { headers: auth })).body.settings_json || "{}")
+    .custom_fields.length >= 3);
+
 console.log(failures ? `\n${failures} failure(s)` : "\nall layers passed");
 if (failures) process.exit(1);
