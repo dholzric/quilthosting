@@ -85,16 +85,31 @@ function verify(rawBody, headers, secret) {
 
 ## Delivery semantics
 
+> **Accuracy note (2026-08-10).** An earlier version of this page claimed the
+> outbox row is written "inside the database transaction" and that retries are
+> spread over roughly 12 hours. Neither was true of the code. Both claims are
+> corrected below, and the underlying work is tracked as P0 remediation. This
+> section now describes what the code actually does today.
+
 - **At-least-once.** A retry can redeliver an event you already processed.
   **Dedupe on the envelope `id`.**
-- Events are written to a durable outbox inside the database transaction, then
-  dispatched off the request path via Cloudflare Queues. An event is not lost
-  if the Worker is cancelled mid-request.
-- **Retries:** up to 6 attempts with exponential backoff plus jitter —
-  roughly 1 min, 5 min, 25 min, 2 h, 10 h. After that the event is marked
-  `dead` and stops retrying.
+- **Delivery is best-effort, not transactional.** The outbox row is written
+  *after* the domain mutation commits, as a separate statement, and a failure
+  to write it is logged rather than raised. If the Worker stops between the two
+  writes, the member/payment/registration exists and the event does not. Making
+  the outbox insert part of the same batch as the mutation is outstanding work.
+- **Retries are fast, not spread out.** The queue redelivers immediately on
+  failure — up to 5 queue attempts, after which the message goes to the
+  dead-letter queue. The row also carries a `next_attempt_at` computed with
+  exponential backoff, but only the one-minute cron sweeper honours it; the
+  queue path does not. In practice a persistently failing endpoint exhausts its
+  6 recorded attempts within seconds and the event is marked `dead`.
 - **A 2xx response means delivered.** Anything else, or a connection failure,
   counts as a failed attempt.
+- **Fan-out is all-or-nothing per attempt.** Delivery state is stored on the
+  event, not per endpoint. If you have two endpoints subscribed and one fails,
+  the retry re-sends to *both* — the healthy one will see duplicates. Dedupe on
+  the envelope `id`.
 - **Auto-disable:** an endpoint with 20 consecutive failures is switched off so
   one dead Zap does not consume your delivery budget. Admin → Zapier shows an
   "auto-disabled" badge with a **Re-enable** button.
