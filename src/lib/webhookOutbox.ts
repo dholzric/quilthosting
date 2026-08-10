@@ -244,13 +244,22 @@ type OutboxRow = {
 const LEASE_SECONDS = 120;
 
 /**
- * Atomically move a row from pending to delivering. Returns false when
- * another worker already owns it, or when its backoff has not elapsed.
+ * Atomically move a row from pending (or a 'delivering' row whose lease has
+ * expired) to delivering. Returns the lease_until value it just set on
+ * success, or null when another worker already owns it, or its backoff has
+ * not elapsed.
  *
  * The WHERE clause is the entire concurrency control: D1 applies it
  * atomically, and meta.changes tells us whether we won.
+ *
+ * lease_until IS NULL OR lease_until <= ? is checked for BOTH statuses, not
+ * just 'delivering'. The admin replay endpoint (outboundWebhooks.ts) resets
+ * a row to 'pending' by id without touching lease_until, so a row currently
+ * being delivered can be replayed mid-flight; without this guard a pending
+ * row with a still-live lease would be claimable immediately, handing a
+ * second worker the same in-flight event.
  */
-export async function claimOutboxRow(env: Env, outboxId: string): Promise<boolean> {
+export async function claimOutboxRow(env: Env, outboxId: string): Promise<string | null> {
   const now = new Date();
   const nowIso = now.toISOString();
   const leaseUntil = new Date(now.getTime() + LEASE_SECONDS * 1000).toISOString();
@@ -258,10 +267,38 @@ export async function claimOutboxRow(env: Env, outboxId: string): Promise<boolea
     `UPDATE webhook_outbox
         SET status = 'delivering', claimed_at = ?, lease_until = ?, updated_at = ?
       WHERE id = ?
-        AND (status = 'pending' OR (status = 'delivering' AND lease_until <= ?))
+        AND status IN ('pending', 'delivering')
+        AND (lease_until IS NULL OR lease_until <= ?)
         AND (next_attempt_at IS NULL OR next_attempt_at <= ?)`
   ).bind(nowIso, leaseUntil, nowIso, outboxId, nowIso, nowIso).run();
-  return (res.meta?.changes ?? 0) === 1;
+  return (res.meta?.changes ?? 0) === 1 ? leaseUntil : null;
+}
+
+/**
+ * Fence a completion write with the lease claimOutboxRow handed us, so a
+ * worker whose lease expired mid-delivery (a hanging endpoint past
+ * LEASE_SECONDS) cannot clobber a newer claim's state after the sweeper has
+ * already reclaimed the row. meta.changes === 0 means we lost the lease;
+ * the caller must drop the write rather than force it through.
+ */
+async function fencedComplete(
+  env: Env,
+  outboxId: string,
+  lease: string,
+  sql: string,
+  args: unknown[]
+): Promise<boolean> {
+  const res = await env.DB.prepare(
+    `${sql} WHERE id = ? AND status = 'delivering' AND lease_until = ?`
+  ).bind(...args, outboxId, lease).run();
+  const won = (res.meta?.changes ?? 0) === 1;
+  if (!won) {
+    console.warn(
+      "outbox: lost lease mid-delivery, dropping stale completion write",
+      outboxId
+    );
+  }
+  return won;
 }
 
 /** Deliver one outbox row to every subscribed endpoint. Throws to signal retry. */
@@ -269,7 +306,8 @@ export async function dispatchOutboxRow(
   env: Env,
   outboxId: string
 ): Promise<void> {
-  if (!(await claimOutboxRow(env, outboxId))) {
+  const lease = await claimOutboxRow(env, outboxId);
+  if (!lease) {
     // Someone else owns it, or its backoff has not elapsed. Not an error.
     return;
   }
@@ -294,11 +332,13 @@ export async function dispatchOutboxRow(
   const now = new Date().toISOString();
 
   if (!targets.length) {
-    await env.DB.prepare(
-      `UPDATE webhook_outbox SET status = 'delivered', updated_at = ? WHERE id = ?`
-    )
-      .bind(now, outboxId)
-      .run();
+    await fencedComplete(
+      env,
+      outboxId,
+      lease,
+      `UPDATE webhook_outbox SET status = 'delivered', updated_at = ?`,
+      [now]
+    );
     return;
   }
 
@@ -397,32 +437,43 @@ export async function dispatchOutboxRow(
 
   const attempts = row.attempts + 1;
   if (!anyFailed) {
-    await env.DB.prepare(
-      `UPDATE webhook_outbox SET status = 'delivered', attempts = ?, updated_at = ?
-       WHERE id = ?`
-    )
-      .bind(attempts, now, outboxId)
-      .run();
+    await fencedComplete(
+      env,
+      outboxId,
+      lease,
+      `UPDATE webhook_outbox SET status = 'delivered', attempts = ?, updated_at = ?`,
+      [attempts, now]
+    );
     return;
   }
 
   if (attempts >= MAX_ATTEMPTS) {
-    await env.DB.prepare(
+    await fencedComplete(
+      env,
+      outboxId,
+      lease,
       `UPDATE webhook_outbox SET status = 'dead', attempts = ?, last_status = ?,
-       last_error = ?, updated_at = ? WHERE id = ?`
-    )
-      .bind(attempts, lastStatus, lastError, now, outboxId)
-      .run();
+       last_error = ?, updated_at = ?`,
+      [attempts, lastStatus, lastError, now]
+    );
     return;
   }
 
   const nextAt = new Date(Date.now() + backoffFor(attempts) * 1000).toISOString();
-  await env.DB.prepare(
+  const won = await fencedComplete(
+    env,
+    outboxId,
+    lease,
     `UPDATE webhook_outbox SET status = 'pending', attempts = ?, next_attempt_at = ?,
-     last_status = ?, last_error = ?, updated_at = ? WHERE id = ?`
-  )
-    .bind(attempts, nextAt, lastStatus, lastError, now, outboxId)
-    .run();
+     last_status = ?, last_error = ?, updated_at = ?`,
+    [attempts, nextAt, lastStatus, lastError, now]
+  );
+  if (!won) {
+    // Lease lost mid-delivery: the sweeper (or another worker) already owns
+    // this row's next attempt. Do not throw -- that would tell the queue to
+    // redeliver a message whose outcome we can no longer safely record.
+    return;
+  }
   // Signals the queue to redeliver; after max_retries the message lands in the DLQ.
   throw new Error(`webhook delivery failed, attempt ${attempts}`);
 }

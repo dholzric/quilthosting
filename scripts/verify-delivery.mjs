@@ -4,6 +4,7 @@
  */
 import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
+import { createServer } from "node:http";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -20,6 +21,35 @@ async function json(path, opts = {}) {
   const t = await res.text();
   try { return { status: res.status, body: JSON.parse(t) }; }
   catch { return { status: res.status, body: { raw: t.slice(0, 200) } }; }
+}
+
+// Read-only D1 inspection, used to assert on observable state (status,
+// lease_until, claimed_at, attempts, delivery counts) produced by the real
+// shipped dispatch path — never to re-implement its SQL. Runs against the
+// same local D1 file wrangler dev uses.
+const d1WorkDir = mkdtempSync(join(tmpdir(), "qh-d1-"));
+function runD1(sql) {
+  const file = join(d1WorkDir, `${randomUUID()}.sql`);
+  writeFileSync(file, sql, "utf8");
+  return new Promise((resolve, reject) => {
+    const p = spawn(
+      "npx",
+      ["wrangler", "d1", "execute", "quilthosting-db", "--local", "--json", "--file", file],
+      { shell: true }
+    );
+    let out = "", err = "";
+    p.stdout.on("data", (d) => (out += d));
+    p.stderr.on("data", (d) => (err += d));
+    p.on("close", (code) => {
+      if (code !== 0) return reject(new Error(`wrangler d1 execute failed: ${err || out}`));
+      try { resolve(JSON.parse(out)); }
+      catch (e) { reject(new Error(`could not parse d1 output: ${out}`)); }
+    });
+  });
+}
+async function d1Select(sql) {
+  const result = await runD1(sql);
+  return result.at(-1)?.results ?? [];
 }
 
 // Stable harness account — registering per run exhausts the 10-per-10-min limit.
@@ -65,8 +95,11 @@ check("forced outbox failure leaves NO member behind",
   `${before.body.total} -> ${after.body.total}`);
 
 console.log("--- lease ---");
-// Two concurrent dispatches of the same row: exactly one may win the claim.
-// Driven through the admin replay endpoint, which enqueues a dispatch.
+// NOTE: this block does not prove concurrency safety. With a connection-
+// refused target, replay resets attempts=0 and a single dispatch can add at
+// most 1, so `attempts <= 2` is unfalsifiable regardless of whether the two
+// concurrent replays actually double-dispatched. Kept for basic endpoint
+// sanity; see "--- lease (real dispatch) ---" below for the actual guard.
 const hook = await json(`/api/tenants/${tenantId}/webhooks`, {
   method: "POST", headers: auth,
   body: JSON.stringify({ url: "http://127.0.0.1:8798/never-listens", events: ["*"] }),
@@ -83,105 +116,167 @@ const [a, b] = await Promise.all([
   json(`/api/tenants/${tenantId}/webhooks/outbox/${row.id}/replay`, { method: "POST", headers: auth }),
   json(`/api/tenants/${tenantId}/webhooks/outbox/${row.id}/replay`, { method: "POST", headers: auth }),
 ]);
-check("concurrent replays both answered", a.status === 200 && b.status === 200);
+check("replay endpoint answers concurrent calls", a.status === 200 && b.status === 200);
 await new Promise((r) => setTimeout(r, 4000));
 const ob2 = await json(`/api/tenants/${tenantId}/webhooks/outbox`, { headers: auth });
 const row2 = ob2.body.outbox.find((r) => r.id === row.id);
-check("concurrent dispatch did not double-count attempts",
+check("outbox attempts stays bounded after concurrent replays (not a concurrency guard)",
   row2.attempts <= 2, `attempts=${row2.attempts}`);
+// Firing two concurrent replays against a fast-failing target reliably
+// leaves this row 'pending' with a live (unexpired) lease and
+// next_attempt_at=null: both replay calls clear next_attempt_at, but by the
+// time their queue-triggered dispatches run, claimOutboxRow's lease guard
+// (this fix round's item 1) correctly refuses both, since the original
+// claim's lease has not yet expired. That is correct behaviour, not a bug —
+// but left alone the row would sit "due" and unclaimable for up to
+// LEASE_SECONDS, and pollute later sweep runs in this same long-lived dev
+// database. Clean it up rather than let it accumulate across runs.
+if (row) await runD1(`DELETE FROM webhook_outbox WHERE id = '${row.id}';`);
 
-console.log("--- lease (deterministic) ---");
-// The HTTP-driven check above is timing-dependent: with a connection-refused
-// target the whole dispatch (SELECT + failed fetch + UPDATE) finishes fast
-// enough that two concurrent replay calls rarely straddle the race window,
-// so it passed both before and after claimOutboxRow existed in this run.
-// That is not a reliable regression signal for the thing this task adds:
-// the atomic compare-and-set in claimOutboxRow (src/lib/webhookOutbox.ts).
+console.log("--- lease (real dispatch) ---");
+// Drives the SHIPPED code end to end -- real member.created event, real
+// queue-triggered dispatchOutboxRow/claimOutboxRow, real admin replay HTTP
+// call -- rather than re-typing claimOutboxRow's SQL into the test (fix
+// round 1 flagged that pattern: it proves the mechanism can work, not that
+// this implementation is correct, since it stays green even if the shipped
+// predicate regresses).
 //
-// Instead we exercise that exact SQL directly against the same local D1 file
-// wrangler dev is using, via `wrangler d1 execute --local`, launching two
-// processes concurrently with spawn (not spawnSync) so they truly overlap.
-// SQLite serializes writers, so the outcome is deterministic every run:
-// exactly one UPDATE's WHERE clause matches. This SQL must be kept in sync
-// with claimOutboxRow's WHERE clause if that ever changes.
-const workDir = mkdtempSync(join(tmpdir(), "qh-lease-"));
-function runD1(sql) {
-  const file = join(workDir, `${randomUUID()}.sql`);
-  writeFileSync(file, sql, "utf8");
-  return new Promise((resolve, reject) => {
-    const p = spawn(
-      "npx",
-      ["wrangler", "d1", "execute", "quilthosting-db", "--local", "--json", "--file", file],
-      { shell: true }
-    );
-    let out = "", err = "";
-    p.stdout.on("data", (d) => (out += d));
-    p.stderr.on("data", (d) => (err += d));
-    p.on("close", (code) => {
-      if (code !== 0) return reject(new Error(`wrangler d1 execute failed: ${err || out}`));
-      try { resolve(JSON.parse(out)); }
-      catch (e) { reject(new Error(`could not parse d1 output: ${out}`)); }
-    });
-  });
-}
-// Last statement's row count, via SQLite's changes() bound to the connection
-// that ran the preceding UPDATE.
-const claimedCount = (result) => result.at(-1)?.results?.[0]?.n ?? -1;
+// A slow-but-live sink holds a row in status='delivering' with a real,
+// in-force lease for ~3.5s. Firing the admin replay endpoint into that
+// window is the exact scenario fix round 1 found reachable from the admin
+// UI: replay resets status='pending' without touching lease_until, so if
+// claimOutboxRow's pending branch does not also check lease_until, the
+// replay-triggered redispatch wins the claim while the first delivery is
+// still in flight and BOTH deliver to the slow endpoint. We assert on
+// webhook_deliveries actually written -- that can only be 2 if a double
+// dispatch really happened, so unlike `attempts <= 2` above this is
+// falsifiable in both directions.
+const slowPort = 8797;
+const slow = createServer((req, res) => {
+  setTimeout(() => { res.writeHead(200); res.end("ok"); }, 3500);
+});
+await new Promise((resolve) => slow.listen(slowPort, "127.0.0.1", resolve));
 
-const leaseId = `lease-det-${stamp}`;
+const slowHook = await json(`/api/tenants/${tenantId}/webhooks`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ url: `http://127.0.0.1:${slowPort}/slow`, events: ["*"] }),
+});
+check("slow webhook endpoint created", slowHook.status === 201, `got ${slowHook.status}`);
+
+const obBefore = await json(`/api/tenants/${tenantId}/webhooks/outbox`, { headers: auth });
+const beforeIds = new Set((obBefore.body.outbox || []).map((r) => r.id));
+
+await json(`/api/tenants/${tenantId}/members`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ email: `lease-real-${stamp}@example.test` }),
+});
+
+async function pollOutbox(pred, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const ob = await json(`/api/tenants/${tenantId}/webhooks/outbox`, { headers: auth });
+    const found = (ob.body.outbox || []).find(
+      (r) => !beforeIds.has(r.id) && r.event === "member.created" && pred(r)
+    );
+    if (found) return found;
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  return null;
+}
+
+// Best-effort: catch it mid-delivery so the replay lands squarely inside the
+// live-lease window. If the queue is slower than our poll and we only ever
+// see it 'pending', the assertion below still discriminates correctly (a
+// stale-but-unexpired lease blocks the replay's claim either way under the
+// fix; only the buggy pending-branch-ignores-lease-until predicate lets it
+// through), so we fall back to any new row rather than failing outright.
+const inFlight =
+  (await pollOutbox((r) => r.status === "delivering", 3000)) ||
+  (await pollOutbox(() => true, 2000));
+check("outbox row exists for the real-dispatch lease test", !!inFlight);
+
+if (inFlight) {
+  const replay = await json(
+    `/api/tenants/${tenantId}/webhooks/outbox/${inFlight.id}/replay`,
+    { method: "POST", headers: auth }
+  );
+  check("replay fired into the live-lease window is answered",
+    replay.status === 200, `got ${replay.status}`);
+
+  // Long enough for the original delivery's 3.5s fetch, plus a second one at
+  // full length if the bug let it through, plus overhead.
+  await new Promise((r) => setTimeout(r, 8000));
+
+  const finalRows = await d1Select(
+    `SELECT status, attempts, lease_until, claimed_at FROM webhook_outbox
+     WHERE id = '${inFlight.id}' AND tenant_id = '${tenantId}'`
+  );
+  const finalRow = finalRows[0];
+  check("row is not stuck in 'delivering' after settling",
+    !!finalRow && finalRow.status !== "delivering", `status=${finalRow?.status}`);
+
+  const deliveryRows = await d1Select(
+    `SELECT COUNT(*) as n FROM webhook_deliveries
+     WHERE tenant_id = '${tenantId}' AND endpoint_id = '${slowHook.body.id}' AND event = 'member.created'`
+  );
+  const deliveryCount = Number(deliveryRows[0]?.n);
+  check("slow endpoint received exactly one delivery despite the mid-flight replay",
+    deliveryCount === 1, `deliveries=${deliveryCount}`);
+}
+
+await new Promise((resolve) => slow.close(resolve));
+
+console.log("--- lease (stuck-row reclaim via real sweep) ---");
+// Simulates a Worker that crashed mid-delivery: a row stuck in 'delivering'
+// with an expired lease. The row's initial state is a test fixture (a plain
+// INSERT, not a reimplementation of any claim logic); reclaiming it is done
+// entirely by the real sweepOutbox -> dispatchOutboxRow -> claimOutboxRow
+// path, triggered here via wrangler dev's built-in scheduled-event trigger
+// (unauthenticated by design -- a dev-only wrangler feature, not an app
+// route) rather than by re-typing the CAS SQL into the test.
+const stuckId = `lease-stuck-${stamp}`;
+const stuckClaimedAt = "2020-01-01T00:00:00.000Z";
+const stuckLeaseUntil = new Date(Date.now() - 5000).toISOString();
 await runD1(`
   INSERT INTO webhook_outbox
-    (id, tenant_id, event, schema_version, payload_json, status, attempts, created_at, updated_at)
-  VALUES ('${leaseId}', '${tenantId}', 'member.created', 1, '{}', 'pending', 0,
-          datetime('now'), datetime('now'));
+    (id, tenant_id, event, schema_version, payload_json, status, attempts,
+     claimed_at, lease_until, created_at, updated_at)
+  VALUES ('${stuckId}', '${tenantId}', 'member.created', 1, '{}', 'delivering', 0,
+          '${stuckClaimedAt}', '${stuckLeaseUntil}', datetime('now'), datetime('now'));
 `);
 
-// Mirrors claimOutboxRow's UPDATE exactly (see src/lib/webhookOutbox.ts).
-const claimSql = (nowIso, leaseUntilIso) => `
-  UPDATE webhook_outbox
-     SET status = 'delivering', claimed_at = '${nowIso}', lease_until = '${leaseUntilIso}', updated_at = '${nowIso}'
-   WHERE id = '${leaseId}'
-     AND (status = 'pending' OR (status = 'delivering' AND lease_until <= '${nowIso}'))
-     AND (next_attempt_at IS NULL OR next_attempt_at <= '${nowIso}');
-  SELECT changes() as n;
-`;
+const beforeSweep = await d1Select(
+  `SELECT status, claimed_at FROM webhook_outbox WHERE id = '${stuckId}' AND tenant_id = '${tenantId}'`
+);
+check("stuck row fixture set up as 'delivering' with an expired lease",
+  beforeSweep[0]?.status === "delivering" && beforeSweep[0]?.claimed_at === stuckClaimedAt);
 
-{
-  const now = new Date().toISOString();
-  const leaseUntil = new Date(Date.now() + 120_000).toISOString();
-  const [ra, rb] = await Promise.all([
-    runD1(claimSql(now, leaseUntil)),
-    runD1(claimSql(now, leaseUntil)),
-  ]);
-  const wins = [claimedCount(ra), claimedCount(rb)];
-  check("exactly one of two concurrent claims on a pending row wins",
-    wins.filter((n) => n === 1).length === 1 && wins.filter((n) => n === 0).length === 1,
-    `changes=[${wins.join(",")}]`);
-}
+const sweepTrigger = await fetch(
+  `${BASE}/cdn-cgi/handler/scheduled?cron=${encodeURIComponent("* * * * *")}`
+);
+// Informational, not asserted: wrangler dev's local scheduled-event trigger
+// can report a non-200 here on an unrelated concurrent D1 write (this
+// dev database is shared with many other test runs in the same session),
+// even though ctx.waitUntil(sweepOutbox(...)) still completes. The D1
+// state assertions below are the real pass/fail signal, since they observe
+// what the real sweep actually did to the row, not whether the trigger
+// endpoint's own HTTP response looked clean.
+console.log(`  ..  scheduled sweep trigger responded ${sweepTrigger.status}`);
 
-{
-  // Lease still fresh (in the future): a third claim attempt must NOT win.
-  const now = new Date().toISOString();
-  const rc = await runD1(claimSql(now, new Date(Date.now() + 120_000).toISOString()));
-  check("a live (unexpired) lease blocks another claim", claimedCount(rc) === 0,
-    `changes=${claimedCount(rc)}`);
-}
+await new Promise((r) => setTimeout(r, 6000));
 
-{
-  // Force the row into a stuck state: delivering, lease expired in the past
-  // (simulates a Worker that crashed mid-delivery).
-  const past = new Date(Date.now() - 5000).toISOString();
-  await runD1(`
-    UPDATE webhook_outbox SET status = 'delivering', lease_until = '${past}' WHERE id = '${leaseId}';
-  `);
-  const now = new Date().toISOString();
-  const rd = await runD1(claimSql(now, new Date(Date.now() + 120_000).toISOString()));
-  check("an expired lease on a 'delivering' row is reclaimable", claimedCount(rd) === 1,
-    `changes=${claimedCount(rd)}`);
-}
+const afterSweep = await d1Select(
+  `SELECT status, claimed_at FROM webhook_outbox WHERE id = '${stuckId}' AND tenant_id = '${tenantId}'`
+);
+check("the real sweep reclaimed the stuck row (claimed_at moved off the fixture value)",
+  !!afterSweep[0] && afterSweep[0].claimed_at !== stuckClaimedAt,
+  `claimed_at=${afterSweep[0]?.claimed_at}`);
+check("the reclaimed row is no longer stuck in 'delivering'",
+  !!afterSweep[0] && afterSweep[0].status !== "delivering",
+  `status=${afterSweep[0]?.status}`);
 
-await runD1(`DELETE FROM webhook_outbox WHERE id = '${leaseId}';`);
-rmSync(workDir, { recursive: true, force: true });
+await runD1(`DELETE FROM webhook_outbox WHERE id = '${stuckId}';`);
+rmSync(d1WorkDir, { recursive: true, force: true });
 
 console.log(failures ? `\n${failures} failure(s)` : "\nall delivery checks passed");
 if (failures) process.exit(1);
