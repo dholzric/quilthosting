@@ -130,11 +130,20 @@ async function main() {
   ]);
   const statuses = [r1.status, r2.status].sort();
   // Exactly one may execute. The loser is either replayed (201) or told the
-  // operation is in flight (409) — never a second create, never a 409
-  // duplicate_email surfaced from the database.
+  // operation is in flight (409 idempotency_in_progress) — never a second
+  // create, never a 409 duplicate_email surfaced from the database. Plain
+  // status-code equality is not enough here: duplicate_email is ALSO a 409,
+  // so a loser that ran the handler and hit the database's own uniqueness
+  // guard would slip past a check that only compares status codes -- which
+  // is exactly the failure mode this assertion exists to catch. Require the
+  // 409's code to be idempotency_in_progress specifically.
+  const codesOfConflicts = [r1, r2]
+    .filter((r) => r.status === 409)
+    .map((r) => r.body?.code);
   check(
     "concurrent identical requests never both execute",
-    statuses.every((s) => s === 201 || s === 409),
+    statuses.every((s) => s === 201 || s === 409) &&
+      codesOfConflicts.every((code) => code === "idempotency_in_progress"),
     `got ${JSON.stringify(statuses)} bodies=${JSON.stringify([r1.body, r2.body])}`
   );
   const listed = await json(`/api/v1/members?limit=100`, { headers: writeAuth });

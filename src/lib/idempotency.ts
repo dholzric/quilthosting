@@ -20,7 +20,7 @@ export const RESERVATION_SECONDS = 60;
 export const RETENTION_HOURS = 24;
 
 export type IdempotencyOutcome =
-  | { kind: "execute"; recordId: string }
+  | { kind: "execute"; recordId: string; reservedUntil: string }
   | { kind: "replay"; status: number; json: unknown }
   | { kind: "in_progress" }
   | { kind: "conflict" };
@@ -81,7 +81,7 @@ export async function reserve(
       .bind(recordId, tenantId, operation, key, requestHash,
             reservedUntil, expiresAt, nowIso, nowIso)
       .run();
-    return { kind: "execute", recordId };
+    return { kind: "execute", recordId, reservedUntil };
   } catch (e) {
     // Only a unique-index violation means someone else owns this slot -- read
     // it below. Any other failure (D1 outage, etc.) is a real error and must
@@ -128,30 +128,83 @@ export async function reserve(
     .bind(reservedUntil, nowIso, prior.id, nowIso)
     .run();
   if ((takeover.meta?.changes ?? 0) === 1) {
-    return { kind: "execute", recordId: prior.id };
+    return { kind: "execute", recordId: prior.id, reservedUntil };
   }
   return { kind: "in_progress" };
 }
 
-/** Store the handler's response against a reservation this caller owns. */
+/**
+ * Fence a write against the lease `reserve()` handed the caller, so a caller
+ * whose reservation lapsed mid-handler (past RESERVATION_SECONDS, taken over
+ * by someone else) cannot clobber the new owner's row -- or, for a DELETE,
+ * cannot delete the new owner's live reservation out from under them.
+ * meta.changes === 0 means this caller lost the lease; the caller of this
+ * function must drop the write rather than force it through.
+ */
+async function fencedWrite(
+  env: Env,
+  recordId: string,
+  reservedUntil: string,
+  sql: string,
+  args: unknown[]
+): Promise<boolean> {
+  const res = await env.DB.prepare(
+    `${sql} WHERE id = ? AND status = 'reserved' AND reserved_until = ?`
+  )
+    .bind(...args, recordId, reservedUntil)
+    .run();
+  const won = (res.meta?.changes ?? 0) === 1;
+  if (!won) {
+    console.warn(
+      "idempotency: lost reservation lease mid-flight, not caching response",
+      recordId
+    );
+  }
+  return won;
+}
+
+/**
+ * Store the handler's response against a reservation this caller owns.
+ * Fenced by reservedUntil: if this caller's lease was taken over while the
+ * handler ran, `won` comes back false and nothing is written -- the slot now
+ * belongs to someone else, so the response must not be cached under it.
+ * The handler's response is still returned to this caller either way; the
+ * mutation already happened and undoing it is not an option.
+ */
 export async function complete(
   env: Env,
   recordId: string,
+  reservedUntil: string,
   status: number,
   json: unknown
-): Promise<void> {
-  await env.DB.prepare(
+): Promise<boolean> {
+  return fencedWrite(
+    env,
+    recordId,
+    reservedUntil,
     `UPDATE api_idempotency
-        SET status = 'completed', response_status = ?, response_json = ?, updated_at = ?
-      WHERE id = ?`
-  )
-    .bind(status, JSON.stringify(json), new Date().toISOString(), recordId)
-    .run();
+        SET status = 'completed', response_status = ?, response_json = ?, updated_at = ?`,
+    [status, JSON.stringify(json), new Date().toISOString()]
+  );
 }
 
-/** Drop a reservation whose handler produced an uncacheable result. */
-export async function release(env: Env, recordId: string): Promise<void> {
-  await env.DB.prepare(`DELETE FROM api_idempotency WHERE id = ?`)
-    .bind(recordId)
-    .run();
+/**
+ * Drop a reservation whose handler produced an uncacheable result (5xx, or a
+ * thrown exception). Fenced the same way as complete(): if this caller's
+ * lease already lapsed and was taken over, the DELETE must not fire, or it
+ * would delete the new owner's live reservation and let a third caller race
+ * in concurrently with them.
+ */
+export async function release(
+  env: Env,
+  recordId: string,
+  reservedUntil: string
+): Promise<boolean> {
+  return fencedWrite(
+    env,
+    recordId,
+    reservedUntil,
+    `DELETE FROM api_idempotency`,
+    []
+  );
 }

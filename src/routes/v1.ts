@@ -227,11 +227,26 @@ async function withIdempotency(
     );
   }
 
-  const r = await handler();
+  // A thrown handler must still release the reservation -- otherwise a
+  // caller retrying after a transient error is 409'd as "in progress" for up
+  // to RESERVATION_SECONDS even though nothing is actually running.
+  let r: { status: number; json: unknown };
+  try {
+    r = await handler();
+  } catch (e) {
+    await idem.release(c.env, outcome.recordId, outcome.reservedUntil);
+    throw e;
+  }
   // 5xx is never cached: the caller must be able to retry a transient failure,
-  // and a released reservation lets them win the slot again.
-  if (r.status >= 500) await idem.release(c.env, outcome.recordId);
-  else await idem.complete(c.env, outcome.recordId, r.status, r.json);
+  // and a released reservation lets them win the slot again. Both writes are
+  // fenced by the lease reserve() handed out: if this caller's reservation
+  // was taken over mid-handler (it ran past RESERVATION_SECONDS), the write
+  // is silently dropped rather than clobbering -- or, for release, deleting
+  // -- the new owner's row. The response below is still the real result of
+  // the mutation this caller ran, so it is returned regardless; it is simply
+  // not cached under a slot that no longer belongs to this caller.
+  if (r.status >= 500) await idem.release(c.env, outcome.recordId, outcome.reservedUntil);
+  else await idem.complete(c.env, outcome.recordId, outcome.reservedUntil, r.status, r.json);
   return c.json(r.json, r.status);
 }
 
