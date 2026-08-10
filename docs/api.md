@@ -84,13 +84,70 @@ split a member's history in two.
 
 ### `Idempotency-Key`
 
-Optional but strongly recommended on `POST`. Zapier and Make retry on timeout;
-without a key, a retried create hits the duplicate-email guard, returns `409`,
-and the Zap reports failure for a member that was in fact created.
+Accepted only on `POST /api/v1/members` and `PATCH /api/v1/members/:memberId`.
+`POST /api/v1/hooks` and `DELETE /api/v1/hooks/:hookId` do **not** accept an
+`Idempotency-Key` and are not covered by anything below — a retried
+`POST /hooks` will mint a second hook.
 
-- Same key, same body → replays the original response verbatim.
-- Same key, different body → `422 idempotency_key_reuse`.
-- 5xx responses are never cached, so transient failures stay retryable.
+Optional but strongly recommended on `POST /members`. Zapier and Make retry
+on timeout; without a key, a retried create hits the duplicate-email guard,
+returns `409`, and the Zap reports failure for a member that was in fact
+created.
+
+**Scoping.** The key is scoped to the specific operation, not just to the raw
+key string — `POST /v1/members` and `PATCH /v1/members/:memberId` are tracked
+independently even if you pass the same key value to both. Reusing one id
+across a workflow's steps (Zapier reuses its task id for a create and a later
+update in the same Zap) is safe; the two calls don't collide.
+
+**Behavior.** A reservation row is written *before* the handler runs, so two
+concurrent requests carrying the same key can never both execute the
+mutation — one of them always loses the race and gets an answer below
+instead of running.
+
+- Same key + same request body → the original response is replayed verbatim,
+  for as long as the record is retained (see Retention below).
+- Same key + a different request body → `422` with
+  `{ "code": "idempotency_key_reuse" }`.
+- Same key while the original request is still executing → `409` with
+  `{ "code": "idempotency_in_progress" }` and a `Retry-After` header. **This
+  is the correct, expected answer to a too-fast retry, not a failure** —
+  it means a request with this key genuinely has not finished yet. Wait and
+  retry the same request; don't surface it to an end user as an error.
+- Transient refusals — `402` (`plan_limit`) and any `5xx` — are **not**
+  cached. The reservation is released instead, so the identical request,
+  retried once the underlying condition has changed (the guild upgrades off
+  the free plan, a transient server error clears), gets a real re-run rather
+  than a replayed stale failure.
+
+**Limitations:**
+
+1. **An abandoned reservation isn't taken over immediately.** If a request
+   that claimed a key never finishes (worker crash, hung handler), the key
+   keeps answering `409 idempotency_in_progress` for up to
+   `RESERVATION_SECONDS` — currently **60 seconds** — before another request
+   with the same key is allowed to take the slot over and actually execute.
+   A client that retries faster than that will see `409` for the full window
+   even though nothing is actually still running.
+2. **This protects against concurrent double-execution, not against
+   re-execution after a crash.** The reservation guarantees two *simultaneous*
+   requests with the same key can't both run the handler. It does **not**
+   guarantee exactly-once execution end-to-end: if the Worker process dies
+   after the member row is mutated but before the response is written back to
+   the idempotency record, the reservation simply lapses after
+   `RESERVATION_SECONDS`, and a later retry with the same key re-executes the
+   handler and mutates again. There is no transaction spanning the mutation
+   and the idempotency-record write — only the concurrent case is covered.
+3. **`429 hook_limit` is not reachable through this mechanism today.** Only
+   the two member routes above are wired through the idempotency layer;
+   `POST /v1/hooks` is not, so hitting the hook-count limit never touches
+   idempotency caching at all. Don't read a mention of `429 hook_limit`
+   elsewhere as evidence hook creation is idempotency-wrapped — it isn't.
+4. **Retention is bounded, not indefinite.** A completed record is replayable
+   for `RETENTION_HOURS` — currently **24 hours** — after it's written, and
+   is cleared by a maintenance sweep that runs once a day on the cron. Once a
+   record ages out and is swept, the same key is treated as new and the
+   handler runs again on the next request.
 
 ## Bulk member import (Admin UI, not the v1 API)
 
