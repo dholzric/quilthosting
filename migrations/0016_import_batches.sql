@@ -30,11 +30,15 @@ CREATE TABLE IF NOT EXISTS import_batch_errors (
   batch_id TEXT NOT NULL,
   tenant_id TEXT NOT NULL,
   row_number INTEGER NOT NULL,
-  -- skipped | membership_failed | level_not_found | plan_limited
-  -- (level_not_found and plan_limited added in Task 3 fix round 1: a row
-  -- naming an unmatched level, or one that named a real level but hit the
-  -- free-plan active-member cap, is a real loss and must be itemized here
-  -- too, not just folded into an aggregate counter.)
+  -- skipped | membership_failed | level_not_found | plan_limited |
+  -- unparseable_date | invalid_status
+  -- (level_not_found and plan_limited added in Task 3 fix round 1;
+  -- unparseable_date and invalid_status added in fix round 2, once
+  -- LOSSY_WARNING_CODES in src/routes/members.ts identified them as
+  -- conditions buildWarnings already detected but the real import never
+  -- surfaced. See that set for the authoritative, extensible list of what
+  -- counts as a real loss -- this comment is documentation, not the source
+  -- of truth.)
   kind TEXT NOT NULL,
   reason TEXT NOT NULL,
   email TEXT,

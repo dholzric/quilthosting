@@ -620,6 +620,12 @@ check("clean import reports completed", cleanImport.body.status === "completed",
 check("clean import assigns both memberships, fails none",
   cleanImport.body.memberships_assigned === 2 && cleanImport.body.membership_failures === 0,
   `assigned=${cleanImport.body.memberships_assigned} failed=${cleanImport.body.membership_failures}`);
+// Fix round 2 matters most here: buildWarnings now runs on every real
+// import, and status now depends on whether any of its codes are lossy. If
+// that wiring were backwards (or too eager), EVERY import — even this
+// clean one — would come back partial.
+check("clean import has no warnings at all (regression guard for fix round 2)",
+  (cleanImport.body.warnings || []).length === 0, JSON.stringify(cleanImport.body.warnings));
 
 // A forced membership failure: same shape, different (new) emails so both
 // rows create fresh members, but every membership activation is made to
@@ -822,6 +828,103 @@ check("the crashed batch was closed as 'failed', not left at 'running' forever",
   latestBatch[0]?.status === "failed", JSON.stringify(latestBatch[0]));
 check("the crashed batch has a finished_at timestamp",
   !!latestBatch[0]?.finished_at, JSON.stringify(latestBatch[0]));
+
+console.log("\n--- layer 4e: buildWarnings runs on the real import too, not just the dry-run preview (fix round 2) ---");
+
+// A header rich enough to exercise status, level, and date in one shape,
+// reused across the three scenarios below.
+const richHeader = ["Email", "First Name", "Last Name", "Status", "Level", "Renewal"];
+const richMapping = {
+  0: { kind: "known", target: "email" },
+  1: { kind: "known", target: "first_name" },
+  2: { kind: "known", target: "last_name" },
+  3: { kind: "known", target: "status" },
+  4: { kind: "known", target: "level_name" },
+  5: { kind: "known", target: "end_date" },
+};
+
+// --- unparseable_date -------------------------------------------------
+// A row that names a real level (so a membership IS assigned) but whose
+// renewal date buildWarnings already flags as unparseable. Before fix
+// round 2, activateMembership would silently compute a FABRICATED end date
+// from the level's duration instead, and the response said "completed".
+const badDateRows = [
+  ["baddate1@example.test", "Bad", "Date", "", "Annual Membership", "not a date"],
+];
+const badDateImport = await json(`/api/tenants/${recoTenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ header: richHeader, raw_rows: badDateRows, mapping: richMapping }),
+});
+check("unparseable-date import still creates the member and assigns the membership",
+  badDateImport.body.created === 1 && badDateImport.body.memberships_assigned === 1,
+  JSON.stringify(badDateImport.body));
+check("unparseable-date import reports partial, not completed (THE BUG)",
+  badDateImport.body.status === "partial", `got ${badDateImport.body.status}`);
+check("unparseable-date import records an unparseable_date error naming the row",
+  (badDateImport.body.errors || []).some(
+    (e) => e.kind === "unparseable_date" && e.row_number === 1 &&
+      e.email === "baddate1@example.test"),
+  JSON.stringify(badDateImport.body.errors));
+check("unparseable-date import's warnings include the unparseable_date code",
+  (badDateImport.body.warnings || []).some((w) => w.code === "unparseable_date"),
+  JSON.stringify(badDateImport.body.warnings));
+
+// --- invalid_status -----------------------------------------------------
+// A status the guild's export used that QuiltHosting doesn't recognize,
+// and (deliberately) no level, so the existing-behavior coercion is fully
+// visible: the row imports as status=active directly (not via
+// activateMembership). This is the "consumes a free-plan slot, gets guild
+// email" case from the brief -- we assert the coercion happened (unchanged
+// behavior), not that it stopped happening.
+const suspendedRows = [
+  ["suspended1@example.test", "Sus", "Pended", "Suspended", "", ""],
+];
+const suspendedImport = await json(`/api/tenants/${recoTenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ header: richHeader, raw_rows: suspendedRows, mapping: richMapping }),
+});
+check("invalid-status import still creates the member",
+  suspendedImport.body.created === 1, JSON.stringify(suspendedImport.body));
+check("invalid-status import reports partial, not completed (THE BUG)",
+  suspendedImport.body.status === "partial", `got ${suspendedImport.body.status}`);
+check("invalid-status import records an invalid_status error naming the row",
+  (suspendedImport.body.errors || []).some(
+    (e) => e.kind === "invalid_status" && e.row_number === 1 &&
+      e.email === "suspended1@example.test"),
+  JSON.stringify(suspendedImport.body.errors));
+// The coercion itself (existing behavior, deliberately NOT changed by this
+// fix): "Suspended" is not a recognized status, so the row imports active.
+const suspendedList = await json(
+  `/api/tenants/${recoTenantId}/members?q=suspended1@example.test`, { headers: auth }
+);
+const suspendedMember = (suspendedList.body.members || [])[0];
+check("the coercion is unchanged: the member was imported with status=active despite \"Suspended\"",
+  suspendedMember?.status === "active", JSON.stringify(suspendedMember));
+
+// --- unmapped_column (data-carrying, ignored) ----------------------------
+// A column the admin explicitly left as "Do not import" that actually
+// carries data. Nothing here needs a level, a date, or a status at all --
+// the whole point is that buildWarnings' unmapped_column code, on its own,
+// is now enough to flip status to partial.
+const unmappedHeader = ["Email", "First Name", "Notes"];
+const unmappedMapping = {
+  0: { kind: "known", target: "email" },
+  1: { kind: "known", target: "first_name" },
+  2: { kind: "ignore" },
+};
+const unmappedRows = [["ignoredcol1@example.test", "Ignored", "some data that will be lost"]];
+const unmappedImport = await json(`/api/tenants/${recoTenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ header: unmappedHeader, raw_rows: unmappedRows, mapping: unmappedMapping }),
+});
+check("unmapped-column import still creates the member",
+  unmappedImport.body.created === 1, JSON.stringify(unmappedImport.body));
+check("unmapped-column import reports partial purely from a warning, no counter involved (THE BUG)",
+  unmappedImport.body.status === "partial", `got ${unmappedImport.body.status}`);
+check("unmapped-column import's warnings include unmapped_column for \"Notes\"",
+  (unmappedImport.body.warnings || []).some(
+    (w) => w.code === "unmapped_column" && w.header === "Notes"),
+  JSON.stringify(unmappedImport.body.warnings));
 
 console.log(failures ? `\n${failures} failure(s)` : "\nall layers passed");
 if (failures) process.exit(1);

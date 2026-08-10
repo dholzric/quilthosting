@@ -488,6 +488,30 @@ type ImportWarning = {
   header?: string;
 };
 
+// The single source of truth for "this warning code means a real import
+// loses or silently changes something for at least one row" -- as opposed
+// to a code that is purely informational (there is currently only one such
+// code: plan_limit_will_hold, a dry-run ESTIMATE superseded by the real
+// import's own plan_limited counter and per-row plan_limited error rows).
+//
+// A real import must never report "completed" while any lossy code fired.
+// To add a new lossy condition later: add its buildWarnings() code to this
+// set. Nothing else needs to change -- the real-import status, and the
+// `warnings` field returned to the admin, are both DERIVED from this set,
+// not enumerated separately. (This is the second time a lossy condition
+// buildWarnings already knew about was missing from the real-import status
+// predicate -- level_not_found in fix round 1, unparseable_date and
+// invalid_status in fix round 2. Do not grow a second, hand-maintained list
+// anywhere else; extend this one.)
+const LOSSY_WARNING_CODES = new Set([
+  "level_not_found",       // member imports with no membership at all
+  "unparseable_date",      // membership gets a FABRICATED end date (start + level duration), not the guild's real one
+  "invalid_status",        // Suspended/Archived rows are coerced to active -- consumes a plan slot, gets guild email
+  "unmapped_column",       // an entire column of data is silently discarded
+  "duplicate_target",      // a column's data is silently discarded (the later of two columns claiming one target)
+  "column_count_mismatch", // the row is skipped outright
+]);
+
 /** Aggregate per-row observations into one warning per code+column. */
 function buildWarnings(args: {
   header: string[] | undefined;
@@ -873,7 +897,13 @@ memberRoutes.post("/import", async (c) => {
   // lost — not just how many rows.
   const batchErrors: Array<{
     row_number: number;
-    kind: "skipped" | "membership_failed" | "level_not_found" | "plan_limited";
+    kind:
+      | "skipped"
+      | "membership_failed"
+      | "level_not_found"
+      | "plan_limited"
+      | "unparseable_date"
+      | "invalid_status";
     reason: string;
     email: string | null;
   }> = [];
@@ -935,6 +965,24 @@ memberRoutes.post("/import", async (c) => {
     batchErrors.push({ row_number: rowNumber, kind: "skipped", reason, email });
   }
 
+  // Run the SAME detection buildWarnings uses for the dry-run preview, on
+  // the real import too. This is what actually closes the exhaustiveness
+  // gap: a condition buildWarnings already knows to warn about can no
+  // longer disagree with what the real import reports, because the real
+  // import now asks buildWarnings directly instead of maintaining its own
+  // parallel (and repeatedly incomplete) list of what counts as lossy.
+  // planWillHold is passed as 0 -- it is a dry-run ESTIMATE of how many
+  // active-status rows the free-plan cap will hold back; the real import
+  // below counts plan-limiting exactly, row by row, and reports it via
+  // planLimited + plan_limited error rows instead, so including the
+  // estimate here would just be a second, staler number for the same fact.
+  const warnings = buildWarnings({
+    header: body.header, rawRows: body.raw_rows, mapping, unmapped, duplicates,
+    normalizedRows, levelByName, memberStatuses: MEMBER_STATUSES,
+    columnMismatchRows, planWillHold: 0, duplicateKeys,
+  });
+  const lossyWarningFired = warnings.some((w) => LOSSY_WARNING_CODES.has(w.code));
+
   try {
     for (let rowIndex = 0; rowIndex < normalizedRows.length; rowIndex++) {
       const row = normalizedRows[rowIndex];
@@ -957,9 +1005,23 @@ memberRoutes.post("/import", async (c) => {
       seen.add(email);
       const rowCustom = customFieldsByRow[rowIndex] || {};
       const hasCustom = Object.keys(rowCustom).length > 0;
-      const status = MEMBER_STATUSES.includes((row.status || "").toLowerCase())
-        ? (row.status || "").toLowerCase()
-        : "active";
+      const rawStatus = (row.status || "").toLowerCase();
+      const status = MEMBER_STATUSES.includes(rawStatus) ? rawStatus : "active";
+      if (rawStatus && !MEMBER_STATUSES.includes(rawStatus)) {
+        // Same predicate buildWarnings uses for "invalid_status" below --
+        // a status the guild's export used (Suspended, Archived, ...) that
+        // isn't one QuiltHosting recognizes gets silently coerced to
+        // active, which consumes a free-plan slot and starts sending guild
+        // email. That coercion is unchanged by this fix; what's new is that
+        // it's now visible and downloadable instead of only ever appearing
+        // in the dry-run preview.
+        batchErrors.push({
+          row_number: rowIndex + 1,
+          kind: "invalid_status",
+          reason: `status "${row.status}" is not one of: ${MEMBER_STATUSES.join(", ")}; row was imported as active`,
+          email,
+        });
+      }
 
       const levelName = (row.level_name || row.level || "").trim();
       const level = levelName
@@ -986,6 +1048,21 @@ memberRoutes.post("/import", async (c) => {
       if (endRaw) {
         const d = new Date(endRaw);
         if (!Number.isNaN(d.getTime())) endDate = d.toISOString();
+        else {
+          // Same predicate buildWarnings uses for "unparseable_date" below.
+          // This is not merely a lost date: when `level` is set,
+          // activateMembership computes endDate from start + the level's
+          // duration_months, so the member gets a FABRICATED expiry --
+          // which then drives renewal reminders and lapse on the wrong
+          // schedule. That computed-fallback behavior is unchanged by this
+          // fix; what's new is that it's surfaced instead of silent.
+          batchErrors.push({
+            row_number: rowIndex + 1,
+            kind: "unparseable_date",
+            reason: `renewal/expiry date "${endRaw}" could not be read; the membership end date (if any) was computed from the level's duration instead`,
+            email,
+          });
+        }
       }
 
       // Cap free-plan actives when importing status=active without a level
@@ -998,6 +1075,17 @@ memberRoutes.post("/import", async (c) => {
         if (activeSlotsLeft <= 0) {
           importStatus = "pending";
           planLimited++;
+          // This row named no level (a plain status=active row), but it is
+          // just as much a "held back, needs the guild's attention" row as
+          // the level-naming one below -- and until now only THAT one was
+          // downloadable. Both plan-limited sites push the same error kind
+          // so the guild can find and re-import all of them together.
+          batchErrors.push({
+            row_number: rowIndex + 1,
+            kind: "plan_limited",
+            reason: `held at the free-plan limit (${FREE_ACTIVE_MEMBER_LIMIT} active members) -- imported as pending instead of active`,
+            email,
+          });
         } else {
           const existingId = byEmail.get(email);
           let wasActive = false;
@@ -1174,14 +1262,20 @@ memberRoutes.post("/import", async (c) => {
       }
     }
 
-    // completed only when nothing was lost. Anything skipped, plan-limited,
-    // failed to activate, or naming a level that doesn't exist makes this a
-    // partial import, and the admin must be told.
+    // completed only when nothing was lost. The hand-counted conditions
+    // (skipped, membership failures, plan-limited, level-not-found) are
+    // kept because they carry information the warnings array doesn't
+    // (exact counts, downloadable per-row errors) -- but `lossyWarningFired`
+    // is the actual fix: it derives from LOSSY_WARNING_CODES/buildWarnings,
+    // so any lossy condition buildWarnings knows about (now or added
+    // later) forces partial even if nobody remembered to also hand-count
+    // it here.
     const status =
       skippedRows.length === 0 &&
       membershipFailures === 0 &&
       planLimited === 0 &&
-      levelNotFound === 0
+      levelNotFound === 0 &&
+      !lossyWarningFired
         ? "completed"
         : "partial";
 
@@ -1233,6 +1327,7 @@ memberRoutes.post("/import", async (c) => {
       custom_fields_created: customFieldsCreated,
       skipped_rows: skippedRows,
       errors: batchErrors,
+      warnings,
     });
   } catch (e) {
     // Whatever went wrong (a constraint violation in the member statement
