@@ -100,11 +100,14 @@ deleted, in the correction banner on
   `form.response` write their outbox row in the same `DB.batch()` as the row
   that caused them — either both commit or neither does.
 - **Retries honour a real, recorded backoff.** Each failed attempt draws one
-  jittered delay (1m, 5m, 25m, 2h, up to 10h, bounded exponential) and writes
-  it to the row's `next_attempt_at`. That same delay is handed to the queue as
-  `delaySeconds`, so the queue and the row agree on when the next attempt is
-  due instead of the queue redelivering immediately. Up to 6 attempts, then the
-  event is marked `dead`.
+  jittered delay and writes it to the row's `next_attempt_at`; that same delay
+  is handed to the queue as `delaySeconds`, so the queue and the row agree on
+  when the next attempt is due instead of the queue redelivering immediately.
+  The actual gaps: roughly 2.5–5 min before the 1st retry, 12–25 min before
+  the 2nd, 1–2 h before the 3rd, and 5–10 h before the 4th and 5th — each
+  figure is a range, not a fixed number, because every delay is jittered so a
+  fleet of failed deliveries does not retry in lockstep. Up to 6 attempts
+  total, then the event is marked `dead`.
 - **A leased claim prevents double delivery.** Dispatch (whether triggered by
   the queue or by the one-minute cron sweeper) first takes a time-boxed lease
   on the row with a compare-and-set update; a lease that a worker never
@@ -121,8 +124,9 @@ deleted, in the correction banner on
   envelope `id` regardless.)
 - **Admin and API-key webhook management share one validator.** `https`
   required, hostname deny list, event names checked against the fixed catalog,
-  a per-tenant endpoint limit, and both create and edit (`PATCH`) are
-  validated the same way.
+  and a per-tenant endpoint limit — applied on both surfaces. `/api/v1/hooks`
+  only exposes create/list/delete (no PATCH); on the admin route, edit
+  (`PATCH`) is validated identically to create.
 - **Auto-disable:** an endpoint with 20 consecutive failures is switched off so
   one dead Zap does not consume your delivery budget. Admin → Zapier shows an
   "auto-disabled" badge with a **Re-enable** button.

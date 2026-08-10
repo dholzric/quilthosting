@@ -16,13 +16,29 @@ import {
 } from "./webhookEvents";
 
 const MAX_ATTEMPTS = 6;
-/** 1m, 5m, 25m, 2h, 10h — bounded exponential, jitter applied at use. */
-const BACKOFF_SECONDS = [60, 300, 1500, 7200, 36000];
+/**
+ * Nominal bases for the 1st/2nd/3rd/4th+ retry: 5m, 25m, 2h, 10h. Bounded
+ * exponential, indexed by (attempts - 1) below because every caller passes
+ * `attempts >= 1` (see backoffFor) -- there is no "0th retry", so an index
+ * for attempts=0 would be dead code. A prior revision kept a leading 60s
+ * ("1m") entry here that could never be selected for exactly that reason,
+ * which is how it ended up transcribed into docs as an achievable interval.
+ * Don't re-add a rung unless a real caller can pass the attempts value that
+ * reaches it.
+ *
+ * These are also only the base before full jitter (see backoffFor):  the
+ * actual delay used is uniformly distributed over [base/2, base), so the
+ * real first retry lands at 2.5-5m, not 5m, and so on down the list.
+ */
+const BACKOFF_SECONDS = [300, 1500, 7200, 36000];
 /** Consecutive failures before an endpoint is parked. */
 const AUTO_DISABLE_AFTER = 20;
 
 export function backoffFor(attempts: number): number {
-  const bounded = Math.min(attempts, BACKOFF_SECONDS.length - 1);
+  // attempts is 1-based (the first failed attempt calls this with 1), so the
+  // array above is indexed by attempts - 1. Math.max guards a hypothetical
+  // attempts=0 caller rather than reading BACKOFF_SECONDS[-1] (undefined).
+  const bounded = Math.min(Math.max(attempts - 1, 0), BACKOFF_SECONDS.length - 1);
   const base = BACKOFF_SECONDS[bounded];
   // Full jitter, so a fleet of failed deliveries does not retry in lockstep.
   return Math.floor(base / 2 + Math.random() * (base / 2));
