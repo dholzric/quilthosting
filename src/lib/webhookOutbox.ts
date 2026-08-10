@@ -240,11 +240,39 @@ type OutboxRow = {
   created_at: string;
 };
 
+/** How long a claim is held before another worker may take it over. */
+const LEASE_SECONDS = 120;
+
+/**
+ * Atomically move a row from pending to delivering. Returns false when
+ * another worker already owns it, or when its backoff has not elapsed.
+ *
+ * The WHERE clause is the entire concurrency control: D1 applies it
+ * atomically, and meta.changes tells us whether we won.
+ */
+export async function claimOutboxRow(env: Env, outboxId: string): Promise<boolean> {
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const leaseUntil = new Date(now.getTime() + LEASE_SECONDS * 1000).toISOString();
+  const res = await env.DB.prepare(
+    `UPDATE webhook_outbox
+        SET status = 'delivering', claimed_at = ?, lease_until = ?, updated_at = ?
+      WHERE id = ?
+        AND (status = 'pending' OR (status = 'delivering' AND lease_until <= ?))
+        AND (next_attempt_at IS NULL OR next_attempt_at <= ?)`
+  ).bind(nowIso, leaseUntil, nowIso, outboxId, nowIso, nowIso).run();
+  return (res.meta?.changes ?? 0) === 1;
+}
+
 /** Deliver one outbox row to every subscribed endpoint. Throws to signal retry. */
 export async function dispatchOutboxRow(
   env: Env,
   outboxId: string
 ): Promise<void> {
+  if (!(await claimOutboxRow(env, outboxId))) {
+    // Someone else owns it, or its backoff has not elapsed. Not an error.
+    return;
+  }
   const row = await first<OutboxRow>(
     env.DB.prepare(`SELECT * FROM webhook_outbox WHERE id = ?`).bind(outboxId)
   );
@@ -408,9 +436,10 @@ export async function sweepOutbox(
   const rows = await all<{ id: string }>(
     env.DB.prepare(
       `SELECT id FROM webhook_outbox
-       WHERE status = 'pending' AND (next_attempt_at IS NULL OR next_attempt_at <= ?)
+       WHERE (status = 'pending' OR (status = 'delivering' AND lease_until <= ?))
+         AND (next_attempt_at IS NULL OR next_attempt_at <= ?)
        ORDER BY created_at LIMIT ?`
-    ).bind(now, limit)
+    ).bind(now, now, limit)
   );
   for (const r of rows) {
     try {
