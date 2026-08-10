@@ -862,10 +862,20 @@ memberRoutes.post("/import", async (c) => {
     updated = 0,
     skipped = 0,
     membershipsAssigned = 0,
+    membershipFailures = 0,
     planLimited = 0;
   // Same shape and same reason strings as the dry run — Task 5's error-CSV
   // download depends on this matching.
   const skippedRows: Array<{ row: number; reason: string }> = [];
+  // Row-level errors of every kind, persisted to import_batch_errors below
+  // and returned as `errors` so a partial import names exactly what was
+  // lost — not just how many rows.
+  const batchErrors: Array<{
+    row_number: number;
+    kind: "skipped" | "membership_failed";
+    reason: string;
+    email: string | null;
+  }> = [];
   const stmts: D1PreparedStatement[] = [];
   const seen = new Set<string>();
   // After batch inserts, assign memberships (need member ids)
@@ -874,24 +884,61 @@ memberRoutes.post("/import", async (c) => {
     level: MembershipLevel;
     endDate?: string;
     startDate?: string;
+    rowNumber: number;
+    email: string;
   }> = [];
+
+  // Development-only failure injection so the batch/error reporting can be
+  // proven end to end, following the same pattern as
+  // X-QH-Force-Outbox-Failure above: the env check is evaluated FIRST and
+  // short-circuits before the client-controlled header is even read, so in
+  // production this header does not exist as far as the code is concerned.
+  const forceMembershipFail =
+    c.env.ENVIRONMENT === "development" &&
+    c.req.header("X-QH-Force-Membership-Failure") === "1";
+
+  // Open the batch before any member statement executes — every count below
+  // updates this one record, so even a mid-import crash leaves a 'running'
+  // row rather than nothing at all.
+  const batchId = generateId();
+  await c.env.DB.prepare(
+    `INSERT INTO import_batches
+     (id, tenant_id, status, mapping_json, total_rows, started_at)
+     VALUES (?, ?, 'running', ?, ?, ?)`
+  )
+    .bind(
+      batchId,
+      tenant.id,
+      mapping ? JSON.stringify(mapping) : null,
+      normalizedRows.length,
+      now
+    )
+    .run();
+
+  // Records a skipped row in both places that need it: the legacy
+  // skipped_rows list (Task 5's error-CSV depends on this shape) and the
+  // persisted batch_errors, which is where membership_failed rows also land.
+  function pushSkip(rowNumber: number, reason: string, email: string | null) {
+    skippedRows.push({ row: rowNumber, reason });
+    batchErrors.push({ row_number: rowNumber, kind: "skipped", reason, email });
+  }
 
   for (let rowIndex = 0; rowIndex < normalizedRows.length; rowIndex++) {
     const row = normalizedRows[rowIndex];
     if (columnMismatchRows.includes(rowIndex + 1)) {
       skipped++;
-      skippedRows.push({ row: rowIndex + 1, reason: "column count does not match header" });
+      pushSkip(rowIndex + 1, "column count does not match header", null);
       continue;
     }
     const email = (row.email || "").toLowerCase().trim();
     if (!email || !email.includes("@")) {
       skipped++;
-      skippedRows.push({ row: rowIndex + 1, reason: "missing or invalid email" });
+      pushSkip(rowIndex + 1, "missing or invalid email", email || null);
       continue;
     }
     if (seen.has(email)) {
       skipped++;
-      skippedRows.push({ row: rowIndex + 1, reason: "duplicate email in file" });
+      pushSkip(rowIndex + 1, "duplicate email in file", email);
       continue;
     }
     seen.add(email);
@@ -1022,6 +1069,8 @@ memberRoutes.post("/import", async (c) => {
         level,
         endDate,
         startDate: row.joined_at || undefined,
+        rowNumber: rowIndex + 1,
+        email,
       });
     }
   }
@@ -1032,10 +1081,18 @@ memberRoutes.post("/import", async (c) => {
 
   for (const pm of pendingMemberships) {
     try {
+      // Forced-failure injection (dev only, see forceMembershipFail above):
+      // point activation at a level id that cannot exist so the INSERT trips
+      // the real FOREIGN KEY constraint on memberships.level_id — the same
+      // failure mode a genuine data problem would produce, not a fake
+      // short-circuit that would pass even against the old unguarded code.
+      const level = forceMembershipFail
+        ? { ...pm.level, id: "qh-forced-invalid-level-id" }
+        : pm.level;
       await activateMembership(c.env.DB, {
         tenantId: tenant.id,
         memberId: pm.memberId,
-        level: pm.level,
+        level,
         amountPaidCents: 0,
         now,
         startDate: pm.startDate,
@@ -1044,18 +1101,71 @@ memberRoutes.post("/import", async (c) => {
       });
       membershipsAssigned++;
     } catch (e) {
-      console.warn("import membership assign failed", pm.memberId, e);
+      // Previously this was console.warn only, so a member could be created
+      // without their membership and the import still reported clean success.
+      membershipFailures++;
+      batchErrors.push({
+        row_number: pm.rowNumber,
+        kind: "membership_failed",
+        reason: (e as Error)?.message?.slice(0, 300) || "membership assignment failed",
+        email: pm.email,
+      });
     }
   }
 
+  // completed only when nothing was lost. Anything skipped, plan-limited, or
+  // failed to activate makes this a partial import, and the admin must be told.
+  const status =
+    skippedRows.length === 0 && membershipFailures === 0 && planLimited === 0
+      ? "completed"
+      : "partial";
+
+  const errorStmts: D1PreparedStatement[] = batchErrors.map((be) =>
+    c.env.DB.prepare(
+      `INSERT INTO import_batch_errors
+       (id, batch_id, tenant_id, row_number, kind, reason, email)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).bind(generateId(), batchId, tenant.id, be.row_number, be.kind, be.reason, be.email)
+  );
+  for (let i = 0; i < errorStmts.length; i += 50) {
+    await c.env.DB.batch(errorStmts.slice(i, i + 50));
+  }
+
+  const finishedAt = new Date().toISOString();
+  await c.env.DB.prepare(
+    `UPDATE import_batches SET
+       status = ?, created_count = ?, updated_count = ?, skipped_count = ?,
+       memberships_assigned = ?, membership_failures = ?, plan_limited = ?,
+       custom_fields_created = ?, finished_at = ?
+     WHERE id = ? AND tenant_id = ?`
+  )
+    .bind(
+      status,
+      created,
+      updated,
+      skipped,
+      membershipsAssigned,
+      membershipFailures,
+      planLimited,
+      customFieldsCreated.length,
+      finishedAt,
+      batchId,
+      tenant.id
+    )
+    .run();
+
   return c.json({
     ok: true,
+    batch_id: batchId,
+    status,
     created,
     updated,
     skipped,
     memberships_assigned: membershipsAssigned,
+    membership_failures: membershipFailures,
     plan_limited: planLimited,
     custom_fields_created: customFieldsCreated,
     skipped_rows: skippedRows,
+    errors: batchErrors,
   });
 });

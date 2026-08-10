@@ -286,6 +286,25 @@ check("reports custom fields created",
   (run1.body.custom_fields_created || []).length === 4,
   JSON.stringify(run1.body.custom_fields_created));
 
+// Truthful reconciliation: this run has 3 skipped rows, so it must NOT claim
+// a clean "completed" status even though nothing about the memberships
+// themselves failed. A batch id must be present either way.
+check("import reports a batch id", !!run1.body.batch_id);
+check("import with skipped rows reports partial, not completed",
+  run1.body.status === "partial", `got ${run1.body.status}`);
+// Of the fixture's data rows, 4 name the real "Annual Membership" level and
+// are not otherwise skipped: ada (row 2), grace (row 4), katherine (row 5,
+// bad renewal date but a valid level), mary (row 6, bogus status but a valid
+// level). Dorothy (row 7) names "Nonexistent Level" -- not a match, so no
+// membership is attempted for her. The duplicate ada (row 8) is skipped for
+// being a duplicate before the level is ever consulted, so she isn't counted
+// here either.
+check("every row naming a real level is accounted for (assigned + failed)",
+  (run1.body.memberships_assigned + (run1.body.membership_failures || 0)) === 4,
+  `assigned=${run1.body.memberships_assigned} failed=${run1.body.membership_failures}`);
+check("clean membership assignment: no failures on this run",
+  run1.body.membership_failures === 0, `got ${run1.body.membership_failures}`);
+
 // The real-import path must report the same full skipped list the dry run
 // does — Task 5's error-CSV download is built on skipped_rows.
 check("skipped count is 3 (ragged + duplicate + missing email)",
@@ -520,6 +539,138 @@ check("server-proposed collision against an existing field is rejected on the re
     realExistingCollide.body.error.includes("Bee Group") &&
     realExistingCollide.body.error.includes("Bee-Group"),
   `got ${realExistingCollide.status} ${JSON.stringify(realExistingCollide.body)}`);
+
+console.log("\n--- layer 4: truthful reconciliation (batch status + forced membership failure) ---");
+
+// Dedicated tenant so these two imports are unaffected by anything above
+// (no pre-existing members, no duplicate emails, no ragged rows) — the point
+// is to isolate membership-assignment success/failure from every other
+// reason a row can be skipped.
+const recoTenant = await json("/api/tenants", {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ name: `Reco ${stamp}`, slug: `reco-${stamp}` }),
+});
+const recoTenantId = recoTenant.body.id;
+await json(`/api/tenants/${recoTenantId}/levels`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ name: "Annual Membership", price_cents: 0,
+                         duration_months: 12, renewal_type: "manual" }),
+});
+
+const recoHeader = ["Email", "First Name", "Last Name", "Level"];
+const recoMapping = {
+  0: { kind: "known", target: "email" },
+  1: { kind: "known", target: "first_name" },
+  2: { kind: "known", target: "last_name" },
+  3: { kind: "known", target: "level_name" },
+};
+
+// A clean import: every row is valid, every row names a real level, nothing
+// is skipped and nothing is plan-limited. This is the case the contract
+// promises "completed" for.
+const cleanRows = [
+  ["clean1@example.test", "Clean", "One", "Annual Membership"],
+  ["clean2@example.test", "Clean", "Two", "Annual Membership"],
+];
+const cleanImport = await json(`/api/tenants/${recoTenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ header: recoHeader, raw_rows: cleanRows, mapping: recoMapping }),
+});
+check("clean import succeeds", cleanImport.status === 200,
+  JSON.stringify(cleanImport.body).slice(0, 200));
+check("clean import reports a batch id", !!cleanImport.body.batch_id);
+check("clean import reports completed", cleanImport.body.status === "completed",
+  `got ${cleanImport.body.status}`);
+check("clean import assigns both memberships, fails none",
+  cleanImport.body.memberships_assigned === 2 && cleanImport.body.membership_failures === 0,
+  `assigned=${cleanImport.body.memberships_assigned} failed=${cleanImport.body.membership_failures}`);
+
+// A forced membership failure: same shape, different (new) emails so both
+// rows create fresh members, but every membership activation is made to
+// fail deterministically via a dev-only header (see src/routes/members.ts,
+// gated on ENVIRONMENT === "development", same pattern as
+// X-QH-Force-Outbox-Failure). The member row must still be created; only the
+// membership assignment fails — and the response must say so.
+const forcedRows = [
+  ["forced1@example.test", "Forced", "One", "Annual Membership"],
+  ["forced2@example.test", "Forced", "Two", "Annual Membership"],
+];
+const forced = await json(`/api/tenants/${recoTenantId}/members/import`, {
+  method: "POST",
+  headers: { ...auth, "X-QH-Force-Membership-Failure": "1" },
+  body: JSON.stringify({ header: recoHeader, raw_rows: forcedRows, mapping: recoMapping }),
+});
+check("forced-failure import succeeds (members are still created)",
+  forced.status === 200, JSON.stringify(forced.body).slice(0, 200));
+check("forced-failure import still creates both members",
+  forced.body.created === 2, `got ${forced.body.created}`);
+check("forced membership failure reports partial", forced.body.status === "partial",
+  `got ${forced.body.status}`);
+check("forced membership failure is counted",
+  forced.body.membership_failures === 2, `got ${forced.body.membership_failures}`);
+check("forced-failure import assigns none",
+  forced.body.memberships_assigned === 0, `got ${forced.body.memberships_assigned}`);
+check("forced membership failure appears in errors",
+  (forced.body.errors || []).some((e) => e.kind === "membership_failed"),
+  JSON.stringify(forced.body.errors));
+check("forced membership failure names the right row",
+  (forced.body.errors || []).some(
+    (e) => e.kind === "membership_failed" && (e.row_number === 1 || e.row === 1)),
+  JSON.stringify(forced.body.errors));
+
+// The production-facing behavior: the header must be inert unless
+// ENVIRONMENT === "development" is true FIRST. Nothing here can prove that
+// against a prod deployment (this harness only ever talks to wrangler dev),
+// but re-running the identical request without the header must go back to
+// reporting a clean success, proving the header — not something incidental
+// about these two rows — is what caused the failure above.
+const forcedOff = await json(`/api/tenants/${recoTenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({
+    header: recoHeader,
+    raw_rows: [["forced3@example.test", "Forced", "Three", "Annual Membership"]],
+    mapping: recoMapping,
+  }),
+});
+check("without the header, membership assignment succeeds normally",
+  forcedOff.body.status === "completed" && forcedOff.body.membership_failures === 0,
+  JSON.stringify(forcedOff.body));
+
+// Persistence: the batch and its errors must be real rows in D1, not just
+// fields synthesized into the HTTP response.
+function d1(sql) {
+  // spawnSync with an args array + shell:true does not reliably preserve a
+  // single quoted argument containing spaces across cmd.exe vs sh — build
+  // the full command line ourselves and let the shell parse the quoting.
+  const cmd =
+    `npx wrangler d1 execute quilthosting-db --local --json --command "${sql.replace(/"/g, '\\"')}"`;
+  const r = spawnSync(cmd, { cwd: ROOT, encoding: "utf8", shell: true });
+  if (r.status !== 0) throw new Error(`d1 query failed: ${r.stderr || r.stdout}`);
+  const parsed = JSON.parse(r.stdout);
+  return parsed[0]?.results || [];
+}
+
+const persistedBatch = d1(
+  `SELECT * FROM import_batches WHERE id = '${forced.body.batch_id}'`
+);
+check("forced-failure batch row is persisted", persistedBatch.length === 1,
+  JSON.stringify(persistedBatch));
+check("persisted batch row has status partial",
+  persistedBatch[0]?.status === "partial", JSON.stringify(persistedBatch[0]));
+check("persisted batch row has membership_failures = 2",
+  persistedBatch[0]?.membership_failures === 2, JSON.stringify(persistedBatch[0]));
+check("persisted batch row is scoped to the right tenant",
+  persistedBatch[0]?.tenant_id === recoTenantId, JSON.stringify(persistedBatch[0]));
+
+const persistedErrors = d1(
+  `SELECT * FROM import_batch_errors WHERE batch_id = '${forced.body.batch_id}'`
+);
+check("forced-failure error rows are persisted (2 memberships failed)",
+  persistedErrors.length === 2, JSON.stringify(persistedErrors));
+check("persisted error rows are kind membership_failed",
+  persistedErrors.every((e) => e.kind === "membership_failed"), JSON.stringify(persistedErrors));
+check("persisted error rows are scoped to the right tenant",
+  persistedErrors.every((e) => e.tenant_id === recoTenantId), JSON.stringify(persistedErrors));
 
 console.log(failures ? `\n${failures} failure(s)` : "\nall layers passed");
 if (failures) process.exit(1);
