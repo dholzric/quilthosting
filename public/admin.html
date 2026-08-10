@@ -1027,76 +1027,141 @@
       if (row.some((c) => c !== "")) rows.push(row);
       return rows;
     }
+    let _importState = null; // { header, rawRows, mapping, preview }
+
     async function importMembers(input) {
       const out = document.getElementById("import-result");
-      const f = input.files && input.files[0];
-      if (!f) return;
-      out.textContent = "Reading…";
-      const text = await f.text();
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const text = await file.text();
       const rows = parseCsv(text);
       if (rows.length < 2) { out.textContent = "No data rows found."; return; }
-      // Header-driven mapping: works with Wild Apricot exports (case-insensitive,
-      // matches e.g. "E-Mail", "First name", "Phone")
-      const header = rows[0].map((h) => h.toLowerCase().replace(/[^a-z]/g, ""));
-      const col = (names) => header.findIndex((h) => names.includes(h));
-      const iEmail = col(["email", "emailaddress", "mail"]);
-      const iFirst = col(["firstname", "first"]);
-      const iLast = col(["lastname", "last", "surname"]);
-      const iPhone = col(["phone", "phonenumber", "mobile", "cellphone"]);
-      const iStatus = col(["status", "membershipstatus"]);
-      const iNotes = col(["notes", "note", "comments"]);
-      const iLevel = col(["level", "levelname", "membershiplevel", "membershiptype", "membershiplabel"]);
-      const iEnd = col(["enddate", "expiry", "expiration", "expirationdate", "renewaldate", "membershipexpires"]);
-      const iJoined = col(["joined", "joinedat", "joindate", "membersince"]);
-      if (iEmail === -1) { out.textContent = "Could not find an email column."; return; }
-      const payload = rows.slice(1).map((r) => ({
-        email: r[iEmail] || "",
-        first_name: iFirst !== -1 ? r[iFirst] : undefined,
-        last_name: iLast !== -1 ? r[iLast] : undefined,
-        phone: iPhone !== -1 ? r[iPhone] : undefined,
-        status: iStatus !== -1 ? (r[iStatus] || "").toLowerCase() : undefined,
-        notes: iNotes !== -1 ? r[iNotes] : undefined,
-        level_name: iLevel !== -1 ? r[iLevel] : undefined,
-        end_date: iEnd !== -1 ? r[iEnd] : undefined,
-        joined_at: iJoined !== -1 ? r[iJoined] : undefined,
-      }));
-      out.textContent = `Checking ${payload.length} rows…`;
+      _importState = { header: rows[0], rawRows: rows.slice(1), mapping: null };
+      out.textContent = `Checking ${_importState.rawRows.length} rows…`;
+      await refreshImportPreview();
+      input.value = "";
+    }
+
+    async function refreshImportPreview() {
+      const s = _importState;
+      const body = { header: s.header, raw_rows: s.rawRows, dry_run: true };
+      if (s.mapping) body.mapping = s.mapping;
       try {
-        // Preview first — nothing is written until the admin confirms
-        const pv = await api(`/api/tenants/${tenantId}/members/import`, {
-          method: "POST",
-          body: JSON.stringify({ rows: payload, dry_run: true }),
+        s.preview = await api(`/api/tenants/${tenantId}/members/import`, {
+          method: "POST", body: JSON.stringify(body),
         });
-        const skippedNote = pv.skipped.length
-          ? "First skipped: " +
-            pv.skipped.slice(0, 3).map((x) => "row " + x.row + " (" + x.reason + ")").join(", ") +
-            "\n\n"
-          : "";
-        const summary =
-          "Import preview:\n\n" +
-          "  " + pv.will_create + " new members\n" +
-          "  " + pv.will_update + " existing members updated\n" +
-          "  " + pv.will_skip + " rows skipped\n\n" +
-          skippedNote +
-          "Import now?";
-        if (!confirm(summary)) {
-          out.textContent = "Import cancelled — nothing was changed.";
-          input.value = "";
-          return;
+        s.mapping = s.preview.mapping;
+        renderImportPreview();
+      } catch (e) {
+        document.getElementById("import-result").textContent = e.message;
+      }
+    }
+
+    function renderImportPreview() {
+      const s = _importState, p = s.preview;
+      const targets = ["email","first_name","last_name","phone","status","notes","level_name","end_date","joined_at"];
+      const sampleFor = (i) => {
+        const r = s.rawRows.find((row) => (row[i] || "").trim() !== "");
+        return r ? r[i] : "";
+      };
+      const optionsFor = (i) => {
+        const e = s.mapping[i] || { kind: "ignore" };
+        const opts = [`<option value="ignore"${e.kind==="ignore"?" selected":""}>— Do not import —</option>`];
+        for (const t of targets) {
+          const sel = e.kind === "known" && e.target === t ? " selected" : "";
+          opts.push(`<option value="known:${t}"${sel}>${t.replace(/_/g," ")}</option>`);
         }
-        out.textContent = `Importing ${payload.length} rows…`;
+        const sel = e.kind === "custom" ? " selected" : "";
+        opts.push(`<option value="custom"${sel}>Import as custom field</option>`);
+        return opts.join("");
+      };
+      const warnRow = (w) =>
+        `<li><strong>${esc(w.message)}</strong> — ${w.count} row(s)${
+          w.sample_rows.length ? ` (e.g. row ${w.sample_rows.join(", ")})` : ""}</li>`;
+
+      document.getElementById("import-result").innerHTML = `
+        <div class="card" style="margin-top:1rem">
+          <h3>Check the columns</h3>
+          <p class="muted" style="font-size:0.9rem">Nothing is saved until you press Import.</p>
+          <table><thead><tr><th>Column in your file</th><th>Example</th><th>Import as</th></tr></thead>
+          <tbody>${s.header.map((h, i) => `
+            <tr>
+              <td><code>${esc(h)}</code></td>
+              <td class="muted" style="font-size:0.85rem">${esc(sampleFor(i)).slice(0,40)}</td>
+              <td><select onchange="setImportTarget(${i}, this.value)">${optionsFor(i)}</select></td>
+            </tr>`).join("")}</tbody></table>
+        </div>
+        <div class="card">
+          <h3>What will happen</h3>
+          <ul style="line-height:1.8">
+            <li><strong>${p.will_create}</strong> new members</li>
+            <li><strong>${p.will_update}</strong> existing members updated</li>
+            <li><strong>${p.will_skip}</strong> rows skipped</li>
+          </ul>
+          ${p.warnings.length ? `<h4>Worth checking</h4><ul style="line-height:1.7">${p.warnings.map(warnRow).join("")}</ul>` : ""}
+          <button onclick="runImport()">Import ${p.will_create + p.will_update} members</button>
+          <button class="secondary" onclick="cancelImport()">Cancel</button>
+        </div>`;
+    }
+
+    function setImportTarget(index, value) {
+      const s = _importState;
+      if (value === "ignore") s.mapping[index] = { kind: "ignore" };
+      else if (value === "custom") {
+        const header = s.header[index];
+        const key = header.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+        s.mapping[index] = { kind: "custom", key, label: header };
+      } else {
+        s.mapping[index] = { kind: "known", target: value.slice("known:".length) };
+      }
+      refreshImportPreview(); // counts and warnings must stay truthful
+    }
+
+    function cancelImport() {
+      _importState = null;
+      document.getElementById("import-result").textContent = "Import cancelled — nothing was changed.";
+    }
+
+    async function runImport() {
+      const s = _importState;
+      const out = document.getElementById("import-result");
+      out.textContent = `Importing ${s.rawRows.length} rows…`;
+      try {
         const r = await api(`/api/tenants/${tenantId}/members/import`, {
           method: "POST",
-          body: JSON.stringify({ rows: payload }),
+          body: JSON.stringify({ header: s.header, raw_rows: s.rawRows, mapping: s.mapping }),
         });
+        const cf = (r.custom_fields_created || []).length
+          ? `, ${r.custom_fields_created.length} custom field(s) created` : "";
         const mem = r.memberships_assigned ? `, ${r.memberships_assigned} memberships assigned` : "";
         const lim = r.plan_limited ? `, ${r.plan_limited} held at free-plan limit` : "";
-        out.textContent = `Imported: ${r.created} new, ${r.updated} updated, ${r.skipped} skipped${mem}${lim}.`;
-        setTimeout(() => navigate("members"), 1200);
-      } catch (e) {
-        out.textContent = e.message;
+        out.innerHTML = `<p class="notice ok">Imported: ${r.created} new, ${r.updated} updated, ${r.skipped} skipped${mem}${cf}${lim}.</p>`;
+        if ((r.skipped_rows || []).length) {
+          // Let the guild fix and re-import just the failures rather than
+          // re-running the whole file and guessing what went wrong.
+          out.innerHTML += `<button class="secondary" onclick="downloadImportErrors()">Download ${r.skipped_rows.length} skipped rows</button>`;
+          _importState.skippedRows = r.skipped_rows;
+        } else {
+          _importState = null;
+        }
+        setTimeout(() => navigate("members"), 2500);
+      } catch (e) { out.textContent = e.message; }
+    }
+
+    function downloadImportErrors() {
+      const s = _importState;
+      const cell = (v) => { const t = v == null ? "" : String(v);
+        return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+      const lines = [["row", "reason", ...s.header].map(cell).join(",")];
+      for (const sk of s.skippedRows) {
+        lines.push([sk.row, sk.reason, ...(s.rawRows[sk.row - 1] || [])].map(cell).join(","));
       }
-      input.value = "";
+      const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "import-errors.csv";
+      a.click();
+      URL.revokeObjectURL(a.href);
     }
     function filterMembers() {
       searchMembers();
