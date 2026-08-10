@@ -38,7 +38,7 @@ export const TARGET_SYNONYMS: Record<KnownTarget, string[]> = {
   ],
   end_date: [
     "enddate", "expiry", "expiration", "expirationdate", "renewaldate",
-    "membershipexpires",
+    "renewaldue", "membershipexpires",
   ],
   joined_at: ["joined", "joinedat", "joindate", "membersince"],
 };
