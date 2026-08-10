@@ -868,6 +868,19 @@ check("unparseable-date import records an unparseable_date error naming the row"
 check("unparseable-date import's warnings include the unparseable_date code",
   (badDateImport.body.warnings || []).some((w) => w.code === "unparseable_date"),
   JSON.stringify(badDateImport.body.warnings));
+// Fix round 3, item 3: buildWarnings' strings were written for the dry-run
+// preview ("will be left blank") and are now rendered on a FINISHED
+// import, where the truth (per the round-2 fix's own per-row error
+// message) is that the end date was computed from the level's duration,
+// not left blank. The applied-phase message must say what actually
+// happened, not what the preview predicted.
+const badDateWarning = (badDateImport.body.warnings || []).find((w) => w.code === "unparseable_date");
+check("applied-phase unparseable_date warning does NOT say \"will be left blank\" (THE BUG)",
+  !!badDateWarning && !badDateWarning.message.includes("will be left blank"),
+  JSON.stringify(badDateWarning));
+check("applied-phase unparseable_date warning states what actually happened (computed from the level's duration)",
+  !!badDateWarning && badDateWarning.message.includes("computed from the level's duration"),
+  JSON.stringify(badDateWarning));
 
 // --- invalid_status -----------------------------------------------------
 // A status the guild's export used that QuiltHosting doesn't recognize,
@@ -925,6 +938,71 @@ check("unmapped-column import's warnings include unmapped_column for \"Notes\"",
   (unmappedImport.body.warnings || []).some(
     (w) => w.code === "unmapped_column" && w.header === "Notes"),
   JSON.stringify(unmappedImport.body.warnings));
+
+console.log("\n--- layer 4f: unparseable joined_at is the same class of bug, now closed too (fix round 3, item 1) ---");
+
+// No level on this row, deliberately -- the brief's point is that rows
+// WITHOUT a level got no signal at all (rows WITH a level were partially
+// masked by activateMembership throwing on the same bad string, surfacing
+// as an opaque membership_failed reason instead). Before this fix,
+// row.joined_at was bound straight into members.joined_at with zero
+// validation and nothing about the import said so.
+const joinHeader = ["Email", "First Name", "Last Name", "Member Since"];
+const joinMapping = {
+  0: { kind: "known", target: "email" },
+  1: { kind: "known", target: "first_name" },
+  2: { kind: "known", target: "last_name" },
+  3: { kind: "known", target: "joined_at" },
+};
+const badJoinRows = [
+  ["badjoin1@example.test", "Bad", "Join", "31/12/2019"],
+];
+const badJoinImport = await json(`/api/tenants/${recoTenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ header: joinHeader, raw_rows: badJoinRows, mapping: joinMapping }),
+});
+check("unparseable-joined_at import still creates the member",
+  badJoinImport.body.created === 1, JSON.stringify(badJoinImport.body));
+check("unparseable-joined_at import reports partial, not completed (THE BUG)",
+  badJoinImport.body.status === "partial", `got ${badJoinImport.body.status}`);
+check("unparseable-joined_at import records an unparseable_join_date error naming the row",
+  (badJoinImport.body.errors || []).some(
+    (e) => e.kind === "unparseable_join_date" && e.row_number === 1 &&
+      e.email === "badjoin1@example.test"),
+  JSON.stringify(badJoinImport.body.errors));
+check("unparseable-joined_at import's warnings include the unparseable_join_date code",
+  (badJoinImport.body.warnings || []).some((w) => w.code === "unparseable_join_date"),
+  JSON.stringify(badJoinImport.body.warnings));
+// Existing (unchanged) behavior, documented rather than fixed here: the raw
+// unparseable string really is stored exactly as typed in members.joined_at.
+const badJoinList = await json(
+  `/api/tenants/${recoTenantId}/members?q=badjoin1@example.test`, { headers: auth }
+);
+const badJoinMember = (badJoinList.body.members || [])[0];
+check("the coercion is unchanged: joined_at was stored exactly as typed (\"31/12/2019\"), not validated or blanked",
+  badJoinMember?.joined_at === "31/12/2019", JSON.stringify(badJoinMember));
+
+console.log("\n--- layer 4g: warnings are persisted, not just returned (fix round 3, item 2) ---");
+
+// unmapped_column and duplicate_target derive status='partial' purely from
+// a warning with no accompanying import_batch_errors row -- a stored batch
+// with neither counters nor error rows explaining a 'partial' status would
+// be exactly the "unexplained partial" gap Task 4's history page would hit.
+// This batch (badJoinImport) is a clean case: nothing skipped, no
+// membership failures, no plan-limiting, no level_not_found -- the ONLY
+// reason it's partial is the unparseable_join_date warning, so its
+// warnings_json is the whole explanation for why this batch isn't
+// 'completed'.
+const persistedJoinBatch = d1Query(
+  `SELECT * FROM import_batches WHERE id = '${badJoinImport.body.batch_id}'`
+);
+check("the batch row's warnings_json is persisted (not null/empty)",
+  !!persistedJoinBatch[0]?.warnings_json, JSON.stringify(persistedJoinBatch[0]));
+let persistedJoinWarnings = [];
+try { persistedJoinWarnings = JSON.parse(persistedJoinBatch[0]?.warnings_json || "[]"); } catch {}
+check("the persisted warnings_json round-trips to include unparseable_join_date",
+  persistedJoinWarnings.some((w) => w.code === "unparseable_join_date"),
+  JSON.stringify(persistedJoinWarnings));
 
 console.log(failures ? `\n${failures} failure(s)` : "\nall layers passed");
 if (failures) process.exit(1);

@@ -498,21 +498,36 @@ type ImportWarning = {
 // To add a new lossy condition later: add its buildWarnings() code to this
 // set. Nothing else needs to change -- the real-import status, and the
 // `warnings` field returned to the admin, are both DERIVED from this set,
-// not enumerated separately. (This is the second time a lossy condition
-// buildWarnings already knew about was missing from the real-import status
-// predicate -- level_not_found in fix round 1, unparseable_date and
-// invalid_status in fix round 2. Do not grow a second, hand-maintained list
-// anywhere else; extend this one.)
+// not enumerated separately. (This is the THIRD time a lossy condition
+// buildWarnings already knew about, or should have, was missing from the
+// real-import status predicate -- level_not_found in fix round 1,
+// unparseable_date and invalid_status in fix round 2, unparseable_join_date
+// in fix round 3. Do not grow a second, hand-maintained list anywhere else;
+// extend this one.)
 const LOSSY_WARNING_CODES = new Set([
-  "level_not_found",       // member imports with no membership at all
-  "unparseable_date",      // membership gets a FABRICATED end date (start + level duration), not the guild's real one
-  "invalid_status",        // Suspended/Archived rows are coerced to active -- consumes a plan slot, gets guild email
-  "unmapped_column",       // an entire column of data is silently discarded
-  "duplicate_target",      // a column's data is silently discarded (the later of two columns claiming one target)
-  "column_count_mismatch", // the row is skipped outright
+  "level_not_found",         // member imports with no membership at all
+  "unparseable_date",        // membership gets a FABRICATED end date (start + level duration), not the guild's real one
+  "unparseable_join_date",   // members.joined_at is stored EXACTLY AS TYPED, unvalidated -- unlike end_date there is no fallback for a non-empty bad string
+  "invalid_status",          // Suspended/Archived rows are coerced to active -- consumes a plan slot, gets guild email
+  "unmapped_column",         // an entire column of data is silently discarded
+  "duplicate_target",        // a column's data is silently discarded (the later of two columns claiming one target)
+  "column_count_mismatch",   // the row is skipped outright
 ]);
 
-/** Aggregate per-row observations into one warning per code+column. */
+/**
+ * Aggregate per-row observations into one warning per code+column.
+ *
+ * `phase` controls tense/wording only, never which codes fire or their
+ * count/sample_rows -- "preview" (the dry run, before anything is written)
+ * needs future tense ("will be..."), "applied" (the real import, after
+ * writing) needs to state what ACTUALLY happened, which for some codes
+ * (unparseable_date, unparseable_join_date) is not simply "the opposite
+ * tense of the preview sentence" but a different fact entirely: the preview
+ * can only warn that a date won't parse, but the applied phase must say
+ * what happened AS A RESULT (a computed fallback end date, or a raw
+ * unvalidated string), because the admin is reading this after the import
+ * already ran and needs to know what to go fix.
+ */
 function buildWarnings(args: {
   header: string[] | undefined;
   rawRows: string[][] | undefined;
@@ -525,8 +540,10 @@ function buildWarnings(args: {
   columnMismatchRows: number[];
   planWillHold: number;
   duplicateKeys: Array<{ key: string; headers: string[]; indices: number[] }>;
+  phase: "preview" | "applied";
 }): ImportWarning[] {
   const out: ImportWarning[] = [];
+  const applied = args.phase === "applied";
 
   // Only warn about an ignored column when it actually carries data —
   // an all-empty column in the export is noise, not a loss.
@@ -539,7 +556,9 @@ function buildWarnings(args: {
     out.push({
       code: "unmapped_column",
       header: u.header,
-      message: `"${u.header}" will not be imported`,
+      message: applied
+        ? `"${u.header}" was not imported`
+        : `"${u.header}" will not be imported`,
       count: rowsWithData.length,
       sample_rows: rowsWithData.slice(0, 3),
     });
@@ -549,13 +568,20 @@ function buildWarnings(args: {
     out.push({
       code: "duplicate_target",
       header: d.header,
-      message: `"${d.header}" also matches ${d.target}; the first column wins and this one is ignored`,
+      message: applied
+        ? `"${d.header}" also matched ${d.target}; the first column won and this one was ignored`
+        : `"${d.header}" also matches ${d.target}; the first column wins and this one is ignored`,
       count: 1,
       sample_rows: [],
     });
   }
 
   for (const d of args.duplicateKeys) {
+    // duplicate_custom_key is not in LOSSY_WARNING_CODES and can never
+    // reach the applied phase: the route 400s before writing anything
+    // whenever duplicateKeys is non-empty, so buildWarnings is only ever
+    // called with an empty duplicateKeys on the real-import path. Left
+    // single-message (preview only) rather than adding dead branching.
     out.push({
       code: "duplicate_custom_key",
       message: `"${d.headers.join('" and "')}" would both import into the same custom field. Rename one column, or set one to "Do not import".`,
@@ -565,11 +591,17 @@ function buildWarnings(args: {
   }
 
   const badDates: number[] = [];
+  const badJoinDates: number[] = [];
   const badStatus: number[] = [];
   const badLevel: number[] = [];
   args.normalizedRows.forEach((row, i) => {
     const endRaw = row.end_date || row.expiry || row.renewal_date || row.expiration || "";
     if (endRaw && Number.isNaN(new Date(endRaw).getTime())) badDates.push(i + 1);
+    // Unlike endRaw, joined_at has no "|| fallback" for a non-empty bad
+    // string -- `row.joined_at || now` only substitutes `now` when the
+    // field is EMPTY. An unparseable-but-non-empty joined_at is bound
+    // straight into members.joined_at exactly as typed.
+    if (row.joined_at && Number.isNaN(new Date(row.joined_at).getTime())) badJoinDates.push(i + 1);
     const st = (row.status || "").toLowerCase();
     if (st && !args.memberStatuses.includes(st)) badStatus.push(i + 1);
     const lv = (row.level_name || row.level || "").trim();
@@ -578,22 +610,39 @@ function buildWarnings(args: {
 
   if (badDates.length)
     out.push({ code: "unparseable_date",
-      message: "Some renewal/expiry dates could not be read and will be left blank",
+      message: applied
+        ? "Some renewal/expiry dates could not be read; where a level was assigned, the membership end date was computed from the level's duration instead of the date in the file"
+        : "Some renewal/expiry dates could not be read and will be left blank",
       count: badDates.length, sample_rows: badDates.slice(0, 3) });
+  if (badJoinDates.length)
+    out.push({ code: "unparseable_join_date",
+      message: applied
+        ? "Some \"member since\" dates could not be read; they were stored exactly as typed, without validation"
+        : "Some \"member since\" dates could not be read; they will be stored exactly as typed, without validation",
+      count: badJoinDates.length, sample_rows: badJoinDates.slice(0, 3) });
   if (badStatus.length)
     out.push({ code: "invalid_status",
-      message: `Some statuses are not one of: ${args.memberStatuses.join(", ")}. Those rows import as active.`,
+      message: applied
+        ? `Some statuses are not one of: ${args.memberStatuses.join(", ")}. Those rows were imported as active.`
+        : `Some statuses are not one of: ${args.memberStatuses.join(", ")}. Those rows import as active.`,
       count: badStatus.length, sample_rows: badStatus.slice(0, 3) });
   if (badLevel.length)
     out.push({ code: "level_not_found",
-      message: "Some membership levels do not exist in this guild; those members import without a membership",
+      message: applied
+        ? "Some membership levels do not exist in this guild; those members were imported without a membership"
+        : "Some membership levels do not exist in this guild; those members import without a membership",
       count: badLevel.length, sample_rows: badLevel.slice(0, 3) });
   if (args.columnMismatchRows.length)
     out.push({ code: "column_count_mismatch",
-      message: "Some rows have a different number of columns than the header and will be skipped",
+      message: applied
+        ? "Some rows had a different number of columns than the header and were skipped"
+        : "Some rows have a different number of columns than the header and will be skipped",
       count: args.columnMismatchRows.length,
       sample_rows: args.columnMismatchRows.slice(0, 3) });
   if (args.planWillHold > 0)
+    // plan_limit_will_hold is a dry-run ESTIMATE, superseded on the applied
+    // path by the real plan_limited counter -- the real-import call site
+    // passes planWillHold: 0, so this branch is preview-only in practice.
     out.push({ code: "plan_limit_will_hold",
       message: `Free plan allows ${30} active members; ${args.planWillHold} row(s) will import as pending until you upgrade`,
       count: args.planWillHold, sample_rows: [] });
@@ -826,7 +875,7 @@ memberRoutes.post("/import", async (c) => {
       warnings: buildWarnings({
         header: body.header, rawRows: body.raw_rows, mapping, unmapped, duplicates,
         normalizedRows, levelByName, memberStatuses: MEMBER_STATUSES,
-        columnMismatchRows, planWillHold, duplicateKeys,
+        columnMismatchRows, planWillHold, duplicateKeys, phase: "preview",
       }),
       // Full list, not capped: the error CSV in the UI depends on it.
       skipped,
@@ -903,6 +952,7 @@ memberRoutes.post("/import", async (c) => {
       | "level_not_found"
       | "plan_limited"
       | "unparseable_date"
+      | "unparseable_join_date"
       | "invalid_status";
     reason: string;
     email: string | null;
@@ -979,7 +1029,7 @@ memberRoutes.post("/import", async (c) => {
   const warnings = buildWarnings({
     header: body.header, rawRows: body.raw_rows, mapping, unmapped, duplicates,
     normalizedRows, levelByName, memberStatuses: MEMBER_STATUSES,
-    columnMismatchRows, planWillHold: 0, duplicateKeys,
+    columnMismatchRows, planWillHold: 0, duplicateKeys, phase: "applied",
   });
   const lossyWarningFired = warnings.some((w) => LOSSY_WARNING_CODES.has(w.code));
 
@@ -1019,6 +1069,26 @@ memberRoutes.post("/import", async (c) => {
           row_number: rowIndex + 1,
           kind: "invalid_status",
           reason: `status "${row.status}" is not one of: ${MEMBER_STATUSES.join(", ")}; row was imported as active`,
+          email,
+        });
+      }
+
+      if (row.joined_at && Number.isNaN(new Date(row.joined_at).getTime())) {
+        // Same predicate buildWarnings uses for "unparseable_join_date"
+        // below. Unlike endRaw above, there is no fallback for a non-empty
+        // bad string here: `row.joined_at || now` further down only
+        // substitutes `now` when the field is EMPTY, so this exact string
+        // is bound straight into members.joined_at with zero validation.
+        // That storage behavior is unchanged by this fix -- what's new is
+        // that it's surfaced instead of silent. (It was previously masked
+        // whenever the row also named a level: activateMembership's
+        // `new Date(startDate).toISOString()` throws a RangeError on this
+        // same bad string, surfacing only as an opaque membership_failed
+        // reason; rows with no level got no signal at all.)
+        batchErrors.push({
+          row_number: rowIndex + 1,
+          kind: "unparseable_join_date",
+          reason: `"member since" date "${row.joined_at}" could not be read; it was stored exactly as typed, without validation`,
           email,
         });
       }
@@ -1291,11 +1361,17 @@ memberRoutes.post("/import", async (c) => {
     }
 
     const finishedAt = new Date().toISOString();
+    // Persist the warnings array too -- unmapped_column and duplicate_target
+    // derive status='partial' with no accompanying import_batch_errors row
+    // (they describe a whole column, not one row), so without this a
+    // history page reading import_batches later would show a stored
+    // 'partial' batch with nothing explaining why.
+    const warningsJson = warnings.length ? JSON.stringify(warnings) : null;
     await c.env.DB.prepare(
       `UPDATE import_batches SET
          status = ?, created_count = ?, updated_count = ?, skipped_count = ?,
          memberships_assigned = ?, membership_failures = ?, plan_limited = ?,
-         custom_fields_created = ?, finished_at = ?
+         custom_fields_created = ?, warnings_json = ?, finished_at = ?
        WHERE id = ? AND tenant_id = ?`
     )
       .bind(
@@ -1307,6 +1383,7 @@ memberRoutes.post("/import", async (c) => {
         membershipFailures,
         planLimited,
         customFieldsCreated.length,
+        warningsJson,
         finishedAt,
         batchId,
         tenant.id
@@ -1341,7 +1418,7 @@ memberRoutes.post("/import", async (c) => {
         `UPDATE import_batches SET
            status = 'failed', created_count = ?, updated_count = ?, skipped_count = ?,
            memberships_assigned = ?, membership_failures = ?, plan_limited = ?,
-           custom_fields_created = ?, finished_at = ?
+           custom_fields_created = ?, warnings_json = ?, finished_at = ?
          WHERE id = ? AND tenant_id = ?`
       )
         .bind(
@@ -1352,6 +1429,7 @@ memberRoutes.post("/import", async (c) => {
           membershipFailures,
           planLimited,
           customFieldsCreated.length,
+          warnings.length ? JSON.stringify(warnings) : null,
           new Date().toISOString(),
           batchId,
           tenant.id

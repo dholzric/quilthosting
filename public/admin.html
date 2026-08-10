@@ -1145,11 +1145,12 @@
         // (never even reached), plan_limited rows (held pending, no active
         // slot), level_not_found (named a level that matches nothing
         // active), membership_failures (member created but their
-        // membership was not), and — as of fix round 2 — unparseable_date
-        // and invalid_status, where the member imports fine but with a
-        // fabricated expiry or a silently-coerced status. A batch with any
-        // of these must NOT be presented as a clean success — that is
-        // exactly what let a guild's renewal season find out 240
+        // membership was not), unparseable_date/invalid_status (fix round
+        // 2 — fabricated expiry or a silently-coerced status), and — as of
+        // fix round 3 — unparseable_join_date, where the "member since"
+        // value is stored exactly as typed with zero validation. A batch
+        // with any of these must NOT be presented as a clean success —
+        // that is exactly what let a guild's renewal season find out 240
         // memberships never got assigned.
         const skippedRows = r.skipped_rows || [];
         const errors = r.errors || [];
@@ -1157,6 +1158,7 @@
         const levelNotFoundErrors = errors.filter((e) => e.kind === "level_not_found");
         const planLimitedErrors = errors.filter((e) => e.kind === "plan_limited");
         const dateErrors = errors.filter((e) => e.kind === "unparseable_date");
+        const joinDateErrors = errors.filter((e) => e.kind === "unparseable_join_date");
         const statusErrors = errors.filter((e) => e.kind === "invalid_status");
         const warnings = r.warnings || [];
         const isPartial = r.status === "partial";
@@ -1168,6 +1170,7 @@
           if (membershipErrors.length) lost.push(`${membershipErrors.length} membership(s) failed to assign`);
           if (r.level_not_found) lost.push(`${r.level_not_found} row(s) named a level that wasn't found`);
           if (dateErrors.length) lost.push(`${dateErrors.length} row(s) had an unreadable renewal date`);
+          if (joinDateErrors.length) lost.push(`${joinDateErrors.length} row(s) had an unreadable "member since" date (stored as typed)`);
           if (statusErrors.length) lost.push(`${statusErrors.length} row(s) had a status not recognized (imported as active)`);
           // A <div>, not a <p>: the conditional <ul> below is block content,
           // which a <p> would force-close early (invalid nesting).
@@ -1190,6 +1193,7 @@
           ...levelNotFoundErrors.map((e) => ({ row: e.row_number, reason: e.reason })),
           ...planLimitedErrors.map((e) => ({ row: e.row_number, reason: e.reason })),
           ...dateErrors.map((e) => ({ row: e.row_number, reason: e.reason })),
+          ...joinDateErrors.map((e) => ({ row: e.row_number, reason: e.reason })),
           ...statusErrors.map((e) => ({ row: e.row_number, reason: e.reason })),
         ];
         if (allProblemRows.length) {

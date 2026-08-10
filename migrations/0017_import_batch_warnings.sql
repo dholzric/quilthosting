@@ -1,0 +1,21 @@
+-- Fix round 2 (Task 3) made the real import return the same `warnings`
+-- array the dry-run preview does, and two lossy codes (unmapped_column,
+-- duplicate_target) derive status='partial' purely from a warning having
+-- fired -- there is no accompanying import_batch_errors row, because
+-- neither is a per-row fact (they describe a whole COLUMN, not one row).
+-- Without this column, a batch whose only loss was e.g. an ignored column
+-- carrying data would be stored as a 'partial' batch with nothing in
+-- import_batch_errors explaining why -- exactly the "unexplained partial"
+-- gap Task 4's history page would otherwise hit.
+--
+-- Chosen over encoding column-level warnings as import_batch_errors rows
+-- with a sentinel row_number=0: that would force-fit a whole-file/whole-
+-- column fact into a row-oriented table, lose the structured `count` /
+-- `sample_rows` / `header` fields the client already gets in the HTTP
+-- response (they'd have to be crammed into `reason` as a string or
+-- dropped), and introduce a magic value future readers could misread as a
+-- real row. Storing the full warnings array as JSON mirrors the existing
+-- `mapping_json` column on this same table and preserves the exact shape
+-- Task 4 will already know how to render (it's the same `warnings` array
+-- the admin UI's dry-run preview renderer already consumes).
+ALTER TABLE import_batches ADD COLUMN warnings_json TEXT;

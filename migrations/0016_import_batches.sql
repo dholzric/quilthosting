@@ -31,14 +31,14 @@ CREATE TABLE IF NOT EXISTS import_batch_errors (
   tenant_id TEXT NOT NULL,
   row_number INTEGER NOT NULL,
   -- skipped | membership_failed | level_not_found | plan_limited |
-  -- unparseable_date | invalid_status
+  -- unparseable_date | unparseable_join_date | invalid_status
   -- (level_not_found and plan_limited added in Task 3 fix round 1;
-  -- unparseable_date and invalid_status added in fix round 2, once
-  -- LOSSY_WARNING_CODES in src/routes/members.ts identified them as
-  -- conditions buildWarnings already detected but the real import never
-  -- surfaced. See that set for the authoritative, extensible list of what
-  -- counts as a real loss -- this comment is documentation, not the source
-  -- of truth.)
+  -- unparseable_date and invalid_status added in fix round 2;
+  -- unparseable_join_date added in fix round 3, once the "member since" /
+  -- joined_at column turned out to have the exact same gap as end_date --
+  -- see LOSSY_WARNING_CODES in src/routes/members.ts, the authoritative,
+  -- extensible list of what counts as a real loss. This comment is
+  -- documentation, not the source of truth.)
   kind TEXT NOT NULL,
   reason TEXT NOT NULL,
   email TEXT,
