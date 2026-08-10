@@ -30,7 +30,11 @@ CREATE TABLE IF NOT EXISTS import_batch_errors (
   batch_id TEXT NOT NULL,
   tenant_id TEXT NOT NULL,
   row_number INTEGER NOT NULL,
-  -- skipped | membership_failed
+  -- skipped | membership_failed | level_not_found | plan_limited
+  -- (level_not_found and plan_limited added in Task 3 fix round 1: a row
+  -- naming an unmatched level, or one that named a real level but hit the
+  -- free-plan active-member cap, is a real loss and must be itemized here
+  -- too, not just folded into an aggregate counter.)
   kind TEXT NOT NULL,
   reason TEXT NOT NULL,
   email TEXT,

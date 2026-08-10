@@ -863,6 +863,7 @@ memberRoutes.post("/import", async (c) => {
     skipped = 0,
     membershipsAssigned = 0,
     membershipFailures = 0,
+    levelNotFound = 0,
     planLimited = 0;
   // Same shape and same reason strings as the dry run — Task 5's error-CSV
   // download depends on this matching.
@@ -872,7 +873,7 @@ memberRoutes.post("/import", async (c) => {
   // lost — not just how many rows.
   const batchErrors: Array<{
     row_number: number;
-    kind: "skipped" | "membership_failed";
+    kind: "skipped" | "membership_failed" | "level_not_found" | "plan_limited";
     reason: string;
     email: string | null;
   }> = [];
@@ -896,10 +897,21 @@ memberRoutes.post("/import", async (c) => {
   const forceMembershipFail =
     c.env.ENVIRONMENT === "development" &&
     c.req.header("X-QH-Force-Membership-Failure") === "1";
+  // Same pattern again: proves the whole-batch-open-to-close try/catch
+  // below (which closes the batch as 'failed' on any throw) is actually
+  // exercised, not just present in the source.
+  const forceBatchFail =
+    c.env.ENVIRONMENT === "development" &&
+    c.req.header("X-QH-Force-Import-Batch-Failure") === "1";
 
-  // Open the batch before any member statement executes — every count below
-  // updates this one record, so even a mid-import crash leaves a 'running'
-  // row rather than nothing at all.
+  // Open the batch before any member statement executes. Everything from
+  // here to the closing UPDATE below is wrapped in try/catch: a throw
+  // anywhere in that span (a constraint violation in the member INSERT
+  // batch, a failed row lookup, the error-row insert itself) is caught,
+  // closes this record as status='failed' with whatever counts are known,
+  // and rethrows — so it never sits at 'running' forever with no
+  // reconciliation, which is what would otherwise happen (Task 4's history
+  // page would show it as permanently in-flight).
   const batchId = generateId();
   await c.env.DB.prepare(
     `INSERT INTO import_batches
@@ -923,249 +935,336 @@ memberRoutes.post("/import", async (c) => {
     batchErrors.push({ row_number: rowNumber, kind: "skipped", reason, email });
   }
 
-  for (let rowIndex = 0; rowIndex < normalizedRows.length; rowIndex++) {
-    const row = normalizedRows[rowIndex];
-    if (columnMismatchRows.includes(rowIndex + 1)) {
-      skipped++;
-      pushSkip(rowIndex + 1, "column count does not match header", null);
-      continue;
-    }
-    const email = (row.email || "").toLowerCase().trim();
-    if (!email || !email.includes("@")) {
-      skipped++;
-      pushSkip(rowIndex + 1, "missing or invalid email", email || null);
-      continue;
-    }
-    if (seen.has(email)) {
-      skipped++;
-      pushSkip(rowIndex + 1, "duplicate email in file", email);
-      continue;
-    }
-    seen.add(email);
-    const rowCustom = customFieldsByRow[rowIndex] || {};
-    const hasCustom = Object.keys(rowCustom).length > 0;
-    const status = MEMBER_STATUSES.includes((row.status || "").toLowerCase())
-      ? (row.status || "").toLowerCase()
-      : "active";
-
-    const levelName = (row.level_name || row.level || "").trim();
-    const level = levelName
-      ? levelByName.get(levelName.toLowerCase())
-      : undefined;
-    const endRaw = row.end_date || row.expiry || row.renewal_date || row.expiration || "";
-    let endDate: string | undefined;
-    if (endRaw) {
-      const d = new Date(endRaw);
-      if (!Number.isNaN(d.getTime())) endDate = d.toISOString();
-    }
-
-    // Cap free-plan actives when importing status=active without a level
-    let importStatus = level ? "pending" : status;
-    if (
-      !level &&
-      importStatus === "active" &&
-      activeSlotsLeft != null
-    ) {
-      if (activeSlotsLeft <= 0) {
-        importStatus = "pending";
-        planLimited++;
-      } else {
-        const existingId = byEmail.get(email);
-        let wasActive = false;
-        if (existingId) {
-          const cur = await first<{ status: string }>(
-            c.env.DB.prepare("SELECT status FROM members WHERE id = ?").bind(
-              existingId
-            )
-          );
-          wasActive = cur?.status === "active";
-        }
-        if (!wasActive) activeSlotsLeft--;
+  try {
+    for (let rowIndex = 0; rowIndex < normalizedRows.length; rowIndex++) {
+      const row = normalizedRows[rowIndex];
+      if (columnMismatchRows.includes(rowIndex + 1)) {
+        skipped++;
+        pushSkip(rowIndex + 1, "column count does not match header", null);
+        continue;
       }
-    }
-
-    let memberId = byEmail.get(email);
-    if (memberId) {
-      let mergedCustomJson: string | null = null;
-      if (hasCustom) {
-        const cur = await first<{ custom_fields_json: string | null }>(
-          c.env.DB.prepare(
-            "SELECT custom_fields_json FROM members WHERE id = ? AND tenant_id = ?"
-          ).bind(memberId, tenant.id)
-        );
-        let existingVals: Record<string, string> = {};
-        try { existingVals = JSON.parse(cur?.custom_fields_json || "{}"); } catch {}
-        // Incoming values win; anything the guild typed by hand is preserved.
-        mergedCustomJson = JSON.stringify({ ...existingVals, ...rowCustom });
+      const email = (row.email || "").toLowerCase().trim();
+      if (!email || !email.includes("@")) {
+        skipped++;
+        pushSkip(rowIndex + 1, "missing or invalid email", email || null);
+        continue;
       }
-      stmts.push(
-        c.env.DB.prepare(
-          `UPDATE members SET
-             first_name = coalesce(?, first_name), last_name = coalesce(?, last_name),
-             phone = coalesce(?, phone), notes = coalesce(?, notes),
-             status = coalesce(?, status),
-             custom_fields_json = coalesce(?, custom_fields_json),
-             updated_at = ?
-           WHERE id = ?`
-        ).bind(
-          row.first_name || null,
-          row.last_name || null,
-          row.phone || null,
-          row.notes || null,
-          // Only force status when no level will set active via membership
-          level ? null : importStatus,
-          mergedCustomJson,
-          now,
-          memberId
-        )
-      );
-      updated++;
-    } else {
-      // No per-row member.created here: a 500-row import would write 500 outbox
-      // rows and 500 queue sends inside one invocation. A members.import.completed
-      // summary event is planned (see wildapricot-master-program.md Phase 3).
-      memberId = generateId();
-      byEmail.set(email, memberId);
-      stmts.push(
-        c.env.DB.prepare(
-          `INSERT INTO members (id, tenant_id, email, first_name, last_name, phone, notes, status, custom_fields_json, joined_at, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-        ).bind(
-          memberId,
-          tenant.id,
+      if (seen.has(email)) {
+        skipped++;
+        pushSkip(rowIndex + 1, "duplicate email in file", email);
+        continue;
+      }
+      seen.add(email);
+      const rowCustom = customFieldsByRow[rowIndex] || {};
+      const hasCustom = Object.keys(rowCustom).length > 0;
+      const status = MEMBER_STATUSES.includes((row.status || "").toLowerCase())
+        ? (row.status || "").toLowerCase()
+        : "active";
+
+      const levelName = (row.level_name || row.level || "").trim();
+      const level = levelName
+        ? levelByName.get(levelName.toLowerCase())
+        : undefined;
+      if (levelName && !level) {
+        // The guild named a level -- a typo, trailing punctuation, or one
+        // they've since archived (levelByName only holds status='active'
+        // levels) -- but it matched nothing. The member below is still
+        // created; no membership is ever attempted for this row. Previously
+        // the only signal was a dry-run-only warning, so a real import with
+        // a misspelled Level column produced N members, zero memberships,
+        // and a "completed" response.
+        levelNotFound++;
+        batchErrors.push({
+          row_number: rowIndex + 1,
+          kind: "level_not_found",
+          reason: `level "${levelName}" does not match any active membership level`,
           email,
-          row.first_name || null,
-          row.last_name || null,
-          row.phone || null,
-          row.notes || null,
-          importStatus, // activateMembership flips to active when level set
-          hasCustom ? JSON.stringify(rowCustom) : "{}",
-          row.joined_at || now,
-          now,
-          now
-        )
-      );
-      created++;
-    }
+        });
+      }
+      const endRaw = row.end_date || row.expiry || row.renewal_date || row.expiration || "";
+      let endDate: string | undefined;
+      if (endRaw) {
+        const d = new Date(endRaw);
+        if (!Number.isNaN(d.getTime())) endDate = d.toISOString();
+      }
 
-    if (level && memberId) {
-      if (activeSlotsLeft != null) {
-        // Count only members who aren't already active toward the free limit
-        const alreadyActive = await first<{ status: string }>(
-          c.env.DB.prepare(
-            "SELECT status FROM members WHERE id = ?"
-          ).bind(memberId)
-        );
-        if (alreadyActive?.status !== "active") {
-          if (activeSlotsLeft <= 0) {
-            planLimited++;
-            continue;
+      // Cap free-plan actives when importing status=active without a level
+      let importStatus = level ? "pending" : status;
+      if (
+        !level &&
+        importStatus === "active" &&
+        activeSlotsLeft != null
+      ) {
+        if (activeSlotsLeft <= 0) {
+          importStatus = "pending";
+          planLimited++;
+        } else {
+          const existingId = byEmail.get(email);
+          let wasActive = false;
+          if (existingId) {
+            const cur = await first<{ status: string }>(
+              c.env.DB.prepare("SELECT status FROM members WHERE id = ?").bind(
+                existingId
+              )
+            );
+            wasActive = cur?.status === "active";
           }
-          activeSlotsLeft--;
+          if (!wasActive) activeSlotsLeft--;
         }
       }
-      pendingMemberships.push({
-        memberId,
-        level,
-        endDate,
-        startDate: row.joined_at || undefined,
-        rowNumber: rowIndex + 1,
-        email,
-      });
+
+      let memberId = byEmail.get(email);
+      if (memberId) {
+        let mergedCustomJson: string | null = null;
+        if (hasCustom) {
+          const cur = await first<{ custom_fields_json: string | null }>(
+            c.env.DB.prepare(
+              "SELECT custom_fields_json FROM members WHERE id = ? AND tenant_id = ?"
+            ).bind(memberId, tenant.id)
+          );
+          let existingVals: Record<string, string> = {};
+          try { existingVals = JSON.parse(cur?.custom_fields_json || "{}"); } catch {}
+          // Incoming values win; anything the guild typed by hand is preserved.
+          mergedCustomJson = JSON.stringify({ ...existingVals, ...rowCustom });
+        }
+        stmts.push(
+          c.env.DB.prepare(
+            `UPDATE members SET
+               first_name = coalesce(?, first_name), last_name = coalesce(?, last_name),
+               phone = coalesce(?, phone), notes = coalesce(?, notes),
+               status = coalesce(?, status),
+               custom_fields_json = coalesce(?, custom_fields_json),
+               updated_at = ?
+             WHERE id = ?`
+          ).bind(
+            row.first_name || null,
+            row.last_name || null,
+            row.phone || null,
+            row.notes || null,
+            // Only force status when no level will set active via membership
+            level ? null : importStatus,
+            mergedCustomJson,
+            now,
+            memberId
+          )
+        );
+        updated++;
+      } else {
+        // No per-row member.created here: a 500-row import would write 500 outbox
+        // rows and 500 queue sends inside one invocation. A members.import.completed
+        // summary event is planned (see wildapricot-master-program.md Phase 3).
+        memberId = generateId();
+        byEmail.set(email, memberId);
+        stmts.push(
+          c.env.DB.prepare(
+            `INSERT INTO members (id, tenant_id, email, first_name, last_name, phone, notes, status, custom_fields_json, joined_at, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          ).bind(
+            memberId,
+            tenant.id,
+            email,
+            row.first_name || null,
+            row.last_name || null,
+            row.phone || null,
+            row.notes || null,
+            importStatus, // activateMembership flips to active when level set
+            hasCustom ? JSON.stringify(rowCustom) : "{}",
+            row.joined_at || now,
+            now,
+            now
+          )
+        );
+        created++;
+      }
+
+      if (level && memberId) {
+        if (activeSlotsLeft != null) {
+          // Count only members who aren't already active toward the free limit
+          const alreadyActive = await first<{ status: string }>(
+            c.env.DB.prepare(
+              "SELECT status FROM members WHERE id = ?"
+            ).bind(memberId)
+          );
+          if (alreadyActive?.status !== "active") {
+            if (activeSlotsLeft <= 0) {
+              // Unlike the no-level plan-limited branch above, this row DID
+              // name a real level -- it must be recorded so
+              // memberships_assigned + membership_failures + these
+              // plan-limited rows accounts for every row naming a real
+              // level. Otherwise a free-plan cap silently breaks that
+              // invariant with no per-row record of who was held back.
+              planLimited++;
+              batchErrors.push({
+                row_number: rowIndex + 1,
+                kind: "plan_limited",
+                reason: `held at the free-plan limit (${FREE_ACTIVE_MEMBER_LIMIT} active members) -- membership not assigned`,
+                email,
+              });
+              continue;
+            }
+            activeSlotsLeft--;
+          }
+        }
+        pendingMemberships.push({
+          memberId,
+          level,
+          endDate,
+          startDate: row.joined_at || undefined,
+          rowNumber: rowIndex + 1,
+          email,
+        });
+      }
     }
-  }
 
-  for (let i = 0; i < stmts.length; i += 50) {
-    await c.env.DB.batch(stmts.slice(i, i + 50));
-  }
-
-  for (const pm of pendingMemberships) {
-    try {
-      // Forced-failure injection (dev only, see forceMembershipFail above):
-      // point activation at a level id that cannot exist so the INSERT trips
-      // the real FOREIGN KEY constraint on memberships.level_id — the same
-      // failure mode a genuine data problem would produce, not a fake
-      // short-circuit that would pass even against the old unguarded code.
-      const level = forceMembershipFail
-        ? { ...pm.level, id: "qh-forced-invalid-level-id" }
-        : pm.level;
-      await activateMembership(c.env.DB, {
-        tenantId: tenant.id,
-        memberId: pm.memberId,
-        level,
-        amountPaidCents: 0,
-        now,
-        startDate: pm.startDate,
-        endDate: pm.endDate,
-        autoRenew: false,
-      });
-      membershipsAssigned++;
-    } catch (e) {
-      // Previously this was console.warn only, so a member could be created
-      // without their membership and the import still reported clean success.
-      membershipFailures++;
-      batchErrors.push({
-        row_number: pm.rowNumber,
-        kind: "membership_failed",
-        reason: (e as Error)?.message?.slice(0, 300) || "membership assignment failed",
-        email: pm.email,
-      });
+    if (forceBatchFail && stmts.length) {
+      // Binds NULL into the NOT NULL members.tenant_id column, guaranteeing
+      // this D1 batch (atomic — see the outbox-failure comment on the
+      // single-member POST route above) fails to commit, so the crash path
+      // below is exercised for real rather than merely present in the code.
+      stmts.push(
+        c.env.DB.prepare(
+          `INSERT INTO members (id, tenant_id, email, status, joined_at, created_at, updated_at)
+           VALUES (?, NULL, ?, 'active', ?, ?, ?)`
+        ).bind(generateId(), "forced-batch-failure@example.test", now, now, now)
+      );
     }
-  }
 
-  // completed only when nothing was lost. Anything skipped, plan-limited, or
-  // failed to activate makes this a partial import, and the admin must be told.
-  const status =
-    skippedRows.length === 0 && membershipFailures === 0 && planLimited === 0
-      ? "completed"
-      : "partial";
+    for (let i = 0; i < stmts.length; i += 50) {
+      await c.env.DB.batch(stmts.slice(i, i + 50));
+    }
 
-  const errorStmts: D1PreparedStatement[] = batchErrors.map((be) =>
-    c.env.DB.prepare(
-      `INSERT INTO import_batch_errors
-       (id, batch_id, tenant_id, row_number, kind, reason, email)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).bind(generateId(), batchId, tenant.id, be.row_number, be.kind, be.reason, be.email)
-  );
-  for (let i = 0; i < errorStmts.length; i += 50) {
-    await c.env.DB.batch(errorStmts.slice(i, i + 50));
-  }
+    for (const pm of pendingMemberships) {
+      try {
+        // Forced-failure injection (dev only, see forceMembershipFail above):
+        // point activation at a level id that cannot exist so the INSERT trips
+        // the real FOREIGN KEY constraint on memberships.level_id — the same
+        // failure mode a genuine data problem would produce, not a fake
+        // short-circuit that would pass even against the old unguarded code.
+        const level = forceMembershipFail
+          ? { ...pm.level, id: "qh-forced-invalid-level-id" }
+          : pm.level;
+        await activateMembership(c.env.DB, {
+          tenantId: tenant.id,
+          memberId: pm.memberId,
+          level,
+          amountPaidCents: 0,
+          now,
+          startDate: pm.startDate,
+          endDate: pm.endDate,
+          autoRenew: false,
+        });
+        membershipsAssigned++;
+      } catch (e) {
+        // Previously this was console.warn only, so a member could be created
+        // without their membership and the import still reported clean success.
+        // NOTE (known limitation, not fixed here): if pm corresponds to an
+        // EXISTING active member being re-imported, expireActiveMemberships
+        // inside activateMembership already ran and expired their prior
+        // membership before this INSERT failed -- so a re-import that trips
+        // this catch can leave a previously-active member with NO active
+        // membership at all, which is worse than "not assigned". The row
+        // still surfaces here as membership_failed either way.
+        membershipFailures++;
+        batchErrors.push({
+          row_number: pm.rowNumber,
+          kind: "membership_failed",
+          reason: (e as Error)?.message?.slice(0, 300) || "membership assignment failed",
+          email: pm.email,
+        });
+      }
+    }
 
-  const finishedAt = new Date().toISOString();
-  await c.env.DB.prepare(
-    `UPDATE import_batches SET
-       status = ?, created_count = ?, updated_count = ?, skipped_count = ?,
-       memberships_assigned = ?, membership_failures = ?, plan_limited = ?,
-       custom_fields_created = ?, finished_at = ?
-     WHERE id = ? AND tenant_id = ?`
-  )
-    .bind(
+    // completed only when nothing was lost. Anything skipped, plan-limited,
+    // failed to activate, or naming a level that doesn't exist makes this a
+    // partial import, and the admin must be told.
+    const status =
+      skippedRows.length === 0 &&
+      membershipFailures === 0 &&
+      planLimited === 0 &&
+      levelNotFound === 0
+        ? "completed"
+        : "partial";
+
+    const errorStmts: D1PreparedStatement[] = batchErrors.map((be) =>
+      c.env.DB.prepare(
+        `INSERT INTO import_batch_errors
+         (id, batch_id, tenant_id, row_number, kind, reason, email)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
+      ).bind(generateId(), batchId, tenant.id, be.row_number, be.kind, be.reason, be.email)
+    );
+    for (let i = 0; i < errorStmts.length; i += 50) {
+      await c.env.DB.batch(errorStmts.slice(i, i + 50));
+    }
+
+    const finishedAt = new Date().toISOString();
+    await c.env.DB.prepare(
+      `UPDATE import_batches SET
+         status = ?, created_count = ?, updated_count = ?, skipped_count = ?,
+         memberships_assigned = ?, membership_failures = ?, plan_limited = ?,
+         custom_fields_created = ?, finished_at = ?
+       WHERE id = ? AND tenant_id = ?`
+    )
+      .bind(
+        status,
+        created,
+        updated,
+        skipped,
+        membershipsAssigned,
+        membershipFailures,
+        planLimited,
+        customFieldsCreated.length,
+        finishedAt,
+        batchId,
+        tenant.id
+      )
+      .run();
+
+    return c.json({
+      ok: true,
+      batch_id: batchId,
       status,
       created,
       updated,
       skipped,
-      membershipsAssigned,
-      membershipFailures,
-      planLimited,
-      customFieldsCreated.length,
-      finishedAt,
-      batchId,
-      tenant.id
-    )
-    .run();
-
-  return c.json({
-    ok: true,
-    batch_id: batchId,
-    status,
-    created,
-    updated,
-    skipped,
-    memberships_assigned: membershipsAssigned,
-    membership_failures: membershipFailures,
-    plan_limited: planLimited,
-    custom_fields_created: customFieldsCreated,
-    skipped_rows: skippedRows,
-    errors: batchErrors,
-  });
+      memberships_assigned: membershipsAssigned,
+      membership_failures: membershipFailures,
+      level_not_found: levelNotFound,
+      plan_limited: planLimited,
+      custom_fields_created: customFieldsCreated,
+      skipped_rows: skippedRows,
+      errors: batchErrors,
+    });
+  } catch (e) {
+    // Whatever went wrong (a constraint violation in the member statement
+    // batch, a failed lookup, the error-row insert itself), the batch must
+    // not be left at 'running' forever with nothing to reconcile it. Close
+    // it as 'failed' with whatever counts are known, best-effort, then
+    // rethrow so the existing error response (Hono's default 500) is
+    // unchanged.
+    try {
+      await c.env.DB.prepare(
+        `UPDATE import_batches SET
+           status = 'failed', created_count = ?, updated_count = ?, skipped_count = ?,
+           memberships_assigned = ?, membership_failures = ?, plan_limited = ?,
+           custom_fields_created = ?, finished_at = ?
+         WHERE id = ? AND tenant_id = ?`
+      )
+        .bind(
+          created,
+          updated,
+          skipped,
+          membershipsAssigned,
+          membershipFailures,
+          planLimited,
+          customFieldsCreated.length,
+          new Date().toISOString(),
+          batchId,
+          tenant.id
+        )
+        .run();
+    } catch (closeErr) {
+      console.error("import batch: failed to mark batch as failed", batchId, closeErr);
+    }
+    throw e;
+  }
 });

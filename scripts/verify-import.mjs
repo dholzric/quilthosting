@@ -4,10 +4,12 @@
  * Layer 1 (this file, top half) calls the real importMapping module directly.
  * Layer 2 (added in Task 3) drives the HTTP endpoint against wrangler dev.
  */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync, unlinkSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawnSync } from "node:child_process";
+import { tmpdir } from "node:os";
+import { randomUUID } from "node:crypto";
+import { spawnSync, execFileSync } from "node:child_process";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(ROOT, "scripts", ".verify-import-out");
@@ -29,6 +31,40 @@ function check(label, cond, detail = "") {
   if (cond) { console.log(`  ok  ${label}`); return; }
   failures++;
   console.error(`  FAIL ${label} ${detail}`);
+}
+
+// D1 helpers, via a temp .sql file + --file= rather than an inline
+// --command string: an inline string with spaces did not survive
+// spawnSync's args-array + shell:true quoting reliably on this Windows
+// environment. Same pattern as scripts/verify-idempotency.mjs.
+function d1Exec(sql) {
+  const sqlPath = join(tmpdir(), `qh-import-exec-${randomUUID()}.sql`);
+  writeFileSync(sqlPath, sql, "utf8");
+  try {
+    execFileSync(
+      "npx",
+      ["wrangler", "d1", "execute", "quilthosting-db", "--local", `--file=${sqlPath}`],
+      { stdio: "pipe", shell: true }
+    );
+  } finally {
+    unlinkSync(sqlPath);
+  }
+}
+
+function d1Query(sql) {
+  const sqlPath = join(tmpdir(), `qh-import-query-${randomUUID()}.sql`);
+  writeFileSync(sqlPath, sql, "utf8");
+  try {
+    const out = execFileSync(
+      "npx",
+      ["wrangler", "d1", "execute", "quilthosting-db", "--local", `--file=${sqlPath}`, "--json"],
+      { stdio: "pipe", shell: true }
+    ).toString("utf8");
+    const parsed = JSON.parse(out);
+    return parsed[0]?.results ?? [];
+  } finally {
+    unlinkSync(sqlPath);
+  }
 }
 
 const mod = await import(
@@ -613,10 +649,22 @@ check("forced-failure import assigns none",
 check("forced membership failure appears in errors",
   (forced.body.errors || []).some((e) => e.kind === "membership_failed"),
   JSON.stringify(forced.body.errors));
-check("forced membership failure names the right row",
-  (forced.body.errors || []).some(
-    (e) => e.kind === "membership_failed" && (e.row_number === 1 || e.row === 1)),
-  JSON.stringify(forced.body.errors));
+
+// Exact correlation, not a tolerant OR: a 0-based row index ({0,1}) or the
+// wrong field name entirely (e.RowNumber sniffed via `e.row`) would have
+// passed a looser assertion like `e.row_number === 1 || e.row === 1`. Assert
+// the precise {row_number -> email} mapping instead — forced1 is raw_rows[0]
+// (row 1), forced2 is raw_rows[1] (row 2).
+const forcedMembershipErrors = (forced.body.errors || []).filter((e) => e.kind === "membership_failed");
+const forcedRowNumbers = forcedMembershipErrors.map((e) => e.row_number).sort((a, b) => a - b);
+check("forced membership failures name exactly rows 1 and 2 (1-based), no more no less",
+  JSON.stringify(forcedRowNumbers) === JSON.stringify([1, 2]),
+  JSON.stringify(forcedMembershipErrors));
+const byRow = new Map(forcedMembershipErrors.map((e) => [e.row_number, e.email]));
+check("row 1's membership_failed error is attributed to forced1's email",
+  byRow.get(1) === "forced1@example.test", JSON.stringify(forcedMembershipErrors));
+check("row 2's membership_failed error is attributed to forced2's email",
+  byRow.get(2) === "forced2@example.test", JSON.stringify(forcedMembershipErrors));
 
 // The production-facing behavior: the header must be inert unless
 // ENVIRONMENT === "development" is true FIRST. Nothing here can prove that
@@ -636,21 +684,94 @@ check("without the header, membership assignment succeeds normally",
   forcedOff.body.status === "completed" && forcedOff.body.membership_failures === 0,
   JSON.stringify(forcedOff.body));
 
-// Persistence: the batch and its errors must be real rows in D1, not just
-// fields synthesized into the HTTP response.
-function d1(sql) {
-  // spawnSync with an args array + shell:true does not reliably preserve a
-  // single quoted argument containing spaces across cmd.exe vs sh — build
-  // the full command line ourselves and let the shell parse the quoting.
-  const cmd =
-    `npx wrangler d1 execute quilthosting-db --local --json --command "${sql.replace(/"/g, '\\"')}"`;
-  const r = spawnSync(cmd, { cwd: ROOT, encoding: "utf8", shell: true });
-  if (r.status !== 0) throw new Error(`d1 query failed: ${r.stderr || r.stdout}`);
-  const parsed = JSON.parse(r.stdout);
-  return parsed[0]?.results || [];
+console.log("\n--- layer 4b: level_not_found is a real loss, not a silent 'completed' (fix round 1, item 1) ---");
+
+// The original bug, reproduced: a row names a level (a typo here) that
+// matches nothing in levelByName (which only holds status='active' levels).
+// Before fix round 1, no counter moved, nothing landed in skipped_rows or
+// errors, and status came out "completed" even though the member has no
+// membership at all.
+const levelTypoRows = [
+  ["typo1@example.test", "Typo", "One", "Anual Membership"],
+];
+const levelTypo = await json(`/api/tenants/${recoTenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ header: recoHeader, raw_rows: levelTypoRows, mapping: recoMapping }),
+});
+check("level-typo import still creates the member",
+  levelTypo.body.created === 1, `got ${levelTypo.body.created}`);
+check("level-typo import assigns no membership",
+  levelTypo.body.memberships_assigned === 0, `got ${levelTypo.body.memberships_assigned}`);
+check("level-typo import reports partial, not completed (THE BUG)",
+  levelTypo.body.status === "partial", `got ${levelTypo.body.status}`);
+check("level-typo import counts level_not_found in the response",
+  levelTypo.body.level_not_found === 1, `got ${levelTypo.body.level_not_found}`);
+check("level-typo import records a level_not_found error naming the row and the bad level string",
+  (levelTypo.body.errors || []).some(
+    (e) => e.kind === "level_not_found" && e.row_number === 1 &&
+      e.email === "typo1@example.test" && e.reason.includes("Anual Membership")),
+  JSON.stringify(levelTypo.body.errors));
+
+console.log("\n--- layer 4c: plan-limited rows that named a real level are accounted for (fix round 1, item 2) ---");
+
+// Fresh tenant so the active-member count starts at 0 and is under our
+// control. New tenants get a 30-day trial, which counts as "starter"
+// (unlimited) for plan-limit purposes -- clear it so this tenant is
+// actually on the free plan's 30-active-member cap. Same pattern as
+// scripts/verify-idempotency.mjs section 6.
+const planTenant = await json("/api/tenants", {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ name: `Plan Reco ${stamp}`, slug: `planreco-${stamp}` }),
+});
+const planTenantId = planTenant.body.id;
+d1Exec(`UPDATE tenants SET trial_ends_at = NULL WHERE id = '${planTenantId}';`);
+await json(`/api/tenants/${planTenantId}/levels`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ name: "Annual Membership", price_cents: 0,
+                         duration_months: 12, renewal_type: "manual" }),
+});
+// Fill to FREE_ACTIVE_MEMBER_LIMIT (30) active members, leaving zero slots.
+for (let i = 0; i < 30; i++) {
+  const r = await json(`/api/tenants/${planTenantId}/members`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ email: `fill-${stamp}-${i}@example.test`, status: "active" }),
+  });
+  if (r.status >= 400) throw new Error(`filling active member ${i} failed: ${JSON.stringify(r.body)}`);
 }
 
-const persistedBatch = d1(
+const planLimitRows = [
+  ["overcap1@example.test", "Over", "One", "Annual Membership"],
+  ["overcap2@example.test", "Over", "Two", "Annual Membership"],
+];
+const planLimitImport = await json(`/api/tenants/${planTenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ header: recoHeader, raw_rows: planLimitRows, mapping: recoMapping }),
+});
+check("plan-limited import still creates both members",
+  planLimitImport.body.created === 2, `got ${planLimitImport.body.created}`);
+check("plan-limited import assigns no membership (cap already full)",
+  planLimitImport.body.memberships_assigned === 0, `got ${planLimitImport.body.memberships_assigned}`);
+check("plan-limited import reports partial",
+  planLimitImport.body.status === "partial", `got ${planLimitImport.body.status}`);
+// The invariant the whole task rests on, now restated to include
+// plan-limiting: every row naming a real level must be accounted for by
+// exactly one of assigned / failed / plan_limited. Before fix round 1, a
+// row that named a real level and hit the cap fell into neither counter,
+// so this would read 0 === 2.
+const namedRealLevelPlanLimit = 2;
+check("invariant holds when the free-plan cap bites: assigned + failed + plan_limited === rows naming a real level",
+  (planLimitImport.body.memberships_assigned + planLimitImport.body.membership_failures +
+    planLimitImport.body.plan_limited) === namedRealLevelPlanLimit,
+  `assigned=${planLimitImport.body.memberships_assigned} ` +
+    `failed=${planLimitImport.body.membership_failures} ` +
+    `plan_limited=${planLimitImport.body.plan_limited} expected=${namedRealLevelPlanLimit}`);
+check("plan-limited rows that named a real level are itemized as errors of kind plan_limited",
+  (planLimitImport.body.errors || []).filter((e) => e.kind === "plan_limited").length === 2,
+  JSON.stringify(planLimitImport.body.errors));
+
+// Persistence: the batch and its errors must be real rows in D1, not just
+// fields synthesized into the HTTP response.
+const persistedBatch = d1Query(
   `SELECT * FROM import_batches WHERE id = '${forced.body.batch_id}'`
 );
 check("forced-failure batch row is persisted", persistedBatch.length === 1,
@@ -662,7 +783,7 @@ check("persisted batch row has membership_failures = 2",
 check("persisted batch row is scoped to the right tenant",
   persistedBatch[0]?.tenant_id === recoTenantId, JSON.stringify(persistedBatch[0]));
 
-const persistedErrors = d1(
+const persistedErrors = d1Query(
   `SELECT * FROM import_batch_errors WHERE batch_id = '${forced.body.batch_id}'`
 );
 check("forced-failure error rows are persisted (2 memberships failed)",
@@ -671,6 +792,36 @@ check("persisted error rows are kind membership_failed",
   persistedErrors.every((e) => e.kind === "membership_failed"), JSON.stringify(persistedErrors));
 check("persisted error rows are scoped to the right tenant",
   persistedErrors.every((e) => e.tenant_id === recoTenantId), JSON.stringify(persistedErrors));
+
+console.log("\n--- layer 4d: a mid-batch crash closes the batch as 'failed', not stuck at 'running' (fix round 1, item 3) ---");
+
+// Dev-only header (same env-first gating as the other two forced-failure
+// headers in this file) that injects one extra member INSERT binding NULL
+// into the NOT NULL tenant_id column, guaranteeing the whole member-INSERT
+// D1 batch (which is atomic) fails to commit -- so the outer try/catch in
+// the route is proven to actually run, not just exist unexercised.
+const crashRows = [["crash1@example.test", "Crash", "One", "Annual Membership"]];
+const crashImport = await json(`/api/tenants/${recoTenantId}/members/import`, {
+  method: "POST",
+  headers: { ...auth, "X-QH-Force-Import-Batch-Failure": "1" },
+  body: JSON.stringify({ header: recoHeader, raw_rows: crashRows, mapping: recoMapping }),
+});
+check("forced batch crash surfaces as a server error, not a fake 200",
+  crashImport.status >= 500, `got ${crashImport.status} ${JSON.stringify(crashImport.body).slice(0, 200)}`);
+
+const crashMemberCheck = await json(
+  `/api/tenants/${recoTenantId}/members?q=crash1@example.test`, { headers: auth }
+);
+check("no member was created from the crashed batch (D1 .batch() is atomic)",
+  (crashMemberCheck.body.members || []).length === 0, JSON.stringify(crashMemberCheck.body));
+
+const latestBatch = d1Query(
+  `SELECT * FROM import_batches WHERE tenant_id = '${recoTenantId}' ORDER BY started_at DESC, id DESC LIMIT 1`
+);
+check("the crashed batch was closed as 'failed', not left at 'running' forever",
+  latestBatch[0]?.status === "failed", JSON.stringify(latestBatch[0]));
+check("the crashed batch has a finished_at timestamp",
+  !!latestBatch[0]?.finished_at, JSON.stringify(latestBatch[0]));
 
 console.log(failures ? `\n${failures} failure(s)` : "\nall layers passed");
 if (failures) process.exit(1);

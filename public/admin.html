@@ -1136,14 +1136,19 @@
         const mem = r.memberships_assigned ? `, ${r.memberships_assigned} memberships assigned` : "";
         const lim = r.plan_limited ? `, ${r.plan_limited} held at free-plan limit` : "";
 
-        // Rows the import loses land in three places: skipped_rows (never
-        // even reached), plan_limited (held pending, no active slot), and
-        // membership_failures (member created but their membership was not).
-        // A batch with any of these must NOT be presented as a clean
+        // Rows the import loses land in four places: skipped_rows (never
+        // even reached), plan_limited rows that DID name a real level
+        // (held pending, no active slot -- errors kind plan_limited),
+        // level_not_found (named a level that matches nothing active), and
+        // membership_failures (member created but their membership was
+        // not). A batch with any of these must NOT be presented as a clean
         // success — that is exactly what let a guild's renewal season find
         // out 240 memberships never got assigned.
         const skippedRows = r.skipped_rows || [];
-        const membershipErrors = (r.errors || []).filter((e) => e.kind === "membership_failed");
+        const errors = r.errors || [];
+        const membershipErrors = errors.filter((e) => e.kind === "membership_failed");
+        const levelNotFoundErrors = errors.filter((e) => e.kind === "level_not_found");
+        const planLimitedErrors = errors.filter((e) => e.kind === "plan_limited");
         const isPartial = r.status === "partial";
 
         if (isPartial) {
@@ -1151,6 +1156,7 @@
           if (skippedRows.length) lost.push(`${skippedRows.length} row(s) skipped`);
           if (r.plan_limited) lost.push(`${r.plan_limited} row(s) held at the free-plan limit`);
           if (membershipErrors.length) lost.push(`${membershipErrors.length} membership(s) failed to assign`);
+          if (r.level_not_found) lost.push(`${r.level_not_found} row(s) named a level that wasn't found`);
           out.innerHTML = `<p class="notice warn">` +
             `<strong>Import finished with problems.</strong> ` +
             `Imported: ${r.created} new, ${r.updated} updated, ${r.skipped} skipped${mem}${cf}${lim}.<br>` +
@@ -1159,12 +1165,14 @@
           out.innerHTML = `<p class="notice ok">Imported: ${r.created} new, ${r.updated} updated, ${r.skipped} skipped${mem}${cf}${lim}.</p>`;
         }
 
-        // Combine skipped rows and membership failures into one downloadable
-        // list — both need the guild's attention, and both are rows they'll
-        // want to fix and re-import.
+        // Combine every loss kind into one downloadable list — all of these
+        // need the guild's attention, and all are rows they'll want to fix
+        // and re-import.
         const allProblemRows = [
           ...skippedRows.map((sk) => ({ row: sk.row, reason: sk.reason })),
           ...membershipErrors.map((e) => ({ row: e.row_number, reason: `membership not assigned: ${e.reason}` })),
+          ...levelNotFoundErrors.map((e) => ({ row: e.row_number, reason: e.reason })),
+          ...planLimitedErrors.map((e) => ({ row: e.row_number, reason: e.reason })),
         ];
         if (allProblemRows.length) {
           // Let the guild fix and re-import just the failures rather than
@@ -1174,6 +1182,14 @@
           out.innerHTML += `<button class="secondary" onclick="downloadImportErrors()">Download ${allProblemRows.length} problem rows</button>` +
             ` <button class="secondary" onclick="navigate('members')">Back to members</button>`;
           _importState.skippedRows = allProblemRows;
+        } else if (isPartial) {
+          // Nothing landed in allProblemRows (a loss kind not represented
+          // there, or a partial reason with no per-row detail) but the
+          // batch is still partial — the warning banner must not be
+          // auto-navigated away 2.5s later with no way to act on it. Gate
+          // the auto-navigate strictly on isPartial, not on whether a
+          // download happens to be available.
+          out.innerHTML += ` <button class="secondary" onclick="navigate('members')">Back to members</button>`;
         } else {
           _importState = null;
           setTimeout(() => navigate("members"), 2500);
