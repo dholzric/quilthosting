@@ -219,8 +219,10 @@ async function main() {
   const tenantId = tenant.body.id;
   const slug = tenant.body.slug;
 
-  const hook = await seedHook(tenantId, `http://127.0.0.1:${SINK_PORT}/hook`, ["*"]);
-  if (hook.status >= 400) throw new Error(`hook: ${JSON.stringify(hook.body)}`);
+  // Not asserted: seedHook always returns {status: 201} by construction (a
+  // tautology, not a check on any real route behaviour) -- the D1 insert it
+  // performs either succeeds or the harness throws inside runD1 itself.
+  await seedHook(tenantId, `http://127.0.0.1:${SINK_PORT}/hook`, ["*"]);
 
   const catalog = await json(`/api/tenants/${tenantId}/webhooks/events`, { headers: auth });
   const advertised = (catalog.body.events || []).filter((e) => e !== "*");

@@ -180,8 +180,10 @@ const slow = createServer((req, res) => {
 });
 await new Promise((resolve) => slow.listen(slowPort, "127.0.0.1", resolve));
 
+// Not asserted: seedHook always returns {status: 201} by construction (a
+// tautology, not a check on any real route behaviour) -- the D1 insert it
+// performs either succeeds or the harness throws inside runD1 itself.
 const slowHook = await seedHook(tenantId, `http://127.0.0.1:${slowPort}/slow`, ["*"]);
-check("slow webhook endpoint seeded", slowHook.status === 201, `got ${slowHook.status}`);
 
 const obBefore = await json(`/api/tenants/${tenantId}/webhooks/outbox`, { headers: auth });
 const beforeIds = new Set((obBefore.body.outbox || []).map((r) => r.id));
@@ -312,11 +314,10 @@ const healthy = createServer((req, res) => {
 });
 await new Promise((resolve) => healthy.listen(healthyPort, "127.0.0.1", resolve));
 
+// Not asserted here either, same reason as slowHook above.
 const healthyHook = await seedHook(tenantId, `http://127.0.0.1:${healthyPort}/ok`, ["*"]);
-check("healthy fan-out endpoint seeded", healthyHook.status === 201, `got ${healthyHook.status}`);
 // Nothing listens on this port -> every send fails with ECONNREFUSED, fast.
 const deadHook = await seedHook(tenantId, "http://127.0.0.1:8795/dead", ["*"]);
-check("dead fan-out endpoint seeded", deadHook.status === 201, `got ${deadHook.status}`);
 
 const obBeforeFanout = await json(`/api/tenants/${tenantId}/webhooks/outbox`, { headers: auth });
 const beforeFanoutIds = new Set((obBeforeFanout.body.outbox || []).map((r) => r.id));
@@ -520,10 +521,52 @@ const good = await json(`/api/tenants/${tenantId}/webhooks`, {
   method: "POST", headers: auth,
   body: JSON.stringify({ url: "https://hooks.zapier.com/ok", events: ["member.created"] }),
 });
+// Positive control: without this, a validator that rejected everything would
+// surface only as a confusing 404 on the PATCH check below (good.body.id
+// would be undefined), not as a clearly-attributed failure here.
+check("admin POST accepts a valid hook (positive control)",
+  good.status === 201 && !!good.body.id, `got ${good.status} ${JSON.stringify(good.body)}`);
 const patched = await json(`/api/tenants/${tenantId}/webhooks/${good.body.id}`, {
   method: "PATCH", headers: auth, body: JSON.stringify({ events: ["member.creatd"] }),
 });
 check("admin PATCH rejects a typo'd event", patched.status === 400, `got ${patched.status}`);
+
+console.log("--- hook validation parity (deny-list edge cases, fix round 1) ---");
+// validateHookUrl matches on u.hostname, which WHATWG normalises before the
+// deny list ever sees it -- but normalisation is not the same as sanitising.
+// These five hostnames survive normalisation looking like they route
+// straight to a blocked target, yet the pre-round-1 deny list let them
+// through: a trailing dot is a DNS no-op but defeats the `$`-anchored
+// localhost/self-loop patterns, and IPv4-mapped / unspecified / link-local
+// IPv6 forms simply weren't in the pattern list at all.
+for (const [payload, label] of [
+  [{ url: "https://localhost./h" }, "trailing-dot localhost"],
+  [{ url: "https://quilthosting.com./h" }, "trailing-dot self-loop"],
+  [{ url: "https://[::ffff:127.0.0.1]/h" }, "IPv4-mapped loopback"],
+  [{ url: "https://[::]/h" }, "unspecified address"],
+  [{ url: "https://[fe80::1]/h" }, "link-local"],
+]) {
+  const r = await json(`/api/tenants/${tenantId}/webhooks`, {
+    method: "POST", headers: auth, body: JSON.stringify(payload),
+  });
+  check(`admin POST rejects ${label}`, r.status === 400, `got ${r.status}`);
+}
+
+console.log("--- hook validation parity (malformed PATCH body) ---");
+// PATCH used to parse the body with a TypeScript generic and no runtime
+// check, so a malformed field (null where a string is expected, a bare
+// string where an array is expected) reached `.trim()` / `.filter()`
+// directly and threw -> 500, not a clean 400.
+const malformedUrl = await json(`/api/tenants/${tenantId}/webhooks/${good.body.id}`, {
+  method: "PATCH", headers: auth, body: JSON.stringify({ url: null }),
+});
+check("admin PATCH rejects a null url (400, not 500)",
+  malformedUrl.status === 400, `got ${malformedUrl.status}`);
+const malformedEvents = await json(`/api/tenants/${tenantId}/webhooks/${good.body.id}`, {
+  method: "PATCH", headers: auth, body: JSON.stringify({ events: "member.created" }),
+});
+check("admin PATCH rejects a non-array events (400, not 500)",
+  malformedEvents.status === 400, `got ${malformedEvents.status}`);
 
 rmSync(d1WorkDir, { recursive: true, force: true });
 

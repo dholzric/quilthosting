@@ -14,14 +14,21 @@ import { WEBHOOK_SUBSCRIBE_OPTIONS } from "./webhookEvents";
 export const MAX_HOOKS_PER_TENANT = 25;
 
 export type HookValidationInput = {
-  /** Present for a create (required); omit on a PATCH not touching the URL. */
-  url?: string;
+  /**
+   * Present for a create (required); omit on a PATCH not touching the URL.
+   * Typed `unknown` rather than `string`: both routes parse the request body
+   * with a TypeScript generic (`c.req.json<{...}>()`), which asserts a shape
+   * at compile time but checks nothing at runtime, so a malformed body
+   * (`{"url": null}`) reaches here as whatever JSON.parse actually produced.
+   */
+  url?: unknown;
   /**
    * Already defaulted by the caller (POST defaults missing/empty to ["*"]);
    * omit on a PATCH not touching events, since "not provided" and "clear to
-   * nothing" are different intents that must not both mean ["*"].
+   * nothing" are different intents that must not both mean ["*"]. Also typed
+   * `unknown` for the same reason as `url` above (e.g. `{"events": "x"}`).
    */
-  events?: string[];
+  events?: unknown;
 };
 
 export type HookValidationOk = {
@@ -62,6 +69,14 @@ export function validateHookInput(
 ): HookValidationResult {
   let url: string | undefined;
   if (input.url !== undefined) {
+    if (typeof input.url !== "string") {
+      return {
+        ok: false,
+        error: "url must be a string",
+        code: "invalid_hook_url",
+        status: 400,
+      };
+    }
     url = input.url.trim();
     const urlError = validateHookUrl(url);
     if (urlError) {
@@ -71,6 +86,18 @@ export function validateHookInput(
 
   let events: string[] | undefined;
   if (input.events !== undefined) {
+    if (
+      !Array.isArray(input.events) ||
+      !input.events.every((e) => typeof e === "string")
+    ) {
+      return {
+        ok: false,
+        error: "events must be an array of strings",
+        code: "unknown_event",
+        status: 400,
+        valid: WEBHOOK_SUBSCRIBE_OPTIONS,
+      };
+    }
     const unknown = input.events.filter(
       (e) => !WEBHOOK_SUBSCRIBE_OPTIONS.includes(e)
     );

@@ -36,8 +36,14 @@ const BLOCKED_HOST_PATTERNS = [
   /^192\.168\./,
   /^172\.(1[6-9]|2\d|3[01])\./,
   /^169\.254\./, // link-local + cloud metadata
-  /^\[?::1\]?$/,
-  /^\[?f[cd]/i, // IPv6 loopback + unique-local
+  /^\[?::1\]?$/, // IPv6 loopback
+  /^\[?::\]?$/, // IPv6 unspecified address, the ::/0.0.0.0 equivalent
+  /^\[?::ffff:/i, // IPv4-mapped IPv6 (e.g. ::ffff:127.0.0.1 -> ::ffff:7f00:1);
+  // any address in this form can smuggle an arbitrary IPv4 target past the
+  // dotted-quad patterns above, so the whole ::ffff:/96 block is denied
+  // rather than re-decoding the embedded IPv4 and re-testing it.
+  /^\[?fe[89a-f][0-9a-f]:/i, // IPv6 link-local, fe80::/10 (NOT unique-local)
+  /^\[?f[cd]/i, // IPv6 unique-local, fc00::/7
   /(^|\.)quilthosting\.com$/i, // no self-loop
   /(^|\.)workers\.dev$/i,
 ];
@@ -57,7 +63,11 @@ export function validateHookUrl(raw: string): string | null {
     return "url is not a valid URL";
   }
   if (u.protocol !== "https:") return "url must be https";
-  const host = u.hostname;
+  // A single trailing dot is a no-op in DNS ("localhost." === "localhost",
+  // "quilthosting.com." === "quilthosting.com") but WHATWG's URL parser does
+  // NOT strip it from .hostname, so it silently defeats every `$`-anchored
+  // pattern above. Strip it before matching.
+  const host = u.hostname.replace(/\.$/, "");
   if (BLOCKED_HOST_PATTERNS.some((re) => re.test(host))) {
     return `url host "${host}" is not an allowed webhook target`;
   }
