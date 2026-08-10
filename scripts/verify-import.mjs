@@ -449,9 +449,16 @@ const dryCollide = await json(`/api/tenants/${tenantId}/members/import`, {
   body: JSON.stringify({ header: collideHeader, raw_rows: collideRows,
                          mapping: collideMapping, dry_run: true }),
 });
+const dryCollideWarning = (dryCollide.body.warnings || []).find((w) => w.code === "duplicate_custom_key");
 check("collision is warned in the dry run",
-  (dryCollide.body.warnings || []).some((w) => w.code === "duplicate_custom_key"),
-  JSON.stringify(dryCollide.body.warnings));
+  !!dryCollideWarning, JSON.stringify(dryCollide.body.warnings));
+// A bare code is useless to the admin — the message is the only thing the
+// UI actually renders, so it must name both offending headers, not just
+// signal that "some" collision happened.
+check("dry-run warning names both offending headers",
+  !!dryCollideWarning && dryCollideWarning.message.includes("Bee Group") &&
+    dryCollideWarning.message.includes("Bee-Group"),
+  JSON.stringify(dryCollideWarning));
 
 const realCollide = await json(`/api/tenants/${tenantId}/members/import`, {
   method: "POST", headers: auth,
@@ -460,6 +467,59 @@ const realCollide = await json(`/api/tenants/${tenantId}/members/import`, {
 check("collision is rejected on the real import",
   realCollide.status === 400 && realCollide.body.code === "duplicate_custom_key",
   `got ${realCollide.status} ${JSON.stringify(realCollide.body)}`);
+// admin.html's runImport catch prints only e.message (data.error) — the
+// structured `duplicates` array is never surfaced to the admin, so the
+// error STRING itself must name both columns or an admin who clicks Import
+// past a stale preview sees a dead end.
+check("400 error message names both offending headers",
+  typeof realCollide.body.error === "string" &&
+    realCollide.body.error.includes("Bee Group") &&
+    realCollide.body.error.includes("Bee-Group"),
+  JSON.stringify(realCollide.body.error));
+
+console.log("\n--- fix round 2b: server-proposed collision against an EXISTING custom field ---");
+
+// Layer 3's real import already created a "bee_group" custom field (label
+// "Bee Group") on this tenant, from promoting the fixture's unmapped
+// "Bee Group" column. Two NEW headers that both normalise to the same
+// existing field's key/label — with no explicit mapping supplied, so
+// proposeMapping (not the admin-supplied-mapping branch) resolves them —
+// must be caught too. normalizeHeader strips all non a-z chars, so
+// "Bee Group" and "Bee-Group" both normalise to "beegroup" and both match
+// the existing field by label.
+const settingsBeforeExisting = await json(`/api/tenants/${tenantId}`, { headers: auth });
+const cfBeforeExisting = JSON.parse(settingsBeforeExisting.body.settings_json || "{}").custom_fields || [];
+const hasBeeGroupField = cfBeforeExisting.some((f) => f.key === "bee_group");
+check("precondition: tenant already has an existing bee_group custom field",
+  hasBeeGroupField, JSON.stringify(cfBeforeExisting.map((f) => f.key)));
+
+const existingCollideHeader = ["E-Mail", "Bee Group", "Bee-Group"];
+const existingCollideRows = [["b@example.test", "Tuesday", "Thursday"]];
+
+const dryExistingCollide = await json(`/api/tenants/${tenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ header: existingCollideHeader, raw_rows: existingCollideRows, dry_run: true }),
+});
+check("proposeMapping maps both new headers to the same existing key",
+  dryExistingCollide.body.mapping?.["1"]?.key === "bee_group" &&
+    dryExistingCollide.body.mapping?.["2"]?.key === "bee_group",
+  JSON.stringify(dryExistingCollide.body.mapping));
+const dryExistingWarning = (dryExistingCollide.body.warnings || [])
+  .find((w) => w.code === "duplicate_custom_key");
+check("server-proposed collision against an existing field is warned in the dry run",
+  !!dryExistingWarning && dryExistingWarning.message.includes("Bee Group") &&
+    dryExistingWarning.message.includes("Bee-Group"),
+  JSON.stringify(dryExistingCollide.body.warnings));
+
+const realExistingCollide = await json(`/api/tenants/${tenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ header: existingCollideHeader, raw_rows: existingCollideRows }),
+});
+check("server-proposed collision against an existing field is rejected on the real import",
+  realExistingCollide.status === 400 && realExistingCollide.body.code === "duplicate_custom_key" &&
+    realExistingCollide.body.error.includes("Bee Group") &&
+    realExistingCollide.body.error.includes("Bee-Group"),
+  `got ${realExistingCollide.status} ${JSON.stringify(realExistingCollide.body)}`);
 
 console.log(failures ? `\n${failures} failure(s)` : "\nall layers passed");
 if (failures) process.exit(1);

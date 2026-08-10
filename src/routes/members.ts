@@ -814,9 +814,14 @@ memberRoutes.post("/import", async (c) => {
   // key would otherwise have the second silently overwrite the first, with
   // no signal anywhere that a whole column of data was lost.
   if (duplicateKeys.length) {
+    const detail = duplicateKeys
+      .map((d) => `"${d.headers.join('" and "')}"`)
+      .join("; ");
     return c.json(
       {
-        error: "Two or more columns map to the same custom field.",
+        error:
+          `Two or more columns map to the same custom field: ${detail}. ` +
+          `Rename one column, or set one to "Do not import".`,
         code: "duplicate_custom_key",
         duplicates: duplicateKeys,
       },
