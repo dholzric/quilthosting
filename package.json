@@ -11,7 +11,8 @@
     "db:create": "wrangler d1 create quilthosting-db",
     "cf-typegen": "wrangler types",
     "test:scale": "node scripts/verify-scale.mjs",
-    "test:integrations": "node scripts/verify-integrations.mjs"
+    "test:integrations": "node scripts/verify-integrations.mjs",
+    "test:import": "node scripts/verify-import.mjs"
   },
   "dependencies": {
     "hono": "^4.7.0",
