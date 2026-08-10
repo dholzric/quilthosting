@@ -522,7 +522,8 @@ type ImportWarning = {
 //     re-imports forever -- exactly the "admins learn partial means
 //     nothing" failure this whole task exists to prevent. It is also not
 //     a real loss: members.joined_at keeps its existing (correct) value,
-//     and the file's value is still used as the membership start date
+//     and the file's value is used as the membership start date ONLY on
+//     rows that also name a level (no level -> it is not used at all)
 //     (see pendingMemberships.startDate below) when a level is present.
 //     Nothing is lost -- the existing record is simply authoritative over
 //     a re-import's copy of the same fact. The code, the per-row error
@@ -589,7 +590,7 @@ const ERROR_KIND_LABELS: Record<BatchErrorKind, string> = {
   plan_limited: "row(s) held at the free-plan limit",
   unparseable_date: "row(s) had an unreadable renewal date",
   unparseable_join_date: 'row(s) had an unreadable "member since" date',
-  joined_at_ignored_on_update: 'row(s)\' "member since" date differs from what\'s on file (kept existing value; still used as membership start date)',
+  joined_at_ignored_on_update: 'row(s)\' "member since" date differs from what\'s on file (kept existing value; used as the membership start date only on rows that also name a level)',
   invalid_status: "row(s) had a status not recognized (imported as active)",
   status_overridden_by_level: "row(s) had a file status overridden to active by a level",
   end_date_without_level: "row(s) had a renewal date but no level to store it against",
@@ -762,14 +763,15 @@ function buildWarnings(args: {
   if (joinedAtIgnored.length)
     // Informational, not lossy (see LOSSY_WARNING_CODES) -- nothing is
     // actually lost: the existing member keeps their recorded joined_at,
-    // and the file's value is still used as the membership start date
+    // and the file's value is used as the membership start date ONLY on rows
+    // that also name a level (no level -> it is not used at all)
     // below when a level is present. Only fires when the file's date
     // genuinely differs from what's on record (fix round 5); an unchanged
     // re-export of the same roster stays quiet.
     out.push({ code: "joined_at_ignored_on_update",
       message: applied
-        ? "Some \"member since\" dates differ from what's already on file for these existing members. members.joined_at keeps its existing value; the file's value is still used as the membership start date"
-        : "Some \"member since\" dates differ from what's already on file for these existing members. members.joined_at will keep its existing value; the file's value will still be used as the membership start date",
+        ? "Some \"member since\" dates differ from what's already on file for these existing members. members.joined_at keeps its existing value; the file's value is used as the membership start date only on rows that also name a membership level"
+        : "Some \"member since\" dates differ from what's already on file for these existing members. members.joined_at will keep its existing value; the file's value will be used as the membership start date only on rows that also name a membership level",
       count: joinedAtIgnored.length, sample_rows: joinedAtIgnored.slice(0, 3) });
   if (badStatus.length)
     out.push({ code: "invalid_status",
@@ -1259,7 +1261,7 @@ memberRoutes.post("/import", async (c) => {
             batchErrors.push({
               row_number: rowIndex + 1,
               kind: "joined_at_ignored_on_update",
-              reason: `"member since" date "${row.joined_at}" differs from what's on file (${existingJoined ?? "none"}); members.joined_at keeps its existing value, though the file's value is still used as the membership start date`,
+              reason: `"member since" date "${row.joined_at}" differs from what's on file (${existingJoined ?? "none"}); members.joined_at keeps its existing value. The file's value is used as the membership start date only if this row also names a membership level; otherwise it is not used at all`,
               email,
             });
           }
