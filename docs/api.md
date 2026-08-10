@@ -101,14 +101,19 @@ across a workflow's steps (Zapier reuses its task id for a create and a later
 update in the same Zap) is safe; the two calls don't collide.
 
 **Behavior.** A reservation row is written *before* the handler runs, so two
-concurrent requests carrying the same key can never both execute the
-mutation — one of them always loses the race and gets an answer below
-instead of running.
+concurrent requests carrying the same key cannot both execute the mutation
+**provided the first request's handler finishes within `RESERVATION_SECONDS`**
+— see Limitation 1 below for what happens when it runs longer than that.
 
 - Same key + same request body → the original response is replayed verbatim,
-  for as long as the record is retained (see Retention below).
+  for as long as the record is retained (see Limitation 4 below — the real
+  window is looser than a clean 24-hour cutoff).
 - Same key + a different request body → `422` with
-  `{ "code": "idempotency_key_reuse" }`.
+  `{ "code": "idempotency_key_reuse" }`. What's fenced is the request body
+  **plus the route's path parameters** — for `PATCH`, that includes
+  `memberId` — so the same key applied to two *different members* with
+  otherwise-identical bodies also 422s, not only a body diff on the same
+  member.
 - Same key while the original request is still executing → `409` with
   `{ "code": "idempotency_in_progress" }` and a `Retry-After` header. **This
   is the correct, expected answer to a too-fast retry, not a failure** —
@@ -122,32 +127,54 @@ instead of running.
 
 **Limitations:**
 
-1. **An abandoned reservation isn't taken over immediately.** If a request
-   that claimed a key never finishes (worker crash, hung handler), the key
-   keeps answering `409 idempotency_in_progress` for up to
-   `RESERVATION_SECONDS` — currently **60 seconds** — before another request
-   with the same key is allowed to take the slot over and actually execute.
-   A client that retries faster than that will see `409` for the full window
-   even though nothing is actually still running.
-2. **This protects against concurrent double-execution, not against
-   re-execution after a crash.** The reservation guarantees two *simultaneous*
-   requests with the same key can't both run the handler. It does **not**
-   guarantee exactly-once execution end-to-end: if the Worker process dies
-   after the member row is mutated but before the response is written back to
-   the idempotency record, the reservation simply lapses after
-   `RESERVATION_SECONDS`, and a later retry with the same key re-executes the
-   handler and mutates again. There is no transaction spanning the mutation
-   and the idempotency-record write — only the concurrent case is covered.
-3. **`429 hook_limit` is not reachable through this mechanism today.** Only
+1. **Takeover of a reservation is decided purely by elapsed time, not by
+   knowing the original request actually died.** The takeover check tests
+   only `reserved_until <= now` — it cannot tell a crashed holder from one
+   that is still legitimately running slow. Two consequences fall out of
+   that:
+   - While the original handler is running and `RESERVATION_SECONDS` —
+     currently **60 seconds** — hasn't elapsed, a concurrent retry with the
+     same key just gets `409`, even though nothing is stuck.
+   - If the original handler is *still running* once `RESERVATION_SECONDS`
+     elapses — not crashed, just slow — a second, concurrent request with the
+     same key **is allowed to take over the slot and execute the handler
+     too**, running alongside the first. The "cannot both execute" guarantee
+     above holds only inside the `RESERVATION_SECONDS` window, not past it.
+2. **This is a time-bounded concurrency guard, not crash-safety, and not a
+   guarantee of exactly-once execution end-to-end.** Two distinct gaps share
+   the same root cause — nothing makes the mutation, the outbound response,
+   and the idempotency record commit together:
+   - A handler that legitimately runs past `RESERVATION_SECONDS` can have a
+     concurrent duplicate run alongside it (Limitation 1).
+   - A Worker that dies after mutating but before `complete()` writes the
+     response leaves a reservation that simply lapses; a later *sequential*
+     retry with the same key re-executes the handler and mutates again.
+   Neither case is protected — only a request that both stays inside
+   `RESERVATION_SECONDS` and doesn't crash is.
+3. **A caller whose lease is taken over mid-handler still performs its
+   mutation for real, but its response is silently not cached.**
+   `complete()`/`release()` are fenced against the exact `reservedUntil` the
+   caller was handed; if the slot was taken over while the handler ran, that
+   fenced write matches zero rows, a warning is logged server-side, and
+   nothing is recorded under the key — but the HTTP caller whose lease lapsed
+   still gets its real response back over the wire. The practical effect: a
+   later retry with that key finds either the new owner's record or nothing,
+   never this caller's result, and re-executes instead of replaying.
+4. **`429 hook_limit` is not reachable through this mechanism today.** Only
    the two member routes above are wired through the idempotency layer;
    `POST /v1/hooks` is not, so hitting the hook-count limit never touches
    idempotency caching at all. Don't read a mention of `429 hook_limit`
    elsewhere as evidence hook creation is idempotency-wrapped — it isn't.
-4. **Retention is bounded, not indefinite.** A completed record is replayable
-   for `RETENTION_HOURS` — currently **24 hours** — after it's written, and
-   is cleared by a maintenance sweep that runs once a day on the cron. Once a
-   record ages out and is swept, the same key is treated as new and the
-   handler runs again on the next request.
+5. **Retention is bounded, but the real worst case is closer to double
+   `RETENTION_HOURS` than a clean cutoff.** Replaying a completed record does
+   not check `expires_at` — it replays on `status`/`response_json` alone.
+   `expires_at` only matters to the once-a-day sweep, which deletes rows
+   where `expires_at <= now`. So a record can stay replayable for
+   `RETENTION_HOURS` (currently **24 hours**) plus however long it sits
+   already-expired waiting for the next sweep (up to another ~24 hours) —
+   **up to roughly 48 hours** in the worst case, not a hard 24-hour boundary.
+   Once the sweep actually removes the row, the same key is treated as new
+   and the handler runs again.
 
 ## Bulk member import (Admin UI, not the v1 API)
 
