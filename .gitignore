@@ -25,3 +25,6 @@ apps/mobile/ios/
 apps/mobile/.expo/
 apps/mobile/node_modules/
 apps/mobile/credentials/
+
+# Subagent-driven development scratch (ledger, briefs, review packages)
+.superpowers/
