@@ -76,6 +76,16 @@ async function json(path, opts = {}) {
   // masking a real failure mode under test: the retry only fires on a
   // thrown network error before any response was received, never on a
   // returned status code.
+  //
+  // CAUTION for reuse elsewhere: this retry is only safe here because every
+  // call site in this file is a GET, or a POST to an idempotency-key'd/
+  // read-modify-check route where a duplicate invocation is harmless or
+  // itself under test. /__scheduled specifically is a non-idempotent POST --
+  // if the original request actually completed server-side and only the
+  // response was lost in transit, this retry re-invokes runDailyJobs a
+  // second time. Harmless against today's zero-touch fixtures (a second
+  // no-op sweep/renewal pass changes nothing), but do not assume this
+  // wrapper is safe to point at an arbitrary non-idempotent endpoint.
   let lastErr;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
@@ -505,24 +515,57 @@ async function main() {
 
   /**
    * /__scheduled runs the WHOLE of runDailyJobs -- renewals, event
-   * reminders, scheduled blasts, and automations -- against this developer's
-   * local D1 and the live RESEND_API_KEY in .dev.vars, not just the
-   * idempotency sweep. That's fine against today's fixtures (nothing here
-   * has a due date), but it is a property of today's data, not of this
-   * test. If a future run has real seed data sitting in a blast queue,
-   * calling this route would mail real people. Assert those three counts
-   * are exactly zero on every /__scheduled call in this file so the suite
-   * fails loudly the moment that would happen, instead of quietly sending
-   * mail.
+   * reminders, scheduled blasts, queued-blast draining, and automations --
+   * against this developer's local D1 and the live RESEND_API_KEY in
+   * .dev.vars, not just the idempotency sweep. That's fine against today's
+   * fixtures (nothing here has a due date), but it is a property of today's
+   * data, not of this test. If a future run has real seed data sitting in a
+   * blast queue, calling this route would mail real people.
+   *
+   * runDailyJobs' known email-sending counters, and which job produces each
+   * (this list is exactly the obligation a reviewer must extend when a new
+   * job is added to runDailyJobs -- fix round 1 hand-picked
+   * renewals/blasts/automations and missed two of these):
+   *   - renewals.reminders_sent, renewals.winbacks_sent  <- runRenewalJob
+   *   - events.reminders_sent                             <- runEventReminderJob
+   *   - blasts.emails                                     <- runScheduledBlasts (status='scheduled' only)
+   *   - queuedBlasts.emails, queuedBlasts.extra_emails     <- processQueuedBlasts (status='queued'/'sending' --
+   *                                                           the literal gap fix round 1 missed: a queued
+   *                                                           blast in local fixtures would have sailed
+   *                                                           straight through a renewals/blasts/automations-
+   *                                                           only guard)
+   *   - automations.sent                                  <- runAutomationJob
+   *
+   * Rather than hand-pick that list again (and risk missing the next job's
+   * counter the same way), walk the ENTIRE response and fail on any numeric
+   * field whose name matches /sent|emails/i. This is deliberately
+   * over-broad: it will also flag a legitimately-named future counter that
+   * happens to match the pattern but isn't actually an email count, which
+   * is a false-positive test failure -- an annoyance to fix, not a data-loss
+   * risk, and strictly preferable to the alternative of a new counter being
+   * silently omitted the way queuedBlasts was here.
    */
   function assertNoSideEffects(label, body) {
+    const offenders = [];
+    function walk(path, value) {
+      if (value === null || value === undefined) return;
+      if (typeof value === "number") {
+        if (/sent|emails/i.test(path) && value !== 0) offenders.push(`${path}=${value}`);
+        return;
+      }
+      if (Array.isArray(value)) {
+        value.forEach((v, i) => walk(`${path}[${i}]`, v));
+        return;
+      }
+      if (typeof value === "object") {
+        for (const [k, v] of Object.entries(value)) walk(path ? `${path}.${k}` : k, v);
+      }
+    }
+    walk("", body);
     check(
-      `${label}: renewals/blasts/automations sent nothing (guards against real email)`,
-      (body?.renewals?.reminders_sent ?? -1) === 0 &&
-        (body?.renewals?.winbacks_sent ?? -1) === 0 &&
-        (body?.blasts?.emails ?? -1) === 0 &&
-        (body?.automations?.sent ?? -1) === 0,
-      `got renewals=${JSON.stringify(body?.renewals)} blasts=${JSON.stringify(body?.blasts)} automations=${JSON.stringify(body?.automations)}`
+      `${label}: no email-sending counter in the /__scheduled response is non-zero (guards against real email)`,
+      offenders.length === 0,
+      `non-zero counters: ${JSON.stringify(offenders)} full=${JSON.stringify(body)}`
     );
   }
 
