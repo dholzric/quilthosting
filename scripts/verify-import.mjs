@@ -1067,8 +1067,16 @@ const joinUpdateImport = await json(`/api/tenants/${recoTenantId}/members/import
 });
 check("update import still updates the member",
   joinUpdateImport.body.updated === 1, JSON.stringify(joinUpdateImport.body));
-check("update import reports partial, not completed (THE BUG)",
-  joinUpdateImport.body.status === "partial", `got ${joinUpdateImport.body.status}`);
+// Fix round 5 reclassified joined_at_ignored_on_update as INFORMATIONAL
+// (see layer 5a below for why and for the fail-then-pass proof of that
+// change) -- this assertion originally expected "partial" here (that WAS
+// the round-4 fix), but forcing partial on every routine re-import that
+// carries a Member Since column made partial meaningless, so round 5
+// deliberately made this same scenario report completed instead. Updated
+// to match the current, correct contract rather than leaving a stale
+// expectation in a still-passing test.
+check("update import reports completed -- a differing joined_at is informational only (fix round 5)",
+  joinUpdateImport.body.status === "completed", `got ${joinUpdateImport.body.status}`);
 check("update import records a joined_at_ignored_on_update error naming the row",
   (joinUpdateImport.body.errors || []).some(
     (e) => e.kind === "joined_at_ignored_on_update" && e.row_number === 1 &&
@@ -1146,6 +1154,161 @@ check("THE BEHAVIOR CHANGE: the member is STILL lapsed after a re-import with no
   noStatusMember?.status === "lapsed", JSON.stringify(noStatusMember));
 check("last_name WAS updated (proves this is a real update) while status was correctly left alone",
   noStatusMember?.last_name === "StillLapsed", JSON.stringify(noStatusMember));
+
+console.log("\n--- layer 5a: joined_at_ignored_on_update only fires when the date genuinely differs, and is informational (fix round 5, item 1) ---");
+
+const joinDiscriminateHeader = ["Email", "First Name", "Last Name", "Member Since"];
+const joinDiscriminateMapping = {
+  0: { kind: "known", target: "email" },
+  1: { kind: "known", target: "first_name" },
+  2: { kind: "known", target: "last_name" },
+  3: { kind: "known", target: "joined_at" },
+};
+
+// Baseline insert: "2019-03-02".
+const joinDiscEmail = "joindiscriminate1@example.test";
+const joinDiscInsert = await json(`/api/tenants/${recoTenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({
+    header: joinDiscriminateHeader,
+    raw_rows: [[joinDiscEmail, "Join", "Discriminate", "2019-03-02"]],
+    mapping: joinDiscriminateMapping,
+  }),
+});
+check("baseline insert succeeds and is completed",
+  joinDiscInsert.body.created === 1 && joinDiscInsert.body.status === "completed",
+  JSON.stringify(joinDiscInsert.body));
+
+// Re-import with a DIFFERENT STRING that is the SAME CALENDAR DAY
+// ("3/2/2019" vs "2019-03-02") -- this is the exact discrimination the
+// brief asked for: compare by date value, not raw string.
+const joinSameDayImport = await json(`/api/tenants/${recoTenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({
+    header: joinDiscriminateHeader,
+    raw_rows: [[joinDiscEmail, "Join", "SameDayReexport", "3/2/2019"]],
+    mapping: joinDiscriminateMapping,
+  }),
+});
+check("re-importing an UNCHANGED roster (same calendar day, different string format) still updates the member",
+  joinSameDayImport.body.updated === 1, JSON.stringify(joinSameDayImport.body));
+check("re-importing an unchanged roster (Member Since column present, same day) reports completed, not partial (THE BUG)",
+  joinSameDayImport.body.status === "completed", `got ${joinSameDayImport.body.status}`);
+check("no joined_at_ignored_on_update error fired for the unchanged (same-day) date",
+  !(joinSameDayImport.body.errors || []).some((e) => e.kind === "joined_at_ignored_on_update"),
+  JSON.stringify(joinSameDayImport.body.errors));
+
+// Now a GENUINE difference -- must surface (informationally) but still
+// remain completed, since it no longer forces partial by itself.
+const joinDifferentImport = await json(`/api/tenants/${recoTenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({
+    header: joinDiscriminateHeader,
+    raw_rows: [[joinDiscEmail, "Join", "GenuinelyDifferent", "2021-06-01"]],
+    mapping: joinDiscriminateMapping,
+  }),
+});
+check("re-import with a genuinely different joined_at still updates the member",
+  joinDifferentImport.body.updated === 1, JSON.stringify(joinDifferentImport.body));
+check("a genuinely different joined_at is INFORMATIONAL ONLY: status stays completed, not partial",
+  joinDifferentImport.body.status === "completed", `got ${joinDifferentImport.body.status}`);
+check("a genuinely different joined_at still surfaces a joined_at_ignored_on_update error (downloadable)",
+  (joinDifferentImport.body.errors || []).some(
+    (e) => e.kind === "joined_at_ignored_on_update" && e.email === joinDiscEmail),
+  JSON.stringify(joinDifferentImport.body.errors));
+check("a genuinely different joined_at still surfaces the code in `warnings`",
+  (joinDifferentImport.body.warnings || []).some((w) => w.code === "joined_at_ignored_on_update"),
+  JSON.stringify(joinDifferentImport.body.warnings));
+check("the corrected message says the record wins and the file's value still becomes the membership start date",
+  (joinDifferentImport.body.warnings || []).some(
+    (w) => w.code === "joined_at_ignored_on_update" &&
+      w.message.includes("keeps its existing value") &&
+      w.message.includes("membership start date") &&
+      !w.message.includes("will be left blank")),
+  JSON.stringify(joinDifferentImport.body.warnings));
+// members.joined_at itself is still untouched -- only the CLASSIFICATION
+// changed in this round, not the underlying storage behavior.
+const joinDiscList = await json(
+  `/api/tenants/${recoTenantId}/members?q=${encodeURIComponent(joinDiscEmail)}`, { headers: auth }
+);
+check("members.joined_at itself remains the ORIGINAL value (storage behavior unchanged)",
+  (joinDiscList.body.members || [])[0]?.joined_at?.startsWith("2019-03-02"),
+  JSON.stringify(joinDiscList.body.members));
+
+console.log("\n--- layer 5b: N4 status-preservation regression pack, folded into the permanent harness (fix round 5, item 2) ---");
+
+const n4Header = ["Email", "First Name", "Last Name", "Status"];
+const n4Mapping = {
+  0: { kind: "known", target: "email" },
+  1: { kind: "known", target: "first_name" },
+  2: { kind: "known", target: "last_name" },
+  3: { kind: "known", target: "status" },
+};
+
+// N4a: new member with blank Status -> imports active.
+const n4aEmail = `n4a-${stamp}@example.test`;
+const n4aImport = await json(`/api/tenants/${recoTenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ header: n4Header, raw_rows: [[n4aEmail, "N4a", "New", ""]], mapping: n4Mapping }),
+});
+const n4aList = await json(`/api/tenants/${recoTenantId}/members?q=${encodeURIComponent(n4aEmail)}`, { headers: auth });
+check("N4a: new member with blank Status imports active",
+  (n4aList.body.members || [])[0]?.status === "active",
+  JSON.stringify({ import: n4aImport.body, member: n4aList.body.members }));
+
+// N4b: existing ACTIVE member + explicit Status=Lapsed -> moves to lapsed,
+// import reports completed (an explicit, valid, level-less status change
+// is not lossy -- it's exactly what the guild asked for).
+const n4bEmail = `n4b-${stamp}@example.test`;
+await json(`/api/tenants/${recoTenantId}/members`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ email: n4bEmail, first_name: "N4b", last_name: "Active", status: "active" }),
+});
+const n4bImport = await json(`/api/tenants/${recoTenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ header: n4Header, raw_rows: [[n4bEmail, "N4b", "Active", "Lapsed"]], mapping: n4Mapping }),
+});
+const n4bList = await json(`/api/tenants/${recoTenantId}/members?q=${encodeURIComponent(n4bEmail)}`, { headers: auth });
+check("N4b: existing active member + explicit Status=Lapsed moves to lapsed",
+  (n4bList.body.members || [])[0]?.status === "lapsed",
+  JSON.stringify({ import: n4bImport.body, member: n4bList.body.members }));
+check("N4b: import reports completed (explicit, valid, level-less status change is not lossy)",
+  n4bImport.body.status === "completed", `got ${n4bImport.body.status}`);
+
+// N4c: existing LAPSED member + explicit Status=Active -> moves to active.
+const n4cEmail = `n4c-${stamp}@example.test`;
+await json(`/api/tenants/${recoTenantId}/members`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ email: n4cEmail, first_name: "N4c", last_name: "Lapsed", status: "lapsed" }),
+});
+const n4cImport = await json(`/api/tenants/${recoTenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ header: n4Header, raw_rows: [[n4cEmail, "N4c", "Lapsed", "Active"]], mapping: n4Mapping }),
+});
+const n4cList = await json(`/api/tenants/${recoTenantId}/members?q=${encodeURIComponent(n4cEmail)}`, { headers: auth });
+check("N4c: existing lapsed member + explicit Status=Active moves to active",
+  (n4cList.body.members || [])[0]?.status === "active",
+  JSON.stringify({ import: n4cImport.body, member: n4cList.body.members }));
+
+// N4d: existing CANCELLED member + a Status column that IS present but
+// BLANK for this row (distinct from layer 4k's "column entirely absent")
+// -> stays cancelled.
+const n4dEmail = `n4d-${stamp}@example.test`;
+await json(`/api/tenants/${recoTenantId}/members`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ email: n4dEmail, first_name: "N4d", last_name: "Cancelled", status: "cancelled" }),
+});
+const n4dImport = await json(`/api/tenants/${recoTenantId}/members/import`, {
+  method: "POST", headers: auth,
+  body: JSON.stringify({ header: n4Header, raw_rows: [[n4dEmail, "N4d", "StillCancelled", ""]], mapping: n4Mapping }),
+});
+const n4dList = await json(`/api/tenants/${recoTenantId}/members?q=${encodeURIComponent(n4dEmail)}`, { headers: auth });
+check("N4d: existing cancelled member + blank Status CELL (column present) on update stays cancelled",
+  (n4dList.body.members || [])[0]?.status === "cancelled",
+  JSON.stringify({ import: n4dImport.body, member: n4dList.body.members }));
+check("N4d: last_name was still updated (proves it's a real update, not skipped)",
+  (n4dList.body.members || [])[0]?.last_name === "StillCancelled",
+  JSON.stringify(n4dList.body.members));
 
 console.log(failures ? `\n${failures} failure(s)` : "\nall layers passed");
 if (failures) process.exit(1);

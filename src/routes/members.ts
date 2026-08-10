@@ -511,9 +511,24 @@ type ImportWarning = {
 
 // The single source of truth for "this warning code means a real import
 // loses or silently changes something for at least one row" -- as opposed
-// to a code that is purely informational (there is currently only one such
-// code: plan_limit_will_hold, a dry-run ESTIMATE superseded by the real
-// import's own plan_limited counter and per-row plan_limited error rows).
+// to a code that is purely informational. Two codes are informational
+// today:
+//   - plan_limit_will_hold: a dry-run ESTIMATE superseded by the real
+//     import's own plan_limited counter and per-row plan_limited error rows.
+//   - joined_at_ignored_on_update (fix round 5): moved OUT of this set.
+//     It fires on nearly every UPDATE row of a routine full-roster
+//     re-export (any file that carries a "Member Since" column), so
+//     treating it as lossy made `partial` fire on ~100% of routine
+//     re-imports forever -- exactly the "admins learn partial means
+//     nothing" failure this whole task exists to prevent. It is also not
+//     a real loss: members.joined_at keeps its existing (correct) value,
+//     and the file's value is still used as the membership start date
+//     (see pendingMemberships.startDate below) when a level is present.
+//     Nothing is lost -- the existing record is simply authoritative over
+//     a re-import's copy of the same fact. The code, the per-row error
+//     rows, and the warning message all stay -- an admin can still see
+//     and download exactly which rows disagreed with what's on file -- it
+//     just no longer forces `partial` by itself.
 //
 // A real import must never report "completed" while any lossy code fired.
 // To add a new lossy condition later: add its code to ImportWarningCode
@@ -532,13 +547,13 @@ const LOSSY_WARNING_CODES = new Set<ImportWarningCode>([
   "level_not_found",             // member imports with no membership at all
   "unparseable_date",            // membership gets a FABRICATED end date (start + level duration), not the guild's real one
   "unparseable_join_date",       // members.joined_at is stored EXACTLY AS TYPED, unvalidated -- unlike end_date there is no fallback for a non-empty bad string (insert rows only -- see joined_at_ignored_on_update for update rows)
-  "joined_at_ignored_on_update", // members.joined_at is NEVER WRITTEN on an update, valid date or not -- the UPDATE statement has no joined_at column
   "invalid_status",              // Suspended/Archived rows are coerced to active -- consumes a plan slot, gets guild email
   "status_overridden_by_level",  // a VALID file status (pending/lapsed/cancelled) is overridden to active because the row also names a level -- invalid_status's check can't see this, since the status IS valid
   "end_date_without_level",      // a perfectly good renewal/expiry date is silently dropped because the row has no level to attach a membership (and its end_date) to
   "unmapped_column",             // an entire column of data is silently discarded
   "duplicate_target",            // a column's data is silently discarded (the later of two columns claiming one target)
   "column_count_mismatch",       // the row is skipped outright
+  // joined_at_ignored_on_update is deliberately NOT here -- see comment above.
 ]);
 
 // Row-level error kinds (persisted to import_batch_errors, returned as
@@ -574,11 +589,24 @@ const ERROR_KIND_LABELS: Record<BatchErrorKind, string> = {
   plan_limited: "row(s) held at the free-plan limit",
   unparseable_date: "row(s) had an unreadable renewal date",
   unparseable_join_date: 'row(s) had an unreadable "member since" date',
-  joined_at_ignored_on_update: 'row(s) had a "member since" date that was not applied (existing member)',
+  joined_at_ignored_on_update: 'row(s)\' "member since" date differs from what\'s on file (kept existing value; still used as membership start date)',
   invalid_status: "row(s) had a status not recognized (imported as active)",
   status_overridden_by_level: "row(s) had a file status overridden to active by a level",
   end_date_without_level: "row(s) had a renewal date but no level to store it against",
 };
+
+/**
+ * Compares two date-ish strings by CALENDAR DAY (UTC), not by raw string
+ * equality -- so "2019-03-02" and "3/2/2019" are recognized as the same
+ * day. Returns false (treated as "different") if either fails to parse,
+ * since an unparseable value is never safely "the same as" anything.
+ */
+function sameCalendarDay(a: string, b: string): boolean {
+  const da = new Date(a);
+  const db = new Date(b);
+  if (Number.isNaN(da.getTime()) || Number.isNaN(db.getTime())) return false;
+  return da.toISOString().slice(0, 10) === db.toISOString().slice(0, 10);
+}
 
 /**
  * Aggregate per-row observations into one warning per code+column.
@@ -607,11 +635,13 @@ function buildWarnings(args: {
   planWillHold: number;
   duplicateKeys: Array<{ key: string; headers: string[]; indices: number[] }>;
   phase: "preview" | "applied";
-  // Lowercased, trimmed emails that already exist in this tenant (built
-  // from the same byEmail lookup the route does before either branch runs)
-  // -- needed to tell an update row from an insert row, because joined_at
-  // behaves differently on each (fix round 4, item 2).
-  existingEmails: Set<string>;
+  // Lowercased, trimmed email -> that member's CURRENT joined_at (built
+  // from the same lookup the route does before either branch runs). A
+  // present key means the row updates an existing member (fix round 4,
+  // item 2); the value lets fix round 5 tell "file's joined_at already
+  // matches the record" (nothing lost) from "it genuinely differs"
+  // (informational -- see joined_at_ignored_on_update).
+  existingJoinedAt: Map<string, string | null>;
 }): ImportWarning[] {
   const out: ImportWarning[] = [];
   const applied = args.phase === "applied";
@@ -679,13 +709,19 @@ function buildWarnings(args: {
       else if (!hasMatchedLevel) endWithoutLevel.push(i + 1);
     }
     const emailNorm = (row.email || "").toLowerCase().trim();
-    const isUpdateRow = args.existingEmails.has(emailNorm);
+    const isUpdateRow = args.existingJoinedAt.has(emailNorm);
     if (row.joined_at) {
       if (isUpdateRow) {
-        // The UPDATE statement never has a joined_at column, valid date or
-        // not -- so on an update row this is where the bad-vs-good split
-        // stops mattering; either way it's silently dropped.
-        joinedAtIgnored.push(i + 1);
+        // The UPDATE statement never writes joined_at -- but if the file's
+        // value already matches what's on record (by calendar day, not
+        // raw string -- "2019-03-02" and "3/2/2019" are the same day),
+        // nothing was actually lost by not writing it, so stay quiet. Only
+        // a genuine difference is worth a (now informational, not lossy --
+        // see LOSSY_WARNING_CODES) warning.
+        const existing = args.existingJoinedAt.get(emailNorm);
+        if (!existing || !sameCalendarDay(row.joined_at, existing)) {
+          joinedAtIgnored.push(i + 1);
+        }
       } else if (Number.isNaN(new Date(row.joined_at).getTime())) {
         // Unlike endRaw, joined_at has no "|| fallback" for a non-empty
         // bad string on an INSERT -- `row.joined_at || now` only
@@ -724,10 +760,16 @@ function buildWarnings(args: {
         : "Some \"member since\" dates could not be read; they will be stored exactly as typed, without validation",
       count: badJoinDates.length, sample_rows: badJoinDates.slice(0, 3) });
   if (joinedAtIgnored.length)
+    // Informational, not lossy (see LOSSY_WARNING_CODES) -- nothing is
+    // actually lost: the existing member keeps their recorded joined_at,
+    // and the file's value is still used as the membership start date
+    // below when a level is present. Only fires when the file's date
+    // genuinely differs from what's on record (fix round 5); an unchanged
+    // re-export of the same roster stays quiet.
     out.push({ code: "joined_at_ignored_on_update",
       message: applied
-        ? "Some \"member since\" dates were not applied because these rows update an existing member -- an import never changes joined_at on update"
-        : "Some \"member since\" dates will not be applied because these rows update an existing member -- an import never changes joined_at on update",
+        ? "Some \"member since\" dates differ from what's already on file for these existing members. members.joined_at keeps its existing value; the file's value is still used as the membership start date"
+        : "Some \"member since\" dates differ from what's already on file for these existing members. members.joined_at will keep its existing value; the file's value will still be used as the membership start date",
       count: joinedAtIgnored.length, sample_rows: joinedAtIgnored.slice(0, 3) });
   if (badStatus.length)
     out.push({ code: "invalid_status",
@@ -902,6 +944,11 @@ memberRoutes.post("/import", async (c) => {
 
   // Build email map in batches (do not SELECT entire 50k-member table)
   const byEmail = new Map<string, string>();
+  // Fix round 5, item 1: the existing member's CURRENT joined_at, so the
+  // update path can tell "this row's joined_at is already what's on file"
+  // (nothing lost, stay quiet) from "this row's joined_at genuinely
+  // differs from the record" (informational -- see joined_at_ignored_on_update).
+  const existingJoinedAt = new Map<string, string | null>();
   const emailsInFile = [
     ...new Set(
       normalizedRows
@@ -912,12 +959,15 @@ memberRoutes.post("/import", async (c) => {
   for (let i = 0; i < emailsInFile.length; i += 200) {
     const slice = emailsInFile.slice(i, i + 200);
     const placeholders = slice.map(() => "?").join(",");
-    const found = await all<{ id: string; email: string }>(
+    const found = await all<{ id: string; email: string; joined_at: string | null }>(
       c.env.DB.prepare(
-        `SELECT id, email FROM members WHERE tenant_id = ? AND email IN (${placeholders})`
+        `SELECT id, email, joined_at FROM members WHERE tenant_id = ? AND email IN (${placeholders})`
       ).bind(tenant.id, ...slice)
     );
-    for (const m of found) byEmail.set(m.email, m.id);
+    for (const m of found) {
+      byEmail.set(m.email, m.id);
+      existingJoinedAt.set(m.email, m.joined_at);
+    }
   }
 
   const levels = await all<MembershipLevel>(
@@ -991,7 +1041,7 @@ memberRoutes.post("/import", async (c) => {
         header: body.header, rawRows: body.raw_rows, mapping, unmapped, duplicates,
         normalizedRows, levelByName, memberStatuses: MEMBER_STATUSES,
         columnMismatchRows, planWillHold, duplicateKeys, phase: "preview",
-        existingEmails: new Set(byEmail.keys()),
+        existingJoinedAt,
       }),
       // Full list, not capped: the error CSV in the UI depends on it.
       skipped,
@@ -1139,7 +1189,7 @@ memberRoutes.post("/import", async (c) => {
     header: body.header, rawRows: body.raw_rows, mapping, unmapped, duplicates,
     normalizedRows, levelByName, memberStatuses: MEMBER_STATUSES,
     columnMismatchRows, planWillHold: 0, duplicateKeys, phase: "applied",
-    existingEmails: new Set(byEmail.keys()),
+    existingJoinedAt,
   });
   const lossyWarningFired = warnings.some((w) => LOSSY_WARNING_CODES.has(w.code));
 
@@ -1195,17 +1245,24 @@ memberRoutes.post("/import", async (c) => {
         if (isUpdate) {
           // The UPDATE statement below has no joined_at column at all --
           // an existing member's joined_at is never touched by an import,
-          // valid date or not. Previously the only signal here was for an
-          // UNPARSEABLE date, and even that reason string was wrong for
-          // update rows ("it was stored exactly as typed" -- it was not
-          // stored at all). Split into its own code so the message is
-          // unconditionally true either way.
-          batchErrors.push({
-            row_number: rowIndex + 1,
-            kind: "joined_at_ignored_on_update",
-            reason: `"member since" date "${row.joined_at}" was not applied; an import never changes an existing member's joined_at`,
-            email,
-          });
+          // valid date or not. Fix round 5: only worth a signal when the
+          // file's date genuinely differs (by calendar day, not raw
+          // string) from what's already on record -- an unchanged
+          // re-export of the same roster must stay quiet, or `partial`
+          // fires on ~100% of a routine re-import's updated rows forever.
+          // Also reclassified as INFORMATIONAL (see LOSSY_WARNING_CODES):
+          // nothing is actually lost -- the existing record is
+          // authoritative, and the file's value is still used as the
+          // membership start date below when a level is present.
+          const existingJoined = existingJoinedAt.get(email);
+          if (!existingJoined || !sameCalendarDay(row.joined_at, existingJoined)) {
+            batchErrors.push({
+              row_number: rowIndex + 1,
+              kind: "joined_at_ignored_on_update",
+              reason: `"member since" date "${row.joined_at}" differs from what's on file (${existingJoined ?? "none"}); members.joined_at keeps its existing value, though the file's value is still used as the membership start date`,
+              email,
+            });
+          }
         } else if (Number.isNaN(new Date(row.joined_at).getTime())) {
           // Same predicate buildWarnings uses for "unparseable_join_date"
           // below. Unlike endRaw further down, there is no fallback for a
