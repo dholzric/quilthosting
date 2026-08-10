@@ -24,7 +24,7 @@ Source HTML: `public/docs/*` (deployed with the Worker assets binding).
 |-----|---------|
 | [api.md](./api.md) | API endpoints (markdown) |
 | [auto-renew-e2e.md](./auto-renew-e2e.md) | Auto-renew E2E checklist & results |
-| [wildapricot-gap-analysis.md](./wildapricot-gap-analysis.md) | WA parity audit — **over-credits "code exists" as parity; Phase 0 revision pending** |
+| [wildapricot-gap-analysis.md](./wildapricot-gap-analysis.md) | WA parity audit — re-framed to an evidence bar (v0.27.1); most rows still unaudited |
 | [superpowers/plans/](./superpowers/plans/) | Implementation plans & the WA replacement master program |
 | [competition-wild-apricot-alternatives.md](./competition-wild-apricot-alternatives.md) | Competitive notes |
 | [scaling.md](./scaling.md) | Pagination, queued blasts, 50k-member design |

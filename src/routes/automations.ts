@@ -9,6 +9,13 @@ export const automationRoutes = new Hono<{
   Variables: TenantVariables;
 }>();
 
+/**
+ * Triggers that actually enroll members. Add a value here ONLY when a matching
+ * enroll* function in lib/automations.ts is wired to a real call site —
+ * otherwise guilds can build a sequence that never runs.
+ */
+export const AUTOMATION_TRIGGERS = ["member_activated"] as const;
+
 automationRoutes.get("/", async (c) => {
   const tenant = c.get("tenant");
   try {
@@ -33,6 +40,23 @@ automationRoutes.post("/", async (c) => {
   }>();
   const name = (body.name || "").trim();
   if (!name) return c.json({ error: "name is required" }, 400);
+  // Only one trigger is wired: enrollMemberActivated in lib/automations.ts.
+  // Reject anything else rather than silently coercing it — a sequence stored
+  // with an unwired trigger would sit there enrolling nobody, which is exactly
+  // the advertised-but-dead failure the webhook catalog was built to prevent.
+  if (
+    body.trigger_event !== undefined &&
+    body.trigger_event !== "member_activated"
+  ) {
+    return c.json(
+      {
+        error: `Unsupported trigger_event "${body.trigger_event}".`,
+        code: "unsupported_trigger",
+        valid: AUTOMATION_TRIGGERS,
+      },
+      400
+    );
+  }
   const steps = parseSteps(JSON.stringify(body.steps || []));
   if (!steps.length) {
     return c.json({ error: "At least one step with subject and body is required" }, 400);
@@ -48,7 +72,7 @@ automationRoutes.post("/", async (c) => {
       id,
       tenant.id,
       name,
-      body.trigger_event === "member_activated" ? "member_activated" : "member_activated",
+      "member_activated",
       body.is_active === false ? 0 : 1,
       JSON.stringify(steps),
       now,
