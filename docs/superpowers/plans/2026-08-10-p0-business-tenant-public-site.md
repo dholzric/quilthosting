@@ -3418,16 +3418,20 @@ git push origin main
 
 ## Definition of done
 
-- [ ] `npx tsc --noEmit` clean.
-- [ ] `npx vitest run` green — 9 test files (`tenantType`, `plans`, `theme`, `fonts`, `themeMigrate`, `seo`, `blocks`, `render`, `credentials`), ~70 assertions.
-- [ ] `npm run test:business-site` green.
-- [ ] The five pre-existing `npm run test:*` scripts still pass (regression check on guilds).
-- [ ] A launched business tenant serves server-rendered, indexable HTML on its own hostname.
-- [ ] Uploaded images serve from `/img/:fileId` on the tenant host, and a file id from another tenant 404s.
-- [ ] The owner can edit pages, blocks, appearance, business details, nav, domain, and the launch toggle without touching the database.
-- [ ] `quilthosting.com`, `/admin`, `/portal`, and unlaunched tenants all still return 401 behind the gate.
-- [ ] An existing guild site renders unchanged through `guild.html`.
-- [ ] `package.json` version is `0.32.0-preview` and the work is pushed to `origin/main`.
+Verified 2026-08-11 on branch `p0-business-tenant` at `330cac1`.
+
+- [x] `npx tsc --noEmit` clean. — exit 0.
+- [x] `npx vitest run` green — grew past the planned 9 files: **18 test files, 232 assertions**, all passing.
+- [x] `npm run test:business-site` green — "All checks passed", 57 assertions.
+- [x] The five pre-existing `npm run test:*` scripts still pass (regression check on guilds). — `scale`, `integrations`, `idempotency`, `import`, `delivery` all exit 0.
+- [x] A launched business tenant serves server-rendered, indexable HTML on its own hostname. — home 200, server-rendered, theme custom properties, `LocalBusiness` json-ld, not noindexed; sitemap and robots correct.
+- [x] Uploaded images serve from `/img/:fileId` on the tenant host, and a file id from another tenant 404s. — plus content-type fidelity, `nosniff`, immutable cache, and a `text/html`-typed same-tenant file 404s rather than serving.
+- [~] The owner can edit pages, blocks, appearance, business details, nav, domain, and the launch toggle without touching the database. — **partially automated.** Business Details save is asserted through the real admin PATCH path (including cache invalidation), and the launch toggle is exercised by the gate matrix. Pages, blocks, appearance, nav, and domain editing are implemented (Tasks 13-14) but have no end-to-end assertion; they still need a manual admin pass before the client sees it.
+- [x] `quilthosting.com`, `/admin`, `/portal`, and unlaunched tenants all still return 401 behind the gate. — full gate matrix passes, including "a guild is never launch-exempt".
+- [x] An existing guild site renders unchanged through `guild.html`. — `/public/<slug>/site` reachable, legacy `theme.primary` preserved, full token set emitted.
+- [x] `package.json` version is `0.32.0-preview`. Branch push: see below.
+
+**Harness note.** The four server-driven scripts (`integrations`, `idempotency`, `import`, `delivery`) default to `http://127.0.0.1:8787` and will fail with `403 Missing origin header` if any *other* project's `wrangler dev` holds that port — that string does not exist in this codebase, so it is a wrong-server symptom, not a regression. Run them against an explicit port instead: `QH_BASE=http://127.0.0.1:8798 npm run test:idempotency`, with `npx wrangler dev --port 8798 --local` up.
 
 ## Deferred to later sub-projects
 
