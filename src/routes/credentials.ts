@@ -5,11 +5,12 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import type { Env, TenantVariables } from "../types";
+import type { AuthVariables } from "../middleware/auth";
 import { putCredential, listCredentialStatus, clearCredential } from "../lib/credentials";
 
 export const credentialRoutes = new Hono<{
   Bindings: Env;
-  Variables: TenantVariables;
+  Variables: AuthVariables & TenantVariables & { tenantRole: string };
 }>();
 
 const ALLOWED: Record<string, string[]> = {
@@ -22,7 +23,38 @@ const putSchema = z.object({
   value: z.string().min(1).max(500),
 });
 
-/** GET / — which credentials exist. Never their values. */
+// Matches src/routes/domain.ts's requireOwnerAdmin exactly (shape and
+// response), not src/routes/billing.ts's differently-shaped version (sync
+// boolean, excludes the "platform" role). Payment credentials are at least
+// as sensitive as the custom-domain writes domain.ts gates this way, and
+// platform admins already have standing access to tenant billing/domain
+// admin, so excluding them here would be an inconsistent carve-out, not a
+// safety win. Exported (unlike domain.ts's private copy) so it can be unit
+// tested directly without standing up a full Hono + D1 request — this repo's
+// vitest config is pure-unit tests only.
+export async function requireOwnerAdmin(c: {
+  get: (k: "tenantRole") => string;
+}): Promise<Response | null> {
+  const role = c.get("tenantRole");
+  if (!["owner", "admin", "platform"].includes(role)) {
+    return new Response(JSON.stringify({ error: "Forbidden" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  return null;
+}
+
+/**
+ * GET / — which credentials exist. Never their values.
+ *
+ * Deliberately left on requireTenantAccess (no requireOwnerAdmin gate):
+ * listing which keys are configured leaks no secret material, only a
+ * boolean + timestamp per key, and read-only visibility into "is PayPal
+ * set up yet" is reasonable for any tenant staff role, same as billing.ts's
+ * and domain.ts's own GET / status endpoints (neither gates their summary
+ * reads with requireOwnerAdmin either — only their mutating routes do).
+ */
 credentialRoutes.get("/", async (c) => {
   const tenant = c.get("tenant");
   const provider = c.req.query("provider") || "paypal";
@@ -40,6 +72,8 @@ credentialRoutes.get("/", async (c) => {
 });
 
 credentialRoutes.put("/", async (c) => {
+  const denied = await requireOwnerAdmin(c);
+  if (denied) return denied;
   const tenant = c.get("tenant");
   const parsed = putSchema.safeParse(await c.req.json().catch(() => ({})));
   if (!parsed.success) return c.json({ error: "Invalid body" }, 400);
@@ -57,6 +91,8 @@ credentialRoutes.put("/", async (c) => {
 });
 
 credentialRoutes.delete("/:provider/:key", async (c) => {
+  const denied = await requireOwnerAdmin(c);
+  if (denied) return denied;
   const tenant = c.get("tenant");
   const provider = c.req.param("provider");
   const key = c.req.param("key");

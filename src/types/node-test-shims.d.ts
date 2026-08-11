@@ -38,9 +38,10 @@ interface ImportMeta {
 
 // Minimal shape for credentials.test.ts, which round-trips raw bytes through
 // base64/hex the same way the real (Node-only, never-run-in-Worker) test
-// tooling does. Not a general Buffer shim — just enough surface for that
-// file's `Buffer.from(...).toString(...)` and `Buffer.from(base64string)`
-// calls.
+// tooling does. Not a general Buffer shim — only covers
+// `Buffer.from(Uint8Array).toString("hex" | "base64")`, the one call shape
+// that file uses. No test calls `Buffer.from(someString)`, and this
+// signature does not accept a string argument.
 declare const Buffer: {
   from(data: Uint8Array | number[]): {
     toString(encoding: "hex" | "base64"): string;
