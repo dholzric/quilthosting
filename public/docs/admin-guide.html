@@ -22,6 +22,8 @@
         <h3>On this page</h3>
         <a href="#nav">Sidebar map</a>
         <a href="#members">Members</a>
+        <a href="#import">Importing members</a>
+        <a href="#partial">Partial imports</a>
         <a href="#events">Events</a>
         <a href="#store">Store</a>
         <a href="#invoices">Invoices</a>
@@ -68,6 +70,46 @@
           <li><strong>Assign level offline:</strong> mark paid when dues collected in cash/check</li>
           <li><strong>Directory:</strong> members can opt out; public directory is opt-in on the guild profile</li>
         </ul>
+
+        <h2 id="import">Importing your members</h2>
+        <p>Members → Import brings a member list in from a CSV export (Wild Apricot or otherwise) without guessing at column names.</p>
+        <ol>
+          <li><strong>Choose the file.</strong> The importer reads every column in your CSV, including ones it doesn't recognize — nothing is silently dropped.</li>
+          <li><strong>Check the column table.</strong> Each column shows an example value and a dropdown for where it goes: a known member field (email, first name, last name, phone, status, notes, level, end/expiry date, joined date), <strong>Import as custom field</strong>, or <strong>Do not import</strong>. Common header spellings (<code>First</code>, <code>Membership Type</code>, <code>Renewal Date</code>, <code>Member Since</code>) are pre-matched — confirm the guesses, especially with unusual headers.</li>
+          <li><strong>Promote a column to a custom field</strong> for guild-specific data (a guild number, a fabric-stash size). It becomes a permanent custom field on every member going forward, not just this import.</li>
+          <li><strong>Read the warnings.</strong> "What will happen" shows how many members will be created, updated and skipped, plus anything worth double-checking. <strong>Nothing is written until you press Import</strong> — changing a mapping just re-checks the file.</li>
+          <li><strong>Press Import.</strong> You get a summary, and if any rows need attention a <strong>Download N problem rows</strong> button gives you a CSV of just those rows with the reason for each.</li>
+        </ol>
+        <div class="callout ok"><strong>Re-importing is safe against duplicates.</strong> Rows are matched by email, so importing the same file again (or a corrected version) <strong>updates</strong> existing members rather than creating duplicates. Custom-field values you've entered by hand are kept unless the file supplies a new value for that same field. (One exception to "safe" — see the warning under Partial imports.)</div>
+
+        <h2 id="partial">Partial imports — what they mean</h2>
+        <p>Every import is recorded, and each one ends up in one of two everyday states:</p>
+        <ul>
+          <li><strong>Complete</strong> — nothing was lost.</li>
+          <li><strong>Partial</strong> — <em>something in your file did not come through in full.</em> Your members were still imported; "partial" is not a crash and it is not a rollback. It's the importer refusing to tell you everything went fine when part of your data didn't make it.</li>
+        </ul>
+        <p>An import is marked partial when any of these happened:</p>
+        <table>
+          <thead><tr><th>What happened</th><th>Detail</th></tr></thead>
+          <tbody>
+            <tr><td>Rows were <strong>skipped</strong></td><td>No email address, a duplicate email inside the same file, or a row with a different number of columns than the header</td></tr>
+            <tr><td>A <strong>membership couldn't be assigned</strong></td><td>The file said this person had one, and it failed. Read the warning below before re-running.</td></tr>
+            <tr><td>A <strong>level doesn't exist yet</strong></td><td>The person was imported, but with no membership</td></tr>
+            <tr><td>A <strong>"Do not import" column had data</strong></td><td>An entirely empty ignored column is not counted — that's just noise in the export</td></tr>
+            <tr><td><strong>Two columns pointed at the same field</strong></td><td>One was ignored. This counts <em>whether or not</em> the losing column had any data in it.</td></tr>
+            <tr><td>A <strong>date or status couldn't be read</strong>, or a status was overridden</td><td>E.g. a row marked "lapsed" that also names a level comes in as active</td></tr>
+            <tr><td>Members were <strong>held at your plan's active-member limit</strong></td><td>Usually nothing to fix — see below</td></tr>
+          </tbody>
+        </table>
+        <p><strong>What to do:</strong> on the Members page, the <strong>Recent imports</strong> card lists your 50 most recent imports with when each ran, who ran it, the counts, and a <strong>Download errors</strong> button. That CSV names the exact row numbers and the reason for each one. Column-level notes (like "this column wasn't imported") appear under the row in the card and at the bottom of the CSV, because they aren't tied to any single row. The card is the only place to reach those downloads, so once an import falls past the 50 most recent its error report is no longer reachable — download anything you still need before then.</p>
+        <p>Then fix those rows in your spreadsheet and <strong>import the file again.</strong> Re-importing is the repair mechanism — members are matched by email, so rows that already came through are updated in place rather than duplicated.</p>
+        <div class="callout warn"><strong>Read the errors before you re-run — re-importing can make one thing worse.</strong> When a row assigns a membership to someone who <em>already</em> has an active membership, the existing membership is expired first and the new one written second. If the new one fails again (the same "membership couldn't be assigned" error), that member is left with <strong>no</strong> active membership, where before the re-import they had one. If your error list contains membership failures, work out why they failed before re-running the file. Everything else on the list is safe to re-import.</div>
+        <p><strong>What "partial" does not mean:</strong> there is no undo. QuiltHosting cannot roll a partial import back or resume it where it stopped, and it can't work out on its own what's still missing. The fix is always: correct the file, import again.</p>
+
+        <h3>Partial only because of your plan limit</h3>
+        <p>The free plan allows 30 active members. If your file has more active members than you have room for, the extra people are still imported — they just don't get an active membership. A <strong>new</strong> member held this way comes in as <strong>pending</strong>. An <strong>existing</strong> member either keeps the status they already had or is set to pending, depending on the row — either way the import never makes them active.</p>
+        <p>Because those members aren't active, the import is recorded as partial. When that's the <em>only</em> thing that happened, the result banner says so directly: "Import complete — N member(s) are waiting on your plan's active-member limit." <strong>Nothing is wrong with your file.</strong> Every row was imported and every record is saved. Upgrade if you want those members active, or leave them as they are.</p>
+        <p>One thing to know: in the <strong>Recent imports</strong> card that same import is still badged <strong>partial</strong> (amber). It's the batch the banner just explained — download its errors and you'll see every listed row is "held at the free-plan limit".</p>
 
         <h2 id="events">Events</h2>
         <ul>

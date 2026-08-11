@@ -348,7 +348,7 @@ The column is `import_batches.status` and takes four values:
 
 | Value | Meaning |
 |---|---|
-| `running` | The batch row was inserted and the run is in flight. A row can only be observed in this state by reading the history endpoints while an import is executing. |
+| `running` | The batch row was inserted and the run has not yet been closed. Usually that means an import is executing. It can also mean the run never got to close the row — see below. |
 | `completed` | Nothing was lost. |
 | `partial` | **Something was not fully imported.** Review the batch's `errors` and `warnings`. |
 | `failed` | The run threw. The batch is closed as `failed` with whatever counts were known at the time and the request returns a 500. Rows already written by an earlier chunk stay written — see "What import does not do". |
@@ -358,6 +358,25 @@ failures, zero plan-limited rows, zero level-not-found rows, and no lossy
 warning fired. Anything else is `partial`. The last condition is derived
 from `LOSSY_WARNING_CODES` rather than hand-counted, so a lossy condition
 `buildWarnings()` knows about forces `partial` even if nothing else counts it.
+
+##### A batch stuck at `running`
+
+`running` is not a guarantee that work is happening. Both closing writes —
+the `completed`/`partial` UPDATE and the `failed` UPDATE in the catch — are
+ordinary statements issued by the same request, and the `failed` one is
+best-effort (it is wrapped in its own try/catch and only logs if it fails).
+If the Worker isolate is terminated first (CPU or wall-clock limit, eviction)
+or that close itself fails, the row stays at `running` **permanently**.
+Nothing sweeps it.
+
+So a `running` batch whose `started_at` is not recent is not in flight — it
+is a leftover from a run that was killed before it could close its own
+record. Its counters are not a live progress reading — only `total_rows` is
+written at insert time; `created_count`, `updated_count`, `skipped_count`,
+`memberships_assigned`, `membership_failures`, `plan_limited` and
+`custom_fields_created` are written **solely** by the closing UPDATE, so on a
+stuck batch they are still the schema defaults of `0` no matter how many rows
+were actually written to `members`.
 
 ##### `partial` with zero row errors
 
@@ -376,10 +395,25 @@ Render both. Both history endpoints return `warnings` for this reason.
 ##### `partial` caused only by the free-plan cap
 
 `plan_limited > 0` counts toward `partial`. That is intentional — members
-held at `pending` by the free-plan cap really are not active — but it means
-**a free-plan guild importing 40 members always gets `status: "partial"`**
-even when their file is perfect. Nothing failed; the guild is over the free
-plan's 30-active-member limit and the extra rows imported as `pending`.
+held by the free-plan cap really are not active — but it means **a free-plan
+guild importing 40 members always gets `status: "partial"`** even when their
+file is perfect. Nothing failed; the guild is over the free plan's
+30-active-member limit and the extra rows were imported without an active
+membership.
+
+"Held" does not uniformly mean "status is now `pending`" — there are two
+plan-limiting branches and they land differently:
+
+| Branch | Row | Outcome |
+|---|---|---|
+| Row gives an explicit status, names **no** level (`src/routes/members.ts:1471-1490`) | new | inserted as `pending` |
+| | existing | UPDATE binds `pending` (this branch has `statusOpinionGiven` true and no level, so `coalesce(?, status)` receives a real value) |
+| Row **names a level** (`src/routes/members.ts:1583-1598`) | new | inserted as `pending` (`importStatus = level ? "pending" : status`) — and `continue` skips the membership assignment |
+| | existing | **status is left unchanged.** The UPDATE binds `level ? null : …`, i.e. `null`, so `coalesce(null, status)` keeps whatever the member already had. The guard `alreadyActive?.status !== "active"` means such a member was not active to begin with, so they are not made active either. |
+
+The safe general statement — the one to put in any UI — is that held rows are
+**not made active**: new members come in as `pending`, existing members are
+either set to `pending` or keep the status they already had.
 
 The admin UI detects this specific case (every entry in `errors` has
 `kind: "plan_limited"` and `warnings` is empty) and shows "Import complete —
@@ -415,7 +449,12 @@ by `tenant_id`.
 
 #### `GET /api/tenants/:tenantId/members/import/batches`
 
-The tenant's last 50 batches, newest first (`ORDER BY started_at DESC LIMIT 50`).
+The tenant's last 50 batches, newest first (`ORDER BY started_at DESC LIMIT
+50`). There is no paging parameter, and the admin UI's "Recent imports" card
+is the only place the per-batch error download is reachable from — so once a
+batch falls outside the 50 most recent it is effectively unreachable through
+the product, even though the row and its `import_batch_errors` are still in
+the database.
 
 ```json
 {
@@ -500,8 +539,25 @@ The supported recovery is to **fix the CSV and import it again.** That
 converges because upsert is keyed on lowercased `email`: rows that already
 landed update in place instead of duplicating. It converges on member
 records; it does not roll anything back, and a re-import re-applies the same
-rules (so, for example, a plan-limited row stays `pending` until the plan
+rules (so, for example, a plan-limited row is still held until the plan
 changes).
+
+**Re-import is not monotonic — it can leave a member worse off.**
+`activateMembership()` expires the member's existing active memberships
+*before* inserting the new one — two separately awaited statements with no
+transaction around them (`src/lib/memberships.ts:74` then `:76-96`). If the
+insert then fails, the catch at
+`src/routes/members.ts:1652-1669` records a `membership_failed` row, but the
+expiry has already happened and is not undone. So re-importing a row that
+failed to assign a membership to a member who **currently has an active
+membership** can end with that member holding **no** active membership —
+strictly worse than the state before the re-import. The source comment at
+`:1655-1661` records this as a known limitation.
+
+Practical consequence for any client or runbook: `membership_failed` rows are
+the one error kind where "just re-run the file" is bad advice. Diagnose why
+the assignment failed first. Every other kind in `errors` is safe to
+re-import.
 
 **Known gap — custom-field creation is racy.** When a mapping introduces new
 custom fields, the route reads `tenants.settings_json`, appends the new

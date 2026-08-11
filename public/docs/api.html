@@ -23,6 +23,7 @@
         <a href="#auth">Authentication</a>
         <a href="#endpoints">Endpoints</a>
         <a href="#examples">Examples</a>
+        <a href="#import">Bulk member import</a>
         <a href="#zapier">Zapier / Make</a>
         <a href="#limits">Limits &amp; notes</a>
       </aside>
@@ -64,6 +65,82 @@ curl -s "https://quilthosting.com/api/v1/members?status=active" \
 
 curl -s https://quilthosting.com/api/v1/payments \
   -H "Authorization: Bearer qh_…"</pre>
+
+        <h2 id="import">Bulk member import</h2>
+        <p><code>POST /api/tenants/:tenantId/members/import</code> powers the CSV importer in Admin → Members → Import.</p>
+        <div class="callout warn">This is a <strong>tenant-admin route</strong> authenticated with the admin's JWT session, not an <code>/api/v1</code> endpoint — <strong>API keys cannot call it.</strong> It is documented here because it's the primary bulk-write path for members.</div>
+        <p>Send <code>dry_run: true</code> to run every check and get the full reconciliation <strong>without writing anything</strong> — no members, no memberships, no custom-field definitions.</p>
+
+        <h3>Refusals</h3>
+        <table>
+          <thead><tr><th>Condition</th><th>Response</th></tr></thead>
+          <tbody>
+            <tr><td>Both <code>rows</code> and <code>raw_rows</code> present</td><td><code>400 ambiguous_payload</code></td></tr>
+            <tr><td><code>raw_rows</code> without <code>header</code></td><td><code>400 missing_header</code></td></tr>
+            <tr><td>More than 5000 rows</td><td><code>400</code> — split larger files</td></tr>
+            <tr><td>Two or more columns mapped to the same custom-field key</td><td><code>400 duplicate_custom_key</code>, with a <code>duplicates</code> array of <code>{ key, headers, indices }</code></td></tr>
+          </tbody>
+        </table>
+        <p><code>duplicate_custom_key</code> is a <strong>real-import-only</strong> refusal, raised before anything is written — the second column would otherwise silently overwrite the first. A dry run with the same mapping does not 400; it reports the same problem as a <code>duplicate_custom_key</code> warning instead.</p>
+
+        <h3>Real import response</h3>
+        <pre>{
+  "ok": true,
+  "batch_id": "…",
+  "status": "partial",
+  "created": 80, "updated": 35, "skipped": 5,
+  "memberships_assigned": 58,
+  "membership_failures": 2,
+  "level_not_found": 0,
+  "plan_limited": 0,
+  "custom_fields_created": [{ "key": "guild_number", "label": "Guild #" }],
+  "skipped_rows": [{ "row": 12, "reason": "missing or invalid email" }],
+  "errors": [{ "row_number": 41, "kind": "membership_failed", "reason": "…", "email": "…" }],
+  "warnings": [{ "code": "level_not_found", "message": "…", "count": 3, "sample_rows": [4, 9, 17] }],
+  "error_kind_labels": { "membership_failed": "membership(s) failed to assign" }
+}</pre>
+        <p>Upsert is keyed on lowercased <code>email</code>; a row whose email already exists on the guild updates that member instead of creating a duplicate.</p>
+
+        <h3>status</h3>
+        <table>
+          <thead><tr><th>Value</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><code>running</code></td><td>The batch row was inserted and has not been closed. Usually an import is executing — but a batch whose <code>started_at</code> is not recent is a leftover from a run whose Worker was terminated (CPU/wall-clock limit, eviction) before it could close its own record. Nothing sweeps these. Only <code>total_rows</code> is written at insert time; every other counter is written solely by the closing update, so a stuck batch still reads <code>0</code> no matter how many rows were actually written.</td></tr>
+            <tr><td><code>completed</code></td><td>Nothing was lost.</td></tr>
+            <tr><td><code>partial</code></td><td><strong>Data was not fully imported.</strong> Review the batch's <code>errors</code> <em>and</em> <code>warnings</code>.</td></tr>
+            <tr><td><code>failed</code></td><td>The run threw. The batch is closed as failed with whatever counts were known and the request returns a 500. Rows already written by an earlier chunk stay written.</td></tr>
+          </tbody>
+        </table>
+        <p><code>completed</code> requires <strong>all</strong> of: zero skipped rows, zero membership failures, zero plan-limited rows, zero level-not-found rows, and no lossy warning fired. Anything else is <code>partial</code>.</p>
+
+        <h3>errors vs warnings — not the same thing</h3>
+        <p><code>errors</code> is <strong>per row</strong> (which row, what kind, why). <code>warnings</code> is <strong>column-level and whole-file</strong>: <code>unmapped_column</code> and <code>duplicate_target</code> describe a <em>column</em>, not a row, so they never produce a row-level error.</p>
+        <div class="callout warn">A batch can legitimately be <code>partial</code> with an <strong>empty <code>errors</code> array and a non-empty <code>warnings</code> array</strong> — e.g. a CSV with one ignored column that carries data in every row loses a whole column, but no individual row failed. A client that renders only <code>errors</code> shows an unexplained "partial". <strong>Render both.</strong></div>
+
+        <h3>Partial caused only by the plan cap</h3>
+        <p><code>plan_limited &gt; 0</code> counts toward <code>partial</code>, so <strong>a free-plan guild importing 40 members always gets <code>status: "partial"</code></strong> even when their file is perfect. Held rows are <strong>not made active</strong>: new members come in as <code>pending</code>, existing members are either set to <code>pending</code> or keep the status they already had. The admin UI detects this case (every entry in <code>errors</code> has <code>kind: "plan_limited"</code> and <code>warnings</code> is empty) and phrases it as a completion, not a problem; the "Recent imports" card still shows the <code>partial</code> badge, because the batch-list columns can't distinguish the case reliably.</p>
+
+        <h3>Import history</h3>
+        <p>Both routes sit behind the same auth as the import itself and filter by guild.</p>
+        <table>
+          <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td>GET</td><td><code>/api/tenants/:tenantId/members/import/batches</code></td><td>The 50 most recent batches, newest first. Each carries the counters, <code>actor_user_id</code> / <code>actor_email</code>, and a parsed <code>warnings</code> array. No paging parameter.</td></tr>
+            <tr><td>GET</td><td><code>/api/tenants/:tenantId/members/import/batches/:batchId/errors</code></td><td>The full, <strong>uncapped</strong> per-row list for one batch, ordered by row number, plus the same <code>warnings</code> array and <code>error_kind_labels</code>. A batch id belonging to another guild returns <code>404</code>, indistinguishable from one that doesn't exist.</td></tr>
+          </tbody>
+        </table>
+        <p><code>actor_email</code> is a snapshot taken at import time, not a live lookup, so it stays accurate if the account's email later changes or the user is deleted. Both actor fields are <code>null</code> on batches created before the column existed. <code>custom_fields_created</code> is a <strong>count</strong> on a batch row, but an array of <code>{ key, label }</code> in the import response.</p>
+
+        <h3>What import does not do</h3>
+        <ul>
+          <li><strong>No rollback.</strong> Nothing captures a before-state, so a partial or failed batch cannot be undone. <code>batch_id</code> identifies what happened; it is not an undo handle.</li>
+          <li><strong>Import is not one transaction.</strong> Member writes execute as batched statements in chunks of 50, memberships are assigned afterwards per row, and error rows are written after that. A throw part-way leaves earlier chunks written.</li>
+          <li><strong>No resume</strong> for a failed batch, and <strong>no delta re-import</strong> — nothing computes what is still missing.</li>
+        </ul>
+        <p>The supported recovery is to <strong>fix the CSV and import it again</strong>, which converges because upsert keys on lowercased email. It converges on member records; it does not roll anything back.</p>
+        <div class="callout warn"><strong>Re-import is not monotonic.</strong> Membership activation expires the member's existing active memberships <em>before</em> inserting the new one, with no transaction around the pair. If the insert then fails, the expiry is not undone — so re-importing a row that failed to assign a membership to a member who currently <em>has</em> an active membership can leave them with <strong>no</strong> active membership, strictly worse than before. <code>membership_failed</code> is the one error kind where "just re-run the file" is bad advice: diagnose the failure first. Every other kind is safe to re-import.</div>
+        <p>Known gap: creating custom fields during an import is a read-modify-write of the guild's settings with no compare-and-swap, so a settings edit committed in that narrow window can be overwritten. The definitions are written before any member row and are not undone if the import later fails. Import never renames, reorders or removes an existing definition.</p>
+        <p>Full contract, including every warning code and which ones force <code>partial</code>: <code>docs/api.md</code> in the repo.</p>
 
         <h2 id="zapier">Zapier / Make</h2>
         <ol>

@@ -67,27 +67,40 @@ An import is marked partial when any of these happened:
 - A **membership couldn't be assigned** to someone the file said had one.
 - A row named a **membership level that doesn't exist yet** in your guild —
   that person was imported, but with no membership.
-- A **whole column was left out** (set to "Do not import", or two columns
-  pointed at the same field so one was ignored) and that column actually had
-  data in it.
+- A **column you set to "Do not import"** actually had data in it. (An
+  entirely empty ignored column is not counted — that's just noise in the
+  export.)
+- **Two columns pointed at the same field**, so one of them was ignored.
+  This one counts *whether or not* the losing column had any data in it.
 - A **date or status couldn't be read**, or a status in your file was
   overridden — e.g. a row marked "lapsed" that also names a level comes in
   as active.
 - Some members were **held at your plan's active-member limit** (see below —
   this one is usually nothing to fix).
 
-**What to do:** on the Members page, the **Recent imports** card lists every
-import with when it ran, who ran it, the counts, and a **Download errors**
-button. That CSV names the exact row numbers and the reason for each one.
-Column-level notes (like "this column wasn't imported") appear under the row
-in that card and at the bottom of the CSV, because they aren't tied to any
-single row.
+**What to do:** on the Members page, the **Recent imports** card lists your
+50 most recent imports with when each ran, who ran it, the counts, and a
+**Download errors** button. That CSV names the exact row numbers and the
+reason for each one. Column-level notes (like "this column wasn't imported")
+appear under the row in that card and at the bottom of the CSV, because they
+aren't tied to any single row. (The card is the only place to reach those
+downloads, so once an import falls past the 50 most recent, its error report
+is no longer reachable — download anything you still need before then.)
 
 Then fix those rows in your spreadsheet and **import the file again.**
 Re-importing is the repair mechanism — members are matched by email, so rows
 that already came through are updated in place rather than duplicated, and
 you can safely re-import either the corrected full file or just the problem
 rows.
+
+⚠️ **Read the errors before you re-run — re-importing can make one thing
+worse.** When a row assigns a membership to someone who *already* has an
+active membership, that existing membership is expired first and the new one
+written second. If the new one fails again (the same "membership couldn't be
+assigned" error), that member is left with **no** active membership, where
+before the re-import they had one. So if your error list contains membership
+failures, work out why they failed before re-running the file — everything
+else on this list is safe to re-import.
 
 **What "partial" does not mean:** there is no undo. QuiltHosting cannot roll
 a partial import back or resume it where it stopped, and it can't work out on
@@ -97,14 +110,18 @@ again.
 ### Partial only because of your plan limit
 
 The free plan allows 30 active members. If your file has more active members
-than you have room for, the extra people are still imported — they just come
-in as **pending** instead of active.
+than you have room for, the extra people are still imported — they just don't
+get an active membership. A **new** member held this way comes in as
+**pending**. An **existing** member either keeps the status they already had
+or is set to pending, depending on the row — either way the import never
+makes them active.
 
 Because those members aren't active, the import is recorded as partial. When
 that's the *only* thing that happened, the result banner says so directly:
 "Import complete — N member(s) are waiting on your plan's active-member
-limit." **Nothing is wrong with your file.** Upgrade to activate those
-members, or leave them pending; their records are saved either way.
+limit." **Nothing is wrong with your file.** Every row was imported and every
+record is saved. Upgrade if you want those members active, or leave them as
+they are.
 
 One thing to know: in the **Recent imports** card, that same import is still
 badged **partial** (amber). That's the same batch the banner just explained —

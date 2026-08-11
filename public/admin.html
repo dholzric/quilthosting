@@ -1330,8 +1330,9 @@
           out.innerHTML = `<div class="notice warn">` +
             `<strong>Import complete — ${errors.length} member(s) are waiting on your plan's active-member limit.</strong> ` +
             `Imported: ${r.created} new, ${r.updated} updated, ${r.skipped} skipped${mem}${cf}.<br>` +
-            `Nothing is wrong with your file. Every row was imported; ${errors.length} of them came in as <em>pending</em> instead of active because your plan's active-member limit was already reached. ` +
-            `Upgrade to activate them, or leave them pending — their records are saved either way.` +
+            `Nothing is wrong with your file. Every row was imported; ${errors.length} of them did not get an active membership because your plan's active-member limit was already reached. ` +
+            `New members are held as <em>pending</em>; existing members keep their current status or are set to pending — either way they are not made active. ` +
+            `Upgrade if you want them active — their records are saved either way.` +
             `</div>`;
         } else if (isPartial) {
           // A <div>, not a <p>: the conditional <ul> below is block content,
