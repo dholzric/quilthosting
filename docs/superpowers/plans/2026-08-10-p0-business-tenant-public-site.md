@@ -1280,14 +1280,17 @@ describe("blocksToHtml — escaping", () => {
     const html = blocksToHtml(parseBlocks([
       { type: "service_cards", items: [{ title: XSS, body: XSS, icon: XSS }] },
     ]));
-    expect(html).not.toContain("onerror=");
+    expect(html).not.toContain("<img src=x");
+    expect(html).toContain("&lt;img");
   });
 
   it("escapes faq and testimonial text", () => {
     const faq = blocksToHtml(parseBlocks([{ type: "faq", items: [{ q: XSS, a: XSS }] }]));
     const tst = blocksToHtml(parseBlocks([{ type: "testimonials", items: [{ quote: XSS, author: XSS }] }]));
-    expect(faq).not.toContain("onerror=");
-    expect(tst).not.toContain("onerror=");
+    expect(faq).not.toContain("<img src=x");
+    expect(faq).toContain("&lt;img");
+    expect(tst).not.toContain("<img src=x");
+    expect(tst).toContain("&lt;img");
   });
 
   it("escapes gallery urls into the src attribute", () => {
@@ -1518,6 +1521,17 @@ git add src/lib/blocks.ts src/lib/blocks.test.ts
 git commit -m "feat(site): hero, service cards, gallery, faq, testimonials, contact form blocks"
 ```
 
+> **CORRECTION APPLIED DURING EXECUTION.** The escaping tests for
+> `service_cards`, `faq`, and `testimonials` originally asserted
+> `not.toContain("onerror=")`. That assertion can never hold and was fixed
+> above. `escapeHtml` neutralizes *structure*, not substrings: the payload
+> becomes `&lt;img src=x onerror=alert(1)&gt;`, which is inert but still
+> contains the literal text `onerror=`. The correct assertion — already used
+> by the `hero` and `gallery_grid` tests in this same file — is that the
+> unescaped tag is absent and the escaped form is present. The alternative,
+> adding attribute-stripping sanitization, was explicitly out of scope: this
+> task must not alter `escapeHtml`/`escapeAttr`.
+
 ---
 
 ### Task 7: Page renderer
@@ -1580,8 +1594,11 @@ describe("renderPageHtml", () => {
 
   it("emits the seo head and the json-ld", () => {
     const html = renderPageHtml(args);
-    expect(html).toContain("<title>Services | Stitch Studio</title>");
+    // The business-identity name wins over tenant.name for the visible site
+    // name — that is the whole point of the Business details field.
+    expect(html).toContain("<title>Services | Stitch Studio Quilting</title>");
     expect(html).toContain('"@type":"LocalBusiness"');
+    expect(html).toContain('"name":"Stitch Studio Quilting"');
   });
 
   it("renders the page blocks", () => {
@@ -1902,6 +1919,23 @@ npx tsc --noEmit
 git add src/lib/site/render.ts src/lib/site/render.test.ts public/qh-site.css public/qh-site.js
 git commit -m "feat(site): server-rendered page shell, stylesheet, and block hydration"
 ```
+
+> **CORRECTIONS APPLIED DURING EXECUTION.** Two defects in this task's own text.
+>
+> 1. **The fixture contradicted the implementation.** `siteName` is
+>    `identity.name || tenant.name`, but the fixture set `tenant.name` to
+>    "Stitch Studio" and `settings.business.name` to "Stitch Studio Quilting"
+>    while asserting the *tenant* name in the title — unsatisfiable. The
+>    implementation is correct and the fixture was wrong: the business-identity
+>    name must win for the title, header, and footer, or Task 14's Business
+>    details panel ("used in the site footer and in the structured data") is
+>    lying to the owner. Assertions corrected above; the two names are kept
+>    deliberately distinct so the test now pins precedence rather than
+>    accidentally passing.
+> 2. **The escaping test repeated Task 6's unsatisfiable pattern.**
+>    `not.toContain("onerror=alert(1)")` cannot hold against `esc()`. Same
+>    test-only correction as Task 6: assert the unescaped tag is absent and the
+>    escaped form present.
 
 ---
 
