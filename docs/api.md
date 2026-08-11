@@ -287,8 +287,8 @@ a losing column comes back as `{kind:"ignore"}`, not as the admin's original
 (losing) choice, so a UI re-rendering that response shows the true state.
 
 `plan_limit_will_hold` counts, against the remaining slots, only the rows
-that would make someone **newly** active. It applies the same three tests the
-real import applies, so on the shapes described below the two agree exactly:
+that would make someone **newly** active. It classifies rows by the same
+tests the real import applies:
 
 - a member who is **already active** is excluded — they hold their slot
   already, so re-importing them asks the plan for nothing and can never be
@@ -308,11 +308,33 @@ Both plan-limiting branches spend from the same counter, so they cannot be
 estimated independently; the estimate counts them together. Only the total
 matters, so file order does not affect the number.
 
-It is still called an estimate because it is computed before anything is
-written: any per-row failure in the real import (a `membership_failed` row,
-for instance) can change how many slots are actually consumed. The authority
-is always the real import's `plan_limited` counter and its per-row
-`plan_limited` errors.
+Given the same file, the same mapping, and the same active-member count, the
+dry run and the real import produce the same number.
+
+It is still called an estimate because **that last condition is not under the
+preview's control.** `activeSlotsLeft` is recomputed from
+`countActiveMembers` (a live `COUNT(*) … WHERE status = 'active'`) on *every*
+request, so anything that changes the guild's active-member count between the
+preview and the import moves the answer:
+
+- a member signing up, or an admin adding one, in between;
+- the nightly renewal cron lapsing expired memberships;
+- another admin's import landing first;
+- an earlier import of your own whose memberships failed to assign.
+
+None of these are hypothetical for an admin who previews a file, goes to
+lunch, and imports afterwards. The estimate is a snapshot taken at preview
+time, not a promise.
+
+(What does *not* cause drift, despite sounding like it should: a
+`membership_failed` row **within the import being run**. The slot is
+decremented before the row is queued into `pendingMemberships`, and the
+failure is recorded after the row loop without touching `planLimited`, so
+that import's own `plan_limited` is already final. It can only affect a
+*later* request, via the active count above.)
+
+The authority is always the real import's `plan_limited` counter and its
+per-row `plan_limited` errors.
 
 ### Dry-run response
 

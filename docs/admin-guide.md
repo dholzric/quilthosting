@@ -128,7 +128,13 @@ pending, depending on the row — either way the import never makes them
 active.
 
 The preview you see before importing counts this the same way, so if it says
-nothing will be held, nothing will be held.
+nothing will be held, nothing will be held — **as long as your active-member
+count hasn't changed in between.** The preview measures how much room you
+have at the moment you press Preview. If someone joins, a membership lapses
+overnight, or another admin imports while you're still looking at the
+preview, the room has moved and the import will use the new number. Previewed
+and imported in one sitting, the two agree; previewed before lunch and
+imported after, re-run the preview.
 
 Because those members aren't active, the import is recorded as partial. When
 that's the *only* thing that happened, the result banner says so directly:

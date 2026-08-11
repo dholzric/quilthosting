@@ -1792,7 +1792,7 @@ function countBy(values) {
   // Exactly 3 of the 10 candidates got the 3 remaining slots.
   const candidates = [...lapsedEmails, ...newEmails];
   const nowActive = candidates.filter((e) => mixStatuses.get(e) === "active");
-  check("mixed: exactly the 3 remaining slots were spent, on the first 3 candidates in file order",
+  check("mixed: exactly the 3 remaining slots were spent -- 3 of the 10 candidates ended up active",
     nowActive.length === SLOTS_LEFT,
     `${nowActive.length} became active: ${JSON.stringify(nowActive)}`);
   check("mixed: every held row is itemized as a downloadable plan_limited error",
