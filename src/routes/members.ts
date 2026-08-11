@@ -210,6 +210,53 @@ memberRoutes.get("/export.csv", async (c) => {
   });
 });
 
+// GET /api/tenants/:tenantId/members/import/batches — Task 4 import history.
+// MUST be registered before GET /:memberId below: Hono matches routes in
+// registration order, and "/:memberId" would otherwise swallow the literal
+// segment "import" as a member id, turning this into a 404 "member not
+// found" instead of a batch list. DO NOT MOVE below /:memberId. (Same trap
+// applies to the /import/batches/:batchId/errors route right after it.)
+memberRoutes.get("/import/batches", async (c) => {
+  const tenant = c.get("tenant");
+  const batches = await all(
+    c.env.DB.prepare(
+      `SELECT id, status, mapping_json, warnings_json, total_rows,
+              created_count, updated_count, skipped_count,
+              memberships_assigned, membership_failures, plan_limited,
+              custom_fields_created, started_at, finished_at
+       FROM import_batches
+       WHERE tenant_id = ?
+       ORDER BY started_at DESC
+       LIMIT 50`
+    ).bind(tenant.id)
+  );
+  return c.json({ batches });
+});
+
+// GET /api/tenants/:tenantId/members/import/batches/:batchId/errors — the
+// full per-row error report for one batch (uncapped: this is what the
+// admin downloads as a CSV after a migration). Same route-ordering trap
+// as above — keep this above GET /:memberId too.
+memberRoutes.get("/import/batches/:batchId/errors", async (c) => {
+  const tenant = c.get("tenant");
+  const batchId = c.req.param("batchId");
+  const batch = await first(
+    c.env.DB.prepare(
+      "SELECT id FROM import_batches WHERE id = ? AND tenant_id = ?"
+    ).bind(batchId, tenant.id)
+  );
+  if (!batch) return c.json({ error: "Import batch not found" }, 404);
+  const errors = await all(
+    c.env.DB.prepare(
+      `SELECT id, row_number, kind, reason, email, created_at
+       FROM import_batch_errors
+       WHERE batch_id = ? AND tenant_id = ?
+       ORDER BY row_number ASC`
+    ).bind(batchId, tenant.id)
+  );
+  return c.json({ batch_id: batchId, errors, error_kind_labels: ERROR_KIND_LABELS });
+});
+
 memberRoutes.get("/:memberId", async (c) => {
   const tenant = c.get("tenant");
   const memberId = c.req.param("memberId");

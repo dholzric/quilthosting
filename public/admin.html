@@ -798,6 +798,10 @@
             <button class="secondary" ${p >= totalPages ? "disabled" : ""} onclick="renderMembers(document.getElementById('page-content'), ${p + 1})">Next</button>
           </div>
         </div>
+        <div class="card" id="import-history-card">
+          <h3 style="margin:0 0 0.5rem">Recent imports</h3>
+          <div id="import-history-body" class="muted" style="font-size:0.85rem">Loading…</div>
+        </div>
       `;
       window._members = members;
       const searchEl = document.getElementById("member-search");
@@ -805,6 +809,74 @@
         searchEl.addEventListener("keydown", (e) => {
           if (e.key === "Enter") searchMembers();
         });
+      }
+      loadImportHistory();
+    }
+
+    // Task 4: import history. `status` badge classes reuse the existing
+    // .badge.active/.pending/.cancelled CSS (qh.css) rather than adding new
+    // ones — completed=green, partial=amber, failed=red, running=neutral
+    // (no badge class -> default gray from .badge itself).
+    const IMPORT_STATUS_BADGE = {
+      completed: "active",
+      partial: "pending",
+      failed: "cancelled",
+      running: "",
+    };
+    async function loadImportHistory() {
+      const body = document.getElementById("import-history-body");
+      if (!body) return;
+      try {
+        const data = await api(`/api/tenants/${tenantId}/members/import/batches`);
+        const batches = data.batches || [];
+        if (!batches.length) {
+          body.innerHTML = `<p class="muted" style="margin:0">No imports yet — Import CSV above to migrate a roster.</p>`;
+          return;
+        }
+        body.innerHTML = `
+          <table>
+            <thead><tr><th>When</th><th>Status</th><th>Rows</th><th>Created</th><th>Updated</th><th>Skipped</th><th>Memberships</th><th></th></tr></thead>
+            <tbody>
+              ${batches.map((b) => `
+                <tr>
+                  <td>${b.started_at ? esc(new Date(b.started_at).toLocaleString()) : "—"}</td>
+                  <td><span class="badge ${IMPORT_STATUS_BADGE[b.status] ?? ""}">${esc(b.status)}</span></td>
+                  <td>${Number(b.total_rows) || 0}</td>
+                  <td>${Number(b.created_count) || 0}</td>
+                  <td>${Number(b.updated_count) || 0}</td>
+                  <td>${Number(b.skipped_count) || 0}</td>
+                  <td>${Number(b.memberships_assigned) || 0}</td>
+                  <td><button class="secondary" onclick='downloadBatchErrors(${JSON.stringify(b.id)})'>Download errors</button></td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        `;
+      } catch (e) {
+        body.textContent = e.message;
+      }
+    }
+    async function downloadBatchErrors(batchId) {
+      try {
+        const data = await api(`/api/tenants/${tenantId}/members/import/batches/${batchId}/errors`);
+        const errors = data.errors || [];
+        const labels = data.error_kind_labels || {};
+        // CSV-cell escaping (not esc(), which is for HTML) — same helper
+        // shape as downloadImportErrors above.
+        const cell = (v) => { const t = v == null ? "" : String(v);
+          return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+        const lines = [["row", "kind", "reason", "email"].map(cell).join(",")];
+        for (const e of errors) {
+          lines.push([e.row_number, labels[e.kind] || e.kind, e.reason, e.email || ""].map(cell).join(","));
+        }
+        const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `import-${batchId}-errors.csv`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      } catch (e) {
+        alert(e.message);
       }
     }
     function searchMembers() {
@@ -1157,6 +1229,11 @@
         const labels = r.error_kind_labels || {};
         const warnings = r.warnings || [];
         const isPartial = r.status === "partial";
+
+        // Refresh the "Recent imports" card so the batch this run just
+        // created shows up immediately, without waiting for a page
+        // navigation. Fire-and-forget: never block the on-screen result.
+        loadImportHistory();
 
         const byKind = {};
         for (const e of errors) {

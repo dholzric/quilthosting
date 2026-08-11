@@ -1310,5 +1310,91 @@ check("N4d: last_name was still updated (proves it's a real update, not skipped)
   (n4dList.body.members || [])[0]?.last_name === "StillCancelled",
   JSON.stringify(n4dList.body.members));
 
+console.log("\n--- layer 6: Task 4 import history (batch list + error report) ---");
+
+// 6a: a batch appears in the list with the right status and counts. Use
+// cleanImport (layer 4, recoTenantId) — a known-clean batch: status
+// completed, 2 created, 2 memberships assigned, 0 failures.
+{
+  const list = await json(`/api/tenants/${recoTenantId}/members/import/batches`, { headers: auth });
+  check("batch list request succeeds", list.status === 200, JSON.stringify(list.body).slice(0, 200));
+  check("batch list returns an array", Array.isArray(list.body.batches), JSON.stringify(list.body).slice(0, 200));
+  const found = (list.body.batches || []).find((b) => b.id === cleanImport.body.batch_id);
+  check("clean import's batch appears in the list", !!found, JSON.stringify(list.body.batches).slice(0, 400));
+  check("listed batch has the right status", found?.status === "completed", JSON.stringify(found));
+  check("listed batch has the right created_count", found?.created_count === 2, JSON.stringify(found));
+  check("listed batch has the right memberships_assigned", found?.memberships_assigned === 2, JSON.stringify(found));
+
+  // Newest first: cleanImport ran before forced, forced ran before
+  // forcedOff (all on recoTenantId, all earlier in this file) — the most
+  // recently started batch in the list must be the LAST one created in
+  // this file's run (n4d, right above this section), not cleanImport.
+  const startedTimes = (list.body.batches || []).map((b) => b.started_at);
+  const sorted = [...startedTimes].sort().reverse();
+  check("batch list is ordered newest-first by started_at",
+    JSON.stringify(startedTimes) === JSON.stringify(sorted), JSON.stringify(startedTimes));
+}
+
+// 6b: the errors endpoint returns exactly the rows Task 3 recorded. `forced`
+// (layer 4, recoTenantId) has 2 membership_failed errors at rows 1 and 2,
+// already asserted against forced.body.errors above — this proves the
+// SAME facts are readable back from the persisted batch, not just the
+// one-shot response.
+{
+  const errResp = await json(
+    `/api/tenants/${recoTenantId}/members/import/batches/${forced.body.batch_id}/errors`,
+    { headers: auth }
+  );
+  check("batch errors request succeeds", errResp.status === 200, JSON.stringify(errResp.body).slice(0, 200));
+  const errs = errResp.body.errors || [];
+  check("errors endpoint returns an uncapped full list (2 rows, not fewer)", errs.length === 2, JSON.stringify(errs));
+  const byRow = new Map(errs.map((e) => [e.row_number, e]));
+  check("errors endpoint reports row 1 as membership_failed for forced1",
+    byRow.get(1)?.kind === "membership_failed" && byRow.get(1)?.email === "forced1@example.test",
+    JSON.stringify(errs));
+  check("errors endpoint reports row 2 as membership_failed for forced2",
+    byRow.get(2)?.kind === "membership_failed" && byRow.get(2)?.email === "forced2@example.test",
+    JSON.stringify(errs));
+  check("error_kind_labels is present and reuses the server's label map",
+    errResp.body.error_kind_labels?.membership_failed === "membership(s) failed to assign",
+    JSON.stringify(errResp.body.error_kind_labels));
+}
+
+// 6c: a batch id belonging to another tenant returns 404, not that
+// tenant's data. Create a second, genuinely separate tenant and request
+// recoTenantId's batch through it.
+{
+  const otherTenant = await json("/api/tenants", {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ name: `Other ${stamp}`, slug: `other-${stamp}` }),
+  });
+  const otherTenantId = otherTenant.body.id;
+
+  const crossList = await json(
+    `/api/tenants/${otherTenantId}/members/import/batches/${cleanImport.body.batch_id}/errors`,
+    { headers: auth }
+  );
+  check("cross-tenant batch lookup returns 404, not another tenant's data",
+    crossList.status === 404, `got ${crossList.status} ${JSON.stringify(crossList.body).slice(0, 200)}`);
+
+  // The other tenant's own (empty) batch list must not include recoTenantId's batch.
+  const otherBatches = await json(`/api/tenants/${otherTenantId}/members/import/batches`, { headers: auth });
+  check("other tenant's batch list does not leak recoTenantId's batch",
+    !(otherBatches.body.batches || []).some((b) => b.id === cleanImport.body.batch_id),
+    JSON.stringify(otherBatches.body.batches));
+}
+
+// 6d: THE ROUTE-ORDERING TRAP. memberRoutes already has GET /:memberId
+// registered elsewhere; if GET /import/batches were ever registered AFTER
+// it, Hono would match "import" as :memberId and this would come back as
+// a member-not-found 404 with an `error` field instead of a `batches`
+// array. This check is written to fail loudly if that ordering regresses.
+{
+  const trap = await json(`/api/tenants/${recoTenantId}/members/import/batches`, { headers: auth });
+  check("ROUTE-ORDERING TRAP: /members/import/batches returns a batch list, not a member lookup",
+    trap.status === 200 && Array.isArray(trap.body.batches) && trap.body.error === undefined,
+    JSON.stringify(trap.body).slice(0, 200));
+}
+
 console.log(failures ? `\n${failures} failure(s)` : "\nall layers passed");
 if (failures) process.exit(1);
