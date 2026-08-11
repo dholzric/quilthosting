@@ -64,19 +64,36 @@ export function expandLegacyTheme(
 
 /**
  * ThemeConfig -> the fields guild.html still consumes. `legacy`, when given,
- * is the tenant's original stored SiteTheme; only `font` and `style` are read
- * from it (see LEGACY_FONT_VALUES/LEGACY_STYLE_VALUES above) since those two
- * have no ThemeConfig equivalent to derive from.
+ * is the tenant's original stored SiteTheme (i.e. the raw `settings.theme`
+ * object, before expansion) — every field on the returned SiteTheme is
+ * presence-based against it, not defaulted.
+ *
+ * This must be presence-based, not defaulted: `theme` (the expanded
+ * ThemeConfig) always has all 13 tokens filled in from DEFAULT_THEME, so an
+ * unconfigured tenant's `theme.primary` is DEFAULT_THEME.primary
+ * (austinlongarm's purple, "#8a2060") even though the tenant never set
+ * anything. guild.html's applyTheme() only overrides colors when
+ * `theme.primary` is truthy (public/guild.html:921); if this function
+ * unconditionally emitted `primary`, every guild that never opened the
+ * "Theme & site navigation" panel would be repainted purple instead of
+ * keeping the platform's real default brand color (`--brand` in
+ * public/qh.css). So: emit a key only when `legacy` actually had it set,
+ * mirroring the font/style logic below (which got this right originally).
  */
 export function deriveLegacyTheme(
   theme: ThemeConfig,
   legacy?: Partial<SiteTheme> | null
 ): SiteTheme {
-  const out: SiteTheme = {
-    primary: safeColor(theme.primary, DEFAULT_THEME.primary),
-    accent: safeColor(theme.accent, DEFAULT_THEME.accent),
-    headerBg: safeColor(theme.card, DEFAULT_THEME.card),
-  };
+  const out: SiteTheme = {};
+  if (typeof legacy?.primary === "string" && legacy.primary) {
+    out.primary = safeColor(theme.primary, DEFAULT_THEME.primary);
+  }
+  if (typeof legacy?.accent === "string" && legacy.accent) {
+    out.accent = safeColor(theme.accent, DEFAULT_THEME.accent);
+  }
+  if (typeof legacy?.headerBg === "string" && legacy.headerBg) {
+    out.headerBg = safeColor(theme.card, DEFAULT_THEME.card);
+  }
   const font = legacy?.font;
   if (typeof font === "string" && LEGACY_FONT_VALUES.has(font)) {
     out.font = font as SiteTheme["font"];

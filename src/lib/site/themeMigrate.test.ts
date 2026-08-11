@@ -42,15 +42,49 @@ describe("expandLegacyTheme", () => {
 });
 
 describe("deriveLegacyTheme", () => {
-  it("round-trips the fields guild.html reads", () => {
-    const expanded = expandLegacyTheme({ primary: "#123456", accent: "#654321" });
-    const legacy = deriveLegacyTheme(expanded);
+  it("round-trips the fields guild.html reads, when the tenant actually set them", () => {
+    const raw = { primary: "#123456", accent: "#654321" };
+    const expanded = expandLegacyTheme(raw);
+    // The real public.ts call site passes the raw stored theme as the second
+    // argument (deriveLegacyTheme(tokens, settings.theme)) — presence is
+    // determined against that raw object, not the expanded ThemeConfig.
+    const legacy = deriveLegacyTheme(expanded, raw);
     expect(legacy.primary).toBe("#123456");
     expect(legacy.accent).toBe("#654321");
   });
 
-  it("always supplies headerBg so guild.html never renders unstyled", () => {
-    expect(deriveLegacyTheme(DEFAULT_THEME).headerBg).toBeTruthy();
+  it("omits primary, accent, and headerBg entirely for an unconfigured tenant, so guild.html falls through to the platform default", () => {
+    // guild.html's applyTheme() only overrides colors when theme.primary is
+    // truthy (public/guild.html:921). An unconfigured tenant's settings_json
+    // is '{}' (src/routes/tenants.ts, src/routes/chapters.ts), so there is
+    // no stored theme at all. Unconditionally supplying DEFAULT_THEME's
+    // colors here would repaint every such guild site purple instead of
+    // leaving it on the platform's real default brand color
+    // (--brand in public/qh.css). guild.html never reads headerBg at all,
+    // so there is no "must supply it" requirement either.
+    expect(deriveLegacyTheme(DEFAULT_THEME)).toEqual({});
+    expect(deriveLegacyTheme(DEFAULT_THEME, {})).toEqual({});
+    expect(deriveLegacyTheme(DEFAULT_THEME, null)).toEqual({});
+  });
+
+  it("omits only the unset fields when the stored theme partially configures the tenant", () => {
+    const raw = { accent: "#654321" }; // primary/headerBg never set
+    const expanded = expandLegacyTheme(raw);
+    const legacy = deriveLegacyTheme(expanded, raw);
+    expect(legacy).not.toHaveProperty("primary");
+    expect(legacy).not.toHaveProperty("headerBg");
+    expect(legacy.accent).toBe("#654321");
+  });
+
+  it("produces no primary key end-to-end for an unconfigured tenant's settings_json", () => {
+    // Mirrors the real /public/:slug/site path: readTenantTheme parses
+    // settings_json and expands it; deriveLegacyTheme derives the legacy
+    // payload against the (empty) stored theme.
+    const settings = JSON.parse("{}");
+    const { theme: tokens } = readTenantTheme("{}");
+    const legacy = deriveLegacyTheme(tokens, settings.theme);
+    expect(legacy).not.toHaveProperty("primary");
+    expect(legacy).toEqual({});
   });
 
   it("passes through font and style from the stored legacy source, since neither has a ThemeConfig equivalent", () => {

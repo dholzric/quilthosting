@@ -1105,10 +1105,12 @@ publicRoutes.get("/:slug/site", async (c) => {
   const taxRateBps = Number(settings.store?.tax_rate_bps || 0) || 0;
   const { theme: tokens, fonts } = readTenantTheme(tenant.settings_json);
   return c.json({
-    // guild.html reads these fields. Derived from the tokens rather than
-    // stored separately, so there is a single source of truth; font/style
-    // are passed through from the stored legacy object since they have no
-    // ThemeConfig equivalent (see themeMigrate.ts).
+    // guild.html reads theme.primary, theme.font, and theme.style directly
+    // (confirmed by grep of public/guild.html; accent/headerBg are kept for
+    // shape-compatibility though nothing reads them today). Presence-based
+    // against the stored settings.theme: an unconfigured tenant must get {}
+    // back, not DEFAULT_THEME's colors, or every unconfigured guild site
+    // gets repainted with the wrong brand color (see deriveLegacyTheme).
     theme: deriveLegacyTheme(tokens, settings.theme),
     // Full token set + fonts for the server renderer and the new admin.
     theme_tokens: tokens,
