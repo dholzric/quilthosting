@@ -2576,5 +2576,113 @@ console.log("\n--- layer 16: PATCHing a member to `pending` must also end their 
     pendRow?.[pendLevelCol] === "", JSON.stringify(pendRow));
 }
 
+console.log("\n--- layer 17: the no-op path must still REACTIVATE a member whose status disagrees with their membership (fix round 10, item 3) ---");
+
+// Fix round 9 made an import row that asserts what is already true write
+// nothing -- no expire, no insert. That is right for the membership, but a
+// no-op must not become a no-op for the MEMBER: if their `members.status`
+// says pending or lapsed while they hold a live membership, the row is
+// asking for them to be active and the importer has to say so. Round 9
+// guarded that with a single `existingStatus.get(...) !== "active"` branch
+// and nothing exercised it -- it was correct by inspection only, which is
+// exactly the "silent no-op that should have been a reactivation" shape
+// this task keeps finding.
+//
+// The inconsistent state is built with d1Exec deliberately. Since round 8
+// and 9 it is no longer reachable through the API (PATCH and status-only
+// import rows now end the membership alongside the member), but it is
+// exactly what pre-round-8 data looks like on disk, which is what a pilot
+// guild's database would contain.
+{
+  const reactTenantId = (await json("/api/tenants", {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ name: `React ${stamp}`, slug: `react-${stamp}` }),
+  })).body.id;
+  await json(`/api/tenants/${reactTenantId}/levels`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ name: "Annual Membership", price_cents: 0,
+                           duration_months: 12, renewal_type: "manual" }),
+  });
+  const reactHeader = ["Email", "First Name", "Last Name", "Level", "Renewal"];
+  const reactMapping = {
+    0: { kind: "known", target: "email" },
+    1: { kind: "known", target: "first_name" },
+    2: { kind: "known", target: "last_name" },
+    3: { kind: "known", target: "level_name" },
+    4: { kind: "known", target: "end_date" },
+  };
+  const memberState = (email) => d1Query(
+    `SELECT mem.status as member_status, m.id as membership_id, m.status as membership_status,
+            m.end_date, m.auto_renew
+     FROM members mem LEFT JOIN memberships m
+       ON m.member_id = mem.id AND m.status = 'active' AND m.tenant_id = mem.tenant_id
+     WHERE mem.tenant_id = '${reactTenantId}' AND mem.email = '${email}'`
+  )[0];
+
+  for (const flavour of ["lapsed", "pending"]) {
+    const email = `react-${flavour}-${stamp}@example.test`;
+    // An explicit expiry so the re-import below is byte-for-byte the same
+    // assertion -- same level, same end date -- and therefore genuinely
+    // takes the no-op branch rather than the write path.
+    const row = [email, "React", flavour, "Annual Membership", "2029-06-01"];
+    await json(`/api/tenants/${reactTenantId}/members/import`, {
+      method: "POST", headers: auth,
+      body: JSON.stringify({ header: reactHeader, raw_rows: [row], mapping: reactMapping }),
+    });
+    // Desynchronise ONLY the member row, leaving the membership active --
+    // the pre-round-8 state.
+    d1Exec(
+      `UPDATE members SET status = '${flavour}' WHERE tenant_id = '${reactTenantId}' AND email = '${email}';`
+    );
+    const before = memberState(email);
+    check(`17 precondition (${flavour}): member reads ${flavour} while still holding an ACTIVE membership`,
+      before?.member_status === flavour && before?.membership_status === "active",
+      JSON.stringify(before));
+
+    const reactRun = await json(`/api/tenants/${reactTenantId}/members/import`, {
+      method: "POST", headers: auth,
+      body: JSON.stringify({ header: reactHeader, raw_rows: [row], mapping: reactMapping }),
+    });
+    const after = memberState(email);
+    check(`THE GUARD (${flavour}): the no-op row still reactivates the member`,
+      after?.member_status === "active",
+      `member_status is ${after?.member_status} (import: ${JSON.stringify(reactRun.body)})`);
+    check(`17 (${flavour}): it really was the NO-OP path -- the same membership row, untouched`,
+      after?.membership_id === before?.membership_id &&
+        after?.end_date === before?.end_date,
+      JSON.stringify({ before, after }));
+    check(`17 (${flavour}): the row is still counted as assigned`,
+      reactRun.body.memberships_assigned === 1, JSON.stringify(reactRun.body));
+  }
+
+  // The counter-direction guard: for an already-active member the no-op path
+  // must write NOTHING to memberships at all. Asserted on the membership's
+  // own updated_at -- expireActiveMemberships, the INSERT, or a stray
+  // status write would all move it. (members.updated_at is not usable here:
+  // the import's ordinary UPDATE members statement always touches it for an
+  // existing member, no-op branch or not.)
+  const steadyEmail = `react-steady-${stamp}@example.test`;
+  const steadyRow = [steadyEmail, "React", "Steady", "Annual Membership", "2029-06-01"];
+  const steadyMembership = () => d1Query(
+    `SELECT m.id, m.updated_at FROM memberships m JOIN members mem ON mem.id = m.member_id
+     WHERE m.tenant_id = '${reactTenantId}' AND mem.email = '${steadyEmail}'`
+  );
+  await json(`/api/tenants/${reactTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: reactHeader, raw_rows: [steadyRow], mapping: reactMapping }),
+  });
+  const steadyBefore = steadyMembership();
+  await json(`/api/tenants/${reactTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: reactHeader, raw_rows: [steadyRow], mapping: reactMapping }),
+  });
+  const steadyAfter = steadyMembership();
+  check("17: for an already-active member the no-op path writes nothing to memberships at all",
+    steadyAfter.length === 1 && steadyBefore.length === 1 &&
+      steadyAfter[0].id === steadyBefore[0].id &&
+      steadyAfter[0].updated_at === steadyBefore[0].updated_at,
+    JSON.stringify({ before: steadyBefore, after: steadyAfter }));
+}
+
 console.log(failures ? `\n${failures} failure(s)` : "\nall layers passed");
 if (failures) process.exit(1);

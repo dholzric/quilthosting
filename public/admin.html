@@ -986,12 +986,21 @@
         // SEES the date they are accepting instead of discovering it later.
         // Clearing the field is still valid — the server computes the same
         // date — and typing another one still wins.
+        // Only ever overwrites its OWN previous suggestion (or an empty
+        // field), so changing level after typing a date by hand leaves that
+        // date alone -- unlike the amount field beside it, which does
+        // clobber. Deliberately different: an amount is dictated by the
+        // level, a renewal date is a judgement the admin may already have
+        // made.
+        let lastPrefill = "";
         const prefillEnd = () => {
           const o = sel.selectedOptions[0];
-          if (!o) return;
+          const field = document.getElementById("em-end");
+          if (!o || (field.value && field.value !== lastPrefill)) return;
           const d = new Date();
           d.setMonth(d.getMonth() + (Number(o.dataset.months) || 12));
-          document.getElementById("em-end").value = d.toISOString().slice(0, 10);
+          lastPrefill = d.toISOString().slice(0, 10);
+          field.value = lastPrefill;
         };
         if (levels[0]) document.getElementById("em-amount").value = levels[0].price_cents;
         prefillEnd();
@@ -1026,6 +1035,13 @@
       try {
         const histRaw = await api(`/api/tenants/${tenantId}/members/${id}/memberships`);
         const hist = Array.isArray(histRaw) ? histRaw : (histRaw && histRaw.memberships) || [];
+        // Remembered for saveMember's confirmation: moving a member to
+        // pending/lapsed/cancelled ENDS an active membership (see the
+        // endingStatus branch in src/routes/members.ts). That is the right
+        // behaviour -- a member cannot hold a live membership while pending
+        // -- but it is destructive and nothing on screen said so.
+        _editingHasActiveMembership = hist.some((r) => r.status === "active");
+        _editingStatusWas = document.getElementById("em-status").value;
         const hbox = document.getElementById("em-memberships");
         if (!hist.length) {
           hbox.innerHTML = `<p class="muted" style="font-size:0.85rem;margin:0">No membership records yet — use Assign below (status alone does not set renewals).</p>`;
@@ -1070,8 +1086,24 @@
       show(document.getElementById("edit-member-form"));
       document.getElementById("edit-member-form").scrollIntoView({ behavior: "smooth" });
     }
+    let _editingHasActiveMembership = false;
+    let _editingStatusWas = "";
     async function saveMember() {
       const id = document.getElementById("em-id").value;
+      const newStatus = document.getElementById("em-status").value;
+      // One-line confirmation for the destructive direction only. Saving with
+      // the status unchanged, or moving TOWARD active, never asks.
+      if (
+        _editingHasActiveMembership &&
+        newStatus !== _editingStatusWas &&
+        (newStatus === "pending" || newStatus === "lapsed" || newStatus === "cancelled")
+      ) {
+        if (!confirm(
+          `Set this member to "${newStatus}"? Their current membership ends with it — ` +
+          `the renewal date is kept in their history, but they stop counting as a member ` +
+          `and stop appearing with a level in exports. Assign a membership again to undo.`
+        )) return;
+      }
       const custom = {};
       document.querySelectorAll("#em-custom [data-cf-key]").forEach((i) => {
         custom[i.dataset.cfKey] = i.value;

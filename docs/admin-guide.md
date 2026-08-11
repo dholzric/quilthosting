@@ -197,15 +197,22 @@ re-run a roster:
 
 **The roster QuiltHosting exports for you is safe to re-import on both
 counts.** Members → Export writes the level and renewal date only for people
-who have a **currently active** membership; a lapsed or cancelled member
-exports with those two cells blank, so re-importing your own export does not
-resurrect them, and active members carry their real renewal date back in
-rather than being re-dated. That holds however a member came to be lapsed —
-the nightly renewal run, an admin marking them lapsed by hand, or a status
-column in an earlier import all end the membership itself, not just the
-member's status. (Earlier exports did carry a lapsed member's last level,
-which on re-import reactivated them — if you have an old export saved, clear
-the `level` cell on any lapsed or cancelled row before importing it.)
+who have a **currently active** membership; a pending, lapsed or cancelled
+member exports with those two cells blank, so re-importing your own export
+does not resurrect them, and active members carry their real renewal date
+back in rather than being re-dated. That holds however a member stopped being
+active — the nightly renewal run, an admin setting them to pending, lapsed or
+cancelled by hand, or a status column in an earlier import all end the
+membership itself, not just the member's status. (Earlier exports did carry a
+former member's last level, which on re-import reactivated them — if you have
+an old export saved, clear the `level` cell on any pending, lapsed or
+cancelled row before importing it.)
+
+⚠️ **Setting a member to pending, lapsed or cancelled ends their current
+membership.** Their renewal date stays visible in their membership history,
+but the membership stops being current, which is why they then export with no
+level. The member editor asks you to confirm before doing it. To undo, use
+**Assign / renew membership** on that member — there is no "un-lapse".
 
 The limit bites when a file would make *more people active than you have room
 for*: new members, or existing members you're bringing back from lapsed or

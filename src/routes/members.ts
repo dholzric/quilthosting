@@ -2042,8 +2042,17 @@ memberRoutes.post("/import", async (c) => {
                 : now;
             disclosure =
               `the file gave no renewal/expiry date we could use, so the renewal date was set to ${pm.chosenEnd.slice(0, 10)} (${pm.level.duration_months || 12} month(s) from ${base.slice(0, 10)}, the "${pm.level.name}" term)` +
-              (prior
-                ? `, replacing an earlier one of ${prior.endDate!.slice(0, 10)} -- this row renewed them`
+              // Fix round 10, item 4a: gated on STRICTLY earlier, not merely
+              // `prior`. priorWins above needs `>`, so an end date equal to
+              // the computed one to the millisecond falls into this branch --
+              // where it is also a no-op (same level, same end date), so the
+              // row wrote nothing and "this row renewed them" was false.
+              // Practically unreachable, but a disclosure that is wrong in
+              // the rare case is worse than one that stays quiet.
+              (prior &&
+              prior.endDate &&
+              new Date(prior.endDate).getTime() < new Date(pm.chosenEnd).getTime()
+                ? `, replacing an earlier one of ${prior.endDate.slice(0, 10)} -- this row renewed them`
                 : "") +
               `. The "member since" date is unchanged. Edit this member if that date is wrong`;
           }
