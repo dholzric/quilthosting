@@ -155,6 +155,17 @@ name, nav), the page's ordered blocks, footer. Nav comes from `settings.nav`
 plus published pages with `show_in_nav`, exactly as `/public/:slug/site` already
 assembles it (`src/routes/public.ts:1084`).
 
+**Platform credit.** The footer carries a "Powered by QuiltHosting" link to
+quilthosting.com on every tenant site — a real followed link, not `nofollow`,
+since the point is attribution and referral traffic. It is stored as
+`settings.branding.show_platform_credit`, defaulting to `true`, rather than
+hardcoded: white-labelling is the natural upsell later, and a boolean now costs
+nothing. Stitch Studio Quilting ships with the credit shown.
+
+Note this interacts with §4: the credit only becomes publicly visible once a
+tenant is launched, so it must not appear on gated preview hosts in a way that
+implies the platform is live.
+
 **Blocks.** The registry in `src/lib/blocks.ts` is the extension seam. Existing:
 `heading | text | image | button | divider | html | join_cta | events_list |
 store_list | spacer`. P0 adds:
@@ -359,9 +370,10 @@ vitest, colocated as `src/**/*.test.ts`, matching the existing convention.
 
 ## Open questions
 
-Neither blocks implementation.
+Does not block implementation.
 
-1. Does she want the QuiltHosting brand visible in the footer, or a fully
-   white-labelled site? Affects the footer template only.
-2. Which Stripe account is hers — an existing one, or new? Determines whether P4
+1. Which Stripe account is hers — an existing one, or new? Determines whether P4
    onboarding is a connect or a create.
+
+**Resolved during design:** the footer shows a "Powered by QuiltHosting" link
+on every tenant site, including hers. See §3.
