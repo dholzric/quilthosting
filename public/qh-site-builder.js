@@ -282,5 +282,84 @@
     root.appendChild(launchStatus);
   }
 
-  window.qhSiteBuilder = { renderPages, renderTheme, renderDomain };
+  // ---- Business identity + navigation ------------------------------------
+  const IDENTITY_FIELDS = [
+    ["name", "Business name"],
+    ["phone", "Phone"],
+    ["email", "Email"],
+    ["street", "Street"],
+    ["city", "City"],
+    ["state", "State"],
+    ["zip", "ZIP"],
+  ];
+
+  async function renderIdentity(root) {
+    root.replaceChildren();
+    root.appendChild(e("h2", "", "Business details"));
+    root.appendChild(
+      e("p", "muted",
+        "Used in the site footer and in the structured data search engines read.")
+    );
+
+    const site = await api(`/api/tenants/${tenantId}`);
+    let settings = {};
+    try { settings = JSON.parse(site.settings_json || "{}"); } catch (err) { settings = {}; }
+    const business = settings.business || {};
+    const assets = settings.assets || {};
+
+    const inputs = {};
+    IDENTITY_FIELDS.forEach(function (pair) {
+      const n = input(business[pair[0]] || "", pair[1]);
+      inputs[pair[0]] = n;
+      root.appendChild(field(pair[1], n));
+    });
+
+    const logo = input(assets.logo_file_id || "", "file id from the Files page");
+    root.appendChild(field("Logo file id", logo));
+
+    root.appendChild(e("h3", "", "Navigation"));
+    root.appendChild(
+      e("p", "muted", "One item per line as 'Label | /path'. Leave empty to list published pages automatically.")
+    );
+    const navText = textarea(
+      (settings.nav || []).map(function (n) { return n.label + " | " + n.href; }).join("\n"),
+      6
+    );
+    root.appendChild(navText);
+
+    const status = e("p", "muted", "");
+    const save = e("button", "btn", "Save details");
+    save.addEventListener("click", async () => {
+      const nextBusiness = {};
+      IDENTITY_FIELDS.forEach(function (pair) { nextBusiness[pair[0]] = inputs[pair[0]].value; });
+      const nav = navText.value
+        .split("\n")
+        .map(function (line) { return line.split("|"); })
+        .filter(function (parts) { return parts.length >= 2 && parts[0].trim() && parts[1].trim(); })
+        .map(function (parts) { return { label: parts[0].trim(), href: parts[1].trim() }; });
+      const next = {
+        ...settings,
+        business: nextBusiness,
+        assets: { ...assets, logo_file_id: logo.value.trim() },
+        nav: nav,
+      };
+      try {
+        // Tenant PATCH (src/routes/tenants.ts) takes a `settings` object and
+        // JSON.stringifies it server-side -- same convention renderTheme
+        // above uses, not a pre-stringified settings_json field.
+        await api(`/api/tenants/${tenantId}`, {
+          method: "PATCH",
+          body: JSON.stringify({ settings: next }),
+        });
+        settings = next;
+        status.textContent = "Saved.";
+      } catch (err) {
+        status.textContent = err.message;
+      }
+    });
+    root.appendChild(save);
+    root.appendChild(status);
+  }
+
+  window.qhSiteBuilder = { renderPages, renderTheme, renderDomain, renderIdentity };
 })();

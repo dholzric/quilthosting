@@ -78,8 +78,9 @@
         <a href="#" data-page="site-pages" id="nav-site-pages" class="business-only hidden">Website</a>
         <a href="#" data-page="site-theme" id="nav-site-theme" class="business-only hidden">Appearance</a>
         <a href="#" data-page="site-domain" id="nav-site-domain" class="business-only hidden">Domain &amp; Launch</a>
+        <a href="#" data-page="site-identity" class="business-only hidden">Business details</a>
         <a href="#" data-page="dashboard" class="active">Dashboard</a>
-        <a href="#" data-page="members">Members</a>
+        <a href="#" data-page="members" data-members-label>Members</a>
         <a href="#" data-page="levels" class="guild-only">Levels</a>
         <a href="#" data-page="events">Events</a>
         <a href="#" data-page="store">Store</a>
@@ -345,6 +346,22 @@
       document.querySelectorAll(".guild-only").forEach((el) => {
         el.classList.toggle("hidden", isBusinessTenant);
       });
+      applyMembersLabel();
+    }
+
+    // "Members" reads as "Customers" for business tenants (spec §1). Split
+    // out from applyTenantTypeNav (which only runs at login / tenant switch,
+    // before the sidebar link exists in most cases anyway) because the
+    // Members page heading is torn down and rebuilt fresh from a template
+    // string every time navigate("members") runs -- so this also has to be
+    // called again at the end of renderMembers, or the heading would revert
+    // to the literal "Members" text baked into that template the moment the
+    // owner opens the page.
+    function applyMembersLabel() {
+      const isBusinessTenant = (currentTenant && currentTenant.tenant_type) === "business";
+      document.querySelectorAll("[data-members-label]").forEach((el) => {
+        el.textContent = isBusinessTenant ? "Customers" : "Members";
+      });
     }
 
     async function initApp() {
@@ -394,6 +411,7 @@
         else if (page === "site-pages") await window.qhSiteBuilder.renderPages(el);
         else if (page === "site-theme") await window.qhSiteBuilder.renderTheme(el);
         else if (page === "site-domain") await window.qhSiteBuilder.renderDomain(el);
+        else if (page === "site-identity") await window.qhSiteBuilder.renderIdentity(el);
         else if (page === "reports") await renderReports(el);
         else if (page === "sms") await renderSms(el);
         else if (page === "chapters") await renderChapters(el);
@@ -739,7 +757,7 @@
       const total = data && typeof data.total === "number" ? data.total : members.length;
       const totalPages = (data && data.total_pages) || Math.max(1, Math.ceil(total / 50) || 1);
       el.innerHTML = `
-        <h2>Members</h2>
+        <h2 data-members-label>Members</h2>
         <p class="muted" style="margin-bottom:0.75rem">${total.toLocaleString()} members · server-side search &amp; pagination (scales to 50k+)</p>
         <div class="toolbar">
           <input type="search" id="member-search" placeholder="Search name or email…" value="${esc(q)}" />
@@ -854,6 +872,7 @@
           <div id="import-history-body" class="muted" style="font-size:0.85rem">Loading…</div>
         </div>
       `;
+      applyMembersLabel();
       window._members = members;
       const searchEl = document.getElementById("member-search");
       if (searchEl) {

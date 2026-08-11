@@ -75,6 +75,31 @@ export async function serveBusinessSite(
     });
   }
 
+  // Tenant-uploaded images (logo, OG image, and anything else uploaded
+  // through the Files admin page). tenant_id in the WHERE clause is what
+  // stops one tenant's file id from reading another tenant's image -- see
+  // siteGate's TENANT_IMAGE_PATH_RE for the allowlist that lets this path
+  // shape through the private-preview gate in the first place.
+  const imgMatch = path.match(/^\/img\/([A-Za-z0-9_-]{1,64})$/);
+  if (imgMatch) {
+    const fileRow = await first<{ r2_key: string; content_type: string | null }>(
+      c.env.DB.prepare(
+        `SELECT r2_key, content_type FROM files WHERE id = ? AND tenant_id = ?`
+      ).bind(imgMatch[1], tenant.id)
+    );
+    if (!fileRow) return new Response("Not found", { status: 404 });
+    const obj = await c.env.FILES.get(fileRow.r2_key);
+    if (!obj) return new Response("Not found", { status: 404 });
+    return new Response(obj.body, {
+      headers: {
+        "Content-Type": fileRow.content_type || "image/jpeg",
+        // File ids are immutable -- a replaced image gets a new id, so this
+        // can be cached forever without a purge.
+        "Cache-Control": "public, max-age=31536000, immutable",
+      },
+    });
+  }
+
   if (path === "/sitemap.xml") {
     const rows = await all<{ slug: string; updated_at: string }>(
       c.env.DB.prepare(
@@ -114,6 +139,17 @@ export async function serveBusinessSite(
   const nav = await loadNav(c.env, tenant);
   const { showPlatformCredit } = readBranding(tenant.settings_json);
 
+  let logoFileId = "";
+  try {
+    logoFileId = String(
+      (JSON.parse(tenant.settings_json || "{}").assets || {}).logo_file_id || ""
+    );
+  } catch {
+    logoFileId = "";
+  }
+  const logoUrl = logoFileId ? `${baseUrl}/img/${logoFileId}` : null;
+  const ogImageUrl = row.og_image_file_id ? `${baseUrl}/img/${row.og_image_file_id}` : null;
+
   return cachedRender({
     host,
     path,
@@ -133,6 +169,8 @@ export async function serveBusinessSite(
         },
         nav,
         baseUrl,
+        logoUrl,
+        ogImageUrl,
         showPlatformCredit,
       }),
   });

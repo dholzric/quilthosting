@@ -54,6 +54,14 @@ import { unstable_dev, getPlatformProxy } from "wrangler";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const HOST = "stitchstudioquilting.test";
 const TENANT = "tnt_demo_business";
+// Task 14: tenant image serving (GET /img/:fileId inside serveBusinessSite)
+// and the cross-tenant isolation it must enforce. A second, unrelated
+// business tenant with its own file lets the "foreign tenant's file id
+// 404s on my host" check prove the real WHERE tenant_id = ? clause is
+// doing the work, not just that the id doesn't exist at all.
+const FOREIGN_TENANT = "tnt_demo_foreign_biz";
+const IMG_FILE_ID = "img_test_biz_logo1";
+const FOREIGN_FILE_ID = "img_test_foreign_logo1";
 // Matches getTenantByHost's platform-apex check for this repo's local dev
 // APP_URL (.dev.vars: APP_URL=http://localhost:8787) -- appHostname() strips
 // scheme/port, leaving "localhost" as the platform host in this environment.
@@ -342,20 +350,58 @@ try {
 
   console.log("Seeding business tenant...");
   d1Exec(`
-DELETE FROM memberships WHERE tenant_id = '${TENANT}';
-DELETE FROM members WHERE tenant_id = '${TENANT}';
-DELETE FROM membership_levels WHERE tenant_id = '${TENANT}';
-DELETE FROM pages WHERE tenant_id = '${TENANT}';
-DELETE FROM tenants WHERE id = '${TENANT}';
+DELETE FROM files WHERE tenant_id IN ('${TENANT}', '${FOREIGN_TENANT}');
+DELETE FROM memberships WHERE tenant_id IN ('${TENANT}', '${FOREIGN_TENANT}');
+DELETE FROM members WHERE tenant_id IN ('${TENANT}', '${FOREIGN_TENANT}');
+DELETE FROM membership_levels WHERE tenant_id IN ('${TENANT}', '${FOREIGN_TENANT}');
+DELETE FROM pages WHERE tenant_id IN ('${TENANT}', '${FOREIGN_TENANT}');
+DELETE FROM tenants WHERE id IN ('${TENANT}', '${FOREIGN_TENANT}');
 INSERT INTO tenants (id, name, slug, custom_domain, plan, status, tenant_type, public_launched, settings_json)
 VALUES ('${TENANT}', 'Stitch Studio Quilting', 'stitchstudio', '${HOST}', 'free', 'active', 'business', 1,
-  '{"theme":{"primary":"#8a2060"},"business":{"name":"Stitch Studio Quilting","city":"Wimberley","state":"TX"}}');
+  '{"theme":{"primary":"#8a2060"},"business":{"name":"Stitch Studio Quilting","phone":"555-867-5309","city":"Wimberley","state":"TX"},"assets":{"logo_file_id":"${IMG_FILE_ID}"}}');
 INSERT INTO pages (id, tenant_id, slug, title, blocks_json, published, sort_order)
 VALUES ('pg_bs_home', '${TENANT}', 'home', 'Stitch Studio Quilting',
   '[{"type":"hero","title":"Stitch Studio Quilting","subtitle":"Longarm quilting"}]', 1, 0);
 INSERT INTO pages (id, tenant_id, slug, title, blocks_json, published, sort_order, noindex)
 VALUES ('pg_bs_secret', '${TENANT}', 'secret', 'Hidden', '[]', 1, 1, 1);
+
+-- Unrelated business tenant used only for the /img/:fileId cross-tenant
+-- isolation check below -- never given its own host/pages.
+INSERT INTO tenants (id, name, slug, plan, status, tenant_type, public_launched, settings_json)
+VALUES ('${FOREIGN_TENANT}', 'Foreign Biz', 'foreignbiz-imgtest', 'free', 'active', 'business', 1, '{}');
+
+INSERT INTO files (id, tenant_id, r2_key, filename, content_type, size, created_at)
+VALUES ('${IMG_FILE_ID}', '${TENANT}', '${TENANT}/${IMG_FILE_ID}/logo.jpg', 'logo.jpg', 'image/jpeg', 24, datetime('now'));
+INSERT INTO files (id, tenant_id, r2_key, filename, content_type, size, created_at)
+VALUES ('${FOREIGN_FILE_ID}', '${FOREIGN_TENANT}', '${FOREIGN_TENANT}/${FOREIGN_FILE_ID}/secret.jpg', 'secret.jpg', 'image/jpeg', 24, datetime('now'));
 `);
+
+  console.log("Writing R2 object bytes for the seeded files (D1 rows above point at these keys)...");
+  {
+    // R2 isn't reachable through the wrangler CLI the way D1 is (no
+    // `wrangler r2 object put --local` equivalent used elsewhere in this
+    // script), so this uses getPlatformProxy for real FILES bindings against
+    // the same on-disk state -- sequenced strictly BEFORE `unstable_dev`
+    // boots below, for the same reason `renewalsExclusionCheck` waits until
+    // AFTER the HTTP worker stops: two independent D1/R2 sessions against
+    // the same persisted state should never be open concurrently.
+    const imgProxy = await getPlatformProxy({
+      configPath: join(ROOT, "wrangler.toml"),
+      envFiles: [join(ROOT, ".dev.vars")],
+      persist: { path: join(ROOT, ".wrangler/state/v3") },
+    });
+    try {
+      const bytes = new TextEncoder().encode("fake-jpeg-bytes-for-verify-business-site");
+      await imgProxy.env.FILES.put(`${TENANT}/${IMG_FILE_ID}/logo.jpg`, bytes, {
+        httpMetadata: { contentType: "image/jpeg" },
+      });
+      await imgProxy.env.FILES.put(`${FOREIGN_TENANT}/${FOREIGN_FILE_ID}/secret.jpg`, bytes, {
+        httpMetadata: { contentType: "image/jpeg" },
+      });
+    } finally {
+      await imgProxy.dispose();
+    }
+  }
 
   console.log("\nStarting the worker (stripped-routes config, real local D1/KV/R2 state)...");
   worker = await unstable_dev("src/index.ts", {
@@ -385,6 +431,17 @@ VALUES ('pg_bs_secret', '${TENANT}', 'secret', 'Hidden', '[]', 1, 1, 1);
     check("contains hero title in the source", r.body.includes("Stitch Studio Quilting"));
     check("carries theme custom properties", r.body.includes("--color-primary:#8a2060"));
     check("emits LocalBusiness json-ld", r.body.includes('"@type":"LocalBusiness"'));
+    // Task 14: business identity (settings.business.phone) flows through
+    // readBusinessIdentity -> buildLocalBusinessJsonLd into the rendered
+    // page's structured data -- the same field the task brief's own
+    // curl-and-grep manual check (Step 7) targets.
+    check("business identity (phone) appears in the LocalBusiness json-ld",
+      r.body.includes('"telephone":"555-867-5309"'), r.body.slice(0, 4000));
+    // Task 14: logoUrl is now computed from settings.assets.logo_file_id and
+    // wired into renderPageHtml -- it must resolve to this tenant's own
+    // /img/:fileId route, not sit unset like Task 9 deliberately left it.
+    check("logo renders as an <img> pointing at this tenant's own /img/:fileId route",
+      r.body.includes(`<img src="https://${HOST}/img/${IMG_FILE_ID}"`), r.body.slice(0, 4000));
     check("shows the platform credit linking to the platform",
       r.body.includes('Powered by <a href="https://quilthosting.com">QuiltHosting</a>'));
     check("is not noindexed", !r.body.includes('content="noindex'));
@@ -401,6 +458,32 @@ VALUES ('pg_bs_secret', '${TENANT}', 'secret', 'Hidden', '[]', 1, 1, 1);
     check("robots 200", rb.status === 200, `got ${rb.status}`);
     check("robots allows crawling", rb.body.includes("Allow: /"));
     check("robots points at the sitemap", rb.body.includes("sitemap.xml"));
+  }
+
+  console.log("\nTenant images (GET /img/:fileId inside serveBusinessSite):");
+  {
+    const img = await req(HOST, `/img/${IMG_FILE_ID}`);
+    check("uploaded image serves 200", img.status === 200, `got ${img.status}`);
+    check("content type matches the files row",
+      (img.headers.get("content-type") || "").includes("image/jpeg"),
+      img.headers.get("content-type"));
+    check("cache header is public, 1-year, immutable",
+      (img.headers.get("cache-control") || "").includes("immutable") &&
+      (img.headers.get("cache-control") || "").includes("max-age=31536000"),
+      img.headers.get("cache-control"));
+
+    // The actual security requirement (Task 14 brief): tenant_id scoping is
+    // the only thing stopping one tenant's file id from reading another
+    // tenant's image. FOREIGN_FILE_ID genuinely exists in `files` -- just
+    // under FOREIGN_TENANT's tenant_id, not TENANT's -- so a pass here
+    // proves the WHERE tenant_id = ? clause is doing the work, not merely
+    // that some made-up id 404s.
+    const foreign = await req(HOST, `/img/${FOREIGN_FILE_ID}`);
+    check("a foreign tenant's real file id 404s on this tenant's host (tenant_id scoping)",
+      foreign.status === 404, `got ${foreign.status}`);
+
+    const bogus = await req(HOST, "/img/does-not-exist-at-all");
+    check("a nonexistent file id also 404s", bogus.status === 404, `got ${bogus.status}`);
   }
 
   console.log("\nA real 404 (not the guild SPA shell):");
@@ -517,11 +600,12 @@ VALUES ('lvl_bs_free', '${TENANT}', 'Free Plan', 0, 12, 'manual', 'active');
   console.log("Cleaning up business tenant fixture...");
   try {
     d1Exec(`
-DELETE FROM memberships WHERE tenant_id = '${TENANT}';
-DELETE FROM members WHERE tenant_id = '${TENANT}';
-DELETE FROM membership_levels WHERE tenant_id = '${TENANT}';
-DELETE FROM pages WHERE tenant_id = '${TENANT}';
-DELETE FROM tenants WHERE id = '${TENANT}';
+DELETE FROM files WHERE tenant_id IN ('${TENANT}', '${FOREIGN_TENANT}');
+DELETE FROM memberships WHERE tenant_id IN ('${TENANT}', '${FOREIGN_TENANT}');
+DELETE FROM members WHERE tenant_id IN ('${TENANT}', '${FOREIGN_TENANT}');
+DELETE FROM membership_levels WHERE tenant_id IN ('${TENANT}', '${FOREIGN_TENANT}');
+DELETE FROM pages WHERE tenant_id IN ('${TENANT}', '${FOREIGN_TENANT}');
+DELETE FROM tenants WHERE id IN ('${TENANT}', '${FOREIGN_TENANT}');
 `);
   } catch (e) {
     console.error("cleanup failed (non-fatal):", e?.message || e);
