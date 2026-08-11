@@ -60,7 +60,8 @@ export async function runRenewalJob(env: Env): Promise<{
            JOIN tenants t ON t.id = m.tenant_id
            WHERE m.status = 'active'
              AND date(m.end_date) = date(?)
-             AND t.status = 'active'`
+             AND t.status = 'active'
+             AND coalesce(t.tenant_type, 'guild') = 'guild'`
         ).bind(targetDate)
       );
 
@@ -125,8 +126,11 @@ export async function runRenewalJob(env: Env): Promise<{
   try {
     const expired = await all<{ id: string; member_id: string; tenant_id: string }>(
       env.DB.prepare(
-        `SELECT id, member_id, tenant_id FROM memberships
-         WHERE status = 'active' AND date(end_date) < date(?)`
+        `SELECT m.id, m.member_id, m.tenant_id
+         FROM memberships m
+         JOIN tenants t ON t.id = m.tenant_id
+         WHERE m.status = 'active' AND date(m.end_date) < date(?)
+           AND coalesce(t.tenant_type, 'guild') = 'guild'`
       ).bind(today)
     );
 
@@ -175,7 +179,8 @@ export async function runRenewalJob(env: Env): Promise<{
          FROM members mem
          JOIN tenants t ON t.id = mem.tenant_id
          WHERE mem.status = 'lapsed' AND t.status = 'active'
-           AND date(mem.updated_at) = date(?)`
+           AND date(mem.updated_at) = date(?)
+           AND coalesce(t.tenant_type, 'guild') = 'guild'`
       ).bind(winDate)
     );
     for (const row of lapsed) {
@@ -229,7 +234,8 @@ export async function runRenewalJob(env: Env): Promise<{
          WHERE trial_ends_at IS NOT NULL
            AND date(trial_ends_at) < date(?)
            AND plan = 'free'
-           AND (stripe_subscription_id IS NULL OR stripe_subscription_id = '')`
+           AND (stripe_subscription_id IS NULL OR stripe_subscription_id = '')
+           AND coalesce(tenant_type, 'guild') = 'guild'`
       ).bind(today)
     );
     for (const t of expiredTrials) {
