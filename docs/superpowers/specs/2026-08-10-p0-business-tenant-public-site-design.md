@@ -327,30 +327,57 @@ ALTER TABLE pages ADD COLUMN noindex INTEGER NOT NULL DEFAULT 0;
 CREATE TABLE tenant_credentials (...);  -- as specified in §2
 ```
 
-Theme migration runs as a data backfill over `tenants.settings_json`, not as
-DDL — `theme` is a JSON subtree, and the five old fields expand into the
-thirteen-token set plus a font config.
+There is **no theme backfill**. `theme` is a JSON subtree of
+`tenants.settings_json`, and rather than rewriting every tenant's row, the
+renderer expands legacy shapes at read time and `/public/:slug/site` derives
+the legacy fields back out. Expansion is idempotent, so a stored value may be
+either shape indefinitely; a row is only rewritten in the new shape when its
+owner saves the appearance form. This removes a destructive migration over live
+guild data. (Revised during planning; the original design called for a backfill.)
 
 ## Testing
 
-vitest, colocated as `src/**/*.test.ts`, matching the existing convention.
+The repo has **no unit test runner today** — `package.json` declares only
+`test:scale`, `test:integrations`, `test:idempotency`, `test:import`, and
+`test:delivery`, each a `scripts/verify-*.mjs` node script that esbuild-bundles
+the real module, exercises it (often against `wrangler d1 --local`), and counts
+failures through a `check()` helper.
+
+P0 introduces a lot of pure logic that pattern tests badly. So:
+
+- **vitest is added** for pure units, colocated as `src/**/*.test.ts`. New
+  devDependency, new `npm test` script. It does not touch the existing scripts.
+- **`scripts/verify-business-site.mjs`** follows the established pattern for
+  anything needing D1 or a live Worker — the gate matrix and the theme backfill.
+
+Converting the five existing verify scripts to vitest is explicitly out of
+scope; they work, and that migration has nothing to do with P0.
+
+*vitest:*
+
+- **Block rendering.** Each block type renders expected structure; hostile input
+  in every text field comes back escaped; `html` passes through intact.
+- **Theme tokens.** Preset expansion, override precedence, the five-field →
+  thirteen-token migration for an existing guild, and the reverse derivation
+  that keeps `/public/:slug/site` emitting the legacy fields.
+- **SEO emission.** Title and description fallback chains, canonical URL against
+  custom domain vs. subdomain, `noindex` honoured, sitemap excludes unpublished,
+  members-only, and `noindex` pages.
+- **Credential crypto.** Round-trip encrypt/decrypt, distinct IVs across writes,
+  and hard failure when `CREDENTIAL_KEY` is absent.
+
+*`scripts/verify-business-site.mjs`:*
 
 - **Gate matrix (highest risk).** Launched business host, unlaunched business
   host, guild host, platform apex, `/admin` on a launched custom domain,
   `/portal` on a launched custom domain, missing `SITE_ACCESS_PASSWORD` in
-  production. Each asserts gated vs. open and the `robots.txt` body.
-- **Block rendering.** Each block type renders expected structure; hostile input
-  in every text field comes back escaped; `html` passes through intact.
-- **Theme tokens.** Preset expansion, override precedence, and the five-field →
-  thirteen-token migration for an existing guild.
-- **SEO emission.** Title and description fallback chains, canonical URL against
-  custom domain vs. subdomain, `noindex` honoured, sitemap excludes unpublished,
-  members-only, and `noindex` pages.
-- **Credential store.** Round-trip encrypt/decrypt, distinct IVs across writes,
-  the admin API never emitting plaintext, and hard failure when
-  `CREDENTIAL_KEY` is absent.
+  production. Each asserts gated vs. open and the `robots.txt` body. Driven
+  over HTTP against `wrangler dev` with a spoofed `Host` header.
+- **Credential API.** The admin endpoints never emit plaintext on any path.
 - **Tenant type.** Business tenants bypass the member cap and are skipped by
   `runRenewalJob`; guild tenants keep both behaviours.
+- **Image isolation.** `/img/:fileId` on a tenant host 404s for a file id
+  belonging to a different tenant.
 
 ## Risks
 
@@ -360,9 +387,9 @@ vitest, colocated as `src/**/*.test.ts`, matching the existing convention.
   than serving a static SPA shell. Cache API keyed on `updated_at` is the
   mitigation; if render time proves marginal, the fallback is to persist
   rendered HTML into KV at publish time.
-- **Theme migration touching live guild sites.** The backfill rewrites
-  `settings_json` for every tenant. It needs a dry-run mode and a recorded
-  before-image per tenant.
+- ~~**Theme migration touching live guild sites.**~~ Eliminated during
+  planning by expanding legacy themes at read time instead of backfilling.
+  Nothing rewrites an existing tenant's `settings_json`.
 - **P0 delivers no customer-visible feature on its own.** She sees a site with
   pages on it and none of the four things she asked for. Sequencing is deliberate
   — P1 through P4 all render through this — but it should be set as the
