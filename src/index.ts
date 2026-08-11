@@ -43,6 +43,8 @@ import { runAutomationJob } from "./lib/automations";
 import { processQueuedBlasts } from "./lib/blastSend";
 import { generateId } from "./lib/utils/id";
 import { getTenantByHost } from "./lib/tenantHost";
+import { isBusiness } from "./lib/tenantType";
+import { serveBusinessSite } from "./routes/site";
 import { handleWebhookQueue } from "./consumers/webhookConsumer";
 import { sweepOutbox } from "./lib/webhookOutbox";
 import { sweepExpired } from "./lib/idempotency";
@@ -85,6 +87,26 @@ app.use("*", async (c, next) => {
   }
   const tenant = await getTenantByHost(c.env.DB, host, c.env.APP_URL);
   if (!tenant) return next();
+
+  // Business tenants get the server-rendered site. Guilds keep guild.html.
+  if (isBusiness(tenant)) {
+    // Platform surfaces stay on the platform, even on a custom domain.
+    const isPlatformPath =
+      path.startsWith("/admin") ||
+      path.startsWith("/portal") ||
+      path.startsWith("/docs") ||
+      path.startsWith("/embed") ||
+      path === "/qh.css" ||
+      path === "/sw.js" ||
+      path === "/manifest.webmanifest" ||
+      path === "/icon.svg" ||
+      path.startsWith("/assets");
+    if (!isPlatformPath) {
+      const res = await serveBusinessSite(c, tenant);
+      if (res) return res;
+      // No matching page — fall through so the 404 handler runs.
+    }
+  }
 
   // Portal: ensure slug query so portal.js finds the tenant
   if (path === "/portal" || path === "/portal.html") {
