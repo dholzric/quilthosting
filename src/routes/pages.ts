@@ -100,6 +100,10 @@ pageRoutes.post("/", async (c) => {
   const blocks = body.blocks !== undefined ? parseBlocks(body.blocks) : [];
   const contentJson = JSON.stringify({ html: body.content_html || "" });
   const pageType = body.page_type === "blog_post" ? "blog_post" : "page";
+  // seo_title/seo_description feed straight into <title>/<meta> emission
+  // (src/lib/site/seo.ts) and the sitemap -- capped the same way blocks.ts
+  // caps its own string fields (slice, not a validation layer) so an
+  // oversized value can't produce a broken <head>.
   try {
     await c.env.DB.prepare(
       `INSERT INTO pages
@@ -121,8 +125,8 @@ pageRoutes.post("/", async (c) => {
         body.is_members_only ? 1 : 0,
         body.published === false ? 0 : 1,
         body.sort_order ?? 0,
-        body.seo_title?.trim() || null,
-        body.seo_description?.trim() || null,
+        body.seo_title?.trim().slice(0, 200) || null,
+        body.seo_description?.trim().slice(0, 500) || null,
         body.noindex ? 1 : 0,
         now,
         now
@@ -232,8 +236,10 @@ pageRoutes.patch("/:pageId", async (c) => {
         body.sort_order ?? null,
         body.show_in_nav !== undefined ? (body.show_in_nav ? 1 : 0) : null,
         body.nav_label !== undefined ? body.nav_label : null,
-        body.seo_title !== undefined ? body.seo_title.trim() || null : null,
-        body.seo_description !== undefined ? body.seo_description.trim() || null : null,
+        body.seo_title !== undefined ? body.seo_title.trim().slice(0, 200) || null : null,
+        body.seo_description !== undefined
+          ? body.seo_description.trim().slice(0, 500) || null
+          : null,
         body.noindex !== undefined ? (body.noindex ? 1 : 0) : null,
         now,
         pageId,

@@ -33,6 +33,15 @@
     if (value != null) n.value = value;
     return n;
   }
+  // Mirrors pages.ts's server-side `slugify` exactly (same regex), so the
+  // live preview in the Slug field matches what will actually be saved.
+  function clientSlugify(s) {
+    return String(s || "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+  }
 
   // ---- Pages -------------------------------------------------------------
   async function renderPages(root) {
@@ -79,7 +88,24 @@
     root.appendChild(e("h2", "", pg.id ? "Edit page" : "New page"));
 
     const title = input(pg.title, "Page title");
-    const slug = input(pg.slug, "url-slug (blank or 'home' for the home page)");
+    const slug = input(pg.slug, "Page address — auto-filled from the title; edit to customize, or clear it for the home page");
+    // For a brand-new page (no pg.id yet), keep the Slug field in sync with
+    // the Title field as the user types, the same way the pre-existing
+    // guild page builder always derived a page's URL from its title. This
+    // is what makes a blank Slug field rare in practice: a business owner
+    // who never touches Slug at all still gets a sensible, unique-looking
+    // URL instead of every untouched new page silently colliding on the
+    // "home" page's slug (see pages.ts's blank-slug-becomes-"home"
+    // normalization). Stops syncing the moment the user edits Slug
+    // directly, or when editing an existing page (its slug is already a
+    // real, saved value -- retyping the title shouldn't move its URL).
+    let slugTouched = !!pg.id;
+    slug.addEventListener("input", () => {
+      slugTouched = true;
+    });
+    title.addEventListener("input", () => {
+      if (!slugTouched) slug.value = clientSlugify(title.value);
+    });
     const seoTitle = input(pg.seo_title || "", "SEO title (defaults to page title)");
     const seoDesc = textarea(pg.seo_description || "", 2);
     const blocks = textarea(pg.blocks_json || "[]", 16);
