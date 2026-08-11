@@ -2183,7 +2183,12 @@ Inside the tenant-host middleware, immediately after `if (!tenant) return next()
     if (!isPlatformPath) {
       const res = await serveBusinessSite(c, tenant);
       if (res) return res;
-      // No matching page — fall through so the 404 handler runs.
+      // A real 404. Falling through does NOT reach app.notFound — execution
+      // continues in this same middleware to the catch-all below, which
+      // rewrites to /guild and serves the guild SPA shell at HTTP 200. On a
+      // business tenant that means a missing page returns someone else's app,
+      // indexable, under the customer's own domain.
+      return c.notFound();
     }
   }
 ```

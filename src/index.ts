@@ -104,7 +104,7 @@ app.use("*", async (c, next) => {
     if (!isPlatformPath) {
       const res = await serveBusinessSite(c, tenant);
       if (res) return res;
-      // No matching page — fall through so the 404 handler runs.
+      return c.notFound();
     }
   }
 

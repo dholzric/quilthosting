@@ -31,6 +31,7 @@ async function loadNav(env: Env, tenant: Tenant) {
   const explicit = Array.isArray(settings.nav) ? settings.nav : [];
   if (explicit.length) {
     return explicit
+      .filter((n) => typeof n === "object" && n !== null)
       .map((n: Record<string, unknown>) => ({
         label: String(n.label || "").slice(0, 60),
         href: String(n.href || "").slice(0, 500),
