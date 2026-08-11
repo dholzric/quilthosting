@@ -268,6 +268,7 @@ a real import whose file triggers any lossy code reports
 | `duplicate_custom_key` | n/a | `"<a>" and "<b>" would both import into the same custom field. Rename one column, or set one to "Do not import".` | **Dry run only.** Two columns map to the same custom-field `key`. A real import with the same mapping returns the `duplicate_custom_key` 400 above instead of importing, so this code can never appear in a real import's `warnings`. |
 | `unparseable_date` | yes | Some renewal/expiry dates could not be read and will be left blank | A row's end/expiry/renewal/expiration value doesn't parse as a date. On a real import, where the row also names a level, the membership end date is computed from the level's duration instead of the file's date — a fabricated date, not the guild's. |
 | `end_date_without_level` | yes | Some rows have a valid renewal/expiry date but no membership level — the date will not be stored | The row's date parsed fine, but with no level there is no membership to attach it to, so it is dropped. |
+| `level_without_end_date` | **no** | Some rows name a membership level but no renewal/expiry date. We will set each of those renewal dates to one full term of the level's duration counted from today… | The exact inverse of `end_date_without_level`, and the commonest Wild Apricot roster shape there is: a Level column with no expiry column anywhere in the file. A membership is created and needs an end date, so `computeMembershipEnd()` (`src/lib/memberships.ts`) picks one: the level's `duration_months` counted from `max(startDate, now)`. Deliberately **not** lossy — nothing in the file is discarded, because the file carried no renewal information to discard; what happens is that QuiltHosting *chooses* a date, which is a decision to disclose rather than a loss. Marking it lossy would make `partial` fire on nearly every first migration, the same reasoning that excluded `joined_at_ignored_on_update`. Visibility is not reduced: the code appears in `warnings` (rendered on the `completed` path too), and every row whose membership was actually created gets a `level_without_end_date` error row naming the exact date chosen. Before this existed, such a file reported a clean `completed` while a historical "Member Since" date produced an end date already in the past, which the nightly cron then lapsed overnight. |
 | `unparseable_join_date` | yes | Some "member since" dates could not be read; they will be stored exactly as typed, without validation | A row's `joined_at` doesn't parse **and** the row is an insert. There is no fallback for a non-empty bad string on insert: the value is bound into `members.joined_at` verbatim. |
 | `joined_at_ignored_on_update` | **no** | Some "member since" dates differ from what's already on file for these existing members… | The row matches an existing member and the file's `joined_at` differs from the stored one by calendar day. Deliberately **not** lossy: the UPDATE statement has no `joined_at` column at all, so the existing (authoritative) value is kept. The file's value is used as the membership start date only on rows that also name a level; on a row with no level it is not used at all. It was excluded from the lossy set because it fires on nearly every updated row of a routine full-roster re-export, which would make `partial` meaningless. |
 | `invalid_status` | yes | Some statuses are not one of: pending, active, lapsed, cancelled. Those rows import as active. | A row's status value isn't one of the four known statuses. The coercion to `active` consumes a plan slot and starts guild email. |
@@ -448,8 +449,11 @@ active membership.
 
 What does **not** trigger this: **re-importing members who are already
 active**. Only rows that would make someone *newly* active consume a slot, so
-a guild sitting at its limit that re-imports its own unchanged roster is
-`completed`, with `plan_limited: 0` — it is asking the plan for nothing. Size
+a guild sitting at its limit that re-imports its own unchanged roster gets
+`plan_limited: 0` — it is asking the plan for nothing. (`plan_limited: 0` is
+not by itself `completed`: any other lossy code in the same file still forces
+`partial`, and even a `completed` batch can carry informational
+`level_without_end_date` rows.) Size
 of file is not the trigger; number of *new* actives is. (Before this was
 fixed, such a re-import demoted every one of those members to `pending` and
 reported `plan_limited: 30`.)
@@ -489,15 +493,18 @@ Each entry: `{ row_number, kind, reason, email }` (`email` may be `null`).
 `kind` is one of `skipped`, `membership_failed`, `level_not_found`,
 `plan_limited`, `unparseable_date`, `unparseable_join_date`,
 `joined_at_ignored_on_update`, `invalid_status`, `status_overridden_by_level`,
-`end_date_without_level`.
+`end_date_without_level`, `level_without_end_date`.
 
 `error_kind_labels` is a server-supplied `kind → human label` map. Clients
 should group `errors` by `kind` and look the label up here rather than
 hand-maintaining a parallel list — that drift is what previously let new
 error kinds vanish from the UI and the downloadable report.
 
-Note that `joined_at_ignored_on_update` produces error rows but is not a
-lossy warning, so its presence alone does not make a batch `partial`.
+Note that `joined_at_ignored_on_update` and `level_without_end_date` produce
+error rows but are not lossy warnings, so their presence alone does not make
+a batch `partial`. A `completed` batch can therefore carry a non-empty
+`errors` array; clients must render `errors` and `warnings` on the
+`completed` path too, not only when `status === "partial"`.
 
 ### Import history
 

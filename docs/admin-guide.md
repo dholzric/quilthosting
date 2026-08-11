@@ -43,18 +43,24 @@ Apricot or otherwise) without guessing at column names:
    those rows with the reason for each, so you can fix and re-import only
    the problems instead of re-running the whole file.
 
-**Re-importing is safe.** Rows are matched by email — importing the same
-file again (or a corrected version of it) **updates** existing members
-rather than creating duplicates, and any custom-field values you've since
-entered by hand on a member are kept, not overwritten, unless the
-re-imported file supplies a new value for that same field.
+**Re-importing is safe against duplicates.** Rows are matched by email —
+importing the same file again (or a corrected version of it) **updates**
+existing members rather than creating duplicates, and any custom-field
+values you've since entered by hand on a member are kept, not overwritten,
+unless the re-imported file supplies a new value for that same field.
+(One exception to "safe" — see the warning under
+["Import finished with problems"](#import-finished-with-problems--what-a-partial-import-means)
+about re-running a file whose errors include membership failures.)
 
 ### "Import finished with problems" — what a partial import means
 
 Every import is recorded, and each one ends up in one of two everyday
 states:
 
-- **Complete** — nothing was lost.
+- **Complete** — nothing was lost. It does not mean nothing happened worth
+  reading: a complete import can still tell you about decisions QuiltHosting
+  made for you (see **"We chose your renewal dates"** below). Read the
+  summary either way.
 - **Partial** — *something in your file did not come through in full.* Your
   members were still imported; "partial" is not a crash and it is not a
   rollback. It's the importer refusing to tell you everything went fine
@@ -107,6 +113,29 @@ a partial import back or resume it where it stopped, and it can't work out on
 its own what's still missing. The fix is always: correct the file, import
 again.
 
+### "We chose your renewal dates" — a complete import can still have news
+
+Most guild exports have a **Level** column and no renewal/expiry column at
+all. A membership has to end *some* day, so when your file names a level but
+gives no renewal date, **QuiltHosting picks one for you: one full term of
+that level's duration, counted from the day you import.** A 12-month level
+imported today renews a year from today.
+
+That is not a loss — there was no date in your file to lose — so the import
+still comes back **complete**. But it is a decision made on your behalf, so
+the importer says so on screen and lists **every affected member with the
+exact date chosen** in the same **Download problem rows** CSV. Skim it. If a
+member's real renewal falls elsewhere, open that member and change their
+renewal date.
+
+⚠️ **A "Member Since" date does not set the renewal date.** If your file says
+someone joined in 2019, that stays on their record as their join date — but
+their renewal is still dated a full term from today, not from 2019. (Dating
+the term from the join date is exactly what used to import an entire roster
+as already-expired and lapse everyone overnight.) If your file *does* have a
+renewal/expiry column, that column always wins — QuiltHosting never overrides
+a date you supplied, even one in the past.
+
 ### Partial only because of your plan limit
 
 The free plan allows 30 active members. The limit applies to making people
@@ -115,9 +144,32 @@ The free plan allows 30 active members. The limit applies to making people
 **Re-importing members who are already active costs you nothing.** If you are
 at 30 of 30 and you import your roster again — to fix phone numbers, to
 renew everyone, whatever — those members are already active, so they are
-asking for no new room. Nothing is held, nobody is demoted, and the import
-comes back as a clean "completed". Import your own roster as often as you
-like.
+asking for no new room. Nothing is held and **nobody is demoted by the plan
+limit**.
+
+That is a statement about the *plan limit only*, not a promise that any
+re-import comes back with an empty report. Two things to know before you
+re-run a roster:
+
+- **A Level column re-activates people.** Naming a membership level on a row
+  is an instruction to give that person a membership *now*, and it overrides
+  whatever the Status column says — a row marked "lapsed" that also names a
+  level comes back as **active**. If you want to leave lapsed members alone,
+  blank out the Level cell for them (or delete the Level column) before
+  re-importing.
+- **A Level column with no renewal column moves renewal dates.** Every
+  re-import re-dates those memberships to a full term from *that* day (see
+  "We chose your renewal dates" above). Keep the renewal/expiry column in
+  your file and QuiltHosting will use it instead.
+
+**The roster QuiltHosting exports for you is safe to re-import on both
+counts.** Members → Export writes the level and renewal date only for people
+who have a **currently active** membership; a lapsed or cancelled member
+exports with those two cells blank, so re-importing your own export does not
+resurrect them, and active members carry their real renewal date back in
+rather than being re-dated. (Earlier exports did carry a lapsed member's last
+level, which on re-import reactivated them — if you have an old export saved,
+clear the `level` cell on any lapsed or cancelled row before importing it.)
 
 The limit bites when a file would make *more people active than you have room
 for*: new members, or existing members you're bringing back from lapsed or

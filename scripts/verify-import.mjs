@@ -624,8 +624,16 @@ check("clean import assigns both memberships, fails none",
 // import, and status now depends on whether any of its codes are lossy. If
 // that wiring were backwards (or too eager), EVERY import — even this
 // clean one — would come back partial.
-check("clean import has no warnings at all (regression guard for fix round 2)",
-  (cleanImport.body.warnings || []).length === 0, JSON.stringify(cleanImport.body.warnings));
+// Fix round 7 deliberately added an INFORMATIONAL level_without_end_date
+// warning, and this fixture (a Level column, no expiry column -- the most
+// common Wild Apricot shape) legitimately fires it now. The round-2 guard
+// is preserved in substance rather than deleted: the batch must still be
+// `completed` (asserted just above), and the ONLY warning allowed here is
+// that informational one -- if the round-2 wiring were backwards or too
+// eager, some other code would show up in this list.
+check("clean import's only warning is the informational level_without_end_date (regression guard for fix round 2)",
+  (cleanImport.body.warnings || []).every((w) => w.code === "level_without_end_date"),
+  JSON.stringify(cleanImport.body.warnings));
 
 // A forced membership failure: same shape, different (new) emails so both
 // rows create fresh members, but every membership activation is made to
@@ -1798,6 +1806,252 @@ function countBy(values) {
   check("mixed: every held row is itemized as a downloadable plan_limited error",
     (mixRun.body.errors || []).filter((e) => e.kind === "plan_limited").length === EXPECTED_HELD,
     JSON.stringify((mixRun.body.errors || []).filter((e) => e.kind === "plan_limited")));
+}
+
+console.log("\n--- layer 10: a roster with a Level column and a historical \"Member Since\" but NO expiry column must not import everyone already expired (fix round 7) ---");
+
+// THE MOST LIKELY REAL MIGRATION FILE. A Wild Apricot roster exports a
+// membership Level and a "Member Since" date; plenty of guilds' exports
+// carry no renewal/expiry column at all.
+//
+// The chain that made that a silent disaster:
+//   1. members.ts gates expiry parsing on `if (endRaw)`; an absent column
+//      leaves endDate === undefined.
+//   2. the row's `joined_at` (the HISTORICAL join date) is passed to
+//      activateMembership as startDate.
+//   3. activateMembership computed end = startDate + duration_months, so a
+//      2019 join date produced an end date in 2020 -- already in the past --
+//      AFTER expireActiveMemberships had already ended the member's real
+//      membership window.
+//   4. the nightly cron (src/lib/renewals.ts) expires every active
+//      membership with date(end_date) < date(today) and flips the member to
+//      `lapsed`, firing the lapse/win-back email.
+//   5. nothing warned: there was no level_without_end_date code, and
+//      end_date_without_level covers only the inverse case AND lives inside
+//      the `if (endRaw)` guard -- so the import (and the dry run) reported
+//      `completed` with zero errors and zero warnings.
+//
+// The guild is told "completed, nothing lost", then its entire roster
+// lapses overnight. Both halves are asserted below: the end date, and the
+// silence.
+{
+  const backdateTenantId = (await json("/api/tenants", {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ name: `Backdate ${stamp}`, slug: `backdate-${stamp}` }),
+  })).body.id;
+  await json(`/api/tenants/${backdateTenantId}/levels`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ name: "Annual Membership", price_cents: 0,
+                           duration_months: 12, renewal_type: "manual" }),
+  });
+
+  // Exactly the WA shape: Level present, Member Since present, NO expiry
+  // column anywhere in the header.
+  const bdHeader = ["Email", "First Name", "Last Name", "Member Since", "Level"];
+  const bdMapping = {
+    0: { kind: "known", target: "email" },
+    1: { kind: "known", target: "first_name" },
+    2: { kind: "known", target: "last_name" },
+    3: { kind: "known", target: "joined_at" },
+    4: { kind: "known", target: "level_name" },
+  };
+  const bdEmail = `backdate1-${stamp}@example.test`;
+  const bdRows = [[bdEmail, "Back", "Date", "2019-03-02", "Annual Membership"]];
+
+  // The dry run tells the same story the apply does -- it must not promise
+  // a clean, decision-free import either.
+  const bdDry = await json(`/api/tenants/${backdateTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: bdHeader, raw_rows: bdRows, mapping: bdMapping, dry_run: true }),
+  });
+  check("dry run of a level-without-expiry roster says a renewal date will be chosen",
+    (bdDry.body.warnings || []).some((w) => w.code === "level_without_end_date"),
+    JSON.stringify(bdDry.body.warnings));
+
+  const bdRun = await json(`/api/tenants/${backdateTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: bdHeader, raw_rows: bdRows, mapping: bdMapping }),
+  });
+  check("backdated-roster import creates the member and assigns the membership",
+    bdRun.body.created === 1 && bdRun.body.memberships_assigned === 1,
+    JSON.stringify(bdRun.body));
+
+  // (a) THE DATA BUG. Read end_date straight out of D1 -- this is the value
+  // renewals.ts's `date(end_date) < date(?)` sweep reads tonight.
+  const bdMembership = d1Query(
+    `SELECT m.start_date, m.end_date, m.status, mem.joined_at
+     FROM memberships m JOIN members mem ON mem.id = m.member_id
+     WHERE m.tenant_id = '${backdateTenantId}' AND mem.email = '${bdEmail}'
+       AND m.status = 'active'`
+  );
+  check("precondition: exactly one active membership row was written",
+    bdMembership.length === 1, JSON.stringify(bdMembership));
+  const bdEnd = bdMembership[0]?.end_date;
+  const todayIso = new Date().toISOString().slice(0, 10);
+  check(`THE BUG (a): the membership end date is NOT already in the past (end_date=${bdEnd}, today=${todayIso})`,
+    !!bdEnd && String(bdEnd).slice(0, 10) > todayIso,
+    `end_date=${bdEnd} today=${todayIso} -- a 2019 join date + 12-month term computed from the JOIN DATE lands in 2020`);
+  // The same sweep renewals.ts runs, expressed as SQL so this is the
+  // database's own answer, not JavaScript's opinion of the string.
+  const wouldLapse = d1Query(
+    `SELECT count(*) as n FROM memberships
+     WHERE tenant_id = '${backdateTenantId}' AND status = 'active'
+       AND date(end_date) < date('now')`
+  );
+  check("THE BUG (a'): tonight's renewal cron would lapse nobody from this import",
+    Number(wouldLapse[0]?.n) === 0, JSON.stringify(wouldLapse));
+
+  // (b) THE SILENCE. Not "must be partial" -- level_without_end_date is
+  // deliberately informational (see LOSSY_WARNING_CODES): after the fix
+  // nothing is lost, so forcing `partial` on the single most common
+  // migration shape would only teach admins that `partial` means nothing.
+  // What must never happen again is a CLEAN completed: completed AND no
+  // warnings AND no per-row errors, i.e. the guild is told we changed
+  // nothing and decided nothing.
+  const bdWarn = (bdRun.body.warnings || []);
+  const bdErrs = (bdRun.body.errors || []);
+  check("THE BUG (b): the batch does NOT report a clean `completed` (no warnings, no errors)",
+    !(bdRun.body.status === "completed" && bdWarn.length === 0 && bdErrs.length === 0),
+    `status=${bdRun.body.status} warnings=${JSON.stringify(bdWarn)} errors=${JSON.stringify(bdErrs)}`);
+  check("the guild is told a renewal date was chosen for them (warning)",
+    bdWarn.some((w) => w.code === "level_without_end_date"), JSON.stringify(bdWarn));
+  check("the guild can see WHICH date we chose, per row, downloadable",
+    bdErrs.some((e) => e.kind === "level_without_end_date" && e.row_number === 1 &&
+      e.email === bdEmail && e.reason.includes(String(bdEnd).slice(0, 10))),
+    JSON.stringify(bdErrs));
+  check("the chosen-date decision is informational, not a loss: the batch is still `completed`",
+    bdRun.body.status === "completed", `got ${bdRun.body.status}`);
+
+  // The join date itself is the guild's own correct data and must survive
+  // untouched -- only the TERM was wrong.
+  check("`member since` is preserved on the member record (2019-03-02)",
+    String(bdMembership[0]?.joined_at || "").startsWith("2019-03-02"),
+    JSON.stringify(bdMembership[0]));
+  check("the membership record still carries the guild's historical start date",
+    String(bdMembership[0]?.start_date || "").startsWith("2019-03-02"),
+    JSON.stringify(bdMembership[0]));
+
+  // An explicit expiry in the file is still authoritative -- the fix must
+  // only affect the COMPUTED fallback, never override a date the guild gave.
+  const bdExplicitEmail = `backdateexplicit1-${stamp}@example.test`;
+  const bdExplicitHeader = [...bdHeader, "Renewal"];
+  const bdExplicitMapping = { ...bdMapping, 5: { kind: "known", target: "end_date" } };
+  const bdExplicitRun = await json(`/api/tenants/${backdateTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({
+      header: bdExplicitHeader,
+      raw_rows: [[bdExplicitEmail, "Back", "Explicit", "2019-03-02", "Annual Membership", "2020-03-02"]],
+      mapping: bdExplicitMapping,
+    }),
+  });
+  check("an explicit (even past) expiry in the file is still honoured verbatim, not overridden",
+    String(d1Query(
+      `SELECT m.end_date FROM memberships m JOIN members mem ON mem.id = m.member_id
+       WHERE m.tenant_id = '${backdateTenantId}' AND mem.email = '${bdExplicitEmail}'
+         AND m.status = 'active'`
+    )[0]?.end_date || "").startsWith("2020-03-02"),
+    JSON.stringify(bdExplicitRun.body));
+  check("a row that supplied its own expiry gets no level_without_end_date signal",
+    !(bdExplicitRun.body.errors || []).some((e) => e.kind === "level_without_end_date"),
+    JSON.stringify(bdExplicitRun.body.errors));
+
+  // A FUTURE start date is a deliberate input (a term that begins next
+  // month), and max(startDate, now) must leave it alone rather than
+  // shortening the term to end 12 months from today.
+  const bdFutureEmail = `backdatefuture1-${stamp}@example.test`;
+  const futureStart = new Date(Date.now() + 60 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+  await json(`/api/tenants/${backdateTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({
+      header: bdHeader,
+      raw_rows: [[bdFutureEmail, "Back", "Future", futureStart, "Annual Membership"]],
+      mapping: bdMapping,
+    }),
+  });
+  const bdFutureEnd = String(d1Query(
+    `SELECT m.end_date FROM memberships m JOIN members mem ON mem.id = m.member_id
+     WHERE m.tenant_id = '${backdateTenantId}' AND mem.email = '${bdFutureEmail}'
+       AND m.status = 'active'`
+  )[0]?.end_date || "").slice(0, 10);
+  check("a FUTURE start date keeps its full term (measured from the start, not from today)",
+    bdFutureEnd > String(bdEnd).slice(0, 10),
+    `future-start end=${bdFutureEnd} today-start end=${String(bdEnd).slice(0, 10)}`);
+}
+
+console.log("\n--- layer 11: our own export must be safely re-importable -- a dead membership's level is not a current level (fix round 7) ---");
+
+// members/export.csv used to emit `level` from the member's most recent
+// membership of ANY status. importMapping auto-maps a `level` header to
+// level_name, and the import treats a resolved level as an instruction to
+// ACTIVATE (status_overridden_by_level). So exporting a roster and
+// re-importing it reactivated every lapsed and cancelled member -- the
+// exact "import your own roster as often as you like" promise the admin
+// guide used to make.
+{
+  const expTenantId = (await json("/api/tenants", {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ name: `Export RT ${stamp}`, slug: `exportrt-${stamp}` }),
+  })).body.id;
+  await json(`/api/tenants/${expTenantId}/levels`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ name: "Annual Membership", price_cents: 0,
+                           duration_months: 12, renewal_type: "manual" }),
+  });
+
+  // A member who HAD a membership and has since lapsed: import with a
+  // level (creates an active membership), then lapse them the way the
+  // renewal cron does -- membership expired, member lapsed.
+  const rtHeader = ["Email", "First Name", "Last Name", "Level"];
+  const rtMapping = {
+    0: { kind: "known", target: "email" },
+    1: { kind: "known", target: "first_name" },
+    2: { kind: "known", target: "last_name" },
+    3: { kind: "known", target: "level_name" },
+  };
+  const rtEmail = `exportrt1-${stamp}@example.test`;
+  await json(`/api/tenants/${expTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: rtHeader, raw_rows: [[rtEmail, "Export", "Lapsed", "Annual Membership"]], mapping: rtMapping }),
+  });
+  d1Exec(
+    `UPDATE memberships SET status = 'expired' WHERE tenant_id = '${expTenantId}';
+     UPDATE members SET status = 'lapsed' WHERE tenant_id = '${expTenantId}' AND email = '${rtEmail}';`
+  );
+
+  const exportRes = await fetch(`${BASE}/api/tenants/${expTenantId}/members/export.csv`, { headers: auth });
+  const exportCsv = await exportRes.text();
+  const exportRows = parseCsv(exportCsv);
+  const expHeader = exportRows[0];
+  const expDataRows = exportRows.slice(1);
+  const levelCol = expHeader.indexOf("level");
+  const statusCol = expHeader.indexOf("status");
+  const endCol = expHeader.indexOf("end_date");
+  check("export has level, status and end_date columns", levelCol > -1 && statusCol > -1 && endCol > -1,
+    JSON.stringify(expHeader));
+  const rtRow = expDataRows.find((r) => r[0] === rtEmail);
+  check("precondition: the exported member really is lapsed", rtRow?.[statusCol] === "lapsed",
+    JSON.stringify(rtRow));
+  check("THE BUG: a lapsed member's export carries NO level (a dead membership's level is not a current one)",
+    rtRow?.[levelCol] === "", JSON.stringify(rtRow));
+  check("a lapsed member's export carries no end_date either (nothing for the import to attach)",
+    rtRow?.[endCol] === "", JSON.stringify(rtRow));
+
+  // The promise the admin guide makes, tested end to end: feed our own
+  // export straight back in through the auto-proposed mapping.
+  const { mapping: rtProposed } = proposeMapping(expHeader, []);
+  check("our own export's `level` header still auto-maps to level_name (the mapping is not the fix)",
+    rtProposed[levelCol]?.target === "level_name", JSON.stringify(rtProposed[levelCol]));
+  const roundTrip = await json(`/api/tenants/${expTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: expHeader, raw_rows: expDataRows, mapping: rtProposed }),
+  });
+  const rtAfter = await json(
+    `/api/tenants/${expTenantId}/members?q=${encodeURIComponent(rtEmail)}`, { headers: auth });
+  check("THE BUG: re-importing our own export leaves the lapsed member LAPSED, not reactivated",
+    (rtAfter.body.members || [])[0]?.status === "lapsed",
+    JSON.stringify({ import: roundTrip.body, member: rtAfter.body.members }));
+  check("re-importing our own export assigns no membership to the lapsed member",
+    roundTrip.body.memberships_assigned === 0, JSON.stringify(roundTrip.body));
 }
 
 console.log(failures ? `\n${failures} failure(s)` : "\nall layers passed");

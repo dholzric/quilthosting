@@ -3,7 +3,7 @@ import type { Env, Member, MembershipLevel, TenantVariables } from "../types";
 import type { AuthVariables } from "../middleware/auth";
 import { generateId } from "../lib/utils/id";
 import { all, first } from "../lib/db";
-import { activateMembership } from "../lib/memberships";
+import { activateMembership, computeMembershipEnd } from "../lib/memberships";
 import {
   assertCanActivateMember,
   countActiveMembers,
@@ -147,6 +147,21 @@ memberRoutes.post("/", async (c) => {
 });
 
 // GET /api/tenants/:tenantId/members/export.csv — batched for large tenants
+//
+// Round-trip safety (fix round 7): the `level` and `end_date` columns below
+// are emitted ONLY for a membership that is currently `active`. They used to
+// fall back to the member's most recent membership of ANY status
+// (ORDER BY CASE m.status WHEN 'active' THEN 0 ELSE 1 END), so a lapsed or
+// cancelled member exported with the level of a membership that had already
+// ended. That is not merely cosmetic: src/lib/importMapping.ts auto-maps a
+// `level` header to `level_name`, and the import treats a resolved level as
+// an INSTRUCTION TO ACTIVATE (it forces the member to `active` regardless of
+// the Status column -- see status_overridden_by_level). Re-importing our own
+// export therefore reactivated every lapsed and cancelled member on the
+// roster. A dead membership's level is not a current level and must not be
+// presented as one. Members with no active membership now export with those
+// two cells blank; their status column still carries `lapsed`/`cancelled`,
+// and their membership history remains readable in the admin UI and API.
 memberRoutes.get("/export.csv", async (c) => {
   const tenant = c.get("tenant");
   type ExportRow = Member & {
@@ -164,11 +179,13 @@ memberRoutes.get("/export.csv", async (c) => {
                 (SELECT l.name FROM memberships m
                  JOIN membership_levels l ON l.id = m.level_id
                  WHERE m.member_id = mem.id AND m.tenant_id = mem.tenant_id
-                 ORDER BY CASE m.status WHEN 'active' THEN 0 ELSE 1 END, m.created_at DESC
+                   AND m.status = 'active'
+                 ORDER BY m.created_at DESC
                  LIMIT 1) as level_name,
                 (SELECT m.end_date FROM memberships m
                  WHERE m.member_id = mem.id AND m.tenant_id = mem.tenant_id
-                 ORDER BY CASE m.status WHEN 'active' THEN 0 ELSE 1 END, m.created_at DESC
+                   AND m.status = 'active'
+                 ORDER BY m.created_at DESC
                  LIMIT 1) as membership_end
          FROM members mem
          WHERE mem.tenant_id = ?
@@ -582,6 +599,7 @@ type ImportWarningCode =
   | "status_overridden_by_level"
   | "level_not_found"
   | "end_date_without_level"
+  | "level_without_end_date"
   | "column_count_mismatch"
   | "plan_limit_will_hold";
 
@@ -595,10 +613,28 @@ type ImportWarning = {
 
 // The single source of truth for "this warning code means a real import
 // loses or silently changes something for at least one row" -- as opposed
-// to a code that is purely informational. Two codes are informational
+// to a code that is purely informational. Three codes are informational
 // today:
 //   - plan_limit_will_hold: a dry-run ESTIMATE superseded by the real
 //     import's own plan_limited counter and per-row plan_limited error rows.
+//   - level_without_end_date (fix round 7): deliberately NOT lossy. NOTHING
+//     FROM THE FILE IS DISCARDED -- unlike unparseable_date (the file HAD a
+//     date and we could not read it) and end_date_without_level (the file
+//     HAD a date and there was nowhere to put it), here the file carried no
+//     renewal information at all, so there is nothing to lose. What
+//     happens instead is that WE CHOOSE a renewal date (one full term of
+//     the level's duration from the import date -- see computeMembershipEnd
+//     in src/lib/memberships.ts), which is a decision the guild must be
+//     able to see, not a loss. It is also the single most common Wild
+//     Apricot migration shape (a Level column and a "Member Since" column,
+//     no expiry column), so forcing `partial` on it would make `partial`
+//     fire on nearly every first migration forever -- the same "admins
+//     learn partial means nothing" failure that moved
+//     joined_at_ignored_on_update out of this set in fix round 5.
+//     Visibility is preserved in full: the code still appears in
+//     `warnings` (rendered on the completed path too -- see
+//     public/admin.html) and every affected row still gets a downloadable
+//     import_batch_errors row naming the exact renewal date we picked.
 //   - joined_at_ignored_on_update (fix round 5): moved OUT of this set.
 //     It fires on nearly every UPDATE row of a routine full-roster
 //     re-export (any file that carries a "Member Since" column), so
@@ -639,6 +675,7 @@ const LOSSY_WARNING_CODES = new Set<ImportWarningCode>([
   "duplicate_target",            // a column's data is silently discarded (the later of two columns claiming one target)
   "column_count_mismatch",       // the row is skipped outright
   // joined_at_ignored_on_update is deliberately NOT here -- see comment above.
+  // level_without_end_date is deliberately NOT here either -- see above.
 ]);
 
 // Row-level error kinds (persisted to import_batch_errors, returned as
@@ -658,7 +695,8 @@ type BatchErrorKind =
   | "joined_at_ignored_on_update"
   | "invalid_status"
   | "status_overridden_by_level"
-  | "end_date_without_level";
+  | "end_date_without_level"
+  | "level_without_end_date";
 
 // Fix round 4, item 5: server-supplied so the admin UI never has to
 // hand-maintain a parallel list of error kinds. `Record<BatchErrorKind,
@@ -678,6 +716,7 @@ const ERROR_KIND_LABELS: Record<BatchErrorKind, string> = {
   invalid_status: "row(s) had a status not recognized (imported as active)",
   status_overridden_by_level: "row(s) had a file status overridden to active by a level",
   end_date_without_level: "row(s) had a renewal date but no level to store it against",
+  level_without_end_date: "row(s) had a level but no renewal date — we chose one (see the reason for the exact date)",
 };
 
 /**
@@ -783,6 +822,7 @@ function buildWarnings(args: {
   const badLevel: number[] = [];
   const statusOverridden: number[] = [];
   const endWithoutLevel: number[] = [];
+  const levelWithoutEnd: number[] = [];
   args.normalizedRows.forEach((row, i) => {
     const endRaw = row.end_date || row.expiry || row.renewal_date || row.expiration || "";
     const lv = (row.level_name || row.level || "").trim();
@@ -792,6 +832,16 @@ function buildWarnings(args: {
       // A perfectly good date with nowhere to go: no level means no
       // membership row, and members has no end_date column of its own.
       else if (!hasMatchedLevel) endWithoutLevel.push(i + 1);
+    } else if (hasMatchedLevel) {
+      // The exact inverse of end_date_without_level, and the most common
+      // Wild Apricot roster shape there is: a Level column, no expiry
+      // column at all. A membership WILL be created and it needs an end
+      // date, so QuiltHosting picks one (a full term from today -- see
+      // computeMembershipEnd). Nothing from the file is lost, but the guild
+      // is entitled to know we chose their renewal date for them, and to
+      // see (per row, downloadable) exactly which date we chose.
+      // Informational, not lossy -- see LOSSY_WARNING_CODES.
+      levelWithoutEnd.push(i + 1);
     }
     const emailNorm = (row.email || "").toLowerCase().trim();
     const isUpdateRow = args.existingJoinedAt.has(emailNorm);
@@ -838,6 +888,12 @@ function buildWarnings(args: {
         ? "Some rows had a valid renewal/expiry date but no membership level, so the date was not stored"
         : "Some rows have a valid renewal/expiry date but no membership level -- the date will not be stored",
       count: endWithoutLevel.length, sample_rows: endWithoutLevel.slice(0, 3) });
+  if (levelWithoutEnd.length)
+    out.push({ code: "level_without_end_date",
+      message: applied
+        ? "Some rows named a membership level but no renewal/expiry date, so we set each of those renewal dates to one full term of the level's duration counted from today. The member's \"member since\" date is unchanged. Download the row report to see the exact date chosen for each member, and edit any that are wrong."
+        : "Some rows name a membership level but no renewal/expiry date. We will set each of those renewal dates to one full term of the level's duration counted from today (the \"member since\" date, if any, is kept as the membership's start date but is not used to date the renewal -- a historical join date would otherwise produce a renewal date that has already passed).",
+      count: levelWithoutEnd.length, sample_rows: levelWithoutEnd.slice(0, 3) });
   if (badJoinDates.length)
     out.push({ code: "unparseable_join_date",
       message: applied
@@ -1256,6 +1312,12 @@ memberRoutes.post("/import", async (c) => {
     memberId: string;
     level: MembershipLevel;
     endDate?: string;
+    // The renewal date QuiltHosting chose for this row because the file
+    // named a level but gave no expiry date at all. Non-null means the
+    // guild is owed a level_without_end_date row saying which date we
+    // picked -- emitted only once the activation succeeds, so we never
+    // claim a renewal date for a membership that was never created.
+    chosenEnd?: string | null;
     startDate?: string;
     rowNumber: number;
     email: string;
@@ -1449,6 +1511,10 @@ memberRoutes.post("/import", async (c) => {
       }
       const endRaw = row.end_date || row.expiry || row.renewal_date || row.expiration || "";
       let endDate: string | undefined;
+      // Set when this row names a real level but the file carried no
+      // renewal/expiry date, so QuiltHosting chose one. Reported per row
+      // only if the activation succeeds -- see the else-if branch below.
+      let chosenEndForRow: string | null = null;
       if (endRaw) {
         const d = new Date(endRaw);
         if (!Number.isNaN(d.getTime())) {
@@ -1469,17 +1535,44 @@ memberRoutes.post("/import", async (c) => {
         } else {
           // Same predicate buildWarnings uses for "unparseable_date" below.
           // This is not merely a lost date: when `level` is set,
-          // activateMembership computes endDate from start + the level's
-          // duration_months, so the member gets a FABRICATED expiry --
-          // which then drives renewal reminders and lapse on the wrong
-          // schedule. That computed-fallback behavior is unchanged by this
-          // fix; what's new is that it's surfaced instead of silent.
+          // activateMembership computes endDate from the level's
+          // duration_months instead, so the member gets a SUBSTITUTED
+          // expiry -- which then drives renewal reminders and lapse on a
+          // schedule the guild never asked for. That computed-fallback
+          // behavior is unchanged by this fix; what's new is that it's
+          // surfaced instead of silent.
           batchErrors.push({
             row_number: rowIndex + 1,
             kind: "unparseable_date",
             reason: `renewal/expiry date "${endRaw}" could not be read; the membership end date (if any) was computed from the level's duration instead`,
             email,
           });
+        }
+      } else if (level) {
+        // The inverse of end_date_without_level, and the shape a real Wild
+        // Apricot migration almost always has: a Level column and no expiry
+        // column anywhere in the file. A membership IS created for this row
+        // and it needs an end date, so computeMembershipEnd picks one -- a
+        // full term from today. Nothing from the file is lost (there was no
+        // date in it to lose), which is why level_without_end_date is NOT in
+        // LOSSY_WARNING_CODES; but choosing a guild's renewal date on their
+        // behalf and saying nothing is how a roster quietly lapses, so name
+        // the exact date we picked, per row, downloadable.
+        //
+        // Recorded, not pushed: the per-row error is only emitted once the
+        // activation below actually SUCCEEDS (see the pendingMemberships
+        // loop). A row whose membership failed, or that never got one, must
+        // not be told "your renewal date was set to X" -- that would be a
+        // claim about a membership that does not exist.
+        const effectiveStart = row.joined_at || now;
+        try {
+          chosenEndForRow = computeMembershipEnd(effectiveStart, level.duration_months, now);
+        } catch {
+          // Unparseable "member since" on this row: computeMembershipEnd
+          // throws and so will the activation below, surfacing as
+          // membership_failed (and unparseable_join_date already warns).
+          // There is no chosen date to report, so promise nothing.
+          chosenEndForRow = null;
         }
       }
 
@@ -1665,6 +1758,7 @@ memberRoutes.post("/import", async (c) => {
           memberId,
           level,
           endDate,
+          chosenEnd: chosenEndForRow,
           startDate: row.joined_at || undefined,
           rowNumber: rowIndex + 1,
           email,
@@ -1710,6 +1804,19 @@ memberRoutes.post("/import", async (c) => {
           autoRenew: false,
         });
         membershipsAssigned++;
+        if (pm.chosenEnd) {
+          // The membership really exists now, so we can truthfully tell the
+          // guild which renewal date we picked for it (fix round 7). This
+          // is informational, not a loss -- see LOSSY_WARNING_CODES -- but
+          // it is a decision made on their behalf, so it is itemized per
+          // row and lands in the downloadable report like any other.
+          batchErrors.push({
+            row_number: pm.rowNumber,
+            kind: "level_without_end_date",
+            reason: `the file gave no renewal/expiry date, so the renewal date was set to ${pm.chosenEnd.slice(0, 10)} (${pm.level.duration_months || 12} month(s) from today, the "${pm.level.name}" term). The "member since" date is unchanged. Edit this member if that date is wrong`,
+            email: pm.email,
+          });
+        }
       } catch (e) {
         // Previously this was console.warn only, so a member could be created
         // without their membership and the import still reported clean success.

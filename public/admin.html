@@ -1343,6 +1343,23 @@
             `Needs attention: ${lost.join(", ")}.` +
             (warnings.length ? `<ul style="line-height:1.7;margin:0.5rem 0 0">${warnings.map(importWarnRow).join("")}</ul>` : "") +
             `</div>`;
+        } else if (warnings.length) {
+          // A `completed` batch can still carry INFORMATIONAL warnings --
+          // level_without_end_date ("we chose your renewal dates for you")
+          // and joined_at_ignored_on_update. Neither is a loss, so neither
+          // forces `partial` (see LOSSY_WARNING_CODES in
+          // src/routes/members.ts), but until fix round 7 this branch
+          // rendered a bare "Imported: ..." line and auto-navigated away
+          // 2.5s later, so those warnings were invisible in the only place a
+          // guild ever looks. A decision we made on the guild's behalf must
+          // be shown even when nothing went wrong -- so say it, and (via the
+          // isPartial-independent branches below) stay on screen.
+          out.innerHTML = `<div class="notice ok">` +
+            `<strong>Import complete.</strong> ` +
+            `Imported: ${r.created} new, ${r.updated} updated, ${r.skipped} skipped${mem}${cf}${lim}.<br>` +
+            `Worth knowing:` +
+            `<ul style="line-height:1.7;margin:0.5rem 0 0">${warnings.map(importWarnRow).join("")}</ul>` +
+            `</div>`;
         } else {
           out.innerHTML = `<p class="notice ok">Imported: ${r.created} new, ${r.updated} updated, ${r.skipped} skipped${mem}${cf}${lim}.</p>`;
         }
@@ -1361,13 +1378,16 @@
           out.innerHTML += `<button class="secondary" onclick="downloadImportErrors()">Download ${allProblemRows.length} problem rows</button>` +
             ` <button class="secondary" onclick="navigate('members')">Back to members</button>`;
           _importState.skippedRows = allProblemRows;
-        } else if (isPartial) {
+        } else if (isPartial || warnings.length) {
           // Nothing landed in allProblemRows (a loss kind not represented
           // there, or a partial reason with no per-row detail) but the
           // batch is still partial — the warning banner must not be
           // auto-navigated away 2.5s later with no way to act on it. Gate
-          // the auto-navigate strictly on isPartial, not on whether a
-          // download happens to be available.
+          // the auto-navigate on isPartial, not on whether a download
+          // happens to be available. Fix round 7 adds `warnings.length` for
+          // the same reason on the COMPLETED path: an informational warning
+          // (e.g. "we chose your renewal dates") is still something the
+          // admin must get a chance to read.
           out.innerHTML += ` <button class="secondary" onclick="navigate('members')">Back to members</button>`;
         } else {
           _importState = null;

@@ -45,6 +45,54 @@ export type ActivateMembershipParams = {
 };
 
 /**
+ * The end date a membership gets when the caller supplies no explicit one:
+ * one full term of the level's duration, measured from `max(startDate, now)`.
+ *
+ * WHY max() AND NOT `startDate` (the bug this replaced): the CSV import
+ * passes the member's HISTORICAL join date ("Member Since 2019-03-02" on a
+ * Wild Apricot roster) as startDate, and a roster with a Level column but
+ * no expiry column reaches here with endDate === undefined. Measuring the
+ * term from 2019 produced an end date of 2020 -- already in the past -- so
+ * the member was written as `active` and `expired` at the same instant, and
+ * the nightly renewal cron (src/lib/renewals.ts) lapsed them and fired the
+ * win-back email overnight. A computed end date in the past is never a
+ * useful outcome for ANY caller: it is a membership that is simultaneously
+ * active and over. "Member Since 2019" on a current-roster file means "this
+ * person is a member today", not "their dues lapsed in 2020".
+ *
+ * WHY NOT simply `now`: a FUTURE startDate is a legitimate, deliberate
+ * input (an admin recording a term that begins next month). Measuring from
+ * `now` would silently shorten that term. max() keeps a future start intact
+ * and only ever moves a PAST start forward to today.
+ *
+ * `start_date` itself is stored verbatim, so the membership record still
+ * carries the date the caller gave it; only the TERM is measured from
+ * today. `members.joined_at` is likewise untouched -- see activateMembership
+ * below, which only ever coalesces it.
+ */
+export function computeMembershipEnd(
+  startDate: string,
+  durationMonths: number | null | undefined,
+  now: string
+): string {
+  const start = new Date(startDate);
+  if (Number.isNaN(start.getTime())) {
+    // Unchanged failure mode, clearer message: the old code reached
+    // `new Date(startDate).toISOString()` and threw "Invalid time value",
+    // which the import route's per-row catch reports as membership_failed.
+    // Keep failing loudly -- inventing a term for a row whose start date is
+    // unreadable would hide a real data problem (and would write that
+    // unreadable string into memberships.start_date anyway).
+    throw new RangeError(`start date "${startDate}" is not a valid date`);
+  }
+  const nowDate = new Date(now);
+  const base = start.getTime() > nowDate.getTime() ? start : nowDate;
+  const end = new Date(base.getTime());
+  end.setMonth(end.getMonth() + (durationMonths || 12));
+  return end.toISOString();
+}
+
+/**
  * Create one active membership, expire prior actives, mark member active.
  * Returns the new membership id.
  */
@@ -57,9 +105,11 @@ export async function activateMembership(
 
   let endDate = params.endDate;
   if (endDate === undefined) {
-    const end = new Date(startDate);
-    end.setMonth(end.getMonth() + (params.level.duration_months || 12));
-    endDate = end.toISOString();
+    endDate = computeMembershipEnd(
+      startDate,
+      params.level.duration_months,
+      now
+    );
   }
 
   const autoRenew =
