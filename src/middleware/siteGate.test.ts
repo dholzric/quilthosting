@@ -10,7 +10,11 @@
 // synthetic `Host` header is honored exactly as it would be in production.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 import type { Env, Tenant } from "../types";
+import { isPlatformOnlyPath, PLATFORM_PATH_PREFIXES, PLATFORM_EXACT_PATHS } from "../lib/platformPaths";
 
 const getTenantByHostMock = vi.fn();
 vi.mock("../lib/tenantHost", () => ({
@@ -37,9 +41,19 @@ function makeEnv(overrides: Partial<Env> = {}): Env {
   };
 }
 
+/** The permissive per-tenant robots.txt serveBusinessSite would actually
+ *  return — reproduced here only closely enough to be distinguishable from
+ *  siteGate's own deny-all text, so a test can assert on the BODY and prove
+ *  siteGate really called `next()` rather than just checking a 200 (which
+ *  both the deny-all branch and this route return). */
+function permissiveRobots(host: string) {
+  return `User-agent: *\nAllow: /\nSitemap: https://${host}/sitemap.xml\n`;
+}
+
 function makeApp() {
   const app = new Hono<{ Bindings: Env }>();
   app.use("*", siteGate);
+  app.get("/robots.txt", (c) => c.text(permissiveRobots(c.req.header("host") || "")));
   app.all("*", (c) => c.text("OK"));
   return app;
 }
@@ -239,12 +253,6 @@ describe("siteGate — a launched business's own site (must open)", () => {
     expect(res.status).toBe(200);
   });
 
-  it("opens at /robots.txt (the permissive per-tenant version downstream)", async () => {
-    getTenantByHostMock.mockResolvedValue(launchedBusiness);
-    const res = await requestPath("/robots.txt", "stitchstudioquilting.test");
-    expect(res.status).toBe(200);
-  });
-
   it("opens at /sitemap.xml", async () => {
     getTenantByHostMock.mockResolvedValue(launchedBusiness);
     const res = await requestPath("/sitemap.xml", "stitchstudioquilting.test");
@@ -279,6 +287,174 @@ describe("siteGate — a launched business's own site (must open)", () => {
     });
     expect(res.status).toBe(200);
   });
+});
+
+describe("rule 4 boundary — /public/<own slug> must not match a near-miss slug", () => {
+  // launchedBusiness.slug === "stitchstudio". A bare `.startsWith(\`/public/${slug}\`)`
+  // without the trailing slash would wrongly match another tenant whose own
+  // slug happens to start with "stitchstudio" — this is the highest-risk
+  // line in the file, and until now its boundary had no test at all.
+  it("GATED: /public/<ownslug>x/info (a longer slug that starts with ours)", async () => {
+    getTenantByHostMock.mockResolvedValue(launchedBusiness);
+    const res = await requestPath("/public/stitchstudiox/info", "stitchstudioquilting.test");
+    expect(res.status).toBe(401);
+  });
+
+  it("GATED: /public/<ownslug>-other/info (a hyphenated near-miss slug)", async () => {
+    getTenantByHostMock.mockResolvedValue(launchedBusiness);
+    const res = await requestPath("/public/stitchstudio-other/info", "stitchstudioquilting.test");
+    expect(res.status).toBe(401);
+  });
+
+  it("OPEN: /public/<ownslug> with no trailing path is still the exact-match form", async () => {
+    getTenantByHostMock.mockResolvedValue(launchedBusiness);
+    const res = await requestPath("/public/stitchstudio", "stitchstudioquilting.test");
+    expect(res.status).toBe(200);
+  });
+
+  it("OPEN: /public/<ownslug>/ (trailing slash, own slug) still matches", async () => {
+    getTenantByHostMock.mockResolvedValue(launchedBusiness);
+    const res = await requestPath("/public/stitchstudio/", "stitchstudioquilting.test");
+    expect(res.status).toBe(200);
+  });
+});
+
+describe("decode-introduced dot-segments and double-encoding (IMPORTANT 2 fix)", () => {
+  // The URL parser only collapses dot-segments present in the RAW request
+  // path, before siteGate's own decodeURIComponent runs. A dot-segment that
+  // only exists AFTER decoding was never seen by the URL parser and, before
+  // this fix, was never re-checked either — decodeURIComponent alone turns
+  // "..%2f..%2f" into "../../" without re-resolving it against anything.
+  it("GATED: /x/..%2f..%2fadmin.html — decodes to a literal ../../ escape attempt", async () => {
+    getTenantByHostMock.mockResolvedValue(launchedBusiness);
+    const res = await requestPath("/x/..%2f..%2fadmin.html", "stitchstudioquilting.test");
+    expect(res.status).toBe(401);
+  });
+
+  it("GATED: /public/<ownslug>/..%2f..%2fadmin.html — can't decode-escape out of the own-slug allow rule", async () => {
+    getTenantByHostMock.mockResolvedValue(launchedBusiness);
+    const res = await requestPath(
+      "/public/stitchstudio/..%2f..%2fadmin.html",
+      "stitchstudioquilting.test"
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("GATED: /img/..%2fadmin — can't decode-escape out of the /img/<id> allow rule", async () => {
+    getTenantByHostMock.mockResolvedValue(launchedBusiness);
+    const res = await requestPath("/img/..%2fadmin", "stitchstudioquilting.test");
+    expect(res.status).toBe(401);
+  });
+
+  it("GATED: /%252e%252e/admin — double-encoded, one decode pass leaves a literal %", async () => {
+    getTenantByHostMock.mockResolvedValue(launchedBusiness);
+    const res = await requestPath("/%252e%252e/admin", "stitchstudioquilting.test");
+    expect(res.status).toBe(401);
+  });
+
+  it("OPEN: a page slug containing a literal, already-decoded dot is unaffected", async () => {
+    // Sanity check that the dot-segment rejection only fires on a segment
+    // that is EXACTLY "." or "..", not on any segment merely containing a
+    // dot — a real (if unusual) page slug like "v1.2-notes" must still work.
+    getTenantByHostMock.mockResolvedValue(launchedBusiness);
+    const res = await requestPath("/v1.2-notes", "stitchstudioquilting.test");
+    expect(res.status).toBe(200);
+  });
+});
+
+describe("robots.txt body — deny-all when gated, permissive when launched", () => {
+  it("deny-all on the platform apex", async () => {
+    getTenantByHostMock.mockResolvedValue(null);
+    const res = await requestPath("/robots.txt", "quilthosting.com");
+    expect(await res.text()).toBe("User-agent: *\nDisallow: /\n");
+  });
+
+  it("deny-all on a guild subdomain", async () => {
+    getTenantByHostMock.mockResolvedValue(guildTenant);
+    const res = await requestPath("/robots.txt", "somequiltguild.quilthosting.com");
+    expect(await res.text()).toBe("User-agent: *\nDisallow: /\n");
+  });
+
+  it("deny-all on an unlaunched business", async () => {
+    getTenantByHostMock.mockResolvedValue(unlaunchedBusiness);
+    const res = await requestPath("/robots.txt", "stitchstudioquilting.test");
+    expect(await res.text()).toBe("User-agent: *\nDisallow: /\n");
+  });
+
+  it("permissive (Allow: /) on a launched business — proves the request actually reached next()", async () => {
+    getTenantByHostMock.mockResolvedValue(launchedBusiness);
+    const res = await requestPath("/robots.txt", "stitchstudioquilting.test");
+    const body = await res.text();
+    expect(body).toContain("Allow: /");
+    expect(body).not.toContain("Disallow: /");
+  });
+});
+
+describe("PLATFORM_PATH_PREFIXES/PLATFORM_EXACT_PATHS is a superset of index.ts's two lists", () => {
+  // Turns the "two lists, deliberately not unified but siteGate's must
+  // still cover everything index.ts's do" argument (task-10-fix-report.md)
+  // from prose into a mechanical check. Reads index.ts's actual source at
+  // test time and extracts the literal strings from its two path lists —
+  // NOT hand-copied here, so this can't itself silently drift from what
+  // index.ts really contains. If the anchor comments below stop matching
+  // (index.ts's shape changed), this test fails loudly rather than
+  // silently checking nothing, which is the point.
+  const indexSrc = readFileSync(
+    path.join(path.dirname(fileURLToPath(import.meta.url)), "../index.ts"),
+    "utf8"
+  );
+
+  function extractBlock(startMarker: string, endMarker: string): string {
+    const start = indexSrc.indexOf(startMarker);
+    if (start === -1) {
+      throw new Error(
+        `siteGate.test.ts's superset check could not find the marker ${JSON.stringify(
+          startMarker
+        )} in src/index.ts — the file's shape changed; update this test's markers.`
+      );
+    }
+    const end = indexSrc.indexOf(endMarker, start);
+    if (end === -1) {
+      throw new Error(
+        `siteGate.test.ts's superset check could not find the end marker ${JSON.stringify(
+          endMarker
+        )} in src/index.ts — the file's shape changed; update this test's markers.`
+      );
+    }
+    return indexSrc.slice(start, end);
+  }
+
+  function extractPaths(block: string): string[] {
+    const found: string[] = [];
+    for (const m of block.matchAll(/path\.startsWith\("([^"]+)"\)/g)) found.push(m[1]);
+    for (const m of block.matchAll(/path === "([^"]+)"/g)) found.push(m[1]);
+    return found;
+  }
+
+  const businessTenantList = extractPaths(
+    extractBlock("const isPlatformPath =", "if (!isPlatformPath) {")
+  );
+  const guildHostList = extractPaths(
+    extractBlock("// Known platform/admin paths on a tenant host", "// /g/* on custom host")
+  );
+
+  it("extraction actually found entries in both lists (sanity check on the markers)", () => {
+    expect(businessTenantList.length).toBeGreaterThan(0);
+    expect(guildHostList.length).toBeGreaterThan(0);
+  });
+
+  for (const literal of [...new Set([...businessTenantList, ...guildHostList])]) {
+    it(`index.ts's ${JSON.stringify(literal)} is covered by isPlatformOnlyPath`, () => {
+      // "Covered" means: any path index.ts would treat as matching this
+      // literal (whether it used startsWith or ===) is also caught by
+      // isPlatformOnlyPath. Testing the literal path itself is sufficient
+      // for both an exact-match entry and a startsWith prefix entry (a
+      // prefix that matches the shortest possible instance of itself
+      // matches every longer instance too, since isPlatformOnlyPath's own
+      // prefix checks are also startsWith).
+      expect(isPlatformOnlyPath(literal)).toBe(true);
+    });
+  }
 });
 
 describe("path normalization — verifying the assumptions it depends on", () => {

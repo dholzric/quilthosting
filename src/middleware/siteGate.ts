@@ -57,16 +57,34 @@ function safeReturnPath(raw: string | null | undefined): string {
 
 /**
  * Normalize a path before it is matched against the launched-site allowlist
- * or the platform-reserved-prefix list. Three obfuscation tricks all evade a
+ * or the platform-reserved-prefix list. Obfuscation tricks that all evade a
  * naive `path.startsWith(...)` / `path === ...` check unless this runs
- * first: repeated slashes ("//admin"), percent-encoding ("/%61dmin"), and
- * case ("/Admin", "/ADMIN"). Dot-segments ("/./admin", "/foo/../admin") are
- * NOT handled here -- the WHatWG URL parser that produced `c.req.url`
- * already collapsed them before siteGate ever saw the path (verified in
- * siteGate.test.ts, "dot-segments are pre-collapsed by the URL parser").
+ * first: repeated slashes ("//admin"), percent-encoding ("/%61dmin"), case
+ * ("/Admin", "/ADMIN"), and dot-segments introduced BY decoding
+ * ("/x/..%2f..%2fadmin.html", "/img/..%2fadmin").
  *
- * Returns `null` on a malformed percent-escape (e.g. a lone "%") instead of
- * throwing -- the caller must treat `null` as "does not match anything on
+ * Dot-segments already present in the raw request path ("/./admin",
+ * "/foo/../admin") are NOT handled here -- the WHATWG URL parser that
+ * produced `c.req.url` already collapsed those before siteGate ever saw the
+ * path (verified directly in siteGate.test.ts, "dot-segments are
+ * pre-collapsed by the URL parser"). But that collapse runs once, before
+ * this function's `decodeURIComponent` call -- a dot-segment that only
+ * exists AFTER decoding was never seen by the URL parser and is not
+ * collapsed by anything. siteGate is the only host-based checkpoint in this
+ * app (see ../lib/platformPaths.ts's header comment) and cannot assume
+ * `ASSETS.fetch` or any other downstream code will also normalize this, so
+ * any ".", ".." segment surviving decode fails closed here rather than
+ * being re-resolved and matched leniently.
+ *
+ * Also rejects (fails closed on) a decoded result that still contains a
+ * literal "%" -- e.g. "%252e" decodes in one pass to "%2e", not ".". That
+ * covers double-encoding without a second `decodeURIComponent` pass, which
+ * would itself be a bypass ("%252f" -> "%2f" -> a second decode would turn
+ * it into "/", reintroducing exactly the slash-collapse this function is
+ * supposed to close).
+ *
+ * Returns `null` on any of the above instead of throwing or silently
+ * matching -- the caller must treat `null` as "does not match anything on
  * the allowlist," i.e. fail closed, never as "matches everything."
  */
 function normalizePathForGate(rawPath: string): string | null {
@@ -78,10 +96,33 @@ function normalizePathForGate(rawPath: string): string | null {
   }
   // Decoding can introduce new "//" (e.g. "%2F%2F"); collapse once more.
   path = path.replace(/\/{2,}/g, "/");
-  return path.toLowerCase();
+  const lower = path.toLowerCase();
+  // A leftover "%" after one decode pass means double-encoding (or some
+  // other percent-sign-producing input) -- refuse it rather than decode
+  // again.
+  if (lower.includes("%")) return null;
+  // A "." or ".." path segment that decoding just produced was never
+  // collapsed by the URL parser. Reject it outright rather than try to
+  // resolve it ourselves.
+  if (lower.split("/").some((segment) => segment === "." || segment === "..")) {
+    return null;
+  }
+  return lower;
 }
 
-/** Task 14's tenant image route shape: `/img/<opaque id>`. */
+/**
+ * Task 14's tenant image route shape: `/img/<opaque id>`. Matched against
+ * the already-lowercased normalized path, so this only ever tests a
+ * lowercase charset -- NOT a fail-closed narrowing. `/img/ABC` normalizes
+ * to `/img/abc`, which DOES match, and the gate opens for it. Whether that
+ * is correct depends on whether Task 14's actual image ids are
+ * case-sensitive: if they are, an uppercase-vs-lowercase id collision would
+ * let this rule match an id string that isn't the exact one requested. Not
+ * a problem today (this route doesn't exist yet), but Task 14 needs to
+ * either make ids case-insensitive-safe or add real case-sensitive matching
+ * here when it lands -- don't copy this regex assuming lowercasing already
+ * makes it conservative.
+ */
 const TENANT_IMAGE_PATH_RE = /^\/img\/[a-z0-9_-]{1,64}$/;
 
 /**
@@ -112,6 +153,20 @@ function isLaunchedSitePath(rawPath: string, tenantSlug: string): boolean {
   //    through to the reserved-prefix check below and stay gated, or a
   //    launched host would become an open read (and unauthenticated write:
   //    /join, /donate, /cart/checkout) proxy for every OTHER tenant too.
+  //    A trailing "/" on the comparison prefix is load-bearing: without it,
+  //    "/public/<slug>x/..." or "/public/<slug>-other/..." (some OTHER
+  //    tenant whose slug happens to start with this one's) would pass a bare
+  //    `.startsWith(`/public/${slug}`)` check. Covered by
+  //    siteGate.test.ts's "rule 4 boundary" cases.
+  //
+  //    Depends on `tenantSlug` (and every stored `tenants.slug`) already
+  //    being lowercase -- `.toLowerCase()` here only normalizes the
+  //    REQUEST path, not what it's compared against being wrong-cased in
+  //    the first place. Slugs are forced to `[a-z0-9-]` at creation
+  //    (src/routes/tenants.ts:55, `body.slug.toLowerCase().replace(...)`);
+  //    if that ever changes, this comparison needs to lowercase `slug` too
+  //    (it already does, defensively) AND something would need to stop a
+  //    mixed-case slug from colliding with another tenant's lowercased one.
   const slug = (tenantSlug || "").toLowerCase();
   if (slug && (path === `/public/${slug}` || path.startsWith(`/public/${slug}/`))) {
     return true;

@@ -26,6 +26,16 @@
 // routing regression, not a security one -- but it's a real behavior change
 // on a file the P0 plan explicitly flagged as high-risk, so it was reported
 // rather than pushed through. See task-10-fix-report.md.
+//
+// PLATFORM_EXACT_PATHS was originally hand-derived from `ls public/` and
+// missed "/privacy.html" and "/terms.html" (round 2 of review caught this
+// live: both files exist, both were reachable on a launched tenant's host).
+// A hand-maintained list rots the same way index.ts's two lists do, so it's
+// no longer trusted on its own -- platformPaths.test.ts reads the actual
+// `public/` directory at test time and fails if any top-level entry in it
+// isn't covered by `isPlatformOnlyPath` (except the site's own
+// qh-site.css/qh-site.js). That test is what should catch the next missed
+// file, not another manual audit.
 
 /**
  * Path prefixes that are always platform surfaces. Matched with
@@ -68,7 +78,9 @@ export const PLATFORM_EXACT_PATHS: ReadonlySet<string> = new Set([
   "/manifest.webmanifest",
   "/icon.svg",
   "/privacy",
+  "/privacy.html",
   "/terms",
+  "/terms.html",
   "/index.html",
   "/qh-admin-ext.js",
   "/qh-cal.js",

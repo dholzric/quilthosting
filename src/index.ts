@@ -142,7 +142,9 @@ app.use("*", async (c, next) => {
     path.startsWith("/docs") ||
     path.startsWith("/embed") ||
     path === "/privacy" ||
+    path === "/privacy.html" ||
     path === "/terms" ||
+    path === "/terms.html" ||
     path === "/qh.css" ||
     path === "/guild" ||
     path === "/guild.html" ||
