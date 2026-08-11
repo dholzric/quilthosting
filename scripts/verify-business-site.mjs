@@ -566,6 +566,54 @@ INSERT INTO tenant_users (tenant_id, user_id, role) VALUES ('${TENANT}', '${user
     check("precondition: home page still carries the ORIGINAL phone number before the save",
       before.body.includes('"telephone":"555-867-5309"'), before.body.slice(0, 4000));
 
+    // Review round 2, Fix 2: the control. The render -> PATCH -> re-render
+    // check below would pass identically even if the Cache API never
+    // engaged at all under unstable_dev -- if every render is always
+    // "fresh," a settings change showing up on the next request proves
+    // nothing about invalidation, because there was never anything to
+    // invalidate. This proves the opposite direction first: mutate
+    // something the cache key does NOT cover (blocks_json, via a direct SQL
+    // UPDATE that deliberately leaves pages.updated_at untouched -- the one
+    // column the key IS built from), then re-render and assert the STALE,
+    // pre-mutation content is still what comes back. That can only happen
+    // if a previous render is genuinely being served from the Cache API
+    // rather than rebuilt on every request. Paired with the PATCH check
+    // below, the two together prove both halves: caching is real, AND a
+    // settings save busts it.
+    const STALE_MARKER = "MUTATED-STALE-CHECK-DO-NOT-SERVE-FRESH";
+    d1Exec(`
+UPDATE pages SET blocks_json = '[{"type":"hero","title":"${STALE_MARKER}","subtitle":"x"}]'
+WHERE id = 'pg_bs_home' AND tenant_id = '${TENANT}';
+`);
+    const controlRender = await req(HOST, "/");
+    const cacheIsLive =
+      !controlRender.body.includes(STALE_MARKER) &&
+      controlRender.body.includes("Stitch Studio Quilting");
+    check(
+      "CONTROL: caching is genuinely engaged in this harness (a DB change the cache key doesn't cover does NOT appear on re-render)",
+      cacheIsLive,
+      `stale marker present: ${controlRender.body.includes(STALE_MARKER)}`
+    );
+    if (!cacheIsLive) {
+      console.error(
+        "\n  !!! CACHE CONTROL FAILED: the Cache API does not appear to be engaged under unstable_dev in this harness.\n" +
+        "  !!! Every render here would be rebuilt fresh regardless of the cache key, which means the\n" +
+        "  !!! PATCH-then-re-render invalidation check immediately below is VACUOUS -- it would pass\n" +
+        "  !!! identically whether or not the Fix 1 cache-key change does anything at all.\n" +
+        "  !!! This is not being papered over: it needs to reach the whole-branch review as an open question,\n" +
+        "  !!! not treated as a pass.\n"
+      );
+    }
+    // Revert -- leave the fixture the way the rest of this file expects it
+    // (matches the "contains hero title in the source" check earlier in
+    // this run). Still not touching updated_at either way, so the cache
+    // key is unaffected by this revert regardless of which way the control
+    // above went.
+    d1Exec(`
+UPDATE pages SET blocks_json = '[{"type":"hero","title":"Stitch Studio Quilting","subtitle":"Longarm quilting"}]'
+WHERE id = 'pg_bs_home' AND tenant_id = '${TENANT}';
+`);
+
     const site = await reqJson(HOST, `/api/tenants/${TENANT}`, { headers: auth });
     check("harness (now owner) can read the tenant record", site.status === 200,
       `got ${site.status} ${JSON.stringify(site.json).slice(0, 200)}`);

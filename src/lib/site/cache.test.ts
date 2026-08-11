@@ -95,4 +95,78 @@ describe("siteCacheKey", () => {
     const key6 = siteCacheKey("host", "/pa", "thversion");
     expect(key5).not.toBe(key6);
   });
+
+  describe("composite updatedAt (Task 14 review round 2, Fix 1)", () => {
+    // src/routes/site.ts builds a single `updatedAt` string out of TWO
+    // independent timestamps -- the page's own updated_at and the tenant's
+    // (a settings save bumps the latter without touching the former, see
+    // task-14-report.md's Fix 1). siteCacheKey itself only ever sees the
+    // one already-joined string and applies a single outer
+    // encodeURIComponent to it -- it has no idea two values went into it,
+    // so injectivity of that join is a property of how site.ts builds the
+    // string, not of siteCacheKey. This mirrors that exact construction
+    // (`${encodeURIComponent(a)}:${encodeURIComponent(b)}`) so the
+    // assertion tracks the real call site, not just a scheme this file
+    // makes up in isolation.
+    function composeVersion(pageUpdatedAt: string, tenantUpdatedAt: string): string {
+      return `${encodeURIComponent(pageUpdatedAt)}:${encodeURIComponent(tenantUpdatedAt)}`;
+    }
+
+    it("two different (pageUpdatedAt, tenantUpdatedAt) pairs never produce the same cache key", () => {
+      // The adversarial case this guards against: without per-component
+      // encoding, a literal ":" inside one of the raw timestamps could let
+      // two DIFFERENT pairs concatenate to the SAME joined string --
+      // exactly the "a" + "b:c" vs "a:b" + "c" collision shape the
+      // pre-existing injectivity test above proves siteCacheKey's own
+      // (host, path, version) scheme avoids. Encoding each side before the
+      // join is what has to close the same hole one level up, since
+      // siteCacheKey can't see the seam once the two pieces are already
+      // one string.
+      const pairs: [string, string][] = [
+        ["2024-01-01T00:00:00Z", "2024-01-02T00:00:00Z"],
+        ["2024-01-01T00:00:00Z:2024-01-02T00:00:00Z", ""], // colon-laden page value, empty tenant value
+        ["2024-01-01T00:00:00Z", ":2024-01-02T00:00:00Z"], // leading colon on the tenant side
+        ["a:b", "c"], // the classic "a" + ":b" + ":c" vs "a:b" + ":" + "c" shape
+        ["a", "b:c"],
+      ];
+
+      const keys = pairs.map(([page, tenant]) =>
+        siteCacheKey("example.com", "/page", composeVersion(page, tenant))
+      );
+
+      // Pairwise distinct: no two different (page, tenant) pairs collapse
+      // to the same rendered cache key.
+      for (let i = 0; i < keys.length; i++) {
+        for (let j = i + 1; j < keys.length; j++) {
+          expect(keys[i]).not.toBe(keys[j]);
+        }
+      }
+
+      // The specific pair the adversarial comment above calls out by name:
+      // ("a:b", "c") must not collide with ("a", "b:c") even though a raw,
+      // unencoded concatenation of the form `${page}:${tenant}` would
+      // produce the identical string "a:b:c" for both.
+      const collisionA = siteCacheKey("example.com", "/page", composeVersion("a:b", "c"));
+      const collisionB = siteCacheKey("example.com", "/page", composeVersion("a", "b:c"));
+      expect(collisionA).not.toBe(collisionB);
+    });
+
+    it("a literal colon in either raw timestamp is percent-encoded before the join, not passed through", () => {
+      // Checked on composeVersion's own output, before siteCacheKey's
+      // separate outer encodeURIComponent gets a chance to re-encode the
+      // whole thing (which it does -- the ":" between the two components
+      // is itself just another character to that outer pass, so by the
+      // time it reaches the final key even the real separator has become
+      // %3A too; that's covered by the injectivity test above, which
+      // exercises the actual siteCacheKey output). What matters here is
+      // that composeVersion itself never lets a colon INSIDE a raw value
+      // masquerade as the separator: "a:b" must become "a%3Ab" (the
+      // colon from inside the raw value encoded) joined to "c" by the
+      // real ":" separator -- not a bare "a:b:c" where a reader can't
+      // tell which colon was the separator.
+      expect(composeVersion("a:b", "c")).toBe("a%3Ab:c");
+      expect(composeVersion("a", "b:c")).toBe("a:b%3Ac");
+      expect(composeVersion("a:b", "c")).not.toBe(composeVersion("a", "b:c"));
+    });
+  });
 });

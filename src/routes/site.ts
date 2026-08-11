@@ -187,7 +187,20 @@ export async function serveBusinessSite(
     // this, saving Business Details wouldn't change the cache key at all --
     // the owner could edit her phone number, save, reload, and see nothing
     // change for up to the 24h edge TTL, with no way to force a refresh.
-    updatedAt: `${row.updated_at}:${tenant.updated_at}`,
+    //
+    // Each component is percent-encoded BEFORE being joined with ":", not
+    // after -- siteCacheKey only applies one outer encodeURIComponent to
+    // the whole string it's handed, so an unescaped ":" here would rely on
+    // neither timestamp ever containing a literal ":" itself to stay
+    // injective. Both today's formats (SQLite's `datetime('now')` and
+    // `Date.prototype.toISOString()`) happen to start "YYYY-MM-DD" before
+    // any colon, so a collision can't actually happen right now -- but
+    // that's an unenforced property of two unrelated timestamp formats, not
+    // something this code guarantees. Encoding each side first turns any
+    // ":" or "%" inside either raw value into %3A / %25, so the two
+    // components can never be reparsed into a different (page, tenant)
+    // pair no matter what either timestamp format does later.
+    updatedAt: `${encodeURIComponent(row.updated_at)}:${encodeURIComponent(tenant.updated_at)}`,
     build: () =>
       renderPageHtml({
         tenant: { name: tenant.name, slug: tenant.slug, settings_json: tenant.settings_json },
