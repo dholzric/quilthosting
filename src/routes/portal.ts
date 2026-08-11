@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import type { Env, Member, MembershipLevel, Event, Plan } from "../types";
+import type { Env, Member, MembershipLevel, Event, Tenant } from "../types";
 import { all, first } from "../lib/db";
 import { extractBearer, verifyJwt } from "../lib/auth";
 import { createCheckoutSession } from "../lib/stripe";
@@ -20,9 +20,14 @@ async function requirePortalUser(c: any): Promise<PortalUser | null> {
 }
 
 async function getTenantBySlug(db: D1Database, slug: string) {
-  return first<{ id: string; name: string; slug: string; status: string }>(
+  // Full row: callers need everything from plan/stripe fields (checkout) to
+  // tenant_type/trial_ends_at (member-cap + renewal logic via
+  // assertCanActivateMember). A narrower column list here was previously the
+  // source of a bug where a *second*, narrower re-query of the same tenant
+  // silently dropped tenant_type and defeated the business-tenant exemption.
+  return first<Tenant>(
     db
-      .prepare("SELECT id, name, slug, status FROM tenants WHERE slug = ? AND status = 'active'")
+      .prepare("SELECT * FROM tenants WHERE slug = ? AND status = 'active'")
       .bind(slug)
   );
 }
@@ -268,24 +273,10 @@ portalRoutes.post("/:slug/renew", async (c) => {
   );
   if (!level) return c.json({ error: "Level not found" }, 404);
 
-  // Need full tenant for stripe_account_id + plan
-  const fullTenant = await first<{
-    id: string;
-    slug: string;
-    name: string;
-    plan: Plan;
-    stripe_account_id: string | null;
-  }>(
-    c.env.DB.prepare(
-      "SELECT id, slug, name, plan, stripe_account_id FROM tenants WHERE id = ?"
-    ).bind(tenant.id)
-  );
-  if (!fullTenant) return c.json({ error: "Guild not found" }, 404);
-
   if (level.price_cents === 0) {
     const now = new Date().toISOString();
     try {
-      await assertCanActivateMember(c.env.DB, fullTenant, member.id);
+      await assertCanActivateMember(c.env.DB, tenant, member.id);
     } catch (e: any) {
       return c.json(
         { error: e.message || "Plan limit reached", code: e.code || "plan_limit" },
@@ -307,7 +298,7 @@ portalRoutes.post("/:slug/renew", async (c) => {
   }
 
   try {
-    await assertCanActivateMember(c.env.DB, fullTenant, member.id);
+    await assertCanActivateMember(c.env.DB, tenant, member.id);
   } catch (e: any) {
     return c.json(
       { error: e.message || "Plan limit reached", code: e.code || "plan_limit" },
@@ -329,7 +320,7 @@ portalRoutes.post("/:slug/renew", async (c) => {
     cancelUrl: portalUrl(c.env.APP_URL, tenant.slug, { cancelled: "1" }),
     mode: level.renewal_type === "auto" ? "subscription" : "payment",
     interval: level.duration_months >= 12 ? "year" : "month",
-    stripeAccountId: fullTenant.stripe_account_id,
+    stripeAccountId: tenant.stripe_account_id,
   });
 
   return c.json({
