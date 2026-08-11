@@ -3,6 +3,7 @@ import type { Env } from "../types";
 import { extractBearer, verifyJwt } from "../lib/auth";
 import { getTenantByHost } from "../lib/tenantHost";
 import { isLaunched } from "../lib/tenantType";
+import { isPlatformOnlyPath } from "../lib/platformPaths";
 
 /**
  * Private-beta gate: the whole site requires a shared password
@@ -55,17 +56,73 @@ function safeReturnPath(raw: string | null | undefined): string {
 }
 
 /**
- * Paths that always belong to the platform, never to a tenant's public site.
- * These stay gated on every host, including a launched tenant's custom domain.
+ * Normalize a path before it is matched against the launched-site allowlist
+ * or the platform-reserved-prefix list. Three obfuscation tricks all evade a
+ * naive `path.startsWith(...)` / `path === ...` check unless this runs
+ * first: repeated slashes ("//admin"), percent-encoding ("/%61dmin"), and
+ * case ("/Admin", "/ADMIN"). Dot-segments ("/./admin", "/foo/../admin") are
+ * NOT handled here -- the WHatWG URL parser that produced `c.req.url`
+ * already collapsed them before siteGate ever saw the path (verified in
+ * siteGate.test.ts, "dot-segments are pre-collapsed by the URL parser").
+ *
+ * Returns `null` on a malformed percent-escape (e.g. a lone "%") instead of
+ * throwing -- the caller must treat `null` as "does not match anything on
+ * the allowlist," i.e. fail closed, never as "matches everything."
  */
-function isPlatformOnlyPath(path: string): boolean {
-  return (
-    path.startsWith("/admin") ||
-    path.startsWith("/portal") ||
-    path.startsWith("/api/tenants") ||
-    path.startsWith("/api/platform") ||
-    path === "/site-access"
-  );
+function normalizePathForGate(rawPath: string): string | null {
+  let path = rawPath.replace(/\/{2,}/g, "/");
+  try {
+    path = decodeURIComponent(path);
+  } catch {
+    return null;
+  }
+  // Decoding can introduce new "//" (e.g. "%2F%2F"); collapse once more.
+  path = path.replace(/\/{2,}/g, "/");
+  return path.toLowerCase();
+}
+
+/** Task 14's tenant image route shape: `/img/<opaque id>`. */
+const TENANT_IMAGE_PATH_RE = /^\/img\/[a-z0-9_-]{1,64}$/;
+
+/**
+ * Allowlist for a launched business tenant's own hostname: everything a
+ * launched site actually serves, and nothing else. This is the inverse of a
+ * denylist on purpose -- a route added to the platform in the future is
+ * gated by default here unless someone deliberately extends this function,
+ * rather than silently exposed because nobody remembered to add it to a
+ * blocklist. See `../lib/platformPaths.ts` for why the reserved-prefix set
+ * has to be exhaustive on its own.
+ */
+function isLaunchedSitePath(rawPath: string, tenantSlug: string): boolean {
+  const path = normalizePathForGate(rawPath);
+  if (path === null) return false; // malformed escape: fail closed
+
+  // 1. robots.txt / sitemap.xml — serveBusinessSite's own permissive versions.
+  if (path === "/robots.txt" || path === "/sitemap.xml") return true;
+
+  // 2. The renderer's own static assets.
+  if (path === "/qh-site.css" || path === "/qh-site.js") return true;
+
+  // 3. Tenant image route (Task 14).
+  if (TENANT_IMAGE_PATH_RE.test(path)) return true;
+
+  // 4. /public/<this tenant's own slug>/... — qh-site.js hydrates events,
+  //    store, and the contact form against these. Scoped to the resolved,
+  //    launched tenant's own slug ONLY: another tenant's slug here must fall
+  //    through to the reserved-prefix check below and stay gated, or a
+  //    launched host would become an open read (and unauthenticated write:
+  //    /join, /donate, /cart/checkout) proxy for every OTHER tenant too.
+  const slug = (tenantSlug || "").toLowerCase();
+  if (slug && (path === `/public/${slug}` || path.startsWith(`/public/${slug}/`))) {
+    return true;
+  }
+
+  // 5. The site's own pages: "/" and any slug that isn't a reserved
+  //    platform prefix (checked last, after the more specific allow rules
+  //    above so "/public/<own-slug>/..." doesn't get caught by the general
+  //    "/public/" reservation).
+  if (path === "/") return true;
+  return !isPlatformOnlyPath(path);
 }
 
 function loginPage(error?: string, returnTo?: string): string {
@@ -115,14 +172,30 @@ export const siteGate = createMiddleware<{ Bindings: Env }>(
     //
     // Two invariants, both load-bearing:
     //   1. The exemption keys off the RESOLVED TENANT, never off a path. No
-    //      path prefix may open the gate on a platform host.
-    //   2. /admin and /portal stay gated even on a launched custom domain, so
-    //      a launched site can never expose the platform's admin surface.
+    //      path prefix may open the gate on a platform host — the tenant is
+    //      always resolved from the Host header FIRST, and the path is only
+    //      ever checked against that specific resolved (and launched)
+    //      tenant's allowlist, never in isolation.
+    //   2. isLaunchedSitePath is an ALLOWLIST, not a denylist: only the exact
+    //      surface a launched site actually serves (robots.txt, sitemap.xml,
+    //      its own qh-site.css/js, /img/<id>, /public/<its own slug>/..., and
+    //      its own pages) opens the gate. /admin, /portal, /docs, /public/
+    //      <another tenant's slug>, and every other platform route fall
+    //      through to the password gate below — including on a launched
+    //      tenant's own custom domain — because they are simply absent from
+    //      the allowlist, not because of a separate denylist that has to be
+    //      kept in sync with every new platform route.
     const gateHost = c.req.header("host") || "";
-    if (gateHost && !isPlatformOnlyPath(path)) {
+    if (gateHost) {
       try {
         const hostTenant = await getTenantByHost(c.env.DB, gateHost, c.env.APP_URL);
-        if (hostTenant && isLaunched(hostTenant)) return next();
+        if (
+          hostTenant &&
+          isLaunched(hostTenant) &&
+          isLaunchedSitePath(path, hostTenant.slug)
+        ) {
+          return next();
+        }
       } catch {
         // A DB failure must not open the gate. Fall through to the password.
       }

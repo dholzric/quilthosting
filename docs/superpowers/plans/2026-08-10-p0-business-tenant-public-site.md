@@ -2317,6 +2317,35 @@ function isPlatformOnlyPath(path: string): boolean {
 }
 ```
 
+> **CRITICAL DEFECT — DO NOT IMPLEMENT THE CODE ABOVE.** Superseded during
+> execution; kept only so the mistake is legible.
+>
+> This is a five-entry **denylist** against a route surface with dozens of
+> entries, so on a launched tenant's hostname everything not listed is
+> ungated. An adversarial review found it exposes:
+>
+> - **`/docs/*`** — the whole product documentation site, nine pages
+>   `CLAUDE.md` calls "site-gated while stealth", served unauthenticated and
+>   crawlable under the tenant's `Allow: /` robots policy.
+> - **`/public/*`** — cross-tenant reads *and unauthenticated writes*. Those
+>   handlers resolve any tenant by URL slug with no host binding:
+>   `POST /public/{anyslug}/join`, `/donate`, `/cart/checkout`.
+> - `/index.html`, `/guild.html`, `/embed/{anyslug}/*`, `/__scheduled`.
+>
+> Root cause: `src/index.ts:94-103` already held a longer, disagreeing
+> platform-path list, and the gate carried the shorter one. Two lists that
+> must stay in sync is the bug; the missing entries are just symptoms.
+>
+> **Shipped instead:** an allowlist, `isLaunchedSitePath(path, tenantSlug)`,
+> permitting only what the business site actually serves — `/robots.txt`,
+> `/sitemap.xml`, `/qh-site.css`, `/qh-site.js`, `/img/<id>`,
+> `/public/<thisTenantSlug>/*` scoped to the launched tenant alone, and page
+> slugs not beginning with a reserved prefix drawn from a single shared
+> constant. A new route is gated by default rather than exposed by default.
+> The path is normalized (repeated slashes collapsed, percent-decoded in a
+> try/catch that fails closed, lowercased) before matching, because `//admin`,
+> `/%61dmin`, and `/Admin` all evaded the raw prefix check.
+
 - [ ] **Step 2: Make robots.txt respect the launch**
 
 The gate currently returns a deny-all `robots.txt` for every host. That must now apply only to gated hosts. The exemption block above runs before the `robots.txt` branch, so a launched tenant already falls through to `serveBusinessSite`, which serves its own permissive robots. Confirm the ordering by reading the file: the `if (path === "/robots.txt")` branch must appear **after** the exemption block.
