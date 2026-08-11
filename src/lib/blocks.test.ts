@@ -95,3 +95,68 @@ describe("block type lists", () => {
     }
   });
 });
+
+describe("blocksToHtml — href scheme safety", () => {
+  it("neutralizes a javascript: hero CTA href to #", () => {
+    const html = blocksToHtml(parseBlocks([
+      { type: "hero", title: "T", ctaLabel: "Go", ctaHref: "javascript:alert(1)" },
+    ]));
+    expect(html).toContain('href="#"');
+    expect(html).not.toContain("javascript:alert(1)");
+  });
+
+  it("neutralizes obfuscated javascript: variants in a hero CTA href", () => {
+    const variants = [
+      "  javascript:alert(1)",
+      "java\tscript:alert(1)",
+      "java\nscript:alert(1)",
+      "JaVaScRiPt:alert(1)",
+    ];
+    for (const ctaHref of variants) {
+      const html = blocksToHtml(parseBlocks([{ type: "hero", title: "T", ctaLabel: "Go", ctaHref }]));
+      expect(html, ctaHref).toContain('href="#"');
+    }
+  });
+
+  it("neutralizes a javascript: button href to #", () => {
+    const html = blocksToHtml(parseBlocks([{ type: "button", label: "Go", href: "javascript:alert(1)" }]));
+    expect(html).toContain('href="#"');
+    expect(html).not.toContain("javascript:alert(1)");
+  });
+
+  it("neutralizes obfuscated javascript: variants in a button href", () => {
+    const variants = [
+      "  javascript:alert(1)",
+      "java\tscript:alert(1)",
+      "java\nscript:alert(1)",
+      "JaVaScRiPt:alert(1)",
+    ];
+    for (const href of variants) {
+      const html = blocksToHtml(parseBlocks([{ type: "button", label: "Go", href }]));
+      expect(html, href).toContain('href="#"');
+    }
+  });
+
+  it("passes legitimate hrefs through untouched", () => {
+    const legit = ["https://example.com/x", "/order", "#faq", "mailto:a@b.com", "tel:+15125550100"];
+    for (const href of legit) {
+      const html = blocksToHtml(parseBlocks([{ type: "button", label: "Go", href }]));
+      expect(html, href).toContain(`href="${href}"`);
+    }
+  });
+});
+
+describe("blocksToHtml — hero background CSS injection", () => {
+  it("omits the style attribute entirely for a CSS-breakout imageUrl", () => {
+    const html = blocksToHtml(parseBlocks([
+      { type: "hero", title: "T", imageUrl: "x'); background: red; foo: url('" },
+    ]));
+    expect(html).not.toContain("style=");
+  });
+
+  it("still renders the style attribute for a clean https image URL", () => {
+    const html = blocksToHtml(parseBlocks([{ type: "hero", title: "T", imageUrl: "https://x.com/h.jpg" }]));
+    expect(html).toContain("style=");
+    expect(html).toContain("background-image:url(");
+  });
+});

@@ -181,7 +181,7 @@ export function blocksToHtml(blocks: PageBlock[]): string {
         break;
       case "button":
         parts.push(
-          `<p class="qh-block-button"><a class="btn ${b.style === "secondary" ? "secondary" : ""}" href="${escapeAttr(b.href)}">${escapeHtml(b.label)}</a></p>`
+          `<p class="qh-block-button"><a class="btn ${b.style === "secondary" ? "secondary" : ""}" href="${escapeAttr(safeHref(b.href))}">${escapeHtml(b.label)}</a></p>`
         );
         break;
       case "divider":
@@ -206,21 +206,23 @@ export function blocksToHtml(blocks: PageBlock[]): string {
       case "spacer":
         parts.push(`<div class="qh-block-spacer" style="height:${b.height || 24}px"></div>`);
         break;
-      case "hero":
+      case "hero": {
+        const heroImageOk = !!b.imageUrl && safeHref(b.imageUrl) !== "#" && isCssUrlSafe(b.imageUrl);
         parts.push(
           `<section class="qh-block-hero"${
-            b.imageUrl ? ` style="background-image:url('${escapeAttr(b.imageUrl)}')"` : ""
+            heroImageOk ? ` style="background-image:url('${escapeAttr(b.imageUrl as string)}')"` : ""
           }><div class="qh-hero-inner">${
             b.eyebrow ? `<p class="qh-hero-eyebrow">${escapeHtml(b.eyebrow)}</p>` : ""
           }<h1 class="qh-hero-title">${escapeHtml(b.title)}</h1>${
             b.subtitle ? `<p class="qh-hero-sub">${escapeHtml(b.subtitle)}</p>` : ""
           }${
             b.ctaLabel && b.ctaHref
-              ? `<p class="qh-hero-cta"><a class="btn" href="${escapeAttr(b.ctaHref)}">${escapeHtml(b.ctaLabel)}</a></p>`
+              ? `<p class="qh-hero-cta"><a class="btn" href="${escapeAttr(safeHref(b.ctaHref))}">${escapeHtml(b.ctaLabel)}</a></p>`
               : ""
           }</div></section>`
         );
         break;
+      }
       case "service_cards":
         parts.push(
           `<div class="qh-block-services">${b.items
@@ -347,6 +349,47 @@ function escapeHtml(s: string): string {
 
 function escapeAttr(s: string): string {
   return escapeHtml(s).replace(/'/g, "&#39;");
+}
+
+/** Schemes allowed through {@link safeHref}. Allowlist, never blocklist a dangerous scheme. */
+const SAFE_HREF_SCHEMES = new Set(["http:", "https:", "mailto:", "tel:"]);
+
+/** Removes ASCII control characters (defeats `java\tscript:`-style scheme obfuscation). */
+function stripControlChars(input: string): string {
+  const s = String(input || "");
+  let out = "";
+  for (let i = 0; i < s.length; i++) {
+    const code = s.charCodeAt(i);
+    if (code > 31 && code !== 127) out += s[i];
+  }
+  return out;
+}
+
+/**
+ * Neutralizes script-executing href values (e.g. `javascript:`) before they reach an
+ * `href`/CSS-url attribute. Strips control characters (defeats `java\tscript:`-style
+ * obfuscation) and trims whitespace before matching a leading scheme case-insensitively
+ * (defeats `JaVaScRiPt:`). Root-relative (`/...`), anchor (`#...`), and scheme-less
+ * relative values are passed through untouched. Anything else — including any scheme
+ * not on the allowlist — collapses to `"#"`. Does not perform attribute/HTML escaping;
+ * callers should still route the result through `escapeAttr`.
+ */
+function safeHref(raw: string): string {
+  const cleaned = stripControlChars(raw).trim();
+  if (!cleaned) return "#";
+  if (cleaned.startsWith("/") || cleaned.startsWith("#")) return cleaned;
+  const schemeMatch = cleaned.match(/^([a-zA-Z][a-zA-Z0-9+.-]*):/);
+  if (schemeMatch) {
+    const scheme = schemeMatch[1].toLowerCase() + ":";
+    return SAFE_HREF_SCHEMES.has(scheme) ? cleaned : "#";
+  }
+  // No scheme at all -- scheme-less relative path, safe to pass through.
+  return cleaned;
+}
+
+/** CSS-injection guard for values interpolated into a `'`-delimited `url(...)` declaration. */
+function isCssUrlSafe(raw: string): boolean {
+  return !/['"();\\\s]/.test(raw);
 }
 
 /** Blocks offered in the admin picker for business tenants. */
