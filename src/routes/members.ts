@@ -1035,6 +1035,16 @@ memberRoutes.post("/import", async (c) => {
   // (nothing lost, stay quiet) from "this row's joined_at genuinely
   // differs from the record" (informational -- see joined_at_ignored_on_update).
   const existingJoinedAt = new Map<string, string | null>();
+  // Fix round 6: the existing member's CURRENT status, so the free-plan cap
+  // accounting below can tell "this member is ALREADY active" (re-importing
+  // them asks for no NEW slot and must not demote them) from "this row is
+  // asking for a slot the plan doesn't have". Prefetched here with the rest
+  // rather than SELECTed per row: the cap branch needs it for every
+  // status=active row, and the apply loop below writes nothing until it has
+  // finished, so a snapshot taken here is exactly as current as a per-row
+  // read would be -- and it lets the dry-run preview answer the same
+  // question, which it previously could not.
+  const existingStatus = new Map<string, string>();
   const emailsInFile = [
     ...new Set(
       normalizedRows
@@ -1045,14 +1055,17 @@ memberRoutes.post("/import", async (c) => {
   for (let i = 0; i < emailsInFile.length; i += 200) {
     const slice = emailsInFile.slice(i, i + 200);
     const placeholders = slice.map(() => "?").join(",");
-    const found = await all<{ id: string; email: string; joined_at: string | null }>(
+    const found = await all<{
+      id: string; email: string; joined_at: string | null; status: string;
+    }>(
       c.env.DB.prepare(
-        `SELECT id, email, joined_at FROM members WHERE tenant_id = ? AND email IN (${placeholders})`
+        `SELECT id, email, joined_at, status FROM members WHERE tenant_id = ? AND email IN (${placeholders})`
       ).bind(tenant.id, ...slice)
     );
     for (const m of found) {
       byEmail.set(m.email, m.id);
       existingJoinedAt.set(m.email, m.joined_at);
+      existingStatus.set(m.email, m.status);
     }
   }
 
@@ -1075,7 +1088,7 @@ memberRoutes.post("/import", async (c) => {
   // Dry run: report exactly what a real import would do, write nothing.
   if (body.dry_run) {
     const seenEmails = new Set<string>();
-    let willCreate = 0, willUpdate = 0;
+    let willCreate = 0, willUpdate = 0, wantNewActive = 0;
     const skipped: Array<{ row: number; reason: string }> = [];
     const sample: Array<Record<string, string>> = [];
 
@@ -1095,6 +1108,23 @@ memberRoutes.post("/import", async (c) => {
       }
       seenEmails.add(email);
       byEmail.has(email) ? willUpdate++ : willCreate++;
+      // Only rows that would become a NEW active count against the free
+      // plan (fix round 6, same reasoning as the apply path's cap branch):
+      // a member who is already active holds their slot already, and an
+      // UPDATE row that expresses no status opinion at all doesn't touch
+      // status. Predicting a hold for either produced a preview that told a
+      // guild at its cap that its own unchanged roster would be demoted --
+      // and, before the apply-path fix, that prediction came true. Note
+      // this estimate reads the Status column only; rows naming a level are
+      // forced active by activateMembership through a different branch,
+      // which this preview has never modelled and still doesn't.
+      const rawStatusPreview = (r.status || "").toLowerCase();
+      const opinionGiven = !byEmail.has(email) || !!rawStatusPreview;
+      const willBeActive =
+        (MEMBER_STATUSES.includes(rawStatusPreview) ? rawStatusPreview : "active") === "active";
+      if (opinionGiven && willBeActive && existingStatus.get(email) !== "active") {
+        wantNewActive++;
+      }
       if (sample.length < 5) {
         sample.push({
           email,
@@ -1105,13 +1135,11 @@ memberRoutes.post("/import", async (c) => {
       }
     });
 
-    // How many rows the free plan will hold below active.
+    // How many rows the free plan will hold below active. Skipped rows are
+    // excluded too -- they never reach the cap accounting at all.
     let planWillHold = 0;
     if (activeSlotsLeft != null) {
-      const wantActive = normalizedRows.filter(
-        (r) => ((r.status || "active").toLowerCase() === "active")
-      ).length;
-      planWillHold = Math.max(0, wantActive - activeSlotsLeft);
+      planWillHold = Math.max(0, wantNewActive - activeSlotsLeft);
     }
 
     return c.json({
@@ -1474,7 +1502,28 @@ memberRoutes.post("/import", async (c) => {
         importStatus === "active" &&
         activeSlotsLeft != null
       ) {
-        if (activeSlotsLeft <= 0) {
+        // Ask FIRST whether this member is already active. A member who is
+        // already active consumes no NEW slot -- re-importing them asks the
+        // plan for nothing -- so the exhausted check below must not apply to
+        // them. Fix round 6: this lookup used to live only in the `else`
+        // (slots available) branch, so a free guild sitting exactly at the
+        // limit started every import with activeSlotsLeft === 0 and demoted
+        // its ENTIRE roster from active to pending on a re-import of its own
+        // unchanged file -- the mirror image of the round-4 bug where a
+        // re-import that OMITTED the Status column reactivated every lapsed
+        // member. The level-naming branch below has always asked this
+        // question (see its alreadyActive lookup) and never had the defect.
+        const wasActive = existingStatus.get(email) === "active";
+        if (wasActive) {
+          // No slot spent (they already hold one), no demotion, and
+          // deliberately NOT counted as plan_limited: nothing is being
+          // denied them and nothing needs the guild's attention. Counting
+          // them would also make a clean, fully-converged re-import report
+          // 'partial' forever, since the status predicate treats
+          // plan_limited > 0 as partial -- exactly the "partial on ~100% of
+          // routine re-imports" failure mode round 5 fixed for
+          // joined_at_ignored_on_update.
+        } else if (activeSlotsLeft <= 0) {
           importStatus = "pending";
           planLimited++;
           // This row named no level (a plain status=active row), but it is
@@ -1489,17 +1538,7 @@ memberRoutes.post("/import", async (c) => {
             email,
           });
         } else {
-          const existingId = byEmail.get(email);
-          let wasActive = false;
-          if (existingId) {
-            const cur = await first<{ status: string }>(
-              c.env.DB.prepare("SELECT status FROM members WHERE id = ?").bind(
-                existingId
-              )
-            );
-            wasActive = cur?.status === "active";
-          }
-          if (!wasActive) activeSlotsLeft--;
+          activeSlotsLeft--;
         }
       }
 

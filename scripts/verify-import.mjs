@@ -1482,5 +1482,179 @@ console.log("\n--- layer 8: Task 4 review Finding C -- import_batches records wh
   check("FINDING C: listed batch records actor_user_id", !!found?.actor_user_id, JSON.stringify(found));
 }
 
+console.log("\n--- layer 9: a free-plan guild AT its cap re-importing its own roster must not demote its own actives (fix round 6) ---");
+
+// The mirror image of layer 4k. There, a re-import that OMITTED the Status
+// column silently REACTIVATED every lapsed member. Here, a re-import that
+// INCLUDES Status=active silently DEACTIVATES every already-active member:
+// a guild sitting exactly at FREE_ACTIVE_MEMBER_LIMIT starts the import
+// with activeSlotsLeft === 0, and the no-level cap branch demoted every
+// active row to 'pending' without ever asking whether that member was
+// ALREADY active (and therefore consuming no NEW slot). The level-naming
+// branch has always asked -- see the alreadyActive lookup there -- which is
+// why 9c below passes on the unfixed code too and is a regression guard,
+// not a reproduction.
+const CAP = 30;
+const capHeader = ["Email", "First Name", "Last Name", "Status"];
+const capMapping = {
+  0: { kind: "known", target: "email" },
+  1: { kind: "known", target: "first_name" },
+  2: { kind: "known", target: "last_name" },
+  3: { kind: "known", target: "status" },
+};
+
+// A tenant on the ACTUAL free plan: new tenants get a 30-day trial, which
+// counts as "starter" (unlimited) for plan-limit purposes. Same pattern as
+// layer 4c above.
+async function freePlanTenant(prefix) {
+  const t = await json("/api/tenants", {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ name: `${prefix} ${stamp}`, slug: `${prefix}-${stamp}` }),
+  });
+  d1Exec(`UPDATE tenants SET trial_ends_at = NULL WHERE id = '${t.body.id}';`);
+  return t.body.id;
+}
+
+async function statusByEmail(tenantId) {
+  const list = await json(`/api/tenants/${tenantId}/members?limit=200`, { headers: auth });
+  return new Map((list.body.members || []).map((m) => [m.email, m.status]));
+}
+
+function countBy(values) {
+  const o = {};
+  for (const v of values) o[String(v)] = (o[String(v)] || 0) + 1;
+  return o;
+}
+
+// --- 9a: the reproduction (no-level path) -------------------------------
+{
+  const capTenantId = await freePlanTenant("capdemo");
+  const emails = Array.from({ length: CAP }, (_, i) => `cap-${stamp}-${i}@example.test`);
+  const rows = emails.map((e, i) => [e, "Cap", `M${i}`, "active"]);
+
+  const firstRun = await json(`/api/tenants/${capTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: capHeader, raw_rows: rows, mapping: capMapping }),
+  });
+  check("cap: first import fills the free plan to exactly its limit",
+    firstRun.body.created === CAP, `got ${firstRun.body.created}`);
+  const afterFirst = await statusByEmail(capTenantId);
+  check("cap: all 30 are active after the first import",
+    emails.every((e) => afterFirst.get(e) === "active"),
+    JSON.stringify(countBy(emails.map((e) => afterFirst.get(e)))));
+
+  // The unchanged roster, re-imported. Nothing about it asks for anything
+  // new: every row is an existing member who is ALREADY active.
+  const reRun = await json(`/api/tenants/${capTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: capHeader, raw_rows: rows, mapping: capMapping }),
+  });
+  check("cap: re-import updates all 30 and creates none",
+    reRun.body.created === 0 && reRun.body.updated === CAP,
+    `created=${reRun.body.created} updated=${reRun.body.updated}`);
+  const afterRe = await statusByEmail(capTenantId);
+  check("THE BUG: already-active members are STILL active after an unchanged re-import at the cap",
+    emails.every((e) => afterRe.get(e) === "active"),
+    JSON.stringify(countBy(emails.map((e) => afterRe.get(e)))));
+  // An already-active member is not being HELD BACK -- nothing is being
+  // denied them, they keep exactly the status they had. Counting them as
+  // plan_limited would also make this clean re-import 'partial' (the status
+  // predicate treats plan_limited > 0 as partial) for no reason.
+  check("cap: an unchanged re-import reports no plan-limited rows",
+    reRun.body.plan_limited === 0, `got ${reRun.body.plan_limited}`);
+  check("cap: an unchanged re-import records no plan_limited error rows",
+    (reRun.body.errors || []).filter((e) => e.kind === "plan_limited").length === 0,
+    JSON.stringify(reRun.body.errors));
+  check("cap: an unchanged re-import reports completed, not partial",
+    reRun.body.status === "completed", `got ${reRun.body.status}`);
+
+  // --- 9b: the cap must STILL bite for genuinely new actives -------------
+  // The fix exempts members who are already active. It must not exempt a
+  // member who is actually being MOVED to active while the plan is full --
+  // that is a real new active and the whole point of the cap.
+  const lapsedAtCapEmail = `caplapsed-${stamp}@example.test`;
+  await json(`/api/tenants/${capTenantId}/members`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ email: lapsedAtCapEmail, first_name: "Cap", last_name: "Lapsed",
+                           status: "lapsed" }),
+  });
+  const newcomerEmail = `capnew-${stamp}@example.test`;
+  const mixedRows = [
+    ...rows,
+    [lapsedAtCapEmail, "Cap", "Lapsed", "active"],
+    [newcomerEmail, "Cap", "Newcomer", "active"],
+  ];
+  const mixedRun = await json(`/api/tenants/${capTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: capHeader, raw_rows: mixedRows, mapping: capMapping }),
+  });
+  const afterMixed = await statusByEmail(capTenantId);
+  check("cap still bites: a LAPSED member asked to go active at a full cap is held at pending",
+    afterMixed.get(lapsedAtCapEmail) === "pending",
+    `got ${afterMixed.get(lapsedAtCapEmail)}`);
+  check("cap still bites: a BRAND-NEW active member at a full cap is held at pending",
+    afterMixed.get(newcomerEmail) === "pending", `got ${afterMixed.get(newcomerEmail)}`);
+  check("cap still bites: exactly the 2 genuinely-new actives are counted plan_limited, not all 32",
+    mixedRun.body.plan_limited === 2, `got ${mixedRun.body.plan_limited}`);
+  check("cap still bites: both held rows are itemized as downloadable plan_limited errors",
+    (mixedRun.body.errors || []).filter((e) => e.kind === "plan_limited").length === 2,
+    JSON.stringify((mixedRun.body.errors || []).filter((e) => e.kind === "plan_limited")));
+  check("cap still bites: a genuinely plan-limited import is partial",
+    mixedRun.body.status === "partial", `got ${mixedRun.body.status}`);
+  check("cap still bites: the 30 untouched actives are STILL active in that same mixed import",
+    emails.every((e) => afterMixed.get(e) === "active"),
+    JSON.stringify(countBy(emails.map((e) => afterMixed.get(e)))));
+}
+
+// --- 9c: the level-naming path (regression guard, already correct) -------
+// This path consults the member's current status before spending a slot, so
+// it never had the defect. Locked down so a future edit to the shared cap
+// accounting can't introduce it here.
+{
+  const capLvlTenantId = await freePlanTenant("capdemolvl");
+  await json(`/api/tenants/${capLvlTenantId}/levels`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ name: "Annual Membership", price_cents: 0,
+                           duration_months: 12, renewal_type: "manual" }),
+  });
+  const lvlHeader = ["Email", "First Name", "Last Name", "Level"];
+  const lvlMapping = {
+    0: { kind: "known", target: "email" },
+    1: { kind: "known", target: "first_name" },
+    2: { kind: "known", target: "last_name" },
+    3: { kind: "known", target: "level_name" },
+  };
+  const lvlEmails = Array.from({ length: CAP }, (_, i) => `caplvl-${stamp}-${i}@example.test`);
+  const lvlRows = lvlEmails.map((e, i) => [e, "Cap", `L${i}`, "Annual Membership"]);
+
+  const lvlFirst = await json(`/api/tenants/${capLvlTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: lvlHeader, raw_rows: lvlRows, mapping: lvlMapping }),
+  });
+  check("cap/level: first import fills the plan and assigns all 30 memberships",
+    lvlFirst.body.created === CAP && lvlFirst.body.memberships_assigned === CAP,
+    JSON.stringify(lvlFirst.body).slice(0, 200));
+
+  const lvlRe = await json(`/api/tenants/${capLvlTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: lvlHeader, raw_rows: lvlRows, mapping: lvlMapping }),
+  });
+  const afterLvl = await statusByEmail(capLvlTenantId);
+  check("cap/level: already-active members stay active on an unchanged re-import",
+    lvlEmails.every((e) => afterLvl.get(e) === "active"),
+    JSON.stringify(countBy(lvlEmails.map((e) => afterLvl.get(e)))));
+  check("cap/level: unchanged re-import reports no plan-limited rows",
+    lvlRe.body.plan_limited === 0, `got ${lvlRe.body.plan_limited}`);
+  // The invariant this whole area rests on (layer 4c): every row naming a
+  // real level is accounted for by exactly one of assigned / failed /
+  // plan-limited. A renewal re-import at a full cap is the case where an
+  // exemption could silently drop rows out of all three counters.
+  check("cap/level: the accounting invariant still holds on a renewal re-import at a full cap",
+    (lvlRe.body.memberships_assigned + lvlRe.body.membership_failures +
+      lvlRe.body.plan_limited) === CAP,
+    `assigned=${lvlRe.body.memberships_assigned} failed=${lvlRe.body.membership_failures} ` +
+      `plan_limited=${lvlRe.body.plan_limited} expected=${CAP}`);
+}
+
 console.log(failures ? `\n${failures} failure(s)` : "\nall layers passed");
 if (failures) process.exit(1);
