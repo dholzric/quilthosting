@@ -1303,7 +1303,37 @@
           (k) => `${byKind[k].length} ${labels[k] || k}`
         );
 
-        if (isPartial) {
+        // Task 5: the server's `status` predicate counts plan-limited rows
+        // as a shortfall (see the predicate in src/routes/members.ts) — which
+        // is right, those members really did not come in as active — but for
+        // a free-plan guild whose file was otherwise clean it is not a
+        // failure of their file, and "Import finished with problems" reads
+        // like one. Detect the case where plan-limiting is the ONLY thing
+        // that made this batch partial and say so plainly instead.
+        //
+        // Why these three conditions are sufficient: the server marks a
+        // batch partial when skippedRows, membershipFailures, planLimited or
+        // levelNotFound is non-zero, or a lossy warning fired. The first,
+        // second and fourth each push an error row of kind `skipped` /
+        // `membership_failed` / `level_not_found`, so `errors.every(kind ===
+        // "plan_limited")` rules them out; a lossy warning firing implies a
+        // non-empty `warnings`, so `warnings.length === 0` rules that out.
+        // A non-lossy warning alongside plan-limiting falls through to the
+        // generic banner — deliberately conservative.
+        const planLimitOnly =
+          isPartial &&
+          errors.length > 0 &&
+          errors.every((e) => e.kind === "plan_limited") &&
+          warnings.length === 0;
+
+        if (planLimitOnly) {
+          out.innerHTML = `<div class="notice warn">` +
+            `<strong>Import complete — ${errors.length} member(s) are waiting on your plan's active-member limit.</strong> ` +
+            `Imported: ${r.created} new, ${r.updated} updated, ${r.skipped} skipped${mem}${cf}.<br>` +
+            `Nothing is wrong with your file. Every row was imported; ${errors.length} of them came in as <em>pending</em> instead of active because your plan's active-member limit was already reached. ` +
+            `Upgrade to activate them, or leave them pending — their records are saved either way.` +
+            `</div>`;
+        } else if (isPartial) {
           // A <div>, not a <p>: the conditional <ul> below is block content,
           // which a <p> would force-close early (invalid nesting).
           out.innerHTML = `<div class="notice warn">` +

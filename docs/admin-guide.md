@@ -38,16 +38,78 @@ Apricot or otherwise) without guessing at column names:
    until you press Import** — changing a column's mapping just re-checks
    the file and updates this preview.
 5. **Press Import.** You'll see a summary (created / updated / skipped,
-   memberships assigned, custom fields created). If any rows were skipped,
-   a **Download skipped rows** button gives you a CSV of just those rows
-   with the reason for each, so you can fix and re-import only the
-   failures instead of re-running the whole file.
+   memberships assigned, custom fields created). If any rows need your
+   attention, a **Download N problem rows** button gives you a CSV of just
+   those rows with the reason for each, so you can fix and re-import only
+   the problems instead of re-running the whole file.
 
 **Re-importing is safe.** Rows are matched by email — importing the same
 file again (or a corrected version of it) **updates** existing members
 rather than creating duplicates, and any custom-field values you've since
 entered by hand on a member are kept, not overwritten, unless the
 re-imported file supplies a new value for that same field.
+
+### "Import finished with problems" — what a partial import means
+
+Every import is recorded, and each one ends up in one of two everyday
+states:
+
+- **Complete** — nothing was lost.
+- **Partial** — *something in your file did not come through in full.* Your
+  members were still imported; "partial" is not a crash and it is not a
+  rollback. It's the importer refusing to tell you everything went fine
+  when part of your data didn't make it.
+
+An import is marked partial when any of these happened:
+
+- Rows were **skipped** (no email address, a duplicate email inside the same
+  file, or a row with a different number of columns than the header).
+- A **membership couldn't be assigned** to someone the file said had one.
+- A row named a **membership level that doesn't exist yet** in your guild —
+  that person was imported, but with no membership.
+- A **whole column was left out** (set to "Do not import", or two columns
+  pointed at the same field so one was ignored) and that column actually had
+  data in it.
+- A **date or status couldn't be read**, or a status in your file was
+  overridden — e.g. a row marked "lapsed" that also names a level comes in
+  as active.
+- Some members were **held at your plan's active-member limit** (see below —
+  this one is usually nothing to fix).
+
+**What to do:** on the Members page, the **Recent imports** card lists every
+import with when it ran, who ran it, the counts, and a **Download errors**
+button. That CSV names the exact row numbers and the reason for each one.
+Column-level notes (like "this column wasn't imported") appear under the row
+in that card and at the bottom of the CSV, because they aren't tied to any
+single row.
+
+Then fix those rows in your spreadsheet and **import the file again.**
+Re-importing is the repair mechanism — members are matched by email, so rows
+that already came through are updated in place rather than duplicated, and
+you can safely re-import either the corrected full file or just the problem
+rows.
+
+**What "partial" does not mean:** there is no undo. QuiltHosting cannot roll
+a partial import back or resume it where it stopped, and it can't work out on
+its own what's still missing. The fix is always: correct the file, import
+again.
+
+### Partial only because of your plan limit
+
+The free plan allows 30 active members. If your file has more active members
+than you have room for, the extra people are still imported — they just come
+in as **pending** instead of active.
+
+Because those members aren't active, the import is recorded as partial. When
+that's the *only* thing that happened, the result banner says so directly:
+"Import complete — N member(s) are waiting on your plan's active-member
+limit." **Nothing is wrong with your file.** Upgrade to activate those
+members, or leave them pending; their records are saved either way.
+
+One thing to know: in the **Recent imports** card, that same import is still
+badged **partial** (amber). That's the same batch the banner just explained —
+download its errors and you'll see every listed row is "held at the free-plan
+limit."
 
 ## Highlights
 

@@ -207,6 +207,15 @@ Exactly one of `rows` or `raw_rows` may be present:
 | `raw_rows` present, `header` missing | `400 { "error": "raw_rows requires header", "code": "missing_header" }` |
 | Neither present (or `rows` is empty) | `400 { "error": "rows array is required" }` |
 | More than 5000 rows | `400 { "error": "Max 5000 rows per import — split larger files" }` |
+| Two or more columns mapped to the same custom-field `key` | `400 { "error": "Two or more columns map to the same custom field: …", "code": "duplicate_custom_key", "duplicates": [{ "key", "headers": [...], "indices": [...] }] }` |
+
+The `duplicate_custom_key` 400 is a **real-import-only** refusal: the check
+runs after the dry-run branch has already returned, and before anything is
+written — no members, no memberships, no custom-field definitions. A dry run
+with the same mapping does not 400; it reports the same problem as a
+`duplicate_custom_key` warning instead. The refusal exists because the second
+column would otherwise silently overwrite the first with nothing recording
+that a whole column of data was lost.
 
 `dry_run: true` runs every check and returns the full reconciliation
 **without writing anything** — no members, no memberships, no custom-field
@@ -241,17 +250,31 @@ already on a member's record is never wiped by a re-import.
 
 ### Warnings
 
-Computed identically for a dry run and a real import:
+Both a dry run and a real import call the same `buildWarnings()` in
+`src/routes/members.ts`, so the same **conditions** are detected on both
+paths. The `message` text differs by tense (a `phase: "preview" | "applied"`
+argument switches "will be skipped" to "were skipped"), and two codes are
+preview-only in practice — see the table.
 
-| Code | Message | When it fires |
-|---|---|---|
-| `unmapped_column` | `"<header>" will not be imported` | A column is unmapped/ignored **and** at least one row has a non-empty value in it. A column that is entirely empty produces no warning. |
-| `duplicate_target` | `"<header>" also matches <target>; the first column wins and this one is ignored` | Two columns map to the same known target — the first (lowest index) wins; the rest report this warning and **are actually demoted to ignore** in the mapping the server applies. This holds whether the duplicate came from the server's own auto-proposed mapping or from an admin explicitly setting two columns to the same target by hand (the UI has no client-side guard against this) — the server re-derives and enforces it either way, so the warning text is never just advice the code doesn't follow. |
-| `unparseable_date` | Some renewal/expiry dates could not be read and will be left blank | A row's end/expiry/renewal/expiration value doesn't parse as a date. |
-| `invalid_status` | Some statuses are not one of: pending, active, lapsed, cancelled. Those rows import as active. | A row's status value isn't one of the four known statuses. |
-| `level_not_found` | Some membership levels do not exist in this guild; those members import without a membership | A row's level name doesn't match any active level for the tenant. |
-| `column_count_mismatch` | Some rows have a different number of columns than the header and will be skipped | A raw row's length doesn't match `header.length`; the row is skipped entirely rather than risk misaligning fields. |
-| `plan_limit_will_hold` | Free plan allows 30 active members; N row(s) will import as pending until you upgrade | Tenant is on the free plan and more rows want `active` status than there are remaining active-member slots. This is an estimate — see note below. |
+The `Lossy` column is the one that matters for the real import's `status`:
+it is exactly the `LOSSY_WARNING_CODES` set in `src/routes/members.ts`, and
+a real import whose file triggers any lossy code reports
+`status: "partial"`, never `"completed"`.
+
+| Code | Lossy | Message (preview wording) | When it fires |
+|---|---|---|---|
+| `unmapped_column` | yes | `"<header>" will not be imported` | A column is unmapped/ignored **and** at least one row has a non-empty value in it. A column that is entirely empty produces no warning. |
+| `duplicate_target` | yes | `"<header>" also matches <target>; the first column wins and this one is ignored` | Two columns map to the same known target — the first (lowest index) wins; the rest report this warning and **are actually demoted to ignore** in the mapping the server applies. This holds whether the duplicate came from the server's own auto-proposed mapping or from an admin explicitly setting two columns to the same target by hand (the UI has no client-side guard against this) — the server re-derives and enforces it either way, so the warning text is never just advice the code doesn't follow. |
+| `duplicate_custom_key` | n/a | `"<a>" and "<b>" would both import into the same custom field. Rename one column, or set one to "Do not import".` | **Dry run only.** Two columns map to the same custom-field `key`. A real import with the same mapping returns the `duplicate_custom_key` 400 above instead of importing, so this code can never appear in a real import's `warnings`. |
+| `unparseable_date` | yes | Some renewal/expiry dates could not be read and will be left blank | A row's end/expiry/renewal/expiration value doesn't parse as a date. On a real import, where the row also names a level, the membership end date is computed from the level's duration instead of the file's date — a fabricated date, not the guild's. |
+| `end_date_without_level` | yes | Some rows have a valid renewal/expiry date but no membership level — the date will not be stored | The row's date parsed fine, but with no level there is no membership to attach it to, so it is dropped. |
+| `unparseable_join_date` | yes | Some "member since" dates could not be read; they will be stored exactly as typed, without validation | A row's `joined_at` doesn't parse **and** the row is an insert. There is no fallback for a non-empty bad string on insert: the value is bound into `members.joined_at` verbatim. |
+| `joined_at_ignored_on_update` | **no** | Some "member since" dates differ from what's already on file for these existing members… | The row matches an existing member and the file's `joined_at` differs from the stored one by calendar day. Deliberately **not** lossy: the UPDATE statement has no `joined_at` column at all, so the existing (authoritative) value is kept. The file's value is used as the membership start date only on rows that also name a level; on a row with no level it is not used at all. It was excluded from the lossy set because it fires on nearly every updated row of a routine full-roster re-export, which would make `partial` meaningless. |
+| `invalid_status` | yes | Some statuses are not one of: pending, active, lapsed, cancelled. Those rows import as active. | A row's status value isn't one of the four known statuses. The coercion to `active` consumes a plan slot and starts guild email. |
+| `status_overridden_by_level` | yes | Some rows have a file status (pending, lapsed, or cancelled) that will be overridden to active because the row also names a membership level | The file's status is *valid* — so `invalid_status` cannot see it — but naming a level overrides it to active. |
+| `level_not_found` | yes | Some membership levels do not exist in this guild; those members import without a membership | A row's level name doesn't match any active level for the tenant. |
+| `column_count_mismatch` | yes | Some rows have a different number of columns than the header and will be skipped | A raw row's length doesn't match `header.length`; the row is skipped entirely rather than risk misaligning fields. |
+| `plan_limit_will_hold` | no | Free plan allows 30 active members; N row(s) will import as pending until you upgrade | **Dry run only in practice.** Tenant is on the free plan and more rows want `active` status than there are remaining active-member slots. The real-import call site passes `planWillHold: 0`, so this code does not appear in a real import's `warnings` — the real import counts plan-limiting exactly and reports it as `plan_limited` plus per-row `plan_limited` errors instead. It is an estimate — see note below. |
 
 Each warning object: `{ code, message, count, sample_rows: number[] (1-based row numbers, up to 3), header? }`.
 
@@ -291,13 +314,22 @@ over-report slightly on a re-import of a partially-imported file.
 ```json
 {
   "ok": true,
+  "batch_id": "…",
+  "status": "partial",
   "created": 80,
   "updated": 35,
   "skipped": 5,
-  "memberships_assigned": 60,
+  "memberships_assigned": 58,
+  "membership_failures": 2,
+  "level_not_found": 0,
   "plan_limited": 0,
   "custom_fields_created": [{ "key": "guild_number", "label": "Guild #" }],
-  "skipped_rows": [{ "row": 12, "reason": "missing or invalid email" }]
+  "skipped_rows": [{ "row": 12, "reason": "missing or invalid email" }],
+  "errors": [
+    { "row_number": 41, "kind": "membership_failed", "reason": "…", "email": "…" }
+  ],
+  "warnings": [{ "code": "level_not_found", "message": "…", "count": 3, "sample_rows": [4, 9, 17] }],
+  "error_kind_labels": { "membership_failed": "membership(s) failed to assign", "…": "…" }
 }
 ```
 
@@ -306,6 +338,180 @@ run's `skipped` array — the admin UI's error-CSV download depends on this
 matching exactly. Upsert is keyed on lowercased `email`; a row whose email
 already exists on the tenant updates that member instead of creating a
 duplicate.
+
+`batch_id` is the id of the `import_batches` row this run wrote. Use it with
+the history endpoints below.
+
+#### `status`
+
+The column is `import_batches.status` and takes four values:
+
+| Value | Meaning |
+|---|---|
+| `running` | The batch row was inserted and the run is in flight. A row can only be observed in this state by reading the history endpoints while an import is executing. |
+| `completed` | Nothing was lost. |
+| `partial` | **Something was not fully imported.** Review the batch's `errors` and `warnings`. |
+| `failed` | The run threw. The batch is closed as `failed` with whatever counts were known at the time and the request returns a 500. Rows already written by an earlier chunk stay written — see "What import does not do". |
+
+`completed` requires **all** of: zero skipped rows, zero membership
+failures, zero plan-limited rows, zero level-not-found rows, and no lossy
+warning fired. Anything else is `partial`. The last condition is derived
+from `LOSSY_WARNING_CODES` rather than hand-counted, so a lossy condition
+`buildWarnings()` knows about forces `partial` even if nothing else counts it.
+
+##### `partial` with zero row errors
+
+`errors` and `warnings` are **not** two views of the same thing. `errors` is
+per-row (`import_batch_errors`: which row, what kind, why). `warnings` is
+column-level and whole-file — `unmapped_column` and `duplicate_target`
+describe a *column*, not a row, so they never produce an `import_batch_errors`
+row.
+
+So a batch can legitimately be `partial` with an **empty `errors` array and a
+non-empty `warnings` array**: e.g. a CSV with one ignored column that carries
+data in every row loses an entire column of data, but no individual row
+failed. A client that renders only `errors` shows an unexplained "partial".
+Render both. Both history endpoints return `warnings` for this reason.
+
+##### `partial` caused only by the free-plan cap
+
+`plan_limited > 0` counts toward `partial`. That is intentional — members
+held at `pending` by the free-plan cap really are not active — but it means
+**a free-plan guild importing 40 members always gets `status: "partial"`**
+even when their file is perfect. Nothing failed; the guild is over the free
+plan's 30-active-member limit and the extra rows imported as `pending`.
+
+The admin UI detects this specific case (every entry in `errors` has
+`kind: "plan_limited"` and `warnings` is empty) and shows "Import complete —
+N member(s) are waiting on your plan's active-member limit" rather than
+"Import finished with problems". The **"Recent imports" history card still
+shows the `partial` badge** for these batches: the batch list columns do not
+carry enough information to distinguish the case reliably (there is no
+`level_not_found` column on `import_batches`), so it is not second-guessed
+there. Download the batch's errors to see that every held row is
+`plan_limited`.
+
+#### `errors` and `error_kind_labels`
+
+Each entry: `{ row_number, kind, reason, email }` (`email` may be `null`).
+`kind` is one of `skipped`, `membership_failed`, `level_not_found`,
+`plan_limited`, `unparseable_date`, `unparseable_join_date`,
+`joined_at_ignored_on_update`, `invalid_status`, `status_overridden_by_level`,
+`end_date_without_level`.
+
+`error_kind_labels` is a server-supplied `kind → human label` map. Clients
+should group `errors` by `kind` and look the label up here rather than
+hand-maintaining a parallel list — that drift is what previously let new
+error kinds vanish from the UI and the downloadable report.
+
+Note that `joined_at_ignored_on_update` produces error rows but is not a
+lossy warning, so its presence alone does not make a batch `partial`.
+
+### Import history
+
+Both routes are tenant-admin routes under the same auth as the import itself
+(`requireAuth` → `tenantMiddleware` → `requireTenantAccess`), and both filter
+by `tenant_id`.
+
+#### `GET /api/tenants/:tenantId/members/import/batches`
+
+The tenant's last 50 batches, newest first (`ORDER BY started_at DESC LIMIT 50`).
+
+```json
+{
+  "batches": [
+    {
+      "id": "…",
+      "status": "partial",
+      "mapping_json": "{…}",
+      "warnings_json": "[…]",
+      "warnings": [{ "code": "unmapped_column", "message": "…", "count": 12, "sample_rows": [1, 2, 3], "header": "Notes 2" }],
+      "total_rows": 120,
+      "created_count": 80,
+      "updated_count": 35,
+      "skipped_count": 5,
+      "memberships_assigned": 58,
+      "membership_failures": 2,
+      "plan_limited": 0,
+      "custom_fields_created": 1,
+      "started_at": "…",
+      "finished_at": "…",
+      "actor_user_id": "…",
+      "actor_email": "…"
+    }
+  ]
+}
+```
+
+`warnings` is `warnings_json` already parsed (both are returned; the raw
+column is left in place rather than removed from the row). `mapping_json` is
+**not** parsed — it is returned as the stored JSON string.
+
+`custom_fields_created` is a **count** here, unlike the import response where
+it is an array of `{ key, label }`.
+
+`actor_user_id` / `actor_email` record who ran the import. `actor_email` is a
+snapshot taken at import time, not a live join to `users.email`, so it stays
+accurate if the account's email later changes or the user is deleted. Both
+are `null` on batches created before the column existed.
+
+#### `GET /api/tenants/:tenantId/members/import/batches/:batchId/errors`
+
+```json
+{
+  "batch_id": "…",
+  "errors": [
+    { "id": "…", "row_number": 41, "kind": "membership_failed", "reason": "…", "email": "…", "created_at": "…" }
+  ],
+  "warnings": [ … ],
+  "error_kind_labels": { … }
+}
+```
+
+The full, **uncapped** per-row list for one batch, `ORDER BY row_number ASC` —
+this is what the admin downloads as a CSV after a migration. The batch is
+looked up by `id` **and** `tenant_id` first; a batch id belonging to another
+guild returns `404 { "error": "Import batch not found" }`, indistinguishable
+from a batch that does not exist.
+
+`warnings` is the same parsed array the list endpoint returns, present here so
+a `partial` batch whose only loss was column-level is still explained in the
+downloadable report.
+
+### What import does not do
+
+Stated plainly, because the batch reporting above makes it easy to assume
+more than is true:
+
+- **There is no rollback.** Nothing captures a before-state, so a `partial`
+  or `failed` batch cannot be undone. The `batch_id` identifies what
+  happened; it is not an undo handle.
+- **Import is not one transaction.** Member inserts/updates execute as
+  `DB.batch()` calls in chunks of 50, membership assignment runs afterwards
+  per row, and the error rows are written in chunks of 50 after that. A
+  throw part-way leaves earlier chunks written; the batch is closed as
+  `failed` (best effort) and the request 500s.
+- **There is no resume.** A `failed` batch cannot be continued from where it
+  stopped.
+- **There is no delta re-import.** Nothing computes "what is still missing"
+  from a previous batch.
+
+The supported recovery is to **fix the CSV and import it again.** That
+converges because upsert is keyed on lowercased `email`: rows that already
+landed update in place instead of duplicating. It converges on member
+records; it does not roll anything back, and a re-import re-applies the same
+rules (so, for example, a plan-limited row stays `pending` until the plan
+changes).
+
+**Known gap — custom-field creation is racy.** When a mapping introduces new
+custom fields, the route reads `tenants.settings_json`, appends the new
+definitions, and writes the whole column back (`SELECT` then `UPDATE`, with no
+compare-and-swap). A settings edit committed between that read and that write
+is overwritten. The window is narrow and the admin UI does not encourage
+concurrent edits, but it is real. The write also happens *before* any member
+row is written and is not undone if the import subsequently fails — custom
+field definitions can outlive a failed batch. Definitions are additive only:
+import never renames, reorders, or removes one.
 
 ## Hook endpoints (REST hooks)
 
