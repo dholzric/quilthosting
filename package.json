@@ -1,6 +1,6 @@
 {
   "name": "quilthosting",
-  "version": "0.31.0-preview",
+  "version": "0.32.0-preview",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,6 +10,8 @@
     "db:migrate:remote": "wrangler d1 migrations apply quilthosting-db --remote",
     "db:create": "wrangler d1 create quilthosting-db",
     "cf-typegen": "wrangler types",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:scale": "node scripts/verify-scale.mjs",
     "test:integrations": "node scripts/verify-integrations.mjs",
     "test:idempotency": "node scripts/verify-idempotency.mjs",
@@ -23,6 +25,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260801.1",
     "typescript": "^5.8.0",
+    "vitest": "^3.2.0",
     "wrangler": "^4.14.0"
   }
 }

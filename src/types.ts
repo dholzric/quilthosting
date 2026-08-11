@@ -24,6 +24,8 @@ export type Env = {
   STRIPE_GUILD_PRICE_ID?: string;
   RESEND_API_KEY: string;
   JWT_SECRET: string;
+  /** AES-GCM key (base64, 32 bytes) for tenant_credentials. Required in production. */
+  CREDENTIAL_KEY?: string;
   ENVIRONMENT: string;
   APP_URL: string;
   /** Intuit QuickBooks Online app (optional) */
@@ -54,6 +56,10 @@ export interface Tenant {
   name: string;
   slug: string;
   custom_domain: string | null;
+  /** 'guild' (default) or 'business'. Read via isBusiness() in lib/tenantType. */
+  tenant_type: "guild" | "business";
+  /** 1 = this tenant's public site bypasses the site gate. Businesses only. */
+  public_launched: number;
   stripe_account_id: string | null;
   /** Platform billing (guild pays QuiltHosting) */
   stripe_customer_id?: string | null;
