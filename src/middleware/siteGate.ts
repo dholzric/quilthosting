@@ -1,6 +1,8 @@
 import { createMiddleware } from "hono/factory";
 import type { Env } from "../types";
 import { extractBearer, verifyJwt } from "../lib/auth";
+import { getTenantByHost } from "../lib/tenantHost";
+import { isLaunched } from "../lib/tenantType";
 
 /**
  * Private-beta gate: the whole site requires a shared password
@@ -52,6 +54,20 @@ function safeReturnPath(raw: string | null | undefined): string {
   return raw.slice(0, 500);
 }
 
+/**
+ * Paths that always belong to the platform, never to a tenant's public site.
+ * These stay gated on every host, including a launched tenant's custom domain.
+ */
+function isPlatformOnlyPath(path: string): boolean {
+  return (
+    path.startsWith("/admin") ||
+    path.startsWith("/portal") ||
+    path.startsWith("/api/tenants") ||
+    path.startsWith("/api/platform") ||
+    path === "/site-access"
+  );
+}
+
 function loginPage(error?: string, returnTo?: string): string {
   const next = safeReturnPath(returnTo);
   const nextAttr = next
@@ -93,6 +109,24 @@ export const siteGate = createMiddleware<{ Bindings: Env }>(
     const path = new URL(c.req.url).pathname;
 
     if (path.startsWith("/api/webhooks/")) return next();
+
+    // Per-tenant launch: a launched business tenant's own hostname serves its
+    // public site without the gate, while the platform stays in stealth.
+    //
+    // Two invariants, both load-bearing:
+    //   1. The exemption keys off the RESOLVED TENANT, never off a path. No
+    //      path prefix may open the gate on a platform host.
+    //   2. /admin and /portal stay gated even on a launched custom domain, so
+    //      a launched site can never expose the platform's admin surface.
+    const gateHost = c.req.header("host") || "";
+    if (gateHost && !isPlatformOnlyPath(path)) {
+      try {
+        const hostTenant = await getTenantByHost(c.env.DB, gateHost, c.env.APP_URL);
+        if (hostTenant && isLaunched(hostTenant)) return next();
+      } catch {
+        // A DB failure must not open the gate. Fall through to the password.
+      }
+    }
 
     // Native apps can't hold the gate cookie. A valid session JWT is itself
     // proof of access — the gate hides the product from the public, it is not
