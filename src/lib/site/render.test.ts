@@ -40,8 +40,14 @@ describe("renderPageHtml", () => {
 
   it("emits the seo head and the json-ld", () => {
     const html = renderPageHtml(args);
-    expect(html).toContain("<title>Services | Stitch Studio</title>");
+    // settings.business.name ("Stitch Studio Quilting") wins over
+    // tenant.name ("Stitch Studio") — the owner-entered business identity is
+    // the authority for what the public site displays, not the internal
+    // platform record set once at signup. See the fallback leg covered by
+    // "uses the tenant name when settings have no business identity" below.
+    expect(html).toContain("<title>Services | Stitch Studio Quilting</title>");
     expect(html).toContain('"@type":"LocalBusiness"');
+    expect(html).toContain('"name":"Stitch Studio Quilting"');
   });
 
   it("renders the page blocks", () => {

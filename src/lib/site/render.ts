@@ -61,18 +61,16 @@ export function renderPageHtml(args: RenderArgs): string {
 
   const { theme, fonts } = readTenantTheme(tenant.settings_json);
   const identity = readBusinessIdentity(tenant.settings_json);
-  // siteName drives the <title>, header brand, and footer — it is always the
-  // tenant's chosen display name. identity.name (the settings.business
-  // subtree) is a separate, optional field that only feeds the LocalBusiness
-  // JSON-LD, where it may legitimately differ (e.g. a formal registered
-  // name); it falls back to siteName when unset so JSON-LD never emits an
-  // empty name.
-  const siteName = tenant.name;
-  const businessName = identity.name || siteName;
+  // The owner-entered business name (settings.business.name) is the
+  // authority for what the public site displays — title, header, footer,
+  // and JSON-LD all show it. tenant.name (the internal platform record set
+  // once at signup) is only the fallback for tenants that haven't filled in
+  // Business details yet.
+  const siteName = identity.name || tenant.name;
 
   const { html: bodyHtml } = contentFromPage(page);
   const seoHead = buildSeoHead({ page, siteName, baseUrl, bodyHtml, ogImageUrl });
-  const jsonLd = buildLocalBusinessJsonLd({ ...identity, name: businessName }, baseUrl);
+  const jsonLd = buildLocalBusinessJsonLd({ ...identity, name: siteName }, baseUrl);
 
   const navHtml = nav
     .map(
