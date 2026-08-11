@@ -777,7 +777,7 @@
             <p class="muted" style="font-size:0.8rem;margin:0 0 0.5rem">For cash, check, or comps. Creates a real membership with an end date (not just status=active).</p>
             <div class="form-row">
               <div><label>Level</label><select id="em-level"></select></div>
-              <div><label>End date (optional)</label><input id="em-end" type="date" /></div>
+              <div><label>End date</label><input id="em-end" type="date" /><span class="muted" style="font-size:0.75rem">Pre-filled with one full term from today. Change it, or clear it to let QuiltHosting compute the same date.</span></div>
             </div>
             <div class="form-row">
               <div><label>Amount paid (cents)</label><input id="em-amount" type="number" min="0" step="1" /></div>
@@ -978,12 +978,27 @@
           opt.value = l.id;
           opt.textContent = `${l.name} ($${(l.price_cents / 100).toFixed(2)})`;
           opt.dataset.price = String(l.price_cents);
+          opt.dataset.months = String(l.duration_months || 12);
           sel.appendChild(opt);
         }
+        // Pre-fill the end date with the term the server would compute if the
+        // field were left blank (today + the level's duration), so the admin
+        // SEES the date they are accepting instead of discovering it later.
+        // Clearing the field is still valid — the server computes the same
+        // date — and typing another one still wins.
+        const prefillEnd = () => {
+          const o = sel.selectedOptions[0];
+          if (!o) return;
+          const d = new Date();
+          d.setMonth(d.getMonth() + (Number(o.dataset.months) || 12));
+          document.getElementById("em-end").value = d.toISOString().slice(0, 10);
+        };
         if (levels[0]) document.getElementById("em-amount").value = levels[0].price_cents;
+        prefillEnd();
         sel.onchange = () => {
           const o = sel.selectedOptions[0];
           if (o) document.getElementById("em-amount").value = o.dataset.price || 0;
+          prefillEnd();
         };
       } catch {}
       // Email groups

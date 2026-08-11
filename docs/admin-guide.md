@@ -123,11 +123,20 @@ member's start date if that is in the *future*, so a term you deliberately
 post-date keeps its full length. A 12-month level imported today renews a
 year from today.
 
-**What it will never do is shorten what a member already has.** If they are
-already holding a membership that runs *past* the date we would pick — or an
-open-ended one with no renewal date at all — that membership's date is
-**kept**, untouched. The chosen date is only ever used to give a member a
-renewal date they didn't have, or to extend one that had nearly run out.
+**When your file has no readable renewal date, this will never shorten what a
+member already has.** If they are already holding a membership that runs
+*past* the date we would pick — or an open-ended one with no renewal date at
+all — that membership's date is **kept**, untouched. The chosen date is only
+ever used to give a member a renewal date they didn't have, or to extend one
+that had nearly run out. (A date you *do* supply is a different matter: it is
+taken at face value, including when it shortens a membership or puts an end
+date on an open-ended one. That is what supplying a date means.)
+
+**Nor does re-importing disturb how a member pays.** If the row matches the
+membership they already hold — same level, same renewal date — nothing is
+written at all. If something did change, their auto-renew setting and their
+card/subscription move across to the new membership, so re-importing your
+roster never quietly switches an auto-renewing member to paying by hand.
 
 That is not a loss — there was no date in your file to lose — so the import
 still comes back **complete**. But it is a decision made on your behalf, so

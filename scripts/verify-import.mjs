@@ -2406,5 +2406,175 @@ console.log("\n--- layer 14: the friendly plan-cap banner must survive an inform
       warnings: capRun.body.warnings, lossy: [...lossy] }));
 }
 
+console.log("\n--- layer 15: re-asserting a membership must not strip its billing -- an auto-renewing member stays auto-renewing (fix round 9, item 1) ---");
+
+// Round 8 preserved `end_date` and called that "never overwrite a membership
+// already on record". True of one column, false of the membership:
+// activateMembership still expired the row and inserted a fresh one with
+// amount_paid_cents 0, stripe_subscription_id NULL and auto_renew 0 -- the
+// three columns renewals.ts reads. So a routine Level-only re-import
+// silently converted an auto-renewing member to manual: Stripe stops
+// charging them, the reminder ladder starts, and they lapse -- reported as
+// `completed` with an informational code.
+{
+  const billTenantId = (await json("/api/tenants", {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ name: `Billing ${stamp}`, slug: `billing-${stamp}` }),
+  })).body.id;
+  for (const name of ["Annual Membership", "Sustaining Membership"]) {
+    await json(`/api/tenants/${billTenantId}/levels`, {
+      method: "POST", headers: auth,
+      body: JSON.stringify({ name, price_cents: 4500, duration_months: 12, renewal_type: "manual" }),
+    });
+  }
+  const billHeader = ["Email", "First Name", "Last Name", "Level"];
+  const billMapping = {
+    0: { kind: "known", target: "email" },
+    1: { kind: "known", target: "first_name" },
+    2: { kind: "known", target: "last_name" },
+    3: { kind: "known", target: "level_name" },
+  };
+  const activeRow = (email) => d1Query(
+    `SELECT m.id, m.level_id, m.end_date, m.auto_renew, m.stripe_subscription_id,
+            m.amount_paid_cents, l.name as level_name
+     FROM memberships m
+     JOIN members mem ON mem.id = m.member_id
+     JOIN membership_levels l ON l.id = m.level_id
+     WHERE m.tenant_id = '${billTenantId}' AND mem.email = '${email}' AND m.status = 'active'`
+  )[0];
+  const rowCount = (email) => d1Query(
+    `SELECT count(*) as n FROM memberships m JOIN members mem ON mem.id = m.member_id
+     WHERE m.tenant_id = '${billTenantId}' AND mem.email = '${email}'`
+  )[0].n;
+
+  // A member paying by Stripe subscription, set up exactly as
+  // routes/webhooks.ts leaves them after checkout: auto_renew on, the
+  // subscription id stored, the amount recorded.
+  const subEmail = `billsub1-${stamp}@example.test`;
+  await json(`/api/tenants/${billTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: billHeader,
+      raw_rows: [[subEmail, "Bill", "Sub", "Annual Membership"]], mapping: billMapping }),
+  });
+  d1Exec(
+    `UPDATE memberships SET auto_renew = 1, stripe_subscription_id = 'sub_test_${stamp}',
+       amount_paid_cents = 4500, end_date = '2029-06-01T00:00:00.000Z'
+     WHERE tenant_id = '${billTenantId}' AND status = 'active'
+       AND member_id = (SELECT id FROM members WHERE tenant_id = '${billTenantId}' AND email = '${subEmail}');`
+  );
+  const before = activeRow(subEmail);
+  check("15 precondition: the member is auto-renewing on a Stripe subscription",
+    before?.auto_renew === 1 && before?.stripe_subscription_id === `sub_test_${stamp}` &&
+      before?.amount_paid_cents === 4500,
+    JSON.stringify(before));
+
+  // The routine our own admin guide recommends: re-import the roster.
+  const billRun = await json(`/api/tenants/${billTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: billHeader,
+      raw_rows: [[subEmail, "Bill", "Sub", "Annual Membership"]], mapping: billMapping }),
+  });
+  const after = activeRow(subEmail);
+  check("THE BUG (15a): a Level-only re-import leaves the member AUTO-RENEWING",
+    after?.auto_renew === 1, `auto_renew is now ${after?.auto_renew}`);
+  check("THE BUG (15b): the Stripe subscription linkage survives the re-import",
+    after?.stripe_subscription_id === `sub_test_${stamp}`,
+    `stripe_subscription_id is now ${JSON.stringify(after?.stripe_subscription_id)}`);
+  check("THE BUG (15c): the recorded amount paid is not reset to zero",
+    after?.amount_paid_cents === 4500, `amount_paid_cents is now ${after?.amount_paid_cents}`);
+  check("15d: the end date is still preserved (round 8's guarantee holds)",
+    String(after?.end_date || "").startsWith("2029-06-01"), JSON.stringify(after));
+
+  // The shape fix: a row that asserts what is already true must not churn
+  // the ledger. Before this, every re-import expired one row and inserted
+  // another, so re-importing a 500-member roster five times left 2,500
+  // membership rows and four expired ones per member.
+  check("15e: re-asserting an unchanged membership creates NO new membership row",
+    rowCount(subEmail) === 1 && after?.id === before?.id,
+    `rows=${rowCount(subEmail)} id ${before?.id} -> ${after?.id}`);
+  check("15f: the row still counts as assigned, so the accounting invariant holds",
+    billRun.body.memberships_assigned === 1, JSON.stringify(billRun.body));
+
+  // A genuine level CHANGE must still write a new membership -- and must
+  // still carry the billing relationship across, or the same silent
+  // unsubscribe happens on the one import that really did change something.
+  const changeRun = await json(`/api/tenants/${billTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: billHeader,
+      raw_rows: [[subEmail, "Bill", "Sub", "Sustaining Membership"]], mapping: billMapping }),
+  });
+  const changed = activeRow(subEmail);
+  check("15g: a level CHANGE does write a new membership at the new level",
+    changed?.level_name === "Sustaining Membership" && changed?.id !== before?.id,
+    JSON.stringify({ changed, changeRun: changeRun.body }));
+  check("15h: a level change carries the auto-renew flag and subscription id forward",
+    changed?.auto_renew === 1 && changed?.stripe_subscription_id === `sub_test_${stamp}`,
+    JSON.stringify(changed));
+  check("15i: the previous membership is kept as history, expired not deleted",
+    rowCount(subEmail) === 2, `rows=${rowCount(subEmail)}`);
+
+  // A brand-new member must NOT inherit anything -- the carry-forward is
+  // strictly from the row being replaced.
+  const freshEmail = `billfresh1-${stamp}@example.test`;
+  await json(`/api/tenants/${billTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: billHeader,
+      raw_rows: [[freshEmail, "Bill", "Fresh", "Annual Membership"]], mapping: billMapping }),
+  });
+  const fresh = activeRow(freshEmail);
+  check("15j: a brand-new member starts manual, with no subscription and nothing paid",
+    fresh?.auto_renew === 0 && fresh?.stripe_subscription_id === null &&
+      fresh?.amount_paid_cents === 0,
+    JSON.stringify(fresh));
+}
+
+console.log("\n--- layer 16: PATCHing a member to `pending` must also end their membership (fix round 9, item 4a) ---");
+
+// Round 8 closed this for `lapsed` and `cancelled` and left `pending` open:
+// same bug class, one status narrower. A pending member with
+// memberships.status='active' still exports a level and comes back active.
+{
+  const pendTenantId = (await json("/api/tenants", {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ name: `Pending ${stamp}`, slug: `pending-${stamp}` }),
+  })).body.id;
+  await json(`/api/tenants/${pendTenantId}/levels`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ name: "Annual Membership", price_cents: 0,
+                           duration_months: 12, renewal_type: "manual" }),
+  });
+  const pendHeader = ["Email", "First Name", "Last Name", "Level"];
+  const pendMapping = {
+    0: { kind: "known", target: "email" },
+    1: { kind: "known", target: "first_name" },
+    2: { kind: "known", target: "last_name" },
+    3: { kind: "known", target: "level_name" },
+  };
+  const pendEmail = `pend1-${stamp}@example.test`;
+  await json(`/api/tenants/${pendTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: pendHeader,
+      raw_rows: [[pendEmail, "Pend", "One", "Annual Membership"]], mapping: pendMapping }),
+  });
+  const pendId = (await json(`/api/tenants/${pendTenantId}/members?q=${encodeURIComponent(pendEmail)}`,
+    { headers: auth })).body.members[0].id;
+  await json(`/api/tenants/${pendTenantId}/members/${pendId}`, {
+    method: "PATCH", headers: auth, body: JSON.stringify({ status: "pending" }),
+  });
+  const pendStatuses = d1Query(
+    `SELECT m.status FROM memberships m JOIN members mem ON mem.id = m.member_id
+     WHERE m.tenant_id = '${pendTenantId}' AND mem.email = '${pendEmail}'`
+  ).map((r) => r.status);
+  check("THE BUG (16a): moving a member to `pending` also ends their active membership",
+    !pendStatuses.includes("active"), JSON.stringify(pendStatuses));
+
+  const pendExport = parseCsv(await (await fetch(
+    `${BASE}/api/tenants/${pendTenantId}/members/export.csv`, { headers: auth })).text());
+  const pendLevelCol = pendExport[0].indexOf("level");
+  const pendRow = pendExport.slice(1).find((r) => r[0] === pendEmail);
+  check("16b: a pending member exports with no level, so a re-import can't reactivate them",
+    pendRow?.[pendLevelCol] === "", JSON.stringify(pendRow));
+}
+
 console.log(failures ? `\n${failures} failure(s)` : "\nall layers passed");
 if (failures) process.exit(1);

@@ -558,8 +558,21 @@ memberRoutes.patch("/:memberId", async (c) => {
   // The verbs mirror the rest of the codebase: lapsed -> the membership
   // `expired` (what renewals.ts writes), cancelled -> `cancelled` (what
   // DELETE /:memberId writes).
+  //
+  // Fix round 9, item 4a: `pending` belongs here too. Round 8 covered only
+  // lapsed and cancelled, which left the same bug one status narrower -- a
+  // pending member kept memberships.status='active', so the export still
+  // emitted their level and a re-import reactivated them. `pending` means
+  // "not a member yet"; holding a live membership while pending is a
+  // contradiction, and it is the state the free-plan cap puts people in, so
+  // it is not a rare corner. It ends the membership as `expired`: nothing
+  // was cancelled, the term simply is not current.
   const endingStatus =
-    body.status === "lapsed" ? "expired" : body.status === "cancelled" ? "cancelled" : null;
+    body.status === "lapsed" || body.status === "pending"
+      ? "expired"
+      : body.status === "cancelled"
+        ? "cancelled"
+        : null;
   if (endingStatus) {
     await c.env.DB.batch([
       updateMemberStmt,
@@ -1152,11 +1165,29 @@ memberRoutes.post("/import", async (c) => {
   // read would be -- and it lets the dry-run preview answer the same
   // question, which it previously could not.
   const existingStatus = new Map<string, string>();
-  // email -> the end date of the membership that member is holding right
-  // now (`endDate: null` means an open-ended membership, which the renewal
-  // cron never lapses because `date(end_date) < date(?)` is NULL-safe).
-  // Absent key = no active membership. See the prefetch below.
-  const existingActiveEnd = new Map<string, { endDate: string | null }>();
+  // email -> the membership that member is holding right now (`endDate:
+  // null` means an open-ended membership, which the renewal cron never
+  // lapses because `date(end_date) < date(?)` is NULL-safe). Absent key = no
+  // active membership. See the prefetch below.
+  //
+  // Fix round 9: this carries the whole row, not just the end date. Round 8
+  // preserved `end_date` and called that "never overwrite a membership
+  // already on record" -- true of one column, false of the membership.
+  // activateMembership still expired the row and inserted a fresh one with
+  // amount_paid_cents 0, stripe_subscription_id NULL and auto_renew 0, which
+  // are exactly the columns src/lib/renewals.ts reads: a routine Level-only
+  // re-import therefore converted an auto-renewing member to manual, so
+  // Stripe stopped charging them, the reminder ladder started, and they
+  // lapsed -- reported as `completed` with an informational code.
+  type PriorMembership = {
+    id: string;
+    levelId: string;
+    endDate: string | null;
+    autoRenew: boolean;
+    stripeSubscriptionId: string | null;
+    amountPaidCents: number | null;
+  };
+  const existingActiveEnd = new Map<string, PriorMembership>();
   const emailsInFile = [
     ...new Set(
       normalizedRows
@@ -1195,9 +1226,15 @@ memberRoutes.post("/import", async (c) => {
     for (let j = 0; j < memberIds.length; j += 200) {
       const idSlice = memberIds.slice(j, j + 200);
       const idPlaceholders = idSlice.map(() => "?").join(",");
-      const ms = await all<{ member_id: string; end_date: string | null }>(
+      const ms = await all<{
+        id: string; member_id: string; level_id: string; end_date: string | null;
+        auto_renew: number; stripe_subscription_id: string | null;
+        amount_paid_cents: number | null;
+      }>(
         c.env.DB.prepare(
-          `SELECT member_id, end_date FROM memberships
+          `SELECT id, member_id, level_id, end_date, auto_renew,
+                  stripe_subscription_id, amount_paid_cents
+           FROM memberships
            WHERE tenant_id = ? AND status = 'active' AND member_id IN (${idPlaceholders})`
         ).bind(tenant.id, ...idSlice)
       );
@@ -1210,12 +1247,20 @@ memberRoutes.post("/import", async (c) => {
         // data says otherwise take the most generous end date -- NULL
         // (open-ended) beats every date, and later beats earlier. Erring
         // toward preservation is the whole point of this map.
-        if (
+        const better =
           !prior ||
           row.end_date === null ||
-          (prior.endDate !== null && row.end_date! > prior.endDate)
-        ) {
-          existingActiveEnd.set(key, { endDate: row.end_date });
+          (prior.endDate !== null &&
+            new Date(row.end_date).getTime() > new Date(prior.endDate).getTime());
+        if (better) {
+          existingActiveEnd.set(key, {
+            id: row.id,
+            levelId: row.level_id,
+            endDate: row.end_date,
+            autoRenew: row.auto_renew === 1,
+            stripeSubscriptionId: row.stripe_subscription_id,
+            amountPaidCents: row.amount_paid_cents,
+          });
         }
       }
     }
@@ -1414,11 +1459,13 @@ memberRoutes.post("/import", async (c) => {
     // picked -- emitted only once the activation succeeds, so we never
     // claim a renewal date for a membership that was never created.
     chosenEnd?: string | null;
-    // The end date of the membership this member is holding right now, as
-    // of the prefetch (absent = they have none). Fix round 8, critical 1:
-    // consulted before any computed date is written, so a Level-only
-    // re-import can never shorten or erase a membership already on record.
-    priorActiveEnd?: { endDate: string | null };
+    // The membership this member is holding right now, as of the prefetch
+    // (absent = they have none). Fix round 8, critical 1: consulted before
+    // any computed date is written, so a Level-only re-import can never
+    // shorten or erase a membership already on record. Fix round 9, item 1:
+    // widened from just the end date to the whole row, so the billing
+    // columns survive too -- and so an unchanged row can be left alone.
+    priorActiveEnd?: PriorMembership;
     startDate?: string;
     rowNumber: number;
     email: string;
@@ -1802,13 +1849,25 @@ memberRoutes.post("/import", async (c) => {
         // Only on rows with no level (a level goes through
         // activateMembership, which expires prior actives itself) and only
         // when the file actually expressed the status.
-        if (!level && statusOpinionGiven && (importStatus === "lapsed" || importStatus === "cancelled")) {
+        // `pending` is included for the same reason PATCH includes it (fix
+        // round 9, item 4a) -- but ONLY when the file said so. A row held
+        // back by the free-plan cap also lands on importStatus "pending",
+        // and ending an existing member's membership because our plan limit
+        // bit would be a demotion the guild never asked for; that path is
+        // excluded because it only ever applies where `level` is falsy AND
+        // the file expressed a status, and the cap rewrites importStatus for
+        // rows whose file status was `active`, not pending.
+        const endsMembership =
+          importStatus === "lapsed" ||
+          importStatus === "cancelled" ||
+          (importStatus === "pending" && rawStatus === "pending");
+        if (!level && statusOpinionGiven && endsMembership) {
           stmts.push(
             c.env.DB.prepare(
               `UPDATE memberships SET status = ?, updated_at = ?
                WHERE tenant_id = ? AND member_id = ? AND status = 'active'`
             ).bind(
-              importStatus === "lapsed" ? "expired" : "cancelled",
+              importStatus === "cancelled" ? "cancelled" : "expired",
               now,
               tenant.id,
               memberId
@@ -1966,7 +2025,21 @@ memberRoutes.post("/import", async (c) => {
                 : `the file gave no renewal/expiry date we could use. This member's existing renewal date of ${prior!.endDate.slice(0, 10)} is later than the ${pm.level.duration_months || 12}-month term we would have set (${pm.chosenEnd.slice(0, 10)}), so the existing date was KEPT and nothing was shortened`;
           } else {
             finalEnd = pm.chosenEnd;
-            const base = pm.startDate && pm.startDate > now ? pm.startDate : now;
+            // Fix round 9, item 2: this was `pm.startDate > now`, a
+            // LEXICOGRAPHIC compare on the RAW FILE VALUE. For any non-ISO
+            // but parseable join date ("3/2/2019", "March 2, 2019") the
+            // string test is true, so the reason read "set to 2027-08-11
+            // (12 months from 3/2/2019)" -- internally contradictory, and it
+            // re-asserted to the guild the exact join-date-drives-the-term
+            // belief this whole task exists to kill. The stored data was
+            // always right (computeMembershipEnd does real Date math); only
+            // the disclosure lied, which is the worse place for it. Compare
+            // instants, and print the RESOLVED base, not the raw cell.
+            const startTime = pm.startDate ? new Date(pm.startDate).getTime() : NaN;
+            const base =
+              !Number.isNaN(startTime) && startTime > new Date(now).getTime()
+                ? new Date(startTime).toISOString()
+                : now;
             disclosure =
               `the file gave no renewal/expiry date we could use, so the renewal date was set to ${pm.chosenEnd.slice(0, 10)} (${pm.level.duration_months || 12} month(s) from ${base.slice(0, 10)}, the "${pm.level.name}" term)` +
               (prior
@@ -1976,16 +2049,63 @@ memberRoutes.post("/import", async (c) => {
           }
         }
 
-        await activateMembership(c.env.DB, {
-          tenantId: tenant.id,
-          memberId: pm.memberId,
-          level,
-          amountPaidCents: 0,
-          now,
-          startDate: pm.startDate,
-          endDate: finalEnd,
-          autoRenew: false,
-        });
+        // ---- Fix round 9, item 1: re-asserting a membership must not
+        // strip it. Round 8 preserved `end_date` and stopped there; the
+        // INSERT still hardcoded amount_paid_cents 0, stripe_subscription_id
+        // NULL and auto_renew 0 -- the exact columns src/lib/renewals.ts
+        // reads to decide who gets charged and who gets the reminder ladder.
+        // So the very workflow our admin guide recommends silently
+        // unsubscribed every auto-renewing member on the roster.
+        //
+        // Two changes, and the first is the shape fix:
+        //
+        //   NO-OP. A row that asserts what is already true changes nothing.
+        //   If the member already holds an active membership at this level
+        //   with this end date, leave the row completely alone -- no expire,
+        //   no insert. Beyond keeping the billing columns intact by
+        //   construction, this stops the ledger churning: every re-import
+        //   used to expire one row and insert another, so a guild
+        //   re-importing 500 members five times accumulated 2,500 membership
+        //   rows, four of them dead, per member.
+        //
+        //   CARRY FORWARD. When something DID change (a new level, a new
+        //   term), the billing relationship still belongs to the member, not
+        //   to the term: auto_renew and stripe_subscription_id move to the
+        //   new row. amount_paid_cents moves only when the term is unchanged
+        //   -- it records what was paid for THIS term, so copying it onto a
+        //   NEW term would invent a payment that never happened.
+        const sameEnd =
+          (finalEnd ?? null) === null
+            ? (prior?.endDate ?? null) === null
+            : prior?.endDate != null &&
+              new Date(finalEnd as string).getTime() === new Date(prior.endDate).getTime();
+        const unchanged = !!prior && prior.levelId === level.id && sameEnd;
+
+        if (unchanged) {
+          // Still make sure the member themself reads as active: an import
+          // row naming a level asserts membership, and a member holding an
+          // active membership while flagged pending/lapsed is the very
+          // inconsistency fix round 8 went after from the other side.
+          if (existingStatus.get(pm.email) !== "active") {
+            await c.env.DB.prepare(
+              "UPDATE members SET status = 'active', updated_at = ? WHERE id = ? AND tenant_id = ?"
+            )
+              .bind(now, pm.memberId, tenant.id)
+              .run();
+          }
+        } else {
+          await activateMembership(c.env.DB, {
+            tenantId: tenant.id,
+            memberId: pm.memberId,
+            level,
+            amountPaidCents: (prior && sameEnd && prior.amountPaidCents) || 0,
+            now,
+            startDate: pm.startDate,
+            endDate: finalEnd,
+            stripeSubscriptionId: prior ? prior.stripeSubscriptionId : null,
+            autoRenew: prior ? prior.autoRenew : false,
+          });
+        }
         membershipsAssigned++;
         if (disclosure) {
           // The membership really exists now, so we can truthfully say what
