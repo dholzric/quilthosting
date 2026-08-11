@@ -88,11 +88,37 @@ export async function serveBusinessSite(
       ).bind(imgMatch[1], tenant.id)
     );
     if (!fileRow) return new Response("Not found", { status: 404 });
+    // Security: this route is served on the tenant's own first-party
+    // origin, so echoing back whatever content_type was recorded at upload
+    // time (fileRoutes.post("/") accepts ANY Content-Type a caller with
+    // upload rights sends) would let a stored `text/html` file execute as
+    // same-origin script on the tenant's live site -- stored XSS, not
+    // cross-tenant, but real. A route named /img/ has no legitimate reason
+    // to serve anything but an actual raster image, so this allowlists the
+    // handful of real image types and 404s on everything else rather than
+    // guessing or falling back to a default. image/svg+xml is deliberately
+    // EXCLUDED: SVG is active content (it can carry inline <script>) and
+    // would reopen the same hole even though its MIME type looks image-y.
+    const ALLOWED_IMAGE_TYPES = new Set([
+      "image/png",
+      "image/jpeg",
+      "image/gif",
+      "image/webp",
+      "image/avif",
+    ]);
+    const contentType = fileRow.content_type || "";
+    if (!ALLOWED_IMAGE_TYPES.has(contentType)) {
+      return new Response("Not found", { status: 404 });
+    }
     const obj = await c.env.FILES.get(fileRow.r2_key);
     if (!obj) return new Response("Not found", { status: 404 });
     return new Response(obj.body, {
       headers: {
-        "Content-Type": fileRow.content_type || "image/jpeg",
+        "Content-Type": contentType,
+        // Belt-and-suspenders alongside the allowlist above: even if a
+        // browser tried to sniff the body into a different interpretation
+        // than the declared (already-allowlisted) type, this forbids it.
+        "X-Content-Type-Options": "nosniff",
         // File ids are immutable -- a replaced image gets a new id, so this
         // can be cached forever without a purge.
         "Cache-Control": "public, max-age=31536000, immutable",
@@ -153,7 +179,15 @@ export async function serveBusinessSite(
   return cachedRender({
     host,
     path,
-    updatedAt: row.updated_at,
+    // Folds in tenant.updated_at, not just the page's own updated_at:
+    // business identity (name/phone/address), the logo file id, and nav all
+    // live in tenant.settings_json, not on the pages row, and
+    // src/routes/tenants.ts's PATCH handler bumps tenants.updated_at
+    // unconditionally on every settings save (tenants.ts:167-168). Without
+    // this, saving Business Details wouldn't change the cache key at all --
+    // the owner could edit her phone number, save, reload, and see nothing
+    // change for up to the 24h edge TTL, with no way to force a refresh.
+    updatedAt: `${row.updated_at}:${tenant.updated_at}`,
     build: () =>
       renderPageHtml({
         tenant: { name: tenant.name, slug: tenant.slug, settings_json: tenant.settings_json },

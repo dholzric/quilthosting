@@ -62,6 +62,11 @@ const TENANT = "tnt_demo_business";
 const FOREIGN_TENANT = "tnt_demo_foreign_biz";
 const IMG_FILE_ID = "img_test_biz_logo1";
 const FOREIGN_FILE_ID = "img_test_foreign_logo1";
+// Review round 1, Fix 2: a files row whose recorded content_type is NOT a
+// real image type. Proves GET /img/:fileId refuses to echo it back (would
+// be stored XSS on the tenant's own first-party origin otherwise -- see the
+// "Tenant images" check block below).
+const HTML_FILE_ID = "img_test_biz_htmlpayload1";
 // Matches getTenantByHost's platform-apex check for this repo's local dev
 // APP_URL (.dev.vars: APP_URL=http://localhost:8787) -- appHostname() strips
 // scheme/port, leaving "localhost" as the platform host in this environment.
@@ -370,10 +375,21 @@ VALUES ('pg_bs_secret', '${TENANT}', 'secret', 'Hidden', '[]', 1, 1, 1);
 INSERT INTO tenants (id, name, slug, plan, status, tenant_type, public_launched, settings_json)
 VALUES ('${FOREIGN_TENANT}', 'Foreign Biz', 'foreignbiz-imgtest', 'free', 'active', 'business', 1, '{}');
 
+-- Review round 1, Fix 3: image/png, not image/jpeg -- image/jpeg is also
+-- the route's old hardcoded fallback (now removed by Fix 2's allowlist, but
+-- keeping this off the fallback value is what makes "content type matches
+-- the files row" a real assertion about reading the column, not a check
+-- that can't tell the column from a default).
 INSERT INTO files (id, tenant_id, r2_key, filename, content_type, size, created_at)
-VALUES ('${IMG_FILE_ID}', '${TENANT}', '${TENANT}/${IMG_FILE_ID}/logo.jpg', 'logo.jpg', 'image/jpeg', 24, datetime('now'));
+VALUES ('${IMG_FILE_ID}', '${TENANT}', '${TENANT}/${IMG_FILE_ID}/logo.png', 'logo.png', 'image/png', 24, datetime('now'));
 INSERT INTO files (id, tenant_id, r2_key, filename, content_type, size, created_at)
-VALUES ('${FOREIGN_FILE_ID}', '${FOREIGN_TENANT}', '${FOREIGN_TENANT}/${FOREIGN_FILE_ID}/secret.jpg', 'secret.jpg', 'image/jpeg', 24, datetime('now'));
+VALUES ('${FOREIGN_FILE_ID}', '${FOREIGN_TENANT}', '${FOREIGN_TENANT}/${FOREIGN_FILE_ID}/secret.png', 'secret.png', 'image/png', 24, datetime('now'));
+-- Review round 1, Fix 2: a file whose recorded content_type is text/html --
+-- uploadable today because fileRoutes.post("/") accepts any Content-Type a
+-- caller with upload rights sends. GET /img/:fileId must not echo this back
+-- as text/html (stored XSS on the tenant's own origin).
+INSERT INTO files (id, tenant_id, r2_key, filename, content_type, size, created_at)
+VALUES ('${HTML_FILE_ID}', '${TENANT}', '${TENANT}/${HTML_FILE_ID}/payload.html', 'payload.html', 'text/html', 40, datetime('now'));
 `);
 
   console.log("Writing R2 object bytes for the seeded files (D1 rows above point at these keys)...");
@@ -391,12 +407,16 @@ VALUES ('${FOREIGN_FILE_ID}', '${FOREIGN_TENANT}', '${FOREIGN_TENANT}/${FOREIGN_
       persist: { path: join(ROOT, ".wrangler/state/v3") },
     });
     try {
-      const bytes = new TextEncoder().encode("fake-jpeg-bytes-for-verify-business-site");
-      await imgProxy.env.FILES.put(`${TENANT}/${IMG_FILE_ID}/logo.jpg`, bytes, {
-        httpMetadata: { contentType: "image/jpeg" },
+      const bytes = new TextEncoder().encode("fake-png-bytes-for-verify-business-site");
+      await imgProxy.env.FILES.put(`${TENANT}/${IMG_FILE_ID}/logo.png`, bytes, {
+        httpMetadata: { contentType: "image/png" },
       });
-      await imgProxy.env.FILES.put(`${FOREIGN_TENANT}/${FOREIGN_FILE_ID}/secret.jpg`, bytes, {
-        httpMetadata: { contentType: "image/jpeg" },
+      await imgProxy.env.FILES.put(`${FOREIGN_TENANT}/${FOREIGN_FILE_ID}/secret.png`, bytes, {
+        httpMetadata: { contentType: "image/png" },
+      });
+      const htmlBytes = new TextEncoder().encode("<script>alert(document.domain)</script>");
+      await imgProxy.env.FILES.put(`${TENANT}/${HTML_FILE_ID}/payload.html`, htmlBytes, {
+        httpMetadata: { contentType: "text/html" },
       });
     } finally {
       await imgProxy.dispose();
@@ -464,13 +484,16 @@ VALUES ('${FOREIGN_FILE_ID}', '${FOREIGN_TENANT}', '${FOREIGN_TENANT}/${FOREIGN_
   {
     const img = await req(HOST, `/img/${IMG_FILE_ID}`);
     check("uploaded image serves 200", img.status === 200, `got ${img.status}`);
-    check("content type matches the files row",
-      (img.headers.get("content-type") || "").includes("image/jpeg"),
+    check("content type matches the files row (image/png, not the old jpeg fallback)",
+      (img.headers.get("content-type") || "").includes("image/png"),
       img.headers.get("content-type"));
     check("cache header is public, 1-year, immutable",
       (img.headers.get("cache-control") || "").includes("immutable") &&
       (img.headers.get("cache-control") || "").includes("max-age=31536000"),
       img.headers.get("cache-control"));
+    check("X-Content-Type-Options: nosniff is set (Fix 2)",
+      (img.headers.get("x-content-type-options") || "") === "nosniff",
+      img.headers.get("x-content-type-options"));
 
     // The actual security requirement (Task 14 brief): tenant_id scoping is
     // the only thing stopping one tenant's file id from reading another
@@ -484,6 +507,86 @@ VALUES ('${FOREIGN_FILE_ID}', '${FOREIGN_TENANT}', '${FOREIGN_TENANT}/${FOREIGN_
 
     const bogus = await req(HOST, "/img/does-not-exist-at-all");
     check("a nonexistent file id also 404s", bogus.status === 404, `got ${bogus.status}`);
+
+    // Review round 1, Fix 2: stored XSS check. HTML_FILE_ID is a REAL row
+    // under THIS tenant's own tenant_id (not a cross-tenant or bogus id --
+    // tenant_id scoping alone would let this one through) whose content_type
+    // is text/html. The allowlist in src/routes/site.ts must refuse to
+    // serve it as anything but a 404, regardless of ownership.
+    const html = await req(HOST, `/img/${HTML_FILE_ID}`);
+    check("a same-tenant file recorded as text/html does NOT serve as text/html",
+      !(html.headers.get("content-type") || "").includes("text/html"),
+      html.headers.get("content-type"));
+    check("a same-tenant text/html-typed file 404s instead (not on the image allowlist)",
+      html.status === 404, `got ${html.status}`);
+  }
+
+  console.log("\nCache invalidation on Business Details save (Fix 1: tenant.updated_at folded into the cache key):");
+  {
+    // Real PATCH /api/tenants/:id round trip -- not a direct SQL write to
+    // tenants.settings_json -- proves the actual save path an owner uses
+    // through the Business Details panel invalidates a previously-cached
+    // render, not merely that cachedRender's key would change in principle
+    // if something bumped tenant.updated_at.
+    const HARNESS_EMAIL = "harness@example.test";
+    const HARNESS_PASSWORD = "harness-password-1";
+    let jwt, userId;
+    const login = await reqJson(PLATFORM_HOST, "/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: HARNESS_EMAIL, password: HARNESS_PASSWORD }),
+    });
+    if (login.status === 200) {
+      jwt = login.json?.token;
+      userId = login.json?.user?.id;
+    } else {
+      const reg = await reqJson(PLATFORM_HOST, "/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: HARNESS_EMAIL, password: HARNESS_PASSWORD, name: "Harness" }),
+      });
+      jwt = reg.json?.token;
+      userId = reg.json?.user?.id;
+    }
+    check("harness auth obtained a token", !!jwt && !!userId,
+      JSON.stringify({ loginStatus: login.status }));
+
+    // tenant_users has no API for "add an existing user to a tenant they
+    // don't already belong to" -- a direct, tenant-scoped seed write, same
+    // idiom as every other d1Exec fixture in this file. TENANT was deleted
+    // and recreated fresh earlier in this run, so there is no pre-existing
+    // row to conflict with.
+    d1Exec(`
+DELETE FROM tenant_users WHERE tenant_id = '${TENANT}' AND user_id = '${userId}';
+INSERT INTO tenant_users (tenant_id, user_id, role) VALUES ('${TENANT}', '${userId}', 'owner');
+`);
+    const auth = { Authorization: `Bearer ${jwt}`, "Content-Type": "application/json" };
+
+    const before = await req(HOST, "/");
+    check("precondition: home page still carries the ORIGINAL phone number before the save",
+      before.body.includes('"telephone":"555-867-5309"'), before.body.slice(0, 4000));
+
+    const site = await reqJson(HOST, `/api/tenants/${TENANT}`, { headers: auth });
+    check("harness (now owner) can read the tenant record", site.status === 200,
+      `got ${site.status} ${JSON.stringify(site.json).slice(0, 200)}`);
+    let settings = {};
+    try { settings = JSON.parse(site.json?.settings_json || "{}"); } catch { settings = {}; }
+    const NEW_PHONE = "555-222-9999";
+    settings.business = { ...(settings.business || {}), phone: NEW_PHONE };
+
+    const patch = await reqJson(HOST, `/api/tenants/${TENANT}`, {
+      method: "PATCH",
+      headers: auth,
+      body: JSON.stringify({ settings }),
+    });
+    check("Business Details PATCH (the real admin save path) succeeds", patch.status === 200,
+      `got ${patch.status} ${JSON.stringify(patch.json).slice(0, 200)}`);
+
+    const after = await req(HOST, "/");
+    check("home page re-renders with the NEW phone number after the save (cache invalidated)",
+      after.body.includes(`"telephone":"${NEW_PHONE}"`), after.body.slice(0, 4000));
+    check("home page no longer carries the stale phone number",
+      !after.body.includes('"telephone":"555-867-5309"'), after.body.slice(0, 4000));
   }
 
   console.log("\nA real 404 (not the guild SPA shell):");
