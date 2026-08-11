@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import type { Env, Member, MembershipLevel, TenantVariables } from "../types";
+import type { AuthVariables } from "../middleware/auth";
 import { generateId } from "../lib/utils/id";
 import { all, first } from "../lib/db";
 import { activateMembership } from "../lib/memberships";
@@ -14,7 +15,7 @@ import { listMembersPage } from "../lib/membersList";
 
 export const memberRoutes = new Hono<{
   Bindings: Env;
-  Variables: TenantVariables;
+  Variables: AuthVariables & TenantVariables;
 }>();
 
 /**
@@ -211,38 +212,67 @@ memberRoutes.get("/export.csv", async (c) => {
 });
 
 // GET /api/tenants/:tenantId/members/import/batches — Task 4 import history.
-// MUST be registered before GET /:memberId below: Hono matches routes in
-// registration order, and "/:memberId" would otherwise swallow the literal
-// segment "import" as a member id, turning this into a 404 "member not
-// found" instead of a batch list. DO NOT MOVE below /:memberId. (Same trap
-// applies to the /import/batches/:batchId/errors route right after it.)
+//
+// Route-ordering note (Task 4 review, Finding B — verified empirically, not
+// assumed): this is registered ABOVE GET /:memberId below, but that
+// ordering is NOT currently load-bearing. Hono's :memberId param matches
+// exactly one path segment; "/import/batches" is two segments, so
+// /:memberId can never capture it, in either registration order — proven
+// by temporarily moving both this route and the /errors route below
+// /:memberId and re-running `npm run test:import`: layer 6 (including 6d,
+// "ROUTE-ORDERING TRAP") still passed. So layer 6d is NOT a regression
+// guard for route order; nothing in this file currently is. This route is
+// still kept above /:memberId as defensive practice — a FUTURE single-
+// segment literal route (there are none today) would need the same
+// ordering, and getting it right by habit now costs nothing. Same note
+// applies to the /import/batches/:batchId/errors route right below.
 memberRoutes.get("/import/batches", async (c) => {
   const tenant = c.get("tenant");
-  const batches = await all(
+  const rows = await all<{
+    id: string; status: string; mapping_json: string | null;
+    warnings_json: string | null; total_rows: number; created_count: number;
+    updated_count: number; skipped_count: number; memberships_assigned: number;
+    membership_failures: number; plan_limited: number; custom_fields_created: number;
+    started_at: string; finished_at: string | null;
+    actor_user_id: string | null; actor_email: string | null;
+  }>(
     c.env.DB.prepare(
       `SELECT id, status, mapping_json, warnings_json, total_rows,
               created_count, updated_count, skipped_count,
               memberships_assigned, membership_failures, plan_limited,
-              custom_fields_created, started_at, finished_at
+              custom_fields_created, started_at, finished_at,
+              actor_user_id, actor_email
        FROM import_batches
        WHERE tenant_id = ?
        ORDER BY started_at DESC
        LIMIT 50`
     ).bind(tenant.id)
   );
+  // Task 4 review, Finding A: warnings_json was being fetched and then
+  // never surfaced anywhere a user could see it — the exact gap
+  // migrations/0017_import_batch_warnings.sql was written to close (a
+  // data-carrying ignored column produces status='partial' with ZERO rows
+  // in import_batch_errors, so without this a "partial" batch can be
+  // completely unexplained). Parse it into a `warnings` array here so the
+  // client never has to know the column is stored as JSON text.
+  const batches = rows.map((b) => {
+    let warnings: unknown[] = [];
+    try { warnings = b.warnings_json ? JSON.parse(b.warnings_json) : []; } catch {}
+    return { ...b, warnings };
+  });
   return c.json({ batches });
 });
 
 // GET /api/tenants/:tenantId/members/import/batches/:batchId/errors — the
 // full per-row error report for one batch (uncapped: this is what the
-// admin downloads as a CSV after a migration). Same route-ordering trap
-// as above — keep this above GET /:memberId too.
+// admin downloads as a CSV after a migration). Route-ordering note: see
+// the comment on GET /import/batches above.
 memberRoutes.get("/import/batches/:batchId/errors", async (c) => {
   const tenant = c.get("tenant");
   const batchId = c.req.param("batchId");
-  const batch = await first(
+  const batch = await first<{ id: string; warnings_json: string | null }>(
     c.env.DB.prepare(
-      "SELECT id FROM import_batches WHERE id = ? AND tenant_id = ?"
+      "SELECT id, warnings_json FROM import_batches WHERE id = ? AND tenant_id = ?"
     ).bind(batchId, tenant.id)
   );
   if (!batch) return c.json({ error: "Import batch not found" }, 404);
@@ -254,7 +284,14 @@ memberRoutes.get("/import/batches/:batchId/errors", async (c) => {
        ORDER BY row_number ASC`
     ).bind(batchId, tenant.id)
   );
-  return c.json({ batch_id: batchId, errors, error_kind_labels: ERROR_KIND_LABELS });
+  // Finding A: column-level warnings (unmapped_column, duplicate_target)
+  // describe a whole column, not one row, so they never appear in
+  // import_batch_errors — a batch whose only loss was a data-carrying
+  // ignored column would otherwise report zero errors here with nothing
+  // explaining the 'partial' status. Return them alongside the row errors.
+  let warnings: unknown[] = [];
+  try { warnings = batch.warnings_json ? JSON.parse(batch.warnings_json) : []; } catch {}
+  return c.json({ batch_id: batchId, errors, warnings, error_kind_labels: ERROR_KIND_LABELS });
 });
 
 memberRoutes.get("/:memberId", async (c) => {
@@ -1201,17 +1238,26 @@ memberRoutes.post("/import", async (c) => {
   // reconciliation, which is what would otherwise happen (Task 4's history
   // page would show it as permanently in-flight).
   const batchId = generateId();
+  // Task 4 review, Finding C: capture the actor at import time, not via a
+  // live join to users.email — a live join would show a DIFFERENT email a
+  // year later if the account's email changed, or go blank if the user was
+  // since deleted. actor_email is a snapshot; actor_user_id is the durable
+  // id kept alongside it for any future audit need.
+  const actor = c.get("user");
   await c.env.DB.prepare(
     `INSERT INTO import_batches
-     (id, tenant_id, status, mapping_json, total_rows, started_at)
-     VALUES (?, ?, 'running', ?, ?, ?)`
+     (id, tenant_id, status, mapping_json, total_rows, started_at,
+      actor_user_id, actor_email)
+     VALUES (?, ?, 'running', ?, ?, ?, ?, ?)`
   )
     .bind(
       batchId,
       tenant.id,
       mapping ? JSON.stringify(mapping) : null,
       normalizedRows.length,
-      now
+      now,
+      actor?.id ?? null,
+      actor?.email ?? null
     )
     .run();
 

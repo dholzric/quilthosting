@@ -129,6 +129,27 @@
     function show(el) { el.classList.remove("hidden"); }
     function hide(el) { el.classList.add("hidden"); }
 
+    // Shared CSV-cell escaping for every client-built CSV download
+    // (downloadImportErrors, downloadBatchErrors). Values here (email,
+    // reason, and anything else pulled from an uploaded CSV or a stored
+    // import error) are attacker-controlled input, not our own data, so
+    // this guards two things, not one:
+    //  - Quoting: wraps in "..." and doubles embedded quotes whenever the
+    //    cell contains a comma, quote, or newline of EITHER kind (\n or a
+    //    lone \r — a bare \r was previously missed by the old /[",\n]/
+    //    check used in both callers).
+    //  - CSV/formula injection (OWASP): a cell starting with =, +, -, @, a
+    //    tab, or a CR is interpreted as a formula by Excel/Sheets/etc when
+    //    the file is opened — e.g. an uploaded row whose email cell literally
+    //    reads =HYPERLINK("http://evil","x") would execute on open. Prefixing
+    //    a leading apostrophe neutralizes it while leaving the visible text
+    //    unchanged in every spreadsheet app.
+    function csvCell(v) {
+      let t = v == null ? "" : String(v);
+      if (/^[=+\-@\t\r]/.test(t)) t = "'" + t;
+      return /[",\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+    }
+
     async function doLogin() {
       const email = document.getElementById("login-email").value;
       const password = document.getElementById("login-password").value;
@@ -835,20 +856,31 @@
         }
         body.innerHTML = `
           <table>
-            <thead><tr><th>When</th><th>Status</th><th>Rows</th><th>Created</th><th>Updated</th><th>Skipped</th><th>Memberships</th><th></th></tr></thead>
+            <thead><tr><th>When</th><th>Who</th><th>Status</th><th>Rows</th><th>Created</th><th>Updated</th><th>Skipped</th><th>Memberships</th><th></th></tr></thead>
             <tbody>
-              ${batches.map((b) => `
+              ${batches.map((b) => {
+                const warnings = Array.isArray(b.warnings) ? b.warnings : [];
+                return `
                 <tr>
                   <td>${b.started_at ? esc(new Date(b.started_at).toLocaleString()) : "—"}</td>
+                  <td>${esc(b.actor_email || "—")}</td>
                   <td><span class="badge ${IMPORT_STATUS_BADGE[b.status] ?? ""}">${esc(b.status)}</span></td>
                   <td>${Number(b.total_rows) || 0}</td>
                   <td>${Number(b.created_count) || 0}</td>
                   <td>${Number(b.updated_count) || 0}</td>
                   <td>${Number(b.skipped_count) || 0}</td>
                   <td>${Number(b.memberships_assigned) || 0}</td>
-                  <td><button class="secondary" onclick='downloadBatchErrors(${JSON.stringify(b.id)})'>Download errors</button></td>
+                  <td><button class="secondary" onclick='downloadBatchErrors(${esc(JSON.stringify(b.id))})'>Download errors</button></td>
                 </tr>
-              `).join("")}
+                ${warnings.length ? `
+                <tr>
+                  <td></td>
+                  <td colspan="8" style="padding-top:0">
+                    <ul style="margin:0 0 0.5rem;line-height:1.6;font-size:0.85rem">${warnings.map(importWarnRow).join("")}</ul>
+                  </td>
+                </tr>` : ""}
+              `;
+              }).join("")}
             </tbody>
           </table>
         `;
@@ -861,13 +893,22 @@
         const data = await api(`/api/tenants/${tenantId}/members/import/batches/${batchId}/errors`);
         const errors = data.errors || [];
         const labels = data.error_kind_labels || {};
-        // CSV-cell escaping (not esc(), which is for HTML) — same helper
-        // shape as downloadImportErrors above.
-        const cell = (v) => { const t = v == null ? "" : String(v);
-          return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
-        const lines = [["row", "kind", "reason", "email"].map(cell).join(",")];
+        const lines = [["row", "kind", "reason", "email"].map(csvCell).join(",")];
         for (const e of errors) {
-          lines.push([e.row_number, labels[e.kind] || e.kind, e.reason, e.email || ""].map(cell).join(","));
+          lines.push([e.row_number, labels[e.kind] || e.kind, e.reason, e.email || ""].map(csvCell).join(","));
+        }
+        // Finding A: a batch can be 'partial' purely from a column-level
+        // warning (unmapped_column, duplicate_target) with ZERO rows in
+        // `errors` — append them to the same CSV so a guild who downloads
+        // this file still finds out why, instead of opening a file with
+        // only a header row and no explanation.
+        const warnings = data.warnings || [];
+        if (warnings.length) {
+          lines.push("");
+          lines.push(["note"].map(csvCell).join(","));
+          for (const w of warnings) {
+            lines.push([`${w.message} (${w.count} row(s))`].map(csvCell).join(","));
+          }
         }
         const blob = new Blob([lines.join("\n")], { type: "text/csv" });
         const a = document.createElement("a");
@@ -1292,11 +1333,9 @@
 
     function downloadImportErrors() {
       const s = _importState;
-      const cell = (v) => { const t = v == null ? "" : String(v);
-        return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
-      const lines = [["row", "reason", ...s.header].map(cell).join(",")];
+      const lines = [["row", "reason", ...s.header].map(csvCell).join(",")];
       for (const sk of s.skippedRows) {
-        lines.push([sk.row, sk.reason, ...(s.rawRows[sk.row - 1] || [])].map(cell).join(","));
+        lines.push([sk.row, sk.reason, ...(s.rawRows[sk.row - 1] || [])].map(csvCell).join(","));
       }
       const blob = new Blob([lines.join("\n")], { type: "text/csv" });
       const a = document.createElement("a");

@@ -1396,5 +1396,84 @@ console.log("\n--- layer 6: Task 4 import history (batch list + error report) --
     JSON.stringify(trap.body).slice(0, 200));
 }
 
+console.log("\n--- layer 7: Task 4 review Finding A -- column-level warnings must be surfaced in the history view, not silently dropped ---");
+
+// migrations/0017_import_batch_warnings.sql names this exact scenario: a
+// CSV with a data-carrying IGNORED column produces status='partial' with
+// ZERO rows in import_batch_errors (unmapped_column is a column-level fact,
+// not a per-row one). Before this fix, the batches list and errors
+// endpoints fetched warnings_json from D1 but never returned a parsed
+// `warnings` field to the client, so a guild looking at a 'partial' batch
+// with an empty error CSV had no way to find out why.
+{
+  const warnHeader = ["Email", "First Name", "Last Name", "Committee Notes"];
+  const warnMapping = {
+    0: { kind: "known", target: "email" },
+    1: { kind: "known", target: "first_name" },
+    2: { kind: "known", target: "last_name" },
+    3: { kind: "ignore" },
+  };
+  const warnRows = [["warncol@example.test", "Warn", "Col", "some data that will be dropped"]];
+
+  const warnImport = await json(`/api/tenants/${recoTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: warnHeader, raw_rows: warnRows, mapping: warnMapping }),
+  });
+  check("import with a data-carrying ignored column succeeds", warnImport.status === 200,
+    JSON.stringify(warnImport.body).slice(0, 200));
+  check("import with a data-carrying ignored column reports partial",
+    warnImport.body.status === "partial", `got ${warnImport.body.status}`);
+  check("PRECONDITION: this exact scenario produces zero row-level errors (the gap Finding A is about)",
+    (warnImport.body.errors || []).length === 0, JSON.stringify(warnImport.body.errors));
+  check("PRECONDITION: the one-shot response DOES carry the warning (proves the loss is real, not double-counted)",
+    (warnImport.body.warnings || []).some((w) => w.code === "unmapped_column" && w.header === "Committee Notes"),
+    JSON.stringify(warnImport.body.warnings));
+
+  // The history view (batch list) must carry a non-empty explanation for
+  // this batch — not just the raw warnings_json column, a client-usable
+  // parsed `warnings` array, the same shape the one-shot import response
+  // already uses.
+  const histList = await json(`/api/tenants/${recoTenantId}/members/import/batches`, { headers: auth });
+  const histBatch = (histList.body.batches || []).find((b) => b.id === warnImport.body.batch_id);
+  check("FINDING A: history list has a non-empty `warnings` array for this batch",
+    Array.isArray(histBatch?.warnings) && histBatch.warnings.length > 0,
+    JSON.stringify(histBatch));
+  check("FINDING A: history list's warning names the dropped column",
+    (histBatch?.warnings || []).some((w) => w.code === "unmapped_column" && w.header === "Committee Notes"),
+    JSON.stringify(histBatch?.warnings));
+
+  // The per-batch errors endpoint (what the "Download errors" button
+  // drives) must ALSO carry the explanation — otherwise a guild who
+  // downloads the CSV for this exact 'partial' batch gets a header-only
+  // file with zero rows and no idea why the batch isn't 'completed'.
+  const histErrors = await json(
+    `/api/tenants/${recoTenantId}/members/import/batches/${warnImport.body.batch_id}/errors`,
+    { headers: auth }
+  );
+  check("FINDING A: errors endpoint returns a non-empty `warnings` array too",
+    Array.isArray(histErrors.body.warnings) && histErrors.body.warnings.length > 0,
+    JSON.stringify(histErrors.body));
+  check("FINDING A: errors endpoint's warning also names the dropped column",
+    (histErrors.body.warnings || []).some((w) => w.code === "unmapped_column" && w.header === "Committee Notes"),
+    JSON.stringify(histErrors.body.warnings));
+}
+
+console.log("\n--- layer 8: Task 4 review Finding C -- import_batches records who ran the import ---");
+
+// actor_email is a SNAPSHOT captured at import time, not a live join to
+// users.email — asserted here by checking it matches the harness account's
+// email exactly (the only account this script authenticates as).
+{
+  const meResp = await json("/api/auth/me", { headers: auth });
+  const actorEmail = meResp.body.user?.email;
+  check("precondition: harness account email is readable", !!actorEmail, JSON.stringify(meResp.body));
+
+  const list = await json(`/api/tenants/${recoTenantId}/members/import/batches`, { headers: auth });
+  const found = (list.body.batches || []).find((b) => b.id === cleanImport.body.batch_id);
+  check("FINDING C: listed batch records actor_email", found?.actor_email === actorEmail,
+    JSON.stringify(found));
+  check("FINDING C: listed batch records actor_user_id", !!found?.actor_user_id, JSON.stringify(found));
+}
+
 console.log(failures ? `\n${failures} failure(s)` : "\nall layers passed");
 if (failures) process.exit(1);
