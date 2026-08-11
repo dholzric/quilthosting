@@ -870,7 +870,7 @@
                   <td>${Number(b.updated_count) || 0}</td>
                   <td>${Number(b.skipped_count) || 0}</td>
                   <td>${Number(b.memberships_assigned) || 0}</td>
-                  <td><button class="secondary" onclick='downloadBatchErrors(${esc(JSON.stringify(b.id))})'>Download errors</button></td>
+                  <td><button class="secondary" data-download-batch-errors="${esc(b.id)}">Download errors</button></td>
                 </tr>
                 ${warnings.length ? `
                 <tr>
@@ -920,6 +920,20 @@
         alert(e.message);
       }
     }
+    // Fix round 2, Finding E: batch ids used to be interpolated straight
+    // into an inline onclick='downloadBatchErrors(...)' attribute value.
+    // esc() does not escape quote characters (it's a textContent->innerHTML
+    // round-trip meant for text nodes, not attribute values — see esc()
+    // below), so that pattern was safe only because generateId() happens
+    // to never produce a quote character, exactly the "safe by accident"
+    // property this fix removes reliance on. The id now lives in a plain
+    // data-* attribute (inert text, never evaluated as script) and a single
+    // delegated listener reads it back via .dataset — no value is ever
+    // interpolated into a script-executing attribute at all.
+    document.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-download-batch-errors]");
+      if (btn) downloadBatchErrors(btn.dataset.downloadBatchErrors);
+    });
     function searchMembers() {
       window._membersQ = document.getElementById("member-search")?.value?.trim() || "";
       window._membersStatus = document.getElementById("member-status-filter")?.value || "";

@@ -1384,16 +1384,23 @@ console.log("\n--- layer 6: Task 4 import history (batch list + error report) --
     JSON.stringify(otherBatches.body.batches));
 }
 
-// 6d: THE ROUTE-ORDERING TRAP. memberRoutes already has GET /:memberId
-// registered elsewhere; if GET /import/batches were ever registered AFTER
-// it, Hono would match "import" as :memberId and this would come back as
-// a member-not-found 404 with an `error` field instead of a `batches`
-// array. This check is written to fail loudly if that ordering regresses.
+// 6d: reachability check, NOT a route-ordering regression guard. It was
+// originally written as one ("THE ROUTE-ORDERING TRAP") on the assumption
+// that GET /:memberId would swallow "import" as a member id if the literal
+// routes were ever registered after it. That assumption was tested (Task 4
+// review, Finding B) by actually moving both /import/batches routes below
+// /:memberId and re-running this suite -- this exact check still passed,
+// because Hono's :memberId param only matches a single path segment and
+// "/import/batches" is two, so /:memberId can never capture it either way.
+// See the comment on memberRoutes.get("/import/batches", ...) in
+// src/routes/members.ts for the actual (registration-order-independent)
+// reasoning. This check still earns its keep as a plain sanity check that
+// the endpoint resolves to a batch list at all.
 {
-  const trap = await json(`/api/tenants/${recoTenantId}/members/import/batches`, { headers: auth });
-  check("ROUTE-ORDERING TRAP: /members/import/batches returns a batch list, not a member lookup",
-    trap.status === 200 && Array.isArray(trap.body.batches) && trap.body.error === undefined,
-    JSON.stringify(trap.body).slice(0, 200));
+  const reach = await json(`/api/tenants/${recoTenantId}/members/import/batches`, { headers: auth });
+  check("/members/import/batches resolves to a batch list, not a member lookup",
+    reach.status === 200 && Array.isArray(reach.body.batches) && reach.body.error === undefined,
+    JSON.stringify(reach.body).slice(0, 200));
 }
 
 console.log("\n--- layer 7: Task 4 review Finding A -- column-level warnings must be surfaced in the history view, not silently dropped ---");
