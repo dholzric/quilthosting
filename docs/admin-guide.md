@@ -109,12 +109,26 @@ again.
 
 ### Partial only because of your plan limit
 
-The free plan allows 30 active members. If your file has more active members
-than you have room for, the extra people are still imported — they just don't
-get an active membership. A **new** member held this way comes in as
-**pending**. An **existing** member either keeps the status they already had
-or is set to pending, depending on the row — either way the import never
-makes them active.
+The free plan allows 30 active members. The limit applies to making people
+**newly** active — not to how big your file is.
+
+**Re-importing members who are already active costs you nothing.** If you are
+at 30 of 30 and you import your roster again — to fix phone numbers, to
+renew everyone, whatever — those members are already active, so they are
+asking for no new room. Nothing is held, nobody is demoted, and the import
+comes back as a clean "completed". Import your own roster as often as you
+like.
+
+The limit bites when a file would make *more people active than you have room
+for*: new members, or existing members you're bringing back from lapsed or
+pending. Those extra people are still imported — they just don't get an
+active membership. A **new** member held this way comes in as **pending**. An
+**existing** member either keeps the status they already had or is set to
+pending, depending on the row — either way the import never makes them
+active.
+
+The preview you see before importing counts this the same way, so if it says
+nothing will be held, nothing will be held.
 
 Because those members aren't active, the import is recorded as partial. When
 that's the *only* thing that happened, the result banner says so directly:

@@ -1649,11 +1649,155 @@ function countBy(values) {
   // real level is accounted for by exactly one of assigned / failed /
   // plan-limited. A renewal re-import at a full cap is the case where an
   // exemption could silently drop rows out of all three counters.
+  //
+  // The response's `plan_limited` is an AGGREGATE of BOTH cap branches, so
+  // it is only a valid term in this level-scoped invariant while no
+  // no-level row can contribute to it. Rather than rely on this fixture
+  // having no Status column (true today, one edit away from silently
+  // false), count the level branch's own rows: the two branches push
+  // distinguishable reasons -- "membership not assigned" (level) vs
+  // "imported as pending instead of active" (no level).
+  const lvlPlanLimited = (lvlRe.body.errors || []).filter(
+    (e) => e.kind === "plan_limited" && e.reason.includes("membership not assigned")
+  ).length;
+  check("cap/level: no no-level plan-limited rows leaked into this level-only fixture",
+    lvlPlanLimited === lvlRe.body.plan_limited,
+    `level-branch=${lvlPlanLimited} aggregate=${lvlRe.body.plan_limited}`);
   check("cap/level: the accounting invariant still holds on a renewal re-import at a full cap",
     (lvlRe.body.memberships_assigned + lvlRe.body.membership_failures +
-      lvlRe.body.plan_limited) === CAP,
+      lvlPlanLimited) === CAP,
     `assigned=${lvlRe.body.memberships_assigned} failed=${lvlRe.body.membership_failures} ` +
-      `plan_limited=${lvlRe.body.plan_limited} expected=${CAP}`);
+      `plan_limited(level)=${lvlPlanLimited} expected=${CAP}`);
+}
+
+// --- 9d: the PREVIEW must predict the same number of holds the apply path
+// actually performs, on a MIXED file (fix round 6, review round 2) ---------
+//
+// 9a-9c only ever exercised single-shape files, so neither the estimate's
+// old form (count every row wanting active, ignore who is already active)
+// nor its first corrected form (which excluded an existing member whose
+// Status cell is blank -- correct for a status-only file, badly wrong for a
+// renewal file) was ever compared against what the import then did.
+//
+// The dangerous shape is a renewal export: existing LAPSED members, a Level
+// column, no Status column. Those rows name a level, so the apply path's
+// LEVEL branch forces them active and holds them at a full cap -- but they
+// express no status opinion, so a predicate keyed on the Status column
+// alone scores them as "wants nothing" and predicts zero holds. A guild
+// shown "nothing will be held" who then has 7 members held is worse off
+// than one shown an over-estimate.
+//
+// Level rows also consume slots from the SAME counter, in file order, so
+// the two row kinds cannot be estimated independently -- hence one mixed
+// file with all three kinds interleaved, competing for 3 remaining slots.
+{
+  const mixTenantId = await freePlanTenant("capmixed");
+  await json(`/api/tenants/${mixTenantId}/levels`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ name: "Annual Membership", price_cents: 0,
+                           duration_months: 12, renewal_type: "manual" }),
+  });
+
+  // 22 actives that are NOT in the file + 5 that are = 27 active, so the
+  // free plan has exactly 3 slots left when the import starts.
+  const FILLER = 22;
+  for (let i = 0; i < FILLER; i++) {
+    const r = await json(`/api/tenants/${mixTenantId}/members`, {
+      method: "POST", headers: auth,
+      body: JSON.stringify({ email: `mixfill-${stamp}-${i}@example.test`, status: "active" }),
+    });
+    if (r.status >= 400) throw new Error(`mixed filler ${i} failed: ${JSON.stringify(r.body)}`);
+  }
+  const activeEmails = Array.from({ length: 5 }, (_, i) => `mixactive-${stamp}-${i}@example.test`);
+  for (const e of activeEmails) {
+    await json(`/api/tenants/${mixTenantId}/members`, {
+      method: "POST", headers: auth,
+      body: JSON.stringify({ email: e, first_name: "Mix", last_name: "Active", status: "active" }),
+    });
+  }
+  const lapsedEmails = Array.from({ length: 5 }, (_, i) => `mixlapsed-${stamp}-${i}@example.test`);
+  for (const e of lapsedEmails) {
+    await json(`/api/tenants/${mixTenantId}/members`, {
+      method: "POST", headers: auth,
+      body: JSON.stringify({ email: e, first_name: "Mix", last_name: "Lapsed", status: "lapsed" }),
+    });
+  }
+  const newEmails = Array.from({ length: 5 }, (_, i) => `mixnew-${stamp}-${i}@example.test`);
+
+  const SLOTS_LEFT = 3;
+  const preCount = await json(`/api/tenants/${mixTenantId}/members?limit=200&status=active`, { headers: auth });
+  check("mixed: precondition -- exactly 27 active members, so 3 free-plan slots remain",
+    (preCount.body.members || []).length === CAP - SLOTS_LEFT,
+    `got ${(preCount.body.members || []).length}`);
+
+  // ["Email", "First Name", "Last Name", "Status", "Level"]
+  const mixHeader = ["Email", "First Name", "Last Name", "Status", "Level"];
+  const mixMapping = {
+    0: { kind: "known", target: "email" },
+    1: { kind: "known", target: "first_name" },
+    2: { kind: "known", target: "last_name" },
+    3: { kind: "known", target: "status" },
+    4: { kind: "known", target: "level_name" },
+  };
+  // Interleaved so the three kinds genuinely compete for the 3 slots: an
+  // already-active row first (must consume nothing), then a lapsed renewal,
+  // then a newcomer, and so on. Two of the already-active rows arrive as
+  // renewals (Level, blank Status) and three as plain Status=active rows,
+  // so BOTH cap branches see an already-active member.
+  const mixRows = [];
+  for (let i = 0; i < 5; i++) {
+    mixRows.push(i % 2 === 0
+      ? [activeEmails[i], "Mix", "Active", "active", ""]
+      : [activeEmails[i], "Mix", "Active", "", "Annual Membership"]);
+    mixRows.push([lapsedEmails[i], "Mix", "Lapsed", "", "Annual Membership"]);
+    mixRows.push([newEmails[i], "Mix", "New", "active", ""]);
+  }
+
+  // 10 rows would make someone NEWLY active (5 lapsed renewals + 5
+  // newcomers); the 5 already-active rows ask for nothing. 10 - 3 = 7.
+  const EXPECTED_HELD = 7;
+
+  const mixDry = await json(`/api/tenants/${mixTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: mixHeader, raw_rows: mixRows, mapping: mixMapping, dry_run: true }),
+  });
+  const planWarn = (mixDry.body.warnings || []).find((w) => w.code === "plan_limit_will_hold");
+  const predictedHeld = planWarn?.count ?? 0;
+
+  const mixRun = await json(`/api/tenants/${mixTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: mixHeader, raw_rows: mixRows, mapping: mixMapping }),
+  });
+  const actuallyHeld = mixRun.body.plan_limited;
+
+  console.log(`      mixed file: preview predicted ${predictedHeld} held, apply held ${actuallyHeld}`);
+  check("mixed: the apply path holds exactly the 7 rows that would be newly active beyond the 3 free slots",
+    actuallyHeld === EXPECTED_HELD, `got ${actuallyHeld}`);
+  // THE ASSERTION. A preview that under-predicts is a false reassurance:
+  // the guild is told nothing (or almost nothing) will be held, commits,
+  // and finds members held anyway.
+  check("THE REGRESSION: the dry-run prediction equals the number the apply path actually holds",
+    predictedHeld === actuallyHeld, `preview predicted ${predictedHeld}, apply held ${actuallyHeld}`);
+  check("mixed: the preview names the same count in its plan_limit_will_hold warning",
+    predictedHeld === EXPECTED_HELD, `got ${predictedHeld}`);
+
+  const mixStatuses = await statusByEmail(mixTenantId);
+  check("mixed: none of the 5 already-active members were demoted",
+    activeEmails.every((e) => mixStatuses.get(e) === "active"),
+    JSON.stringify(countBy(activeEmails.map((e) => mixStatuses.get(e)))));
+  check("mixed: none of the 5 already-active members were counted as held",
+    (mixRun.body.errors || []).filter(
+      (e) => e.kind === "plan_limited" && activeEmails.includes(e.email)).length === 0,
+    JSON.stringify((mixRun.body.errors || []).filter((e) => e.kind === "plan_limited")));
+  // Exactly 3 of the 10 candidates got the 3 remaining slots.
+  const candidates = [...lapsedEmails, ...newEmails];
+  const nowActive = candidates.filter((e) => mixStatuses.get(e) === "active");
+  check("mixed: exactly the 3 remaining slots were spent, on the first 3 candidates in file order",
+    nowActive.length === SLOTS_LEFT,
+    `${nowActive.length} became active: ${JSON.stringify(nowActive)}`);
+  check("mixed: every held row is itemized as a downloadable plan_limited error",
+    (mixRun.body.errors || []).filter((e) => e.kind === "plan_limited").length === EXPECTED_HELD,
+    JSON.stringify((mixRun.body.errors || []).filter((e) => e.kind === "plan_limited")));
 }
 
 console.log(failures ? `\n${failures} failure(s)` : "\nall layers passed");

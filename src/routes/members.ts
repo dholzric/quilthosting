@@ -1112,15 +1112,34 @@ memberRoutes.post("/import", async (c) => {
       // plan (fix round 6, same reasoning as the apply path's cap branch):
       // a member who is already active holds their slot already, and an
       // UPDATE row that expresses no status opinion at all doesn't touch
-      // status. Predicting a hold for either produced a preview that told a
-      // guild at its cap that its own unchanged roster would be demoted --
-      // and, before the apply-path fix, that prediction came true. Note
-      // this estimate reads the Status column only; rows naming a level are
-      // forced active by activateMembership through a different branch,
-      // which this preview has never modelled and still doesn't.
+      // status. Predicting a hold for either told a guild at its cap that
+      // its own unchanged roster would be demoted -- and, before the
+      // apply-path fix, that prediction came true.
+      //
+      // Both apply-path branches have to be modelled here, because both
+      // spend from the same activeSlotsLeft counter. A row naming a level
+      // that RESOLVES is forced active by activateMembership no matter what
+      // the Status column says (or doesn't say), so it wants a new active
+      // whenever its member isn't already active -- keying this on the
+      // Status column alone scored a renewal file (existing lapsed members,
+      // a Level column, no Status column) as wanting nothing and predicted
+      // zero holds while the import held every row. A level name that does
+      // NOT resolve is level_not_found: no membership is attempted and the
+      // row falls through to the status-only reading, which is why
+      // resolution (levelByName), not mere presence, is the test.
+      //
+      // Only the TOTAL matters, so counting is enough and the apply loop's
+      // row order need not be simulated: each wanting row takes a slot in
+      // order until they run out, so the number held is
+      // max(0, wantNewActive - activeSlotsLeft) whatever the order.
       const rawStatusPreview = (r.status || "").toLowerCase();
-      const opinionGiven = !byEmail.has(email) || !!rawStatusPreview;
+      const previewLevelName = (r.level_name || r.level || "").trim();
+      const namesLevel = previewLevelName
+        ? levelByName.has(previewLevelName.toLowerCase())
+        : false;
+      const opinionGiven = namesLevel || !byEmail.has(email) || !!rawStatusPreview;
       const willBeActive =
+        namesLevel ||
         (MEMBER_STATUSES.includes(rawStatusPreview) ? rawStatusPreview : "active") === "active";
       if (opinionGiven && willBeActive && existingStatus.get(email) !== "active") {
         wantNewActive++;
@@ -1613,13 +1632,16 @@ memberRoutes.post("/import", async (c) => {
 
       if (level && memberId) {
         if (activeSlotsLeft != null) {
-          // Count only members who aren't already active toward the free limit
-          const alreadyActive = await first<{ status: string }>(
-            c.env.DB.prepare(
-              "SELECT status FROM members WHERE id = ?"
-            ).bind(memberId)
-          );
-          if (alreadyActive?.status !== "active") {
+          // Count only members who aren't already active toward the free
+          // limit. Reads the same tenant-filtered existingStatus prefetch the
+          // no-level branch uses (fix round 6 review): this was a per-row
+          // `SELECT status FROM members WHERE id = ?` with no tenant_id
+          // filter, and it answered exactly the question the prefetch
+          // already answers. A member INSERTed earlier in this same run is
+          // absent from the map and reads as not-already-active, which is
+          // what the old query returned too -- the statements are still
+          // queued, so it could not have seen them either.
+          if (existingStatus.get(email) !== "active") {
             if (activeSlotsLeft <= 0) {
               // Unlike the no-level plan-limited branch above, this row DID
               // name a real level -- it must be recorded so

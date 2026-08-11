@@ -274,7 +274,7 @@ a real import whose file triggers any lossy code reports
 | `status_overridden_by_level` | yes | Some rows have a file status (pending, lapsed, or cancelled) that will be overridden to active because the row also names a membership level | The file's status is *valid* — so `invalid_status` cannot see it — but naming a level overrides it to active. |
 | `level_not_found` | yes | Some membership levels do not exist in this guild; those members import without a membership | A row's level name doesn't match any active level for the tenant. |
 | `column_count_mismatch` | yes | Some rows have a different number of columns than the header and will be skipped | A raw row's length doesn't match `header.length`; the row is skipped entirely rather than risk misaligning fields. |
-| `plan_limit_will_hold` | no | Free plan allows 30 active members; N row(s) will import as pending until you upgrade | **Dry run only in practice.** Tenant is on the free plan and more rows want `active` status than there are remaining active-member slots. The real-import call site passes `planWillHold: 0`, so this code does not appear in a real import's `warnings` — the real import counts plan-limiting exactly and reports it as `plan_limited` plus per-row `plan_limited` errors instead. It is an estimate — see note below. |
+| `plan_limit_will_hold` | no | Free plan allows 30 active members; N row(s) will import as pending until you upgrade | **Dry run only in practice.** Tenant is on the free plan and more rows would make someone **newly** active than there are remaining active-member slots. (A member who is *already* active needs no slot — re-importing them asks the plan for nothing.) The real-import call site passes `planWillHold: 0`, so this code does not appear in a real import's `warnings` — the real import counts plan-limiting exactly and reports it as `plan_limited` plus per-row `plan_limited` errors instead. See the note below for exactly what the estimate models. |
 
 Each warning object: `{ code, message, count, sample_rows: number[] (1-based row numbers, up to 3), header? }`.
 
@@ -286,10 +286,33 @@ reflects the demotion — a supplied `{kind:"known", target:"first_name"}` on
 a losing column comes back as `{kind:"ignore"}`, not as the admin's original
 (losing) choice, so a UI re-rendering that response shows the true state.
 
-`plan_limit_will_hold` is only an estimate: it counts rows wanting `active`
-against remaining slots, but the real import loop also checks whether an
-existing member (by email) was *already* active, so the dry-run count can
-over-report slightly on a re-import of a partially-imported file.
+`plan_limit_will_hold` counts, against the remaining slots, only the rows
+that would make someone **newly** active. It applies the same three tests the
+real import applies, so on the shapes described below the two agree exactly:
+
+- a member who is **already active** is excluded — they hold their slot
+  already, so re-importing them asks the plan for nothing and can never be
+  held (this is why a guild sitting at 30/30 that re-imports its own roster
+  is predicted, correctly, to have **nothing** held);
+- an **update** row that expresses no status opinion at all (Status column
+  absent, or blank for that row) is excluded — it does not touch status,
+  so it cannot create an active;
+- a row naming a **level that resolves** is included regardless of its
+  Status cell, because `activateMembership` forces such a member active. A
+  level name that does *not* resolve (`level_not_found`) is excluded from
+  this rule and read by its Status cell like any other row.
+- **skipped** rows (bad email, duplicate, column-count mismatch) are
+  excluded — they never reach the cap accounting.
+
+Both plan-limiting branches spend from the same counter, so they cannot be
+estimated independently; the estimate counts them together. Only the total
+matters, so file order does not affect the number.
+
+It is still called an estimate because it is computed before anything is
+written: any per-row failure in the real import (a `membership_failed` row,
+for instance) can change how many slots are actually consumed. The authority
+is always the real import's `plan_limited` counter and its per-row
+`plan_limited` errors.
 
 ### Dry-run response
 
@@ -395,21 +418,34 @@ Render both. Both history endpoints return `warnings` for this reason.
 ##### `partial` caused only by the free-plan cap
 
 `plan_limited > 0` counts toward `partial`. That is intentional — members
-held by the free-plan cap really are not active — but it means **a free-plan
-guild importing 40 members always gets `status: "partial"`** even when their
-file is perfect. Nothing failed; the guild is over the free plan's
-30-active-member limit and the extra rows were imported without an active
-membership.
+held by the free-plan cap really are not active — so **a free-plan guild
+importing 40 people who are not yet active always gets `status: "partial"`**
+even when their file is perfect. Nothing failed; the guild is over the free
+plan's 30-active-member limit and the extra rows were imported without an
+active membership.
+
+What does **not** trigger this: **re-importing members who are already
+active**. Only rows that would make someone *newly* active consume a slot, so
+a guild sitting at its limit that re-imports its own unchanged roster is
+`completed`, with `plan_limited: 0` — it is asking the plan for nothing. Size
+of file is not the trigger; number of *new* actives is. (Before this was
+fixed, such a re-import demoted every one of those members to `pending` and
+reported `plan_limited: 30`.)
 
 "Held" does not uniformly mean "status is now `pending`" — there are two
-plan-limiting branches and they land differently:
+plan-limiting branches and they land differently. Both are inside the row
+loop of `memberRoutes.post("/import")` in `src/routes/members.ts`; find them
+by the `plan_limited` pushes, whose `reason` strings distinguish them
+("imported as pending instead of active" vs "membership not assigned"):
 
 | Branch | Row | Outcome |
 |---|---|---|
-| Row gives an explicit status, names **no** level (`src/routes/members.ts:1471-1490`) | new | inserted as `pending` |
-| | existing | UPDATE binds `pending` (this branch has `statusOpinionGiven` true and no level, so `coalesce(?, status)` receives a real value) |
-| Row **names a level** (`src/routes/members.ts:1583-1598`) | new | inserted as `pending` (`importStatus = level ? "pending" : status`) — and `continue` skips the membership assignment |
-| | existing | **status is left unchanged.** The UPDATE binds `level ? null : …`, i.e. `null`, so `coalesce(null, status)` keeps whatever the member already had. The guard `alreadyActive?.status !== "active"` means such a member was not active to begin with, so they are not made active either. |
+| Row gives an explicit status, names **no** level (the `!level && importStatus === "active"` cap block) | new | inserted as `pending` |
+| | existing, **already active** | **never held.** The branch's first test is `wasActive`, so an already-active member is exempt: no slot spent, status untouched, and no `plan_limited` row. |
+| | existing, not active | UPDATE binds `pending` (this branch has `statusOpinionGiven` true and no level, so `coalesce(?, status)` receives a real value) |
+| Row **names a level** (the `if (level && memberId)` block) | new | inserted as `pending` (`importStatus = level ? "pending" : status`) — and `continue` skips the membership assignment |
+| | existing, **already active** | **never held**, for the same reason — the `existingStatus.get(email) !== "active"` guard skips the whole cap check, and the membership is assigned normally. |
+| | existing, not active | **status is left unchanged.** The UPDATE binds `level ? null : …`, i.e. `null`, so `coalesce(null, status)` keeps whatever the member already had — they were not active to begin with, and they are not made active either. |
 
 The safe general statement — the one to put in any UI — is that held rows are
 **not made active**: new members come in as `pending`, existing members are
@@ -546,13 +582,14 @@ changes).
 `activateMembership()` expires the member's existing active memberships
 *before* inserting the new one — two separately awaited statements with no
 transaction around them (`src/lib/memberships.ts:74` then `:76-96`). If the
-insert then fails, the catch at
-`src/routes/members.ts:1652-1669` records a `membership_failed` row, but the
-expiry has already happened and is not undone. So re-importing a row that
+insert then fails, the `catch` around the `activateMembership` call in the
+`pendingMemberships` loop of `memberRoutes.post("/import")`
+(`src/routes/members.ts`) records a `membership_failed` row, but the expiry
+has already happened and is not undone. So re-importing a row that
 failed to assign a membership to a member who **currently has an active
 membership** can end with that member holding **no** active membership —
-strictly worse than the state before the re-import. The source comment at
-`:1655-1661` records this as a known limitation.
+strictly worse than the state before the re-import. The `NOTE (known
+limitation, not fixed here)` comment inside that same `catch` records this.
 
 Practical consequence for any client or runbook: `membership_failed` rows are
 the one error kind where "just re-run the file" is bad advice. Diagnose why
