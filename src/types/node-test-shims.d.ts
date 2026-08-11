@@ -35,3 +35,14 @@ declare module "node:url" {
 interface ImportMeta {
   url: string;
 }
+
+// Minimal shape for credentials.test.ts, which round-trips raw bytes through
+// base64/hex the same way the real (Node-only, never-run-in-Worker) test
+// tooling does. Not a general Buffer shim — just enough surface for that
+// file's `Buffer.from(...).toString(...)` and `Buffer.from(base64string)`
+// calls.
+declare const Buffer: {
+  from(data: Uint8Array | number[]): {
+    toString(encoding: "hex" | "base64"): string;
+  };
+};
