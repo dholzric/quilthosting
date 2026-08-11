@@ -84,6 +84,7 @@ export const PLATFORM_EXACT_PATHS: ReadonlySet<string> = new Set([
   "/index.html",
   "/qh-admin-ext.js",
   "/qh-cal.js",
+  "/qh-site-builder.js",
 ]);
 
 /** True when `path` (already normalized by the caller) is platform-only. */

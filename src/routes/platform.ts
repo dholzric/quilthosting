@@ -227,3 +227,37 @@ platformRoutes.get("/tenants", async (c) => {
   );
   return c.json({ tenants: rows });
 });
+
+/**
+ * PATCH /api/platform/tenants/:id — platform-admin-only tenant type toggle.
+ *
+ * tenant_type is deliberately kept out of the tenant-owner PATCH
+ * (PATCH /api/tenants/:id in src/routes/tenants.ts): a tenant owner who
+ * could flip their own guild to "business" would drop their guild's member
+ * cap (src/lib/plans.ts) and gain the public-launch toggle. This router has
+ * no existing tenant PATCH to attach the field to (only the two GET routes
+ * above), so this is a new route -- but it is still gated purely by the
+ * `requirePlatformAdmin` middleware already applied to every route on this
+ * router (`platformRoutes.use("*", requirePlatformAdmin)` above), not a new
+ * check invented for this endpoint.
+ */
+platformRoutes.patch("/tenants/:id", async (c) => {
+  const id = c.req.param("id");
+  const body = await c.req.json<{ tenant_type?: string }>().catch(() => ({}) as { tenant_type?: string });
+  if (body.tenant_type !== "guild" && body.tenant_type !== "business") {
+    return c.json({ error: "tenant_type must be 'guild' or 'business'" }, 400);
+  }
+  const existing = await first<{ id: string }>(
+    c.env.DB.prepare("SELECT id FROM tenants WHERE id = ?").bind(id)
+  );
+  if (!existing) return c.json({ error: "Not found" }, 404);
+  await c.env.DB.prepare(
+    "UPDATE tenants SET tenant_type = ?, updated_at = ? WHERE id = ?"
+  )
+    .bind(body.tenant_type, new Date().toISOString(), id)
+    .run();
+  const tenant = await first(
+    c.env.DB.prepare("SELECT * FROM tenants WHERE id = ?").bind(id)
+  );
+  return c.json(tenant);
+});

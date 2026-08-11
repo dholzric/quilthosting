@@ -75,9 +75,12 @@
       <h1><a href="/" style="color:inherit;text-decoration:none"><span class="thread">✦</span> QuiltHosting</a></h1>
       <nav>
         <a href="#" data-page="platform" id="nav-platform" class="hidden" style="font-weight:600;color:var(--brand)">Platform</a>
+        <a href="#" data-page="site-pages" id="nav-site-pages" class="business-only hidden">Website</a>
+        <a href="#" data-page="site-theme" id="nav-site-theme" class="business-only hidden">Appearance</a>
+        <a href="#" data-page="site-domain" id="nav-site-domain" class="business-only hidden">Domain &amp; Launch</a>
         <a href="#" data-page="dashboard" class="active">Dashboard</a>
         <a href="#" data-page="members">Members</a>
-        <a href="#" data-page="levels">Levels</a>
+        <a href="#" data-page="levels" class="guild-only">Levels</a>
         <a href="#" data-page="events">Events</a>
         <a href="#" data-page="store">Store</a>
         <a href="#" data-page="payments">Payments</a>
@@ -87,12 +90,12 @@
         <a href="#" data-page="forms">Forms</a>
         <a href="#" data-page="pages">Website</a>
         <a href="#" data-page="blog">Blog</a>
-        <a href="#" data-page="forum">Forum</a>
+        <a href="#" data-page="forum" class="guild-only">Forum</a>
         <a href="#" data-page="files">Documents</a>
         <a href="#" data-page="galleries">Photos</a>
         <a href="#" data-page="reports">Reports</a>
         <a href="#" data-page="sms">SMS</a>
-        <a href="#" data-page="chapters">Chapters</a>
+        <a href="#" data-page="chapters" class="guild-only">Chapters</a>
         <a href="#" data-page="api">API</a>
         <a href="#" data-page="webhooks">Zapier</a>
         <a href="#" data-page="team">Team</a>
@@ -108,6 +111,7 @@
 
   <script src="/qh-cal.js"></script>
   <script src="/qh-admin-ext.js"></script>
+  <script src="/qh-site-builder.js"></script>
   <script>
     const API = window.location.origin;
     let token = localStorage.getItem("gb_token");
@@ -116,6 +120,7 @@
     let tenantName = localStorage.getItem("gb_tenant_name") || "";
     let tenantRole = localStorage.getItem("gb_tenant_role") || "admin";
     let isPlatformAdmin = localStorage.getItem("gb_platform_admin") === "1";
+    let currentTenant = null;
 
     async function api(path, opts = {}) {
       const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
@@ -321,6 +326,27 @@
       }
     }
 
+    // Fetches the full tenant record and toggles nav links marked
+    // business-only / guild-only accordingly. There is no pre-existing
+    // "tenant loaded" global in this file (tenantId/tenantSlug/tenantName
+    // come from localStorage, not a fetch) so this is the load point:
+    // called from initApp(), which already runs on both fresh sign-in
+    // (selectGuild -> initApp) and resumed sessions (bottom of this script).
+    async function applyTenantTypeNav() {
+      try {
+        currentTenant = await api(`/api/tenants/${tenantId}`);
+      } catch {
+        currentTenant = null;
+      }
+      const isBusinessTenant = (currentTenant && currentTenant.tenant_type) === "business";
+      document.querySelectorAll(".business-only").forEach((el) => {
+        el.classList.toggle("hidden", !isBusinessTenant);
+      });
+      document.querySelectorAll(".guild-only").forEach((el) => {
+        el.classList.toggle("hidden", isBusinessTenant);
+      });
+    }
+
     async function initApp() {
       if (!token || !tenantId) {
         show(document.getElementById("login-view"));
@@ -332,6 +358,7 @@
       document.getElementById("tenant-label").textContent = tenantName || tenantSlug || "";
       await refreshPlatformFlag();
       applyRoleNav();
+      await applyTenantTypeNav();
       navigate("dashboard");
     }
 
@@ -364,6 +391,9 @@
         else if (page === "forum") await renderForumAdmin(el);
         else if (page === "files") await renderFiles(el);
         else if (page === "galleries") await renderGalleriesAdmin(el);
+        else if (page === "site-pages") await window.qhSiteBuilder.renderPages(el);
+        else if (page === "site-theme") await window.qhSiteBuilder.renderTheme(el);
+        else if (page === "site-domain") await window.qhSiteBuilder.renderDomain(el);
         else if (page === "reports") await renderReports(el);
         else if (page === "sms") await renderSms(el);
         else if (page === "chapters") await renderChapters(el);

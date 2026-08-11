@@ -138,7 +138,11 @@ tenantRoutes.patch("/:id", async (c) => {
   if (!membership || !["owner", "admin"].includes(membership.role)) {
     return c.json({ error: "Forbidden" }, 403);
   }
-  const body = await c.req.json<{ name?: string; settings?: Record<string, unknown> }>();
+  const body = await c.req.json<{
+    name?: string;
+    settings?: Record<string, unknown>;
+    public_launched?: number | boolean;
+  }>();
   const fields: string[] = [];
   const params: any[] = [];
   if (body.name !== undefined) {
@@ -149,6 +153,15 @@ tenantRoutes.patch("/:id", async (c) => {
   if (body.settings !== undefined) {
     fields.push("settings_json = ?");
     params.push(JSON.stringify(body.settings));
+  }
+  // Deliberately NOT handled here: tenant_type. A tenant owner/admin who
+  // could flip their own guild to "business" would drop their member cap
+  // (src/lib/plans.ts) and gain the public launch toggle below. tenant_type
+  // is set at tenant creation or by a platform admin only — see
+  // PATCH /api/platform/tenants/:id in src/routes/platform.ts.
+  if (body.public_launched !== undefined) {
+    fields.push("public_launched = ?");
+    params.push(body.public_launched ? 1 : 0);
   }
   if (!fields.length) return c.json({ error: "No fields to update" }, 400);
   fields.push("updated_at = ?");
