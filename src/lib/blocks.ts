@@ -10,7 +10,13 @@ export type PageBlock =
   | { type: "join_cta"; title?: string; body?: string }
   | { type: "events_list"; limit?: number }
   | { type: "store_list"; limit?: number }
-  | { type: "spacer"; height?: number };
+  | { type: "spacer"; height?: number }
+  | { type: "hero"; eyebrow?: string; title: string; subtitle?: string; imageUrl?: string; ctaLabel?: string; ctaHref?: string }
+  | { type: "service_cards"; items: { icon?: string; title: string; body?: string }[] }
+  | { type: "gallery_grid"; items: { url: string; alt?: string; caption?: string }[] }
+  | { type: "faq"; items: { q: string; a: string }[] }
+  | { type: "testimonials"; items: { quote: string; author?: string }[] }
+  | { type: "contact_form"; formSlug: string; submitLabel?: string };
 
 export type SiteTheme = {
   primary?: string;
@@ -82,6 +88,68 @@ export function parseBlocks(raw: unknown): PageBlock[] {
       case "spacer":
         out.push({ type: "spacer", height: Math.min(120, Math.max(8, Number(b.height) || 24)) });
         break;
+      case "hero":
+        out.push({
+          type: "hero",
+          eyebrow: String(b.eyebrow || "").slice(0, 80),
+          title: String(b.title || "").slice(0, 160),
+          subtitle: String(b.subtitle || "").slice(0, 300),
+          imageUrl: String(b.imageUrl || "").slice(0, 2000),
+          ctaLabel: String(b.ctaLabel || "").slice(0, 60),
+          ctaHref: String(b.ctaHref || "").slice(0, 2000),
+        });
+        break;
+      case "service_cards":
+        out.push({
+          type: "service_cards",
+          items: (Array.isArray(b.items) ? b.items : []).slice(0, 12).map((raw) => {
+            const it = (raw || {}) as Record<string, unknown>;
+            return {
+              icon: String(it.icon || "").slice(0, 8),
+              title: String(it.title || "").slice(0, 120),
+              body: String(it.body || "").slice(0, 600),
+            };
+          }),
+        });
+        break;
+      case "gallery_grid":
+        out.push({
+          type: "gallery_grid",
+          items: (Array.isArray(b.items) ? b.items : []).slice(0, 40).map((raw) => {
+            const it = (raw || {}) as Record<string, unknown>;
+            return {
+              url: String(it.url || "").slice(0, 2000),
+              alt: String(it.alt || "").slice(0, 200),
+              caption: String(it.caption || "").slice(0, 300),
+            };
+          }).filter((it) => it.url),
+        });
+        break;
+      case "faq":
+        out.push({
+          type: "faq",
+          items: (Array.isArray(b.items) ? b.items : []).slice(0, 30).map((raw) => {
+            const it = (raw || {}) as Record<string, unknown>;
+            return { q: String(it.q || "").slice(0, 300), a: String(it.a || "").slice(0, 2000) };
+          }).filter((it) => it.q),
+        });
+        break;
+      case "testimonials":
+        out.push({
+          type: "testimonials",
+          items: (Array.isArray(b.items) ? b.items : []).slice(0, 20).map((raw) => {
+            const it = (raw || {}) as Record<string, unknown>;
+            return { quote: String(it.quote || "").slice(0, 800), author: String(it.author || "").slice(0, 120) };
+          }).filter((it) => it.quote),
+        });
+        break;
+      case "contact_form":
+        out.push({
+          type: "contact_form",
+          formSlug: String(b.formSlug || "contact").slice(0, 100),
+          submitLabel: String(b.submitLabel || "Send").slice(0, 60),
+        });
+        break;
       default:
         break;
     }
@@ -137,6 +205,82 @@ export function blocksToHtml(blocks: PageBlock[]): string {
         break;
       case "spacer":
         parts.push(`<div class="qh-block-spacer" style="height:${b.height || 24}px"></div>`);
+        break;
+      case "hero":
+        parts.push(
+          `<section class="qh-block-hero"${
+            b.imageUrl ? ` style="background-image:url('${escapeAttr(b.imageUrl)}')"` : ""
+          }><div class="qh-hero-inner">${
+            b.eyebrow ? `<p class="qh-hero-eyebrow">${escapeHtml(b.eyebrow)}</p>` : ""
+          }<h1 class="qh-hero-title">${escapeHtml(b.title)}</h1>${
+            b.subtitle ? `<p class="qh-hero-sub">${escapeHtml(b.subtitle)}</p>` : ""
+          }${
+            b.ctaLabel && b.ctaHref
+              ? `<p class="qh-hero-cta"><a class="btn" href="${escapeAttr(b.ctaHref)}">${escapeHtml(b.ctaLabel)}</a></p>`
+              : ""
+          }</div></section>`
+        );
+        break;
+      case "service_cards":
+        parts.push(
+          `<div class="qh-block-services">${b.items
+            .map(
+              (it) =>
+                `<div class="qh-service-card card">${
+                  it.icon ? `<div class="qh-service-icon">${escapeHtml(it.icon)}</div>` : ""
+                }<h3>${escapeHtml(it.title)}</h3>${
+                  it.body ? `<p>${escapeHtml(it.body)}</p>` : ""
+                }</div>`
+            )
+            .join("")}</div>`
+        );
+        break;
+      case "gallery_grid":
+        parts.push(
+          `<div class="qh-block-gallery">${b.items
+            .map(
+              (it) =>
+                `<figure class="qh-gallery-item"><img src="${escapeAttr(it.url)}" alt="${escapeAttr(
+                  it.alt || ""
+                )}" loading="lazy" />${
+                  it.caption ? `<figcaption>${escapeHtml(it.caption)}</figcaption>` : ""
+                }</figure>`
+            )
+            .join("")}</div>`
+        );
+        break;
+      case "faq":
+        parts.push(
+          `<div class="qh-block-faq">${b.items
+            .map(
+              (it) =>
+                `<details class="qh-faq-item"><summary>${escapeHtml(it.q)}</summary><div>${escapeHtml(
+                  it.a
+                )}</div></details>`
+            )
+            .join("")}</div>`
+        );
+        break;
+      case "testimonials":
+        parts.push(
+          `<div class="qh-block-testimonials">${b.items
+            .map(
+              (it) =>
+                `<blockquote class="qh-testimonial"><p>${escapeHtml(it.quote)}</p>${
+                  it.author ? `<cite>${escapeHtml(it.author)}</cite>` : ""
+                }</blockquote>`
+            )
+            .join("")}</div>`
+        );
+        break;
+      case "contact_form":
+        // Hydrated client-side against POST /public/:slug/forms/:formSlug,
+        // the same endpoint the existing public form pages use.
+        parts.push(
+          `<div class="qh-block-contact-form" data-form-slug="${escapeAttr(
+            b.formSlug
+          )}" data-submit-label="${escapeAttr(b.submitLabel || "Send")}"></div>`
+        );
         break;
     }
   }
@@ -204,3 +348,13 @@ function escapeHtml(s: string): string {
 function escapeAttr(s: string): string {
   return escapeHtml(s).replace(/'/g, "&#39;");
 }
+
+/** Blocks offered in the admin picker for business tenants. */
+export const BUSINESS_BLOCK_TYPES = [
+  "hero", "heading", "text", "image", "gallery_grid", "service_cards",
+  "faq", "testimonials", "contact_form", "button", "events_list",
+  "store_list", "divider", "spacer", "html",
+];
+
+/** Blocks that only make sense for a membership organisation. */
+export const GUILD_ONLY_BLOCK_TYPES = ["join_cta"];

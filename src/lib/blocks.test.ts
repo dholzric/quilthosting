@@ -1,0 +1,97 @@
+import { describe, it, expect } from "vitest";
+import { parseBlocks, blocksToHtml, BUSINESS_BLOCK_TYPES, GUILD_ONLY_BLOCK_TYPES } from "./blocks";
+
+const XSS = '<img src=x onerror=alert(1)>';
+
+describe("parseBlocks — new business blocks", () => {
+  it("parses a hero", () => {
+    const [b] = parseBlocks([
+      { type: "hero", eyebrow: "Since 2009", title: "Stitch Studio", subtitle: "Longarm quilting",
+        imageUrl: "https://x.com/h.jpg", ctaLabel: "Book", ctaHref: "/order" },
+    ]);
+    expect(b).toMatchObject({ type: "hero", title: "Stitch Studio", ctaHref: "/order" });
+  });
+
+  it("parses service cards and caps the list", () => {
+    const items = Array.from({ length: 30 }, (_, i) => ({ title: `S${i}`, body: "b", icon: "✦" }));
+    const [b] = parseBlocks([{ type: "service_cards", items }]) as never[];
+    expect((b as { items: unknown[] }).items.length).toBeLessThanOrEqual(12);
+  });
+
+  it("parses a gallery grid", () => {
+    const [b] = parseBlocks([
+      { type: "gallery_grid", items: [{ url: "https://x.com/1.jpg", alt: "a", caption: "c" }] },
+    ]);
+    expect(b).toMatchObject({ type: "gallery_grid" });
+  });
+
+  it("parses faq entries", () => {
+    const [b] = parseBlocks([{ type: "faq", items: [{ q: "How long?", a: "Six weeks." }] }]);
+    expect(b).toMatchObject({ type: "faq" });
+  });
+
+  it("parses testimonials", () => {
+    const [b] = parseBlocks([{ type: "testimonials", items: [{ quote: "Lovely", author: "Jan" }] }]);
+    expect(b).toMatchObject({ type: "testimonials" });
+  });
+
+  it("parses a contact form", () => {
+    const [b] = parseBlocks([{ type: "contact_form", formSlug: "contact", submitLabel: "Send" }]);
+    expect(b).toMatchObject({ type: "contact_form", formSlug: "contact" });
+  });
+
+  it("still drops unknown types", () => {
+    expect(parseBlocks([{ type: "definitely_not_a_block" }])).toHaveLength(0);
+  });
+});
+
+describe("blocksToHtml — escaping", () => {
+  it("escapes hero text", () => {
+    const html = blocksToHtml(parseBlocks([{ type: "hero", title: XSS, subtitle: XSS }]));
+    expect(html).not.toContain("<img src=x");
+    expect(html).toContain("&lt;img");
+  });
+
+  it("escapes service card text", () => {
+    const html = blocksToHtml(parseBlocks([
+      { type: "service_cards", items: [{ title: XSS, body: XSS, icon: XSS }] },
+    ]));
+    expect(html).not.toContain("<img src=x");
+    expect(html).toContain("&lt;img");
+  });
+
+  it("escapes faq and testimonial text", () => {
+    const faq = blocksToHtml(parseBlocks([{ type: "faq", items: [{ q: XSS, a: XSS }] }]));
+    const tst = blocksToHtml(parseBlocks([{ type: "testimonials", items: [{ quote: XSS, author: XSS }] }]));
+    expect(faq).not.toContain("<img src=x");
+    expect(faq).toContain("&lt;img");
+    expect(tst).not.toContain("<img src=x");
+    expect(tst).toContain("&lt;img");
+  });
+
+  it("escapes gallery urls into the src attribute", () => {
+    const html = blocksToHtml(parseBlocks([
+      { type: "gallery_grid", items: [{ url: '"><script>alert(1)</script>', alt: "a" }] },
+    ]));
+    expect(html).not.toContain("<script>alert(1)</script>");
+  });
+
+  it("still passes the raw html block through untouched", () => {
+    // Deliberate: owner-authored embed escape hatch, already length-capped.
+    const html = blocksToHtml(parseBlocks([{ type: "html", html: "<iframe src='https://youtube.com'></iframe>" }]));
+    expect(html).toContain("<iframe");
+  });
+});
+
+describe("block type lists", () => {
+  it("keeps join_cta out of the business picker", () => {
+    expect(GUILD_ONLY_BLOCK_TYPES).toContain("join_cta");
+    expect(BUSINESS_BLOCK_TYPES).not.toContain("join_cta");
+  });
+
+  it("offers every new block to businesses", () => {
+    for (const t of ["hero", "service_cards", "gallery_grid", "faq", "testimonials", "contact_form"]) {
+      expect(BUSINESS_BLOCK_TYPES, t).toContain(t);
+    }
+  });
+});
