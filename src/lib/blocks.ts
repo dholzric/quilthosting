@@ -207,10 +207,11 @@ export function blocksToHtml(blocks: PageBlock[]): string {
         parts.push(`<div class="qh-block-spacer" style="height:${b.height || 24}px"></div>`);
         break;
       case "hero": {
-        const heroImageOk = !!b.imageUrl && safeHref(b.imageUrl) !== "#" && isCssUrlSafe(b.imageUrl);
+        const heroImageUrl = b.imageUrl ? safeHref(b.imageUrl) : "";
+        const heroImageOk = !!heroImageUrl && heroImageUrl !== "#" && isCssUrlSafe(heroImageUrl);
         parts.push(
           `<section class="qh-block-hero"${
-            heroImageOk ? ` style="background-image:url('${escapeAttr(b.imageUrl as string)}')"` : ""
+            heroImageOk ? ` style="background-image:url('${escapeAttr(heroImageUrl)}')"` : ""
           }><div class="qh-hero-inner">${
             b.eyebrow ? `<p class="qh-hero-eyebrow">${escapeHtml(b.eyebrow)}</p>` : ""
           }<h1 class="qh-hero-title">${escapeHtml(b.title)}</h1>${
@@ -351,16 +352,25 @@ function escapeAttr(s: string): string {
   return escapeHtml(s).replace(/'/g, "&#39;");
 }
 
-/** Schemes allowed through {@link safeHref}. Allowlist, never blocklist a dangerous scheme. */
-const SAFE_HREF_SCHEMES = new Set(["http:", "https:", "mailto:", "tel:"]);
+/**
+ * Schemes allowed through {@link safeHref}. Allowlist, never blocklist a dangerous scheme.
+ * Criterion for adding a scheme here: it must be inert (cannot execute script) AND be
+ * commonly used by a small business on a public site (e.g. a "Text us" CTA). Do not add
+ * app-launcher schemes (`geo:`, `whatsapp:`, `skype:`, `market:`, `intent:`, `ftp:`, ...)
+ * just because they're inert — they still fail the "commonly used by a small business"
+ * half of the test.
+ */
+const SAFE_HREF_SCHEMES = new Set(["http:", "https:", "mailto:", "tel:", "sms:"]);
 
-/** Removes ASCII control characters (defeats `java\tscript:`-style scheme obfuscation). */
+/** Removes ASCII C0 and C1 control characters (defeats `java\tscript:`-style scheme obfuscation). */
 function stripControlChars(input: string): string {
   const s = String(input || "");
   let out = "";
   for (let i = 0; i < s.length; i++) {
     const code = s.charCodeAt(i);
-    if (code > 31 && code !== 127) out += s[i];
+    if (code <= 31 || code === 127) continue; // C0 controls + DEL
+    if (code >= 128 && code <= 159) continue; // C1 controls
+    out += s[i];
   }
   return out;
 }

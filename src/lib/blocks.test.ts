@@ -144,6 +144,11 @@ describe("blocksToHtml — href scheme safety", () => {
       expect(html, href).toContain(`href="${href}"`);
     }
   });
+
+  it("passes an sms: href through untouched (standard small-business 'Text us' CTA)", () => {
+    const html = blocksToHtml(parseBlocks([{ type: "button", label: "Text us", href: "sms:+15125550100" }]));
+    expect(html).toContain('href="sms:+15125550100"');
+  });
 });
 
 describe("blocksToHtml — hero background CSS injection", () => {
@@ -158,5 +163,15 @@ describe("blocksToHtml — hero background CSS injection", () => {
     const html = blocksToHtml(parseBlocks([{ type: "hero", title: "T", imageUrl: "https://x.com/h.jpg" }]));
     expect(html).toContain("style=");
     expect(html).toContain("background-image:url(");
+  });
+
+  // Intentionally unsupported: data: URLs are a wider CSS-injection sink inside url(...)
+  // than an <img src>, and a hero background is a far less likely place for an inlined
+  // image than a gallery photo. This is a deliberate, documented "no", not a silent gap.
+  it("omits the style attribute for a data: image URL (intentionally unsupported)", () => {
+    const html = blocksToHtml(parseBlocks([
+      { type: "hero", title: "T", imageUrl: "data:image/png;base64,AAAA" },
+    ]));
+    expect(html).not.toContain("style=");
   });
 });
