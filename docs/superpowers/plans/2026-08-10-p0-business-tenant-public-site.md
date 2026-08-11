@@ -870,6 +870,34 @@ git add src/lib/site/themeMigrate.ts src/lib/site/themeMigrate.test.ts src/route
 git commit -m "feat(site): legacy theme expansion + derivation for guild.html compatibility"
 ```
 
+> **CORRECTIONS APPLIED DURING EXECUTION.** Three defects in this task's own
+> text were found and fixed while implementing it. The code above is left as
+> originally written for the record; what actually shipped differs as follows.
+>
+> 1. **The `guild.html` field list above is wrong.** Step 6 asserted it reads
+>    `primary`, `accent`, `headerBg`. It actually reads `primary`, `font`, and
+>    `style` (`public/guild.html:918-930`) and never touches `accent` or
+>    `headerBg`. `deriveLegacyTheme` therefore takes an optional second
+>    parameter carrying the raw legacy theme, so `font` and `style` pass
+>    through. Without this every guild would have lost its font and layout
+>    style. Step 6 existed to catch exactly this, and did.
+> 2. **`themeColor: primary` contradicted this task's own test.** The test
+>    requires `expandLegacyTheme({})` to deep-equal `DEFAULT_THEME`, whose
+>    `themeColor` (`#c060a0`) differs from its `primary` (`#8a2060`). Shipped
+>    as `safeColor(src.primary, "") || DEFAULT_THEME.themeColor`, so a custom
+>    `primary` still drives the browser theme-color.
+> 3. **`deriveLegacyTheme` must be presence-based, not defaulted.** As written
+>    above it always returns a `primary`, so every guild with
+>    `settings_json = '{}'` — the default at signup, and the common case —
+>    would flip from the platform's brand orange (`--brand: #b5501f`,
+>    `public/qh.css:20`) to austinlongarm's purple, because `guild.html`'s
+>    `if (theme.primary)` guard would start firing. That violates this plan's
+>    own "guilds must not regress" constraint. Shipped emitting
+>    `primary`/`accent`/`headerBg` only when the tenant actually stored one,
+>    mirroring the `font`/`style` logic. `expandLegacyTheme` and
+>    `readTenantTheme` still return a fully-defaulted 13-token `ThemeConfig` —
+>    the business renderer depends on that.
+
 **Deliberate deviation from the spec.** The spec called for a one-time data
 backfill rewriting `settings_json` for every tenant. This task does read-time
 expansion instead: `readTenantTheme` expands legacy shapes on every read, and
