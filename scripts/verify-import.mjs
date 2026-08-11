@@ -146,13 +146,27 @@ import { readFileSync } from "node:fs";
 const BASE = process.env.QH_BASE || "http://127.0.0.1:8787";
 
 async function json(path, opts = {}) {
-  const res = await fetch(`${BASE}${path}`, {
-    ...opts,
-    headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
-  });
-  const text = await res.text();
-  let body; try { body = JSON.parse(text); } catch { body = { raw: text.slice(0, 300) }; }
-  return { status: res.status, body };
+  // One retry on a TRANSPORT failure only (never on an HTTP status): a
+  // d1Query/d1Exec between two requests shells out to `npx wrangler d1
+  // execute`, which takes long enough that wrangler dev closes the idle
+  // keep-alive socket. undici then reuses that dead socket and the very
+  // next request dies with ECONNRESET before the server ever logs it --
+  // deterministically, at whichever assertion happens to sit after a D1
+  // call. A retry re-dials. Any real HTTP response, including a 5xx, is
+  // returned untouched so no genuine server error can be masked.
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const res = await fetch(`${BASE}${path}`, {
+        ...opts,
+        headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
+      });
+      const text = await res.text();
+      let body; try { body = JSON.parse(text); } catch { body = { raw: text.slice(0, 300) }; }
+      return { status: res.status, body };
+    } catch (e) {
+      if (attempt >= 1) throw e;
+    }
+  }
 }
 
 // Same stable-account trick as verify-integrations.mjs: registering per run
@@ -2052,6 +2066,344 @@ console.log("\n--- layer 11: our own export must be safely re-importable -- a de
     JSON.stringify({ import: roundTrip.body, member: rtAfter.body.members }));
   check("re-importing our own export assigns no membership to the lapsed member",
     roundTrip.body.memberships_assigned === 0, JSON.stringify(roundTrip.body));
+}
+
+console.log("\n--- layer 12: a Level-only re-import must never shorten or erase a membership already on record (fix round 8, critical 1) ---");
+
+// The fix in layer 10 chose a renewal date when the FILE had none. It did
+// not ask what was already in the DATABASE. activateMembership expires the
+// member's current membership and writes a fresh term ending
+// max(joined_at, now) + duration, consulting nothing -- so a guild that
+// imported a proper roster with expiry dates (memberships running to 2029)
+// and a month later re-imports a hand-maintained Level-only sheet sees a
+// green "Import complete", status `completed`, and a per-row reason
+// announcing a renewal date two years EARLIER, with ~2 years of paid
+// membership silently deleted and no mention of what it replaced.
+//
+// "Nothing from the file is discarded" was true of the file and false of
+// the database. Rule now enforced: when the row supplies no usable end
+// date and the member already has an active membership ending LATER than
+// the computed term (or with NO end date at all), the existing date wins.
+{
+  const keepTenantId = (await json("/api/tenants", {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ name: `Keep ${stamp}`, slug: `keep-${stamp}` }),
+  })).body.id;
+  await json(`/api/tenants/${keepTenantId}/levels`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ name: "Annual Membership", price_cents: 0,
+                           duration_months: 12, renewal_type: "manual" }),
+  });
+
+  const withExpiryHeader = ["Email", "First Name", "Last Name", "Level", "Renewal"];
+  const withExpiryMapping = {
+    0: { kind: "known", target: "email" },
+    1: { kind: "known", target: "first_name" },
+    2: { kind: "known", target: "last_name" },
+    3: { kind: "known", target: "level_name" },
+    4: { kind: "known", target: "end_date" },
+  };
+  const levelOnlyHeader = ["Email", "First Name", "Last Name", "Level"];
+  const levelOnlyMapping = {
+    0: { kind: "known", target: "email" },
+    1: { kind: "known", target: "first_name" },
+    2: { kind: "known", target: "last_name" },
+    3: { kind: "known", target: "level_name" },
+  };
+  const activeEndFor = (email) => d1Query(
+    `SELECT m.end_date, m.status FROM memberships m JOIN members mem ON mem.id = m.member_id
+     WHERE m.tenant_id = '${keepTenantId}' AND mem.email = '${email}' AND m.status = 'active'`
+  )[0];
+
+  // 12a: the headline case. A membership running to 2029, then a Level-only
+  // re-import.
+  const keepEmail = `keeplater1-${stamp}@example.test`;
+  await json(`/api/tenants/${keepTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: withExpiryHeader,
+      raw_rows: [[keepEmail, "Keep", "Later", "Annual Membership", "2029-06-01"]],
+      mapping: withExpiryMapping }),
+  });
+  check("12a precondition: the first import stored the guild's own 2029 expiry",
+    String(activeEndFor(keepEmail)?.end_date || "").startsWith("2029-06-01"),
+    JSON.stringify(activeEndFor(keepEmail)));
+
+  const keepRun = await json(`/api/tenants/${keepTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: levelOnlyHeader,
+      raw_rows: [[keepEmail, "Keep", "Later", "Annual Membership"]],
+      mapping: levelOnlyMapping }),
+  });
+  check("12a: a Level-only re-import still updates the member and assigns a membership",
+    keepRun.body.updated === 1 && keepRun.body.memberships_assigned === 1,
+    JSON.stringify(keepRun.body));
+  check("THE BUG (12a): ~2 years of paid membership is NOT deleted -- the 2029 expiry survives a Level-only re-import",
+    String(activeEndFor(keepEmail)?.end_date || "").startsWith("2029-06-01"),
+    `end_date is now ${activeEndFor(keepEmail)?.end_date}`);
+  check("12a: the per-row record says the existing date was KEPT, and names it",
+    (keepRun.body.errors || []).some(
+      (e) => e.kind === "level_without_end_date" && e.email === keepEmail &&
+        /kept/i.test(e.reason) && e.reason.includes("2029-06-01")),
+    JSON.stringify(keepRun.body.errors));
+
+  // 12b: variant (a) -- an OPEN-ENDED membership (end_date IS NULL). It is
+  // creatable through the admin route with end_date:"" and is never lapsed
+  // by the cron, because `date(end_date) < date(?)` is NULL-safe. It
+  // exports with a BLANK end_date but a populated level, so it comes back
+  // through the importer looking exactly like a Level-only row -- and used
+  // to return as a 12-month term, which is what falsified the "our export
+  // is safe to re-import" promise.
+  const openEmail = `keepopen1-${stamp}@example.test`;
+  const openMember = await json(`/api/tenants/${keepTenantId}/members`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ email: openEmail, first_name: "Keep", last_name: "Open", status: "active" }),
+  });
+  const openLevelId = (await json(`/api/tenants/${keepTenantId}/levels`, { headers: auth }))
+    .body.find((l) => l.name === "Annual Membership").id;
+  await json(`/api/tenants/${keepTenantId}/members/${openMember.body.id}/memberships`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ level_id: openLevelId, end_date: "", amount_paid_cents: 0 }),
+  });
+  check("12b precondition: an open-ended membership really has end_date NULL",
+    activeEndFor(openEmail) && activeEndFor(openEmail).end_date === null,
+    JSON.stringify(activeEndFor(openEmail)));
+
+  const openRun = await json(`/api/tenants/${keepTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: levelOnlyHeader,
+      raw_rows: [[openEmail, "Keep", "Open", "Annual Membership"]],
+      mapping: levelOnlyMapping }),
+  });
+  check("THE BUG (12b): an open-ended membership stays open-ended -- it is not given a 12-month term",
+    activeEndFor(openEmail) && activeEndFor(openEmail).end_date === null,
+    `end_date is now ${JSON.stringify(activeEndFor(openEmail))} (import: ${JSON.stringify(openRun.body)})`);
+  check("12b: the per-row record says the open-ended membership was kept as is",
+    (openRun.body.errors || []).some(
+      (e) => e.kind === "level_without_end_date" && e.email === openEmail && /kept/i.test(e.reason)),
+    JSON.stringify(openRun.body.errors));
+
+  // 12c: the rule must NOT block a genuine renewal. An existing membership
+  // ending BEFORE the computed term is extended, exactly as before.
+  const renewEmail = `keeprenew1-${stamp}@example.test`;
+  const soon = new Date(Date.now() + 20 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+  await json(`/api/tenants/${keepTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: withExpiryHeader,
+      raw_rows: [[renewEmail, "Keep", "Renew", "Annual Membership", soon]],
+      mapping: withExpiryMapping }),
+  });
+  await json(`/api/tenants/${keepTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: levelOnlyHeader,
+      raw_rows: [[renewEmail, "Keep", "Renew", "Annual Membership"]],
+      mapping: levelOnlyMapping }),
+  });
+  check("12c: an EARLIER existing expiry is still extended to a full term -- the rule never blocks a renewal",
+    String(activeEndFor(renewEmail)?.end_date || "").slice(0, 10) > soon,
+    `soon=${soon} end_date=${activeEndFor(renewEmail)?.end_date}`);
+
+  // 12d: variant (b) -- the export truncates end_date to YYYY-MM-DD, so a
+  // straight round trip re-parses it as UTC midnight and silently moves the
+  // expiry earlier by the time-of-day. Same calendar day => keep the stored
+  // instant.
+  const todEmail = `keeptod1-${stamp}@example.test`;
+  const todMember = await json(`/api/tenants/${keepTenantId}/members`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ email: todEmail, first_name: "Keep", last_name: "Tod", status: "active" }),
+  });
+  await json(`/api/tenants/${keepTenantId}/members/${todMember.body.id}/memberships`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ level_id: openLevelId, end_date: "2029-06-01T14:30:00.000Z", amount_paid_cents: 0 }),
+  });
+  const todBefore = activeEndFor(todEmail)?.end_date;
+  await json(`/api/tenants/${keepTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: withExpiryHeader,
+      raw_rows: [[todEmail, "Keep", "Tod", "Annual Membership", "2029-06-01"]],
+      mapping: withExpiryMapping }),
+  });
+  check("THE BUG (12d): a same-calendar-day round trip keeps the stored time of day, not UTC midnight",
+    activeEndFor(todEmail)?.end_date === todBefore,
+    `before=${todBefore} after=${activeEndFor(todEmail)?.end_date}`);
+
+  // 12e: a genuinely different date in the file still wins outright -- the
+  // preservation rule must never override a date the guild actually typed.
+  await json(`/api/tenants/${keepTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: withExpiryHeader,
+      raw_rows: [[keepEmail, "Keep", "Later", "Annual Membership", "2027-01-15"]],
+      mapping: withExpiryMapping }),
+  });
+  check("12e: an explicit, EARLIER date the guild typed still wins over the later stored one",
+    String(activeEndFor(keepEmail)?.end_date || "").startsWith("2027-01-15"),
+    JSON.stringify(activeEndFor(keepEmail)));
+}
+
+console.log("\n--- layer 13: a hand-lapsed member must not be resurrected by a round trip (fix round 8, critical 2) ---");
+
+// The export filter added in fix round 7 assumed an invariant that did not
+// hold: PATCH /:memberId writes members.status ONLY, never memberships. So
+// an admin who marks someone lapsed by hand (or a status-only import row)
+// leaves memberships.status = 'active'; the export then still emits their
+// level AND end_date, and re-importing resolves the level and reactivates
+// them -- resurrecting precisely the people an admin lapsed deliberately.
+// Fixed at the invariant, not at the export.
+{
+  const invTenantId = (await json("/api/tenants", {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ name: `Invariant ${stamp}`, slug: `invariant-${stamp}` }),
+  })).body.id;
+  await json(`/api/tenants/${invTenantId}/levels`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ name: "Annual Membership", price_cents: 0,
+                           duration_months: 12, renewal_type: "manual" }),
+  });
+  const invHeader = ["Email", "First Name", "Last Name", "Level"];
+  const invMapping = {
+    0: { kind: "known", target: "email" },
+    1: { kind: "known", target: "first_name" },
+    2: { kind: "known", target: "last_name" },
+    3: { kind: "known", target: "level_name" },
+  };
+  const membershipStatuses = (email) => d1Query(
+    `SELECT m.status FROM memberships m JOIN members mem ON mem.id = m.member_id
+     WHERE m.tenant_id = '${invTenantId}' AND mem.email = '${email}'`
+  ).map((r) => r.status);
+
+  // 13a: admin marks a member lapsed BY HAND via PATCH.
+  const patchEmail = `invpatch1-${stamp}@example.test`;
+  await json(`/api/tenants/${invTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: invHeader, raw_rows: [[patchEmail, "Inv", "Patch", "Annual Membership"]], mapping: invMapping }),
+  });
+  const patchId = (await json(`/api/tenants/${invTenantId}/members?q=${encodeURIComponent(patchEmail)}`,
+    { headers: auth })).body.members[0].id;
+  await json(`/api/tenants/${invTenantId}/members/${patchId}`, {
+    method: "PATCH", headers: auth, body: JSON.stringify({ status: "lapsed" }),
+  });
+  check("THE BUG (13a): marking a member lapsed by hand also ends their active membership",
+    !membershipStatuses(patchEmail).includes("active"),
+    JSON.stringify(membershipStatuses(patchEmail)));
+
+  // 13b: the same through a status-only import row (no Level column).
+  const rowEmail = `invrow1-${stamp}@example.test`;
+  await json(`/api/tenants/${invTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: invHeader, raw_rows: [[rowEmail, "Inv", "Row", "Annual Membership"]], mapping: invMapping }),
+  });
+  const statusOnlyHeader = ["Email", "First Name", "Last Name", "Status"];
+  const statusOnlyMapping = {
+    0: { kind: "known", target: "email" },
+    1: { kind: "known", target: "first_name" },
+    2: { kind: "known", target: "last_name" },
+    3: { kind: "known", target: "status" },
+  };
+  await json(`/api/tenants/${invTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: statusOnlyHeader, raw_rows: [[rowEmail, "Inv", "Row", "Lapsed"]], mapping: statusOnlyMapping }),
+  });
+  check("THE BUG (13b): a status-only import row of Lapsed also ends the active membership",
+    !membershipStatuses(rowEmail).includes("active"),
+    JSON.stringify(membershipStatuses(rowEmail)));
+
+  // 13c: the whole point -- export then re-import must leave both of them
+  // where the admin put them.
+  const invExport = parseCsv(await (await fetch(
+    `${BASE}/api/tenants/${invTenantId}/members/export.csv`, { headers: auth })).text());
+  const invHead = invExport[0];
+  const invRows = invExport.slice(1);
+  const lvlCol = invHead.indexOf("level");
+  for (const [label, email] of [["hand-PATCHed", patchEmail], ["status-only import row", rowEmail]]) {
+    check(`13c: the ${label} member exports with NO level (nothing for the importer to resolve)`,
+      invRows.find((r) => r[0] === email)?.[lvlCol] === "",
+      JSON.stringify(invRows.find((r) => r[0] === email)));
+  }
+  const { mapping: invProposed } = proposeMapping(invHead, []);
+  const invRoundTrip = await json(`/api/tenants/${invTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: invHead, raw_rows: invRows, mapping: invProposed }),
+  });
+  const invStatuses = new Map((await json(`/api/tenants/${invTenantId}/members?limit=100`,
+    { headers: auth })).body.members.map((m) => [m.email, m.status]));
+  check("THE BUG (13c): re-importing our own export does NOT resurrect either deliberately-lapsed member",
+    invStatuses.get(patchEmail) === "lapsed" && invStatuses.get(rowEmail) === "lapsed",
+    JSON.stringify({ patch: invStatuses.get(patchEmail), row: invStatuses.get(rowEmail),
+                     import: invRoundTrip.body }));
+  check("13c: that round trip assigns no memberships at all",
+    invRoundTrip.body.memberships_assigned === 0, JSON.stringify(invRoundTrip.body));
+
+  // 13d: the invariant must not fire in the other direction -- moving a
+  // member to `active` by hand must not invent a membership.
+  const upEmail = `invup1-${stamp}@example.test`;
+  const upMember = await json(`/api/tenants/${invTenantId}/members`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ email: upEmail, first_name: "Inv", last_name: "Up", status: "lapsed" }),
+  });
+  await json(`/api/tenants/${invTenantId}/members/${upMember.body.id}`, {
+    method: "PATCH", headers: auth, body: JSON.stringify({ status: "active" }),
+  });
+  check("13d: PATCHing a member back to active does not invent a membership",
+    membershipStatuses(upEmail).length === 0, JSON.stringify(membershipStatuses(upEmail)));
+}
+
+console.log("\n--- layer 14: the friendly plan-cap banner must survive an informational warning (fix round 8, important 3) ---");
+
+// public/admin.html gates its "Import complete -- N waiting on your plan's
+// limit" banner on `warnings.length === 0`. Every Level-column file now
+// emits the informational level_without_end_date, so a free guild at its
+// cap would see "Import finished with problems" when nothing is wrong with
+// their file -- and both admin guides still promise the friendly banner.
+// The server must therefore publish which codes are lossy, so the client
+// can gate on "no LOSSY warning" instead of "no warning at all" without
+// hand-maintaining a second copy of the set.
+{
+  const capTenantId = await freePlanTenant("bannercap");
+  await json(`/api/tenants/${capTenantId}/levels`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ name: "Annual Membership", price_cents: 0,
+                           duration_months: 12, renewal_type: "manual" }),
+  });
+  for (let i = 0; i < 30; i++) {
+    await json(`/api/tenants/${capTenantId}/members`, {
+      method: "POST", headers: auth,
+      body: JSON.stringify({ email: `bcfill-${stamp}-${i}@example.test`, status: "active" }),
+    });
+  }
+  const capHeader = ["Email", "First Name", "Last Name", "Level"];
+  const capMapping = {
+    0: { kind: "known", target: "email" },
+    1: { kind: "known", target: "first_name" },
+    2: { kind: "known", target: "last_name" },
+    3: { kind: "known", target: "level_name" },
+  };
+  const capRun = await json(`/api/tenants/${capTenantId}/members/import`, {
+    method: "POST", headers: auth,
+    body: JSON.stringify({ header: capHeader,
+      raw_rows: [[`bcover-${stamp}@example.test`, "Banner", "Cap", "Annual Membership"]],
+      mapping: capMapping }),
+  });
+  check("14 precondition: the row really was held at the free-plan cap",
+    capRun.body.plan_limited === 1, JSON.stringify(capRun.body));
+  check("14: the server publishes lossy_warning_codes so the client need not keep its own copy",
+    Array.isArray(capRun.body.lossy_warning_codes) &&
+      capRun.body.lossy_warning_codes.includes("level_not_found") &&
+      !capRun.body.lossy_warning_codes.includes("level_without_end_date"),
+    JSON.stringify(capRun.body.lossy_warning_codes));
+  // The exact predicate public/admin.html uses for the friendly banner.
+  // Deliberately requires lossy_warning_codes to be an array: without it the
+  // client has no way to tell an informational warning from a lossy one and
+  // must fall back to `warnings.length === 0`, which a WA-shaped file can
+  // never satisfy -- that IS the regression, so this must fail pre-fix.
+  const lossyList = capRun.body.lossy_warning_codes;
+  const lossy = new Set(Array.isArray(lossyList) ? lossyList : []);
+  const errs = capRun.body.errors || [];
+  const planLimitOnly = Array.isArray(lossyList) &&
+    capRun.body.status === "partial" && errs.length > 0 &&
+    errs.every((e) => e.kind === "plan_limited" || e.kind === "level_without_end_date") &&
+    (capRun.body.warnings || []).every((w) => !lossy.has(w.code));
+  check("THE BUG (14): a plan-capped WA-shaped file still qualifies for the friendly banner",
+    planLimitOnly, JSON.stringify({ status: capRun.body.status, errors: errs,
+      warnings: capRun.body.warnings, lossy: [...lossy] }));
 }
 
 console.log(failures ? `\n${failures} failure(s)` : "\nall layers passed");

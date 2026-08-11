@@ -1311,28 +1311,50 @@
         // like one. Detect the case where plan-limiting is the ONLY thing
         // that made this batch partial and say so plainly instead.
         //
-        // Why these three conditions are sufficient: the server marks a
-        // batch partial when skippedRows, membershipFailures, planLimited or
+        // Why these conditions are sufficient: the server marks a batch
+        // partial when skippedRows, membershipFailures, planLimited or
         // levelNotFound is non-zero, or a lossy warning fired. The first,
         // second and fourth each push an error row of kind `skipped` /
-        // `membership_failed` / `level_not_found`, so `errors.every(kind ===
-        // "plan_limited")` rules them out; a lossy warning firing implies a
-        // non-empty `warnings`, so `warnings.length === 0` rules that out.
-        // A non-lossy warning alongside plan-limiting falls through to the
-        // generic banner — deliberately conservative.
+        // `membership_failed` / `level_not_found`, so the `errors.every(...)`
+        // test rules them out; a lossy warning firing implies a lossy code in
+        // `warnings`, so the last test rules that out.
+        //
+        // Fix round 8: those last two tests used to be `errors.every(kind ===
+        // "plan_limited")` and `warnings.length === 0`. Both broke the moment
+        // level_without_end_date started firing — it is INFORMATIONAL, it
+        // pushes a row-level record, and it fires on every Level-column file,
+        // so a free guild at its cap got "Import finished with problems" for
+        // a file with nothing wrong with it, contradicting the admin guide's
+        // promise that the banner says so directly. The lossy/informational
+        // split is now the server's answer (`lossy_warning_codes`), not a
+        // second copy of the set maintained here. A batch is still only
+        // treated this way when EVERY problem row is either the plan cap or
+        // that informational disclosure.
+        const lossyCodes = new Set(r.lossy_warning_codes || []);
+        const INFORMATIONAL_KINDS = ["plan_limited", "level_without_end_date"];
         const planLimitOnly =
           isPartial &&
+          Array.isArray(r.lossy_warning_codes) &&
           errors.length > 0 &&
-          errors.every((e) => e.kind === "plan_limited") &&
-          warnings.length === 0;
+          errors.some((e) => e.kind === "plan_limited") &&
+          errors.every((e) => INFORMATIONAL_KINDS.includes(e.kind)) &&
+          warnings.every((w) => !lossyCodes.has(w.code));
 
         if (planLimitOnly) {
+          // Count the HELD rows, not every problem row: `errors` can now also
+          // carry informational level_without_end_date records, and reporting
+          // those as "waiting on your plan's limit" would overstate the
+          // number in the one banner whose whole job is to reassure.
+          const heldCount = errors.filter((e) => e.kind === "plan_limited").length;
           out.innerHTML = `<div class="notice warn">` +
-            `<strong>Import complete — ${errors.length} member(s) are waiting on your plan's active-member limit.</strong> ` +
+            `<strong>Import complete — ${heldCount} member(s) are waiting on your plan's active-member limit.</strong> ` +
             `Imported: ${r.created} new, ${r.updated} updated, ${r.skipped} skipped${mem}${cf}.<br>` +
-            `Nothing is wrong with your file. Every row was imported; ${errors.length} of them did not get an active membership because your plan's active-member limit was already reached. ` +
+            `Nothing is wrong with your file. Every row was imported; ${heldCount} of them did not get an active membership because your plan's active-member limit was already reached. ` +
             `New members are held as <em>pending</em>; existing members keep their current status or are set to pending — either way they are not made active. ` +
             `Upgrade if you want them active — their records are saved either way.` +
+            (warnings.length
+              ? `<br>Worth knowing:<ul style="line-height:1.7;margin:0.5rem 0 0">${warnings.map(importWarnRow).join("")}</ul>`
+              : "") +
             `</div>`;
         } else if (isPartial) {
           // A <div>, not a <p>: the conditional <ul> below is block content,

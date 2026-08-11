@@ -308,7 +308,8 @@ memberRoutes.get("/import/batches/:batchId/errors", async (c) => {
   // explaining the 'partial' status. Return them alongside the row errors.
   let warnings: unknown[] = [];
   try { warnings = batch.warnings_json ? JSON.parse(batch.warnings_json) : []; } catch {}
-  return c.json({ batch_id: batchId, errors, warnings, error_kind_labels: ERROR_KIND_LABELS });
+  return c.json({ batch_id: batchId, errors, warnings, error_kind_labels: ERROR_KIND_LABELS,
+    lossy_warning_codes: [...LOSSY_WARNING_CODES] });
 });
 
 memberRoutes.get("/:memberId", async (c) => {
@@ -532,13 +533,44 @@ memberRoutes.patch("/:memberId", async (c) => {
   }
   if (!fields.length) return c.json({ error: "No fields to update" }, 400);
 
+  const patchedAt = new Date().toISOString();
   fields.push("updated_at = ?");
-  params.push(new Date().toISOString(), memberId, tenant.id);
-  await c.env.DB.prepare(
+  params.push(patchedAt, memberId, tenant.id);
+  const updateMemberStmt = c.env.DB.prepare(
     `UPDATE members SET ${fields.join(", ")} WHERE id = ? AND tenant_id = ?`
-  )
-    .bind(...params)
-    .run();
+  ).bind(...params);
+
+  // Fix round 8, critical 2: THE INVARIANT. This route used to write
+  // members.status and nothing else, so an admin marking someone lapsed by
+  // hand left memberships.status = 'active' behind. That is not a cosmetic
+  // inconsistency -- members/export.csv reports the level of a member's
+  // ACTIVE membership, and the importer treats a resolved level as an
+  // instruction to activate, so exporting and re-importing resurrected
+  // exactly the people an admin had deliberately lapsed. Fixing the export
+  // filter alone (round 7) only papered over it: any other reader of
+  // "who currently holds a membership" was lying too, and the renewal cron
+  // would still have counted them. `members.status` and the membership's
+  // own status move together from here.
+  //
+  // Only the ending direction. Moving a member back to `active` must NOT
+  // resurrect a membership -- there is no defensible term to give it, and
+  // inventing one is the class of bug this whole task exists to remove.
+  // The verbs mirror the rest of the codebase: lapsed -> the membership
+  // `expired` (what renewals.ts writes), cancelled -> `cancelled` (what
+  // DELETE /:memberId writes).
+  const endingStatus =
+    body.status === "lapsed" ? "expired" : body.status === "cancelled" ? "cancelled" : null;
+  if (endingStatus) {
+    await c.env.DB.batch([
+      updateMemberStmt,
+      c.env.DB.prepare(
+        `UPDATE memberships SET status = ?, updated_at = ?
+         WHERE tenant_id = ? AND member_id = ? AND status = 'active'`
+      ).bind(endingStatus, patchedAt, tenant.id, memberId),
+    ]);
+  } else {
+    await updateMemberStmt.run();
+  }
 
   const updated = await first<Member>(
     c.env.DB.prepare("SELECT * FROM members WHERE id = ?").bind(memberId)
@@ -718,6 +750,25 @@ const ERROR_KIND_LABELS: Record<BatchErrorKind, string> = {
   end_date_without_level: "row(s) had a renewal date but no level to store it against",
   level_without_end_date: "row(s) had a level but no renewal date — we chose one (see the reason for the exact date)",
 };
+
+/**
+ * The end date QuiltHosting would choose for a row that gave no usable
+ * renewal date, or `null` if the row's start date is unreadable (in which
+ * case computeMembershipEnd throws, the activation will throw the same way,
+ * and the row surfaces as `membership_failed` -- so there is no chosen date
+ * to promise the guild).
+ */
+function safeChosenEnd(
+  startDate: string,
+  level: MembershipLevel,
+  now = new Date().toISOString()
+): string | null {
+  try {
+    return computeMembershipEnd(startDate, level.duration_months, now);
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Compares two date-ish strings by CALENDAR DAY (UTC), not by raw string
@@ -1101,6 +1152,11 @@ memberRoutes.post("/import", async (c) => {
   // read would be -- and it lets the dry-run preview answer the same
   // question, which it previously could not.
   const existingStatus = new Map<string, string>();
+  // email -> the end date of the membership that member is holding right
+  // now (`endDate: null` means an open-ended membership, which the renewal
+  // cron never lapses because `date(end_date) < date(?)` is NULL-safe).
+  // Absent key = no active membership. See the prefetch below.
+  const existingActiveEnd = new Map<string, { endDate: string | null }>();
   const emailsInFile = [
     ...new Set(
       normalizedRows
@@ -1122,6 +1178,46 @@ memberRoutes.post("/import", async (c) => {
       byEmail.set(m.email, m.id);
       existingJoinedAt.set(m.email, m.joined_at);
       existingStatus.set(m.email, m.status);
+    }
+    // Fix round 8, critical 1: the membership each of these members is
+    // CURRENTLY holding. Round 7 taught the importer to choose a renewal
+    // date when the file had none, but it asked only the file, never the
+    // database -- and activateMembership expires the member's current
+    // membership before writing the new one. So a guild that had imported
+    // real expiry dates (memberships running to 2029) and then re-imported
+    // a hand-maintained Level-only sheet had two years of paid membership
+    // deleted and replaced with today+term, reported as a clean success.
+    // "Nothing from the file is discarded" was true of the file and false
+    // of the database. Prefetched here rather than SELECTed per row for the
+    // same reason existingStatus is: the apply loop writes nothing until
+    // the scan finishes, so a snapshot here is exactly as current.
+    const memberIds = found.map((m) => m.id);
+    for (let j = 0; j < memberIds.length; j += 200) {
+      const idSlice = memberIds.slice(j, j + 200);
+      const idPlaceholders = idSlice.map(() => "?").join(",");
+      const ms = await all<{ member_id: string; end_date: string | null }>(
+        c.env.DB.prepare(
+          `SELECT member_id, end_date FROM memberships
+           WHERE tenant_id = ? AND status = 'active' AND member_id IN (${idPlaceholders})`
+        ).bind(tenant.id, ...idSlice)
+      );
+      const emailById = new Map(found.map((m) => [m.id, m.email]));
+      for (const row of ms) {
+        const key = emailById.get(row.member_id);
+        if (!key) continue;
+        const prior = existingActiveEnd.get(key);
+        // A member should only ever hold one active membership, but if the
+        // data says otherwise take the most generous end date -- NULL
+        // (open-ended) beats every date, and later beats earlier. Erring
+        // toward preservation is the whole point of this map.
+        if (
+          !prior ||
+          row.end_date === null ||
+          (prior.endDate !== null && row.end_date! > prior.endDate)
+        ) {
+          existingActiveEnd.set(key, { endDate: row.end_date });
+        }
+      }
     }
   }
 
@@ -1318,6 +1414,11 @@ memberRoutes.post("/import", async (c) => {
     // picked -- emitted only once the activation succeeds, so we never
     // claim a renewal date for a membership that was never created.
     chosenEnd?: string | null;
+    // The end date of the membership this member is holding right now, as
+    // of the prefetch (absent = they have none). Fix round 8, critical 1:
+    // consulted before any computed date is written, so a Level-only
+    // re-import can never shorten or erase a membership already on record.
+    priorActiveEnd?: { endDate: string | null };
     startDate?: string;
     rowNumber: number;
     email: string;
@@ -1547,6 +1648,14 @@ memberRoutes.post("/import", async (c) => {
             reason: `renewal/expiry date "${endRaw}" could not be read; the membership end date (if any) was computed from the level's duration instead`,
             email,
           });
+          // Fix round 8, doc item 4: `endDate` stays undefined here, so this
+          // row lands on exactly the same chosen-date fallback as a row with
+          // no date column at all -- but the `else if (level)` below is
+          // unreachable when endRaw is truthy, so it used to get NO record of
+          // which date was chosen. An unreadable date is strictly worse than
+          // a missing one (the guild believes they supplied one), so it needs
+          // the disclosure more, not less.
+          if (level) chosenEndForRow = safeChosenEnd(row.joined_at || now, level, now);
         }
       } else if (level) {
         // The inverse of end_date_without_level, and the shape a real Wild
@@ -1564,16 +1673,7 @@ memberRoutes.post("/import", async (c) => {
         // loop). A row whose membership failed, or that never got one, must
         // not be told "your renewal date was set to X" -- that would be a
         // claim about a membership that does not exist.
-        const effectiveStart = row.joined_at || now;
-        try {
-          chosenEndForRow = computeMembershipEnd(effectiveStart, level.duration_months, now);
-        } catch {
-          // Unparseable "member since" on this row: computeMembershipEnd
-          // throws and so will the activation below, surfacing as
-          // membership_failed (and unparseable_join_date already warns).
-          // There is no chosen date to report, so promise nothing.
-          chosenEndForRow = null;
-        }
+        chosenEndForRow = safeChosenEnd(row.joined_at || now, level, now);
       }
 
       if (level && status !== "active") {
@@ -1694,6 +1794,27 @@ memberRoutes.post("/import", async (c) => {
             memberId
           )
         );
+        // Fix round 8, critical 2: the same invariant PATCH /:memberId now
+        // enforces. A status-only row that ends someone's membership must
+        // end the MEMBERSHIP too, not just flip members.status -- otherwise
+        // memberships.status stays 'active', the export still reports their
+        // level, and the next re-import of that export reactivates them.
+        // Only on rows with no level (a level goes through
+        // activateMembership, which expires prior actives itself) and only
+        // when the file actually expressed the status.
+        if (!level && statusOpinionGiven && (importStatus === "lapsed" || importStatus === "cancelled")) {
+          stmts.push(
+            c.env.DB.prepare(
+              `UPDATE memberships SET status = ?, updated_at = ?
+               WHERE tenant_id = ? AND member_id = ? AND status = 'active'`
+            ).bind(
+              importStatus === "lapsed" ? "expired" : "cancelled",
+              now,
+              tenant.id,
+              memberId
+            )
+          );
+        }
         updated++;
       } else {
         // No per-row member.created here: a 500-row import would write 500 outbox
@@ -1759,6 +1880,7 @@ memberRoutes.post("/import", async (c) => {
           level,
           endDate,
           chosenEnd: chosenEndForRow,
+          priorActiveEnd: existingActiveEnd.get(email),
           startDate: row.joined_at || undefined,
           rowNumber: rowIndex + 1,
           email,
@@ -1793,6 +1915,67 @@ memberRoutes.post("/import", async (c) => {
         const level = forceMembershipFail
           ? { ...pm.level, id: "qh-forced-invalid-level-id" }
           : pm.level;
+
+        // ---- Fix round 8, critical 1: never write over a membership that
+        // is already better than the one we would compute. activateMembership
+        // expires the member's current membership before inserting the new
+        // one and consults nothing, so this is the only place the question
+        // can be asked. The rule, in order:
+        //
+        //   1. The file gave a usable date  -> the file wins, always. (One
+        //      refinement: if it names the SAME CALENDAR DAY as the stored
+        //      end date, keep the stored instant. Our own export truncates
+        //      end_date to YYYY-MM-DD, so a plain round trip would otherwise
+        //      re-parse as UTC midnight and quietly move every expiry
+        //      earlier by its time of day.)
+        //   2. No usable date, and the member holds a membership ending
+        //      LATER than the term we would compute -- or an OPEN-ENDED one
+        //      (end_date IS NULL, which the renewal cron never lapses) ->
+        //      keep what they have.
+        //   3. Otherwise -> use the computed term. When that replaces an
+        //      EARLIER end date it is a renewal/extension, not a loss, and
+        //      the per-row record names both dates.
+        //
+        // Deliberately NOT pushed down into activateMembership: this rule is
+        // right for an import row, which merely ASSERTS membership, and
+        // wrong for a payment (routes/webhooks.ts, and the admin's manual
+        // assignment), where a member who buys another year while holding
+        // one must get the extra year rather than have it swallowed.
+        const prior = pm.priorActiveEnd;
+        let finalEnd: string | null | undefined = pm.endDate;
+        let disclosure: string | null = null;
+        if (pm.endDate !== undefined) {
+          if (prior && prior.endDate && sameCalendarDay(pm.endDate, prior.endDate)) {
+            finalEnd = prior.endDate;
+          }
+        } else if (pm.chosenEnd) {
+          // Compared as instants, not strings: a stored end_date may be a
+          // bare "YYYY-MM-DD" (seed data, an older write) while the computed
+          // one is a full ISO timestamp, and lexicographic order lies about
+          // those two on the same day.
+          const priorTime = prior && prior.endDate ? new Date(prior.endDate).getTime() : NaN;
+          const priorWins =
+            !!prior &&
+            (prior.endDate === null ||
+              (!Number.isNaN(priorTime) && priorTime > new Date(pm.chosenEnd).getTime()));
+          if (priorWins) {
+            finalEnd = prior!.endDate;
+            disclosure =
+              prior!.endDate === null
+                ? `the file gave no renewal/expiry date we could use. This member already had an open-ended membership (no renewal date), so it was kept as is rather than being given a ${pm.level.duration_months || 12}-month term`
+                : `the file gave no renewal/expiry date we could use. This member's existing renewal date of ${prior!.endDate.slice(0, 10)} is later than the ${pm.level.duration_months || 12}-month term we would have set (${pm.chosenEnd.slice(0, 10)}), so the existing date was KEPT and nothing was shortened`;
+          } else {
+            finalEnd = pm.chosenEnd;
+            const base = pm.startDate && pm.startDate > now ? pm.startDate : now;
+            disclosure =
+              `the file gave no renewal/expiry date we could use, so the renewal date was set to ${pm.chosenEnd.slice(0, 10)} (${pm.level.duration_months || 12} month(s) from ${base.slice(0, 10)}, the "${pm.level.name}" term)` +
+              (prior
+                ? `, replacing an earlier one of ${prior.endDate!.slice(0, 10)} -- this row renewed them`
+                : "") +
+              `. The "member since" date is unchanged. Edit this member if that date is wrong`;
+          }
+        }
+
         await activateMembership(c.env.DB, {
           tenantId: tenant.id,
           memberId: pm.memberId,
@@ -1800,20 +1983,20 @@ memberRoutes.post("/import", async (c) => {
           amountPaidCents: 0,
           now,
           startDate: pm.startDate,
-          endDate: pm.endDate,
+          endDate: finalEnd,
           autoRenew: false,
         });
         membershipsAssigned++;
-        if (pm.chosenEnd) {
-          // The membership really exists now, so we can truthfully tell the
-          // guild which renewal date we picked for it (fix round 7). This
-          // is informational, not a loss -- see LOSSY_WARNING_CODES -- but
-          // it is a decision made on their behalf, so it is itemized per
-          // row and lands in the downloadable report like any other.
+        if (disclosure) {
+          // The membership really exists now, so we can truthfully say what
+          // happened to its renewal date (fix round 7, corrected in round 8).
+          // Informational, not a loss -- see LOSSY_WARNING_CODES -- but it is
+          // a decision made on the guild's behalf, so it is itemized per row
+          // and lands in the downloadable report like any other.
           batchErrors.push({
             row_number: pm.rowNumber,
             kind: "level_without_end_date",
-            reason: `the file gave no renewal/expiry date, so the renewal date was set to ${pm.chosenEnd.slice(0, 10)} (${pm.level.duration_months || 12} month(s) from today, the "${pm.level.name}" term). The "member since" date is unchanged. Edit this member if that date is wrong`,
+            reason: disclosure,
             email: pm.email,
           });
         }
@@ -1915,6 +2098,16 @@ memberRoutes.post("/import", async (c) => {
       // filter per kind -- see ERROR_KIND_LABELS above for why this can't
       // silently fall out of sync with BatchErrorKind.
       error_kind_labels: ERROR_KIND_LABELS,
+      // Fix round 8, important 3: the client must be able to tell an
+      // INFORMATIONAL warning from a lossy one. public/admin.html used to
+      // approximate that with `warnings.length === 0`, which was fine until
+      // level_without_end_date started firing on every Level-column file --
+      // then a free guild at its cap saw "Import finished with problems" for
+      // a file with nothing wrong with it, contradicting both admin guides.
+      // Published from the same Set the server derives `status` from, for
+      // exactly the reason error_kind_labels is: a second hand-maintained
+      // copy in the client is how these drift.
+      lossy_warning_codes: [...LOSSY_WARNING_CODES],
     });
   } catch (e) {
     // Whatever went wrong (a constraint violation in the member statement

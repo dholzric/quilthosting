@@ -117,24 +117,45 @@ again.
 
 Most guild exports have a **Level** column and no renewal/expiry column at
 all. A membership has to end *some* day, so when your file names a level but
-gives no renewal date, **QuiltHosting picks one for you: one full term of
-that level's duration, counted from the day you import.** A 12-month level
-imported today renews a year from today.
+gives **no renewal date QuiltHosting can read**, it picks one for you: one
+full term of that level's duration, counted from **today** — or from the
+member's start date if that is in the *future*, so a term you deliberately
+post-date keeps its full length. A 12-month level imported today renews a
+year from today.
+
+**What it will never do is shorten what a member already has.** If they are
+already holding a membership that runs *past* the date we would pick — or an
+open-ended one with no renewal date at all — that membership's date is
+**kept**, untouched. The chosen date is only ever used to give a member a
+renewal date they didn't have, or to extend one that had nearly run out.
 
 That is not a loss — there was no date in your file to lose — so the import
 still comes back **complete**. But it is a decision made on your behalf, so
-the importer says so on screen and lists **every affected member with the
-exact date chosen** in the same **Download problem rows** CSV. Skim it. If a
-member's real renewal falls elsewhere, open that member and change their
-renewal date.
+the importer says so on screen and records, per member, which date was
+chosen (or which existing one was kept) in the same **Download problem
+rows** CSV. Skim it. If a member's real renewal falls elsewhere, open that
+member and change their renewal date.
+
+Two limits on that CSV worth knowing: it lists the members whose membership
+was actually **created** — a row held at your plan's limit, or one whose
+membership couldn't be assigned, has its own entry saying *that* instead.
+And the **preview** (before you press Import) shows the on-screen note but
+no per-row list, because nothing has been decided yet.
 
 ⚠️ **A "Member Since" date does not set the renewal date.** If your file says
 someone joined in 2019, that stays on their record as their join date — but
 their renewal is still dated a full term from today, not from 2019. (Dating
 the term from the join date is exactly what used to import an entire roster
-as already-expired and lapse everyone overnight.) If your file *does* have a
-renewal/expiry column, that column always wins — QuiltHosting never overrides
-a date you supplied, even one in the past.
+as already-expired and lapse everyone overnight.)
+
+⚠️ **A renewal date we can *read* always wins — an unreadable one does not.**
+If your renewal/expiry column holds a real date, QuiltHosting uses it exactly
+as given and never overrides it, even a date in the past. But if a cell can't
+be read as a date (`31/12/2019`, `Renews in spring`, a stray note), that row
+falls back to the chosen date above, exactly as if the column had been blank
+— and it is reported twice: once as an unreadable date, once with the date
+that was chosen instead. Unreadable dates make an import **partial**; fix
+them in your spreadsheet and re-import those rows.
 
 ### Partial only because of your plan limit
 
@@ -154,22 +175,28 @@ re-run a roster:
 - **A Level column re-activates people.** Naming a membership level on a row
   is an instruction to give that person a membership *now*, and it overrides
   whatever the Status column says — a row marked "lapsed" that also names a
-  level comes back as **active**. If you want to leave lapsed members alone,
-  blank out the Level cell for them (or delete the Level column) before
-  re-importing.
-- **A Level column with no renewal column moves renewal dates.** Every
-  re-import re-dates those memberships to a full term from *that* day (see
-  "We chose your renewal dates" above). Keep the renewal/expiry column in
-  your file and QuiltHosting will use it instead.
+  level comes back as **active**, *unless* your plan's active-member limit
+  holds it, in which case that person keeps whatever status they had and is
+  listed as held. If you want to leave lapsed members alone, blank out the
+  Level cell for them (or delete the Level column) before re-importing.
+- **A Level column with no renewal column can move renewal dates.** Such a
+  re-import never shortens a membership — a date already further out is kept
+  (see "We chose your renewal dates" above) — but a member whose renewal is
+  *closer* than a full term gets pushed out to a full term from that day, so
+  repeatedly re-running a Level-only sheet keeps renewing everyone. Keep the
+  renewal/expiry column in your file and QuiltHosting will use it instead.
 
 **The roster QuiltHosting exports for you is safe to re-import on both
 counts.** Members → Export writes the level and renewal date only for people
 who have a **currently active** membership; a lapsed or cancelled member
 exports with those two cells blank, so re-importing your own export does not
 resurrect them, and active members carry their real renewal date back in
-rather than being re-dated. (Earlier exports did carry a lapsed member's last
-level, which on re-import reactivated them — if you have an old export saved,
-clear the `level` cell on any lapsed or cancelled row before importing it.)
+rather than being re-dated. That holds however a member came to be lapsed —
+the nightly renewal run, an admin marking them lapsed by hand, or a status
+column in an earlier import all end the membership itself, not just the
+member's status. (Earlier exports did carry a lapsed member's last level,
+which on re-import reactivated them — if you have an old export saved, clear
+the `level` cell on any lapsed or cancelled row before importing it.)
 
 The limit bites when a file would make *more people active than you have room
 for*: new members, or existing members you're bringing back from lapsed or
