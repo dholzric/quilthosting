@@ -14,6 +14,7 @@ import {
   validateAnswers,
 } from "../lib/eventQuestions";
 import { getTenantByHost, tenantPublicBaseUrl } from "../lib/tenantHost";
+import { readTenantTheme, deriveLegacyTheme } from "../lib/site/themeMigrate";
 
 export const publicRoutes = new Hono<{ Bindings: Env }>();
 
@@ -1102,8 +1103,16 @@ publicRoutes.get("/:slug/site", async (c) => {
     navPages = [];
   }
   const taxRateBps = Number(settings.store?.tax_rate_bps || 0) || 0;
+  const { theme: tokens, fonts } = readTenantTheme(tenant.settings_json);
   return c.json({
-    theme: settings.theme || {},
+    // guild.html reads these fields. Derived from the tokens rather than
+    // stored separately, so there is a single source of truth; font/style
+    // are passed through from the stored legacy object since they have no
+    // ThemeConfig equivalent (see themeMigrate.ts).
+    theme: deriveLegacyTheme(tokens, settings.theme),
+    // Full token set + fonts for the server renderer and the new admin.
+    theme_tokens: tokens,
+    fonts,
     nav: settings.nav || [],
     nav_pages: navPages,
     store: {
