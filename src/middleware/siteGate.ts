@@ -134,7 +134,7 @@ const TENANT_IMAGE_PATH_RE = /^\/img\/[a-z0-9_-]{1,64}$/;
  * blocklist. See `../lib/platformPaths.ts` for why the reserved-prefix set
  * has to be exhaustive on its own.
  */
-function isLaunchedSitePath(rawPath: string, tenantSlug: string): boolean {
+export function isLaunchedSitePath(rawPath: string, tenantSlug: string): boolean {
   const path = normalizePathForGate(rawPath);
   if (path === null) return false; // malformed escape: fail closed
 

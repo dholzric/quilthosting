@@ -49,6 +49,7 @@ import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { execFileSync, spawnSync } from "node:child_process";
+import { createHash, randomBytes } from "node:crypto";
 import { unstable_dev, getPlatformProxy } from "wrangler";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -77,6 +78,18 @@ function check(label, cond, detail = "") {
   if (cond) { console.log(`  ok  ${label}`); return; }
   failures++;
   console.error(`  FAIL ${label} ${detail}`);
+}
+
+/** Node-side mirror of src/lib/projects/hash.ts's sha256Hex: plain UTF-8 text
+ * to lowercase hex SHA-256, no salt. Used below to (a) mint a synthetic
+ * expired/cross-tenant token fixture by pre-computing the hash the real
+ * hashToken() would produce, without ever needing to read a raw token back
+ * out of the database (it isn't stored), and (b) independently recompute the
+ * agreement fingerprint from a stored agreement_text row to prove
+ * agreement_sha256 really is SHA-256(agreement_text), not just some string
+ * that happens to look like one. */
+function sha256Hex(text) {
+  return createHash("sha256").update(text, "utf8").digest("hex");
 }
 
 function d1Exec(sql) {
@@ -360,6 +373,14 @@ DELETE FROM memberships WHERE tenant_id IN ('${TENANT}', '${FOREIGN_TENANT}');
 DELETE FROM members WHERE tenant_id IN ('${TENANT}', '${FOREIGN_TENANT}');
 DELETE FROM membership_levels WHERE tenant_id IN ('${TENANT}', '${FOREIGN_TENANT}');
 DELETE FROM pages WHERE tenant_id IN ('${TENANT}', '${FOREIGN_TENANT}');
+-- Project tables cleaned up here too (not just in the finally block below):
+-- the P1 chain section further down inserts fixture rows under FIXED ids
+-- (prj_verify_expired, prj_verify_crosstenant), which would collide on the
+-- primary key if a previous run crashed before reaching its own cleanup.
+DELETE FROM agreement_signatures WHERE tenant_id IN ('${TENANT}', '${FOREIGN_TENANT}');
+DELETE FROM project_lines WHERE project_id IN (SELECT id FROM projects WHERE tenant_id IN ('${TENANT}', '${FOREIGN_TENANT}'));
+DELETE FROM projects WHERE tenant_id IN ('${TENANT}', '${FOREIGN_TENANT}');
+DELETE FROM project_counters WHERE tenant_id IN ('${TENANT}', '${FOREIGN_TENANT}');
 DELETE FROM tenants WHERE id IN ('${TENANT}', '${FOREIGN_TENANT}');
 INSERT INTO tenants (id, name, slug, custom_domain, plan, status, tenant_type, public_launched, settings_json)
 VALUES ('${TENANT}', 'Stitch Studio Quilting', 'stitchstudio', '${HOST}', 'free', 'active', 'business', 1,
@@ -1013,6 +1034,192 @@ VALUES ('lvl_bs_free', '${TENANT}', 'Free Plan', 0, 12, 'manual', 'active');
     check("the deleted page 404s", afterDelete.status === 404, `got ${afterDelete.status}`);
   }
 
+  console.log("\nP1 longarm chain (intake -> estimate -> sign):");
+  {
+    check("precondition: an owner-scoped token is available from the sections above",
+      !!ownerAuth, "ownerAuth was never assigned");
+
+    // Fetch the tenant's CURRENT settings fresh rather than reusing the
+    // site-builder section's block-scoped `baseSettings` (out of scope here)
+    // -- this also means the PATCH below is robust to whatever that section
+    // already restored, rather than assuming its restore succeeded.
+    const preP1 = await reqJson(HOST, `/api/tenants/${TENANT}`, { headers: ownerAuth });
+    let baseSettings = {};
+    try { baseSettings = JSON.parse(preP1.json?.settings_json || "{}"); } catch { baseSettings = {}; }
+
+    // Rates must exist or the ballpark suppresses -- set them through the real
+    // tenant PATCH path, not a direct SQL write.
+    const withRates = await reqJson(HOST, `/api/tenants/${TENANT}`, {
+      method: "PATCH",
+      headers: ownerAuth,
+      body: JSON.stringify({
+        settings: {
+          ...baseSettings,
+          longarm: {
+            referencePrefix: "SSQ",
+            edgeToEdgeCentsPer100SqIn: 250,
+            minimumCents: { longarm: 5000 },
+            agreementTitle: "Service Agreement",
+            agreementBody: "Quilting is performed at the customer's risk.",
+          },
+        },
+      }),
+    });
+    check("rate table saved through the real admin path", withRates.status === 200, `got ${withRates.status}`);
+
+    const intake = await reqJson(HOST, "/public/stitchstudio/projects/intake", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        project_type: "longarm",
+        customer_name: "Jane Quilter",
+        customer_email: "jane@example.test",
+        intake: { widthIn: 60, heightIn: 80, serviceLevel: "edge_to_edge" },
+      }),
+    });
+    check("public intake accepted unauthenticated on the tenant host", intake.status === 200,
+      `got ${intake.status} ${JSON.stringify(intake.json).slice(0, 200)}`);
+    check("intake returned a reference using the configured prefix",
+      /^SSQ-\d{4}$/.test(intake.json?.reference || ""), intake.json?.reference);
+    check("ballpark computed 60x80 at 250 c/100sqin = 12000",
+      intake.json?.ballpark?.suppressed === false && intake.json?.ballpark?.total_cents === 12000,
+      JSON.stringify(intake.json?.ballpark));
+
+    const reference = intake.json.reference;
+    const row = d1Query(
+      `SELECT id, status, member_id FROM projects WHERE tenant_id = '${TENANT}' AND reference = '${reference}'`
+    );
+    check("project row written at status submitted", row[0]?.status === "submitted", JSON.stringify(row[0]));
+    // The other half of "created at send time, not at intake" -- checked
+    // HERE, immediately after intake and before send-estimate runs at all,
+    // not merely inferred from member_id being set later. Without this half,
+    // a member created (wrongly) during intake would still show a non-null
+    // member_id after send-estimate's own find-or-create upsert runs on the
+    // same email, and the later check alone would never catch the mistake.
+    check("no customer record exists yet immediately after intake",
+      row[0]?.member_id == null, JSON.stringify(row[0]));
+    const projectId = row[0]?.id;
+
+    const sent = await reqJson(HOST, `/api/tenants/${TENANT}/projects/${projectId}/send-estimate`, {
+      method: "POST", headers: ownerAuth,
+    });
+    check("send-estimate succeeds", sent.status === 200, `got ${sent.status}`);
+    const afterSend = d1Query(
+      `SELECT status, member_id FROM projects WHERE id = '${projectId}' AND tenant_id = '${TENANT}'`
+    );
+    check("status advanced to estimated", afterSend[0]?.status === "estimated", JSON.stringify(afterSend[0]));
+    check("a customer record was created at send time, not at intake",
+      !!afterSend[0]?.member_id, JSON.stringify(afterSend[0]));
+
+    // The raw token is never stored, so the harness mints its own through the
+    // real resend-link path and uses what that returns.
+    const relink = await reqJson(HOST, `/api/tenants/${TENANT}/projects/${projectId}/resend-link`, {
+      method: "POST", headers: ownerAuth,
+    });
+    check("resend-link returns a fresh raw token", !!relink.json?.token, JSON.stringify(relink.json).slice(0, 120));
+    const token = relink.json.token;
+
+    const quote = await req(HOST, `/quote/${token}`);
+    check("quote page renders for a valid token", quote.status === 200, `got ${quote.status}`);
+    check("quote page shows the agreed total", quote.body.includes("$120.00"), quote.body.slice(0, 1500));
+    check("quote page sets Referrer-Policy: no-referrer (token is in the URL)",
+      (quote.headers?.get?.("referrer-policy") || "") === "no-referrer",
+      quote.headers?.get?.("referrer-policy"));
+
+    // The signing form round-trips the agreement fingerprint through a
+    // hidden field so the POST can prove the text it's about to hash and
+    // sign is the text that was actually rendered -- extract it from the
+    // page exactly the way the real form's own JS does (quote.ts's inline
+    // script reads f.agreement_sha256.value), rather than recomputing it
+    // independently, which would only prove the harness's own math is
+    // self-consistent, never that it matches what the server rendered.
+    const sha256Match = quote.body.match(/name="agreement_sha256" value="([0-9a-f]{64})"/);
+    check("quote page emits the agreement_sha256 hidden field", !!sha256Match, quote.body.slice(0, 2000));
+    const agreementSha256 = sha256Match ? sha256Match[1] : "";
+
+    const badToken = await req(HOST, `/quote/${"z".repeat(43)}`);
+    check("an unknown token 404s", badToken.status === 404, `got ${badToken.status}`);
+    check("the unknown-token page does not reveal whether the token existed",
+      badToken.body.includes("no longer valid"), badToken.body.slice(0, 400));
+
+    // --- Negative control: an unknown token and an expired (unsigned) token
+    // must be INDISTINGUISHABLE from outside -- same status, same body.
+    // Minted synthetically (hash pre-computed the same way hashToken() would
+    // produce it) because the harness has no other way to get a token whose
+    // project row it can also set an already-past token_expires_at on.
+    const expiredRawToken = randomBytes(32).toString("base64url");
+    const expiredHash = sha256Hex(expiredRawToken);
+    d1Exec(`
+INSERT INTO projects
+  (id, tenant_id, project_type, status, reference, customer_name, customer_email,
+   intake_json, subtotal_cents, total_cents, access_token_hash, token_expires_at, created_at, updated_at)
+VALUES
+  ('prj_verify_expired', '${TENANT}', 'longarm', 'estimated', 'SSQ-EXP1', 'Expired Test', 'expired@example.test',
+   '{}', 12000, 12000, '${expiredHash}', datetime('now','-1 day'), datetime('now'), datetime('now'));
+`);
+    const expiredResp = await req(HOST, `/quote/${expiredRawToken}`);
+    check("an expired (unsigned) token also 404s", expiredResp.status === 404, `got ${expiredResp.status}`);
+    check("an unknown token and an expired token return byte-identical bodies (no existence oracle)",
+      expiredResp.status === badToken.status && expiredResp.body === badToken.body,
+      `expired: ${expiredResp.status} ${expiredResp.body.slice(0, 200)} | unknown: ${badToken.status} ${badToken.body.slice(0, 200)}`);
+
+    // --- Negative control: a token minted for ANOTHER tenant's project must
+    // not resolve on this tenant's host. FOREIGN_TENANT is a real,
+    // pre-existing tenant (seeded above for the /img cross-tenant check) --
+    // this project genuinely exists in `projects`, just under a different
+    // tenant_id, so a pass here proves the `AND tenant_id = ?` clause in
+    // site.ts's lookup is doing the work, not merely that a made-up token
+    // fails.
+    const crossRawToken = randomBytes(32).toString("base64url");
+    const crossHash = sha256Hex(crossRawToken);
+    d1Exec(`
+INSERT INTO projects
+  (id, tenant_id, project_type, status, reference, customer_name, customer_email,
+   intake_json, subtotal_cents, total_cents, access_token_hash, token_expires_at, created_at, updated_at)
+VALUES
+  ('prj_verify_crosstenant', '${FOREIGN_TENANT}', 'longarm', 'estimated', 'FRN-0001', 'Cross Tenant Test', 'cross@example.test',
+   '{}', 5000, 5000, '${crossHash}', datetime('now','+90 days'), datetime('now'), datetime('now'));
+`);
+    const crossResp = await req(HOST, `/quote/${crossRawToken}`);
+    check("a cross-tenant token does not resolve on this tenant's host",
+      crossResp.status === 404 && crossResp.body === badToken.body, `got ${crossResp.status}`);
+
+    const signed = await reqJson(HOST, `/quote/${token}/sign`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ signer_name: "Jane Quilter", consent: true, agreement_sha256: agreementSha256 }),
+    });
+    check("signing succeeds", signed.status === 200, `got ${signed.status} ${JSON.stringify(signed.json)}`);
+
+    const sigRows = d1Query(
+      `SELECT signer_name, agreement_sha256, agreement_text FROM agreement_signatures WHERE project_id = '${projectId}'`
+    );
+    check("exactly one signature row exists", sigRows.length === 1, `got ${sigRows.length}`);
+    check("the snapshot captured the agreement body",
+      (sigRows[0]?.agreement_text || "").includes("performed at the customer's risk"),
+      sigRows[0]?.agreement_text);
+    // The actual integrity guarantee this whole table exists for: the stored
+    // fingerprint must equal SHA-256 of the stored document, independently
+    // recomputed here -- not merely "some 64-hex-char string was stored".
+    check("stored agreement_sha256 equals SHA-256(stored agreement_text)",
+      sigRows[0]?.agreement_sha256 === sha256Hex(sigRows[0]?.agreement_text || ""),
+      `stored hash: ${sigRows[0]?.agreement_sha256}`);
+
+    const again = await reqJson(HOST, `/quote/${token}/sign`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ signer_name: "Someone Else", consent: true }),
+    });
+    check("signing twice is idempotent, not a second signature", again.status === 200 &&
+      again.json?.already_signed === true, JSON.stringify(again.json));
+    const sigRows2 = d1Query(`SELECT id FROM agreement_signatures WHERE project_id = '${projectId}'`);
+    check("still exactly one signature row after the second POST", sigRows2.length === 1, `got ${sigRows2.length}`);
+
+    const signedPage = await req(HOST, `/quote/${token}`);
+    check("the page now renders the signed copy with its fingerprint",
+      signedPage.body.includes(sigRows[0].agreement_sha256), signedPage.body.slice(0, 2000));
+  }
+
   // Stop the HTTP worker before the renewals check below: that check opens
   // a second, independent local D1 session via getPlatformProxy against the
   // same on-disk SQLite/WAL files, and there is no reason to have two
@@ -1037,6 +1244,10 @@ DELETE FROM memberships WHERE tenant_id IN ('${TENANT}', '${FOREIGN_TENANT}');
 DELETE FROM members WHERE tenant_id IN ('${TENANT}', '${FOREIGN_TENANT}');
 DELETE FROM membership_levels WHERE tenant_id IN ('${TENANT}', '${FOREIGN_TENANT}');
 DELETE FROM pages WHERE tenant_id IN ('${TENANT}', '${FOREIGN_TENANT}');
+DELETE FROM agreement_signatures WHERE tenant_id IN ('${TENANT}', '${FOREIGN_TENANT}');
+DELETE FROM project_lines WHERE project_id IN (SELECT id FROM projects WHERE tenant_id IN ('${TENANT}', '${FOREIGN_TENANT}'));
+DELETE FROM projects WHERE tenant_id IN ('${TENANT}', '${FOREIGN_TENANT}');
+DELETE FROM project_counters WHERE tenant_id IN ('${TENANT}', '${FOREIGN_TENANT}');
 DELETE FROM tenants WHERE id IN ('${TENANT}', '${FOREIGN_TENANT}');
 `);
   } catch (e) {

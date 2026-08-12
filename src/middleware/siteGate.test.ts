@@ -22,7 +22,7 @@ vi.mock("../lib/tenantHost", () => ({
 }));
 
 // Imported after the mock so siteGate picks up the mocked module.
-const { siteGate } = await import("./siteGate");
+const { siteGate, isLaunchedSitePath: isLaunchedSitePathForTest } = await import("./siteGate");
 
 function makeEnv(overrides: Partial<Env> = {}): Env {
   return {
@@ -339,6 +339,116 @@ describe("rule 4 boundary — /public/<own slug> must not match a near-miss slug
     getTenantByHostMock.mockResolvedValue(launchedBusiness);
     const res = await requestPath("/public/stitchstudio/", "stitchstudioquilting.test");
     expect(res.status).toBe(200);
+  });
+});
+
+describe("P1 public paths", () => {
+  // Task 12: the intake POST and the quote page add no new siteGate
+  // allowlist rules of their own — intake rides existing rule 4
+  // (/public/<own-slug>/..., the same rule /join and /cart/checkout already
+  // use for unauthenticated writes) and the quote page rides rule 5 (any
+  // path not in PLATFORM_PATH_PREFIXES). These call isLaunchedSitePath
+  // directly rather than going through a full request, since the point here
+  // is to pin the allowlist function's own boundary, independent of the
+  // request-handling tests already covering it end to end above.
+  it("allows the intake POST on a launched business tenant's own slug", () => {
+    expect(isLaunchedSitePathForTest("/public/stitchstudio/projects/intake", "stitchstudio")).toBe(true);
+  });
+
+  it("refuses the intake POST under ANOTHER tenant's slug", () => {
+    expect(isLaunchedSitePathForTest("/public/othertenant/projects/intake", "stitchstudio")).toBe(false);
+  });
+
+  it("allows the quote page (rule 5 — 'quote' is not a reserved prefix)", () => {
+    expect(isLaunchedSitePathForTest("/quote/" + "a".repeat(43), "stitchstudio")).toBe(true);
+  });
+
+  it("still refuses /admin and /portal on the same host", () => {
+    expect(isLaunchedSitePathForTest("/admin", "stitchstudio")).toBe(false);
+    expect(isLaunchedSitePathForTest("/portal", "stitchstudio")).toBe(false);
+  });
+
+  it("refuses the intake POST for a guild tenant's own slug (isLaunchedSitePath alone can't know tenant_type — this is enforced one layer up, at the siteGate call site's isLaunched(hostTenant) check, not here)", () => {
+    // isLaunchedSitePath only ever runs on the SLUG string; whether that
+    // slug belongs to a launched business tenant is decided by the caller
+    // (siteGate) before this function is ever reached. This test documents
+    // that isLaunchedSitePath itself has no opinion on tenant_type — a
+    // guild's own slug still matches rule 4 syntactically — so the "a guild
+    // is never exempt" guarantee lives entirely in siteGate's
+    // isLaunched(hostTenant) gate, proved end to end in the
+    // "siteGate — gated hosts" describe block above ("guild subdomain:
+    // tenant resolves but is never 'launched'"), not in this pure-function
+    // boundary check.
+    expect(isLaunchedSitePathForTest("/public/somequiltguild/projects/intake", "somequiltguild")).toBe(true);
+  });
+});
+
+describe("P1 public paths — full request path, including tenant-type and launch-state gating", () => {
+  // Complements the pure-function checks above: these drive the whole
+  // middleware (resolved tenant + isLaunched + isLaunchedSitePath together),
+  // proving the negative cases the brief calls out are refused end to end,
+  // not just at the allowlist-function layer.
+  it("GATED: intake POST on a guild tenant's own host (never exempt, regardless of path)", async () => {
+    getTenantByHostMock.mockResolvedValue(guildTenant);
+    const res = await requestPath(
+      "/public/somequiltguild/projects/intake",
+      "somequiltguild.quilthosting.com",
+      { method: "POST", body: "{}" }
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("GATED: intake POST on an unlaunched business tenant's own host", async () => {
+    getTenantByHostMock.mockResolvedValue(unlaunchedBusiness);
+    const res = await requestPath(
+      "/public/stitchstudio/projects/intake",
+      "stitchstudioquilting.test",
+      { method: "POST", body: "{}" }
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("OPEN: intake POST on a launched business tenant's own host", async () => {
+    getTenantByHostMock.mockResolvedValue(launchedBusiness);
+    const res = await requestPath(
+      "/public/stitchstudio/projects/intake",
+      "stitchstudioquilting.test",
+      { method: "POST", body: "{}" }
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it("GATED: intake POST under another tenant's slug on the launched tenant's own host", async () => {
+    getTenantByHostMock.mockResolvedValue(launchedBusiness);
+    const res = await requestPath(
+      "/public/othertenant/projects/intake",
+      "stitchstudioquilting.test",
+      { method: "POST", body: "{}" }
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("GATED: the quote page on a guild tenant's own host", async () => {
+    getTenantByHostMock.mockResolvedValue(guildTenant);
+    const res = await requestPath(
+      "/quote/" + "a".repeat(43),
+      "somequiltguild.quilthosting.com"
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("GATED: the quote page on an unlaunched business tenant's own host", async () => {
+    getTenantByHostMock.mockResolvedValue(unlaunchedBusiness);
+    const res = await requestPath("/quote/" + "a".repeat(43), "stitchstudioquilting.test");
+    expect(res.status).toBe(401);
+  });
+
+  it("still GATED: /admin and /portal on a launched tenant's own host (unaffected by the P1 routes)", async () => {
+    getTenantByHostMock.mockResolvedValue(launchedBusiness);
+    const admin = await requestPath("/admin", "stitchstudioquilting.test");
+    const portal = await requestPath("/portal", "stitchstudioquilting.test");
+    expect(admin.status).toBe(401);
+    expect(portal.status).toBe(401);
   });
 });
 
