@@ -77,7 +77,17 @@ export function computeEstimate(
 
   if (!positive(input.widthIn) || !positive(input.heightIn)) return SUPPRESSED;
 
-  const level = input.serviceLevel === "custom" ? "custom" : "edge_to_edge";
+  // Tier is derived from projectType, not serviceLevel: a custom_quilt is
+  // always priced at the custom rate. serviceLevel only selects the tier
+  // for "longarm" — otherwise an omitted serviceLevel would default a
+  // custom_quilt to the cheap edge-to-edge rate plus the design fee, a
+  // tier that does not exist.
+  const level: "custom" | "edge_to_edge" =
+    input.projectType === "custom_quilt"
+      ? "custom"
+      : input.serviceLevel === "custom"
+        ? "custom"
+        : "edge_to_edge";
   const perSq =
     level === "custom"
       ? rate(rates.customCentsPer100SqIn)
@@ -101,23 +111,35 @@ export function computeEstimate(
     if (design) lines.push(line("service", "Custom design", 1, design, design));
   }
 
+  // Customer-selected add-ons (batting/thread/binding/backingPrep/rush) are
+  // requests, not suggestions: if the shop hasn't configured a rate for one
+  // the customer explicitly ticked, dropping the line would quietly return
+  // a normal-looking price that excludes something they asked for — the
+  // same failure mode the top-level suppression rule exists to prevent, one
+  // level down. Suppress the whole estimate instead. This does NOT apply to
+  // customDesignFlatCents / tshirtFinishingFlatCents below, which are
+  // type-implied fees the customer never selected.
   if (input.batting) {
     const r = rate(rates.battingCentsPer100SqIn);
-    if (r) lines.push(line("addon", "Batting", areaSqIn, r, Math.round((areaSqIn * r) / 100)));
+    if (!r) return SUPPRESSED;
+    lines.push(line("addon", "Batting", areaSqIn, r, Math.round((areaSqIn * r) / 100)));
   }
   if (input.thread) {
     const r = rate(rates.threadFlatCents);
-    if (r) lines.push(line("addon", "Thread", 1, r, r));
+    if (!r) return SUPPRESSED;
+    lines.push(line("addon", "Thread", 1, r, r));
   }
   if (input.binding) {
     const r = rate(rates.bindingCentsPerLinearInch);
+    if (!r) return SUPPRESSED;
     // Perimeter, not area — binding is sold by the linear inch.
     const perimeterIn = 2 * (input.widthIn + input.heightIn);
-    if (r) lines.push(line("addon", "Binding", perimeterIn, r, Math.round(perimeterIn * r)));
+    lines.push(line("addon", "Binding", perimeterIn, r, Math.round(perimeterIn * r)));
   }
   if (input.backingPrep) {
     const r = rate(rates.backingPrepFlatCents);
-    if (r) lines.push(line("addon", "Backing preparation", 1, r, r));
+    if (!r) return SUPPRESSED;
+    lines.push(line("addon", "Backing preparation", 1, r, r));
   }
 
   return finalize(lines, input, rates);
@@ -130,23 +152,31 @@ function finalize(
 ): EstimateResult {
   if (!lines.length) return SUPPRESSED;
 
-  let subtotalCents = lines.reduce((sum, l) => sum + l.amountCents, 0);
+  // Rush is a customer-selected extra like batting/thread/binding/
+  // backingPrep: if it's requested but unpriceable, suppress the whole
+  // estimate rather than silently charging nothing for it.
+  const rushPct = input.rush ? rate(rates.rushPercent) : undefined;
+  if (input.rush && !rushPct) return SUPPRESSED;
 
-  if (input.rush) {
-    const pct = rate(rates.rushPercent);
-    if (pct) {
-      const rushCents = Math.round((subtotalCents * pct) / 100);
-      lines.push(line("service", `Rush (${pct}%)`, 1, rushCents, rushCents));
-      subtotalCents += rushCents;
-    }
-  }
+  const subtotalCents = lines.reduce((sum, l) => sum + l.amountCents, 0);
 
+  // Minimum is applied to the pre-rush subtotal FIRST, then rush is charged
+  // on top of the (possibly raised) floor. Applying rush before the minimum
+  // lets the minimum silently absorb it: the customer would see a
+  // "Rush (25%)" line item while paying the exact same total as with no
+  // rush at all, because both paths get floored to the same minimum.
   let totalCents = subtotalCents;
   const minimum = rates.minimumCents?.[input.projectType];
   if (positive(minimum) && totalCents < minimum) {
     const adjustment = minimum - totalCents;
     lines.push(line("service", "Minimum charge adjustment", 1, adjustment, adjustment));
     totalCents = minimum;
+  }
+
+  if (input.rush && rushPct) {
+    const rushCents = Math.round((totalCents * rushPct) / 100);
+    lines.push(line("service", `Rush (${rushPct}%)`, 1, rushCents, rushCents));
+    totalCents += rushCents;
   }
 
   return { suppressed: false, lines, subtotalCents, totalCents };
