@@ -1,15 +1,15 @@
 // Owner admin API for longarm projects: list/view/edit, replace estimate
-// lines, and resend the customer's access link. The status machine is
-// enforced here via assertTransition — an illegal transition is a 409
-// conflict with current state, not a 500. Every query touching `projects`
-// is scoped `WHERE tenant_id = ?`; this is the only thing standing between
-// tenants (see src/routes/projects.test.ts's tenant-scoping test).
+// lines, resend the customer's access link, and send the reviewed estimate.
+// The status machine is enforced here via assertTransition — an illegal
+// transition is a 409 conflict with current state, not a 500. Every query
+// touching `projects` is scoped `WHERE tenant_id = ?`; this is the only
+// thing standing between tenants (see src/routes/projects.test.ts's
+// tenant-scoping test).
 //
-// POST /:projectId/send-estimate is NOT implemented here despite being
-// listed in the Task 6 brief's "Produces" line — the brief's own Step 3
-// (and its trailing note) says the email helper and customer-record
-// matching rule live in Task 7, and Step 3's reference implementation does
-// not include it. Deferred accordingly.
+// POST /:projectId/send-estimate (Task 7) is where a customer record is
+// created or matched — NOT at intake. An anonymous public form that writes
+// to the Customers list is a spam amplifier; this step is human-reviewed,
+// so junk never reaches it.
 
 import { Hono } from "hono";
 import type { Env, Project, ProjectLine, TenantVariables, Tenant } from "../types";
@@ -18,6 +18,8 @@ import { generateId } from "../lib/utils/id";
 import { assertTransition } from "../lib/projects/status";
 import { mintAccessToken, hashToken } from "../lib/projects/token";
 import type { ProjectStatus } from "../lib/projects/types";
+import { sendEmail } from "../lib/email";
+import { tenantPublicBaseUrl } from "../lib/tenantHost";
 
 export const projectRoutes = new Hono<{
   Bindings: Env;
@@ -251,4 +253,58 @@ projectRoutes.post("/:projectId/resend-link", async (c) => {
     .run();
 
   return c.json({ ok: true, token });
+});
+
+// POST /:projectId/send-estimate
+// This is where a customer record is created or matched — NOT at intake. An
+// anonymous public form that writes to the Customers list is a spam
+// amplifier; this step is human-reviewed, so junk never reaches it.
+projectRoutes.post("/:projectId/send-estimate", async (c) => {
+  const denied = await requireOwnerAdmin(c);
+  if (denied) return denied;
+  const tenant = c.get("tenant") as Tenant;
+  const project = await first<Project>(
+    c.env.DB.prepare(`SELECT * FROM projects WHERE id = ? AND tenant_id = ?`)
+      .bind(c.req.param("projectId"), tenant.id)
+  );
+  if (!project) return c.json({ error: "Project not found" }, 404);
+
+  try {
+    assertTransition(project.status as ProjectStatus, "estimated");
+  } catch (err) {
+    return c.json({ error: (err as Error).message }, 409);
+  }
+
+  let member = await first<{ id: string }>(
+    c.env.DB.prepare(`SELECT id FROM members WHERE tenant_id = ? AND lower(email) = lower(?)`)
+      .bind(tenant.id, project.customer_email)
+  );
+  if (!member) {
+    const memberId = generateId();
+    await c.env.DB.prepare(
+      `INSERT INTO members (id, tenant_id, email, first_name, status, joined_at)
+       VALUES (?, ?, ?, ?, 'active', datetime('now'))`
+    ).bind(memberId, tenant.id, project.customer_email, project.customer_name).run();
+    member = { id: memberId };
+  }
+
+  const token = mintAccessToken();
+  const tokenHash = await hashToken(token);
+  const now = new Date().toISOString();
+  const expires = new Date(Date.now() + 90 * 24 * 3600 * 1000).toISOString();
+  await c.env.DB.prepare(
+    `UPDATE projects SET status = 'estimated', member_id = ?, access_token_hash = ?,
+       token_expires_at = ?, estimated_at = ?, updated_at = ?
+     WHERE id = ? AND tenant_id = ?`
+  ).bind(member.id, tokenHash, expires, now, now, project.id, tenant.id).run();
+
+  const baseUrl = tenantPublicBaseUrl(c.env, tenant);
+  await sendEmail(c.env, {
+    to: project.customer_email,
+    subject: `Your quilting estimate — ${project.reference}`,
+    html: `<p>Your estimate for ${project.reference} is ready.</p>
+           <p><a href="${baseUrl}/quote/${token}">View and sign your estimate</a></p>`,
+  }).catch(() => undefined);
+
+  return c.json({ ok: true });
 });

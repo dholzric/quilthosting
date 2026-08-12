@@ -15,6 +15,12 @@ import {
 } from "../lib/eventQuestions";
 import { getTenantByHost, tenantPublicBaseUrl } from "../lib/tenantHost";
 import { readTenantTheme, deriveLegacyTheme } from "../lib/site/themeMigrate";
+import { escapeHtml } from "../lib/blocks";
+import { computeEstimate } from "../lib/projects/pricing";
+import { mintAccessToken, hashToken } from "../lib/projects/token";
+import { buildReference } from "../lib/projects/reference";
+import { PROJECT_TYPES } from "../lib/projects/types";
+import type { ProjectType, LongarmRates } from "../lib/projects/types";
 
 export const publicRoutes = new Hono<{ Bindings: Env }>();
 
@@ -28,6 +34,14 @@ publicRoutes.use(
   "/:slug/products/:productId/buy",
   rateLimit({ keyPrefix: "buy", limit: 30, windowSeconds: 600 })
 );
+publicRoutes.use(
+  "/:slug/projects/intake",
+  rateLimit({ keyPrefix: "intake", limit: 20, windowSeconds: 600 })
+);
+publicRoutes.use(
+  "/:slug/projects/:projectRef/photos",
+  rateLimit({ keyPrefix: "intakephoto", limit: 40, windowSeconds: 600 })
+);
 
 async function getTenantBySlug(db: D1Database, slug: string) {
   return first<Tenant>(
@@ -36,6 +50,149 @@ async function getTenantBySlug(db: D1Database, slug: string) {
       .bind(slug)
   );
 }
+
+// POST /public/:slug/projects/intake
+// Reachable unauthenticated on a launched business tenant's own host via
+// siteGate rule 4 (/public/<own-slug>/...), the same rule under which /join
+// and /cart/checkout already accept unauthenticated writes. No new gate rule.
+publicRoutes.post("/:slug/projects/intake", async (c) => {
+  // getTenantBySlug is the existing helper above — it takes the D1 binding,
+  // not env.
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant || tenant.tenant_type !== "business") {
+    return c.json({ error: "Not found" }, 404);
+  }
+
+  type IntakeBody = {
+    project_type?: string;
+    customer_name?: string;
+    customer_email?: string;
+    customer_phone?: string;
+    intake?: Record<string, unknown>;
+  };
+  // A missing/unparseable body must not throw — it must fall through to the
+  // validation below and come back as a 400, the same idiom used by the
+  // other public routes in this file.
+  const body = await c.req.json<IntakeBody>().catch(() => ({}) as IntakeBody);
+
+  const projectType = PROJECT_TYPES.includes(body.project_type as ProjectType)
+    ? (body.project_type as ProjectType)
+    : null;
+  const name = String(body.customer_name || "").trim().slice(0, 200);
+  const email = String(body.customer_email || "").trim().slice(0, 320);
+  if (!projectType) return c.json({ error: "Choose a project type" }, 400);
+  if (!name) return c.json({ error: "Name is required" }, 400);
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    return c.json({ error: "A valid email is required" }, 400);
+  }
+
+  const intake = (body.intake && typeof body.intake === "object") ? body.intake : {};
+  const widthIn = Number(intake.widthIn);
+  const heightIn = Number(intake.heightIn);
+  // Sane bounds: a quilt wider than 200in does not exist, and a negative one
+  // would sail straight into the area multiplication.
+  const dimsOk = (n: unknown) => typeof n === "number" && Number.isFinite(n) && n > 0 && n <= 200;
+  if (projectType !== "tshirt_quilt" && (!dimsOk(widthIn) || !dimsOk(heightIn))) {
+    return c.json({ error: "Enter the quilt's width and height in inches" }, 400);
+  }
+
+  let settings: Record<string, unknown> = {};
+  try { settings = JSON.parse(tenant.settings_json || "{}"); } catch { settings = {}; }
+  const rates = ((settings.longarm as LongarmRates) || {}) as LongarmRates;
+
+  const ballpark = computeEstimate(
+    {
+      projectType,
+      widthIn: dimsOk(widthIn) ? widthIn : undefined,
+      heightIn: dimsOk(heightIn) ? heightIn : undefined,
+      serviceLevel: intake.serviceLevel === "custom" ? "custom" : "edge_to_edge",
+      batting: !!intake.batting,
+      thread: !!intake.thread,
+      binding: !!intake.binding,
+      backingPrep: !!intake.backingPrep,
+      rush: !!intake.rush,
+      blockCount: Number(intake.blockCount) || undefined,
+    },
+    rates
+  );
+
+  // Allocate the reference. UPSERT-then-read keeps the counter monotonic
+  // without a transaction, which D1 does not offer across statements.
+  await c.env.DB.prepare(
+    `INSERT INTO project_counters (tenant_id, next_number) VALUES (?, 1)
+     ON CONFLICT(tenant_id) DO UPDATE SET next_number = next_number + 1`
+  ).bind(tenant.id).run();
+  const counter = await first<{ next_number: number }>(
+    c.env.DB.prepare(`SELECT next_number FROM project_counters WHERE tenant_id = ?`)
+      .bind(tenant.id)
+  );
+  const reference = buildReference(rates.referencePrefix, tenant.slug, counter?.next_number ?? 1);
+
+  const token = mintAccessToken();
+  const tokenHash = await hashToken(token);
+  const id = generateId();
+  const now = new Date().toISOString();
+  const expires = new Date(Date.now() + 90 * 24 * 3600 * 1000).toISOString();
+
+  // The row commits BEFORE any email is attempted. A Resend outage must never
+  // lose a customer's submission.
+  await c.env.DB.prepare(
+    `INSERT INTO projects
+       (id, tenant_id, project_type, status, reference, customer_name, customer_email,
+        customer_phone, intake_json, subtotal_cents, total_cents,
+        access_token_hash, token_expires_at, created_at, updated_at)
+     VALUES (?, ?, ?, 'submitted', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  )
+    .bind(
+      id, tenant.id, projectType, reference, name, email,
+      String(body.customer_phone || "").slice(0, 50) || null,
+      JSON.stringify(intake),
+      ballpark.suppressed ? 0 : ballpark.subtotalCents,
+      ballpark.suppressed ? 0 : ballpark.totalCents,
+      tokenHash, expires, now, now
+    )
+    .run();
+
+  if (!ballpark.suppressed) {
+    for (let i = 0; i < ballpark.lines.length; i++) {
+      const l = ballpark.lines[i];
+      await c.env.DB.prepare(
+        `INSERT INTO project_lines
+           (id, project_id, kind, description, quantity, unit_cents, amount_cents, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(generateId(), id, l.kind, l.description, l.quantity, l.unitCents, l.amountCents, i).run();
+    }
+  }
+
+  // Acknowledgement only. The ballpark is NEVER emailed as a price — it is
+  // shown on screen to convert a browsing visitor, and only the estimate
+  // Linda has reviewed goes out.
+  await sendEmail(c.env, {
+    to: email,
+    subject: `We received your quilt request (${reference})`,
+    html: `<p>Thanks ${escapeHtml(name)} — we have your request, reference <strong>${reference}</strong>.</p>
+           <p>We'll review the details and send your estimate shortly.</p>`,
+  }).catch(() => undefined);
+
+  const ownerEmail = (settings.business as { email?: string } | undefined)?.email;
+  if (ownerEmail) {
+    await sendEmail(c.env, {
+      to: ownerEmail,
+      subject: `New ${projectType.replace("_", " ")} intake — ${reference}`,
+      html: `<p>${escapeHtml(name)} (${escapeHtml(email)}) submitted ${reference}.</p>`,
+    }).catch(() => undefined);
+  }
+
+  return c.json({
+    ok: true,
+    reference,
+    ballpark: {
+      suppressed: ballpark.suppressed,
+      total_cents: ballpark.totalCents,
+      lines: ballpark.lines,
+    },
+  });
+});
 
 /**
  * GET /public/_host — resolve tenant from Host (custom domain or subdomain).
