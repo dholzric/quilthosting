@@ -53,7 +53,7 @@ describe("agreement snapshot", () => {
       project: PROJECT,
     });
     // Same snapshot but with consent section stripped (removes trailing blank + CONSENT_TEXT)
-    const snapWithoutConsent = snap.slice(0, snap.lastIndexOf("\n\n"));
+    const snapWithoutConsent = snap.slice(0, snap.lastIndexOf(CONSENT_TEXT));
     expect(await sha256Hex(snap)).not.toBe(await sha256Hex(snapWithoutConsent));
   });
 
