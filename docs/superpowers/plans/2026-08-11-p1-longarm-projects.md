@@ -55,7 +55,7 @@ Every task's requirements implicitly include this section.
 
 | File | Change |
 |---|---|
-| `src/types/index.ts` | Add `Project`, `ProjectLine`, `AgreementSignature` row types |
+| `src/types.ts` | Add `Project`, `ProjectLine`, `AgreementSignature` row types |
 | `src/index.ts:369` | Mount `projectRoutes` on `tenantApp` |
 | `src/routes/public.ts` | Intake POST, photo upload POST, rate limits |
 | `src/routes/site.ts` | `/quote/<token>` GET and sign POST, before the page-slug lookup |
