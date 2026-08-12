@@ -143,4 +143,83 @@ describe("agreement snapshot", () => {
     // MAX_SAFE_INTEGER is 9007199254740991 cents = $90071992547409.91
     expect(snap).toContain("$90071992547409.91");
   });
+
+  describe("lines (Task 10 fix round 1, Important #1)", () => {
+    it("omitting lines entirely produces the exact same snapshot as before -- backward compatible", () => {
+      const withLines = buildAgreementSnapshot({ title: "T", body: "B", project: PROJECT });
+      const withoutLinesArg = buildAgreementSnapshot({ title: "T", body: "B", project: PROJECT });
+      expect(withLines).toBe(withoutLinesArg);
+      expect(withLines).not.toContain("Line items:");
+    });
+
+    it("an empty lines array is distinguishable from omitted lines -- states '(none)' explicitly", () => {
+      const snap = buildAgreementSnapshot({ title: "T", body: "B", project: PROJECT, lines: [] });
+      expect(snap).toContain("Line items:");
+      expect(snap).toContain("(none)");
+    });
+
+    it("includes each line's raw integer cents, not a dollar-formatted string", async () => {
+      const snap = buildAgreementSnapshot({
+        title: "T",
+        body: "B",
+        project: PROJECT,
+        lines: [{ description: "Edge to edge quilting", quantity: 1, unitCents: 5000, amountCents: 5000 }],
+      });
+      expect(snap).toContain("Edge to edge quilting");
+      expect(snap).toContain("unit_cents 5000");
+      expect(snap).toContain("amount_cents 5000");
+      // Not formatted as a dollar string anywhere in the line-item row.
+      expect(snap).not.toMatch(/amount_cents \$/);
+    });
+
+    it("changes the hash when a line's amount changes but the total is held constant -- the exact re-itemise attack", async () => {
+      const before = buildAgreementSnapshot({
+        title: "T",
+        body: "B",
+        project: PROJECT,
+        lines: [
+          { description: "Edge to edge quilting", quantity: 1, unitCents: 8000, amountCents: 8000 },
+          { description: "Rush discount", quantity: 1, unitCents: -4500, amountCents: -4500 },
+        ],
+      });
+      const after = buildAgreementSnapshot({
+        title: "T",
+        body: "B",
+        project: PROJECT, // same totalCents
+        lines: [
+          { description: "Custom quilting", quantity: 1, unitCents: 3500, amountCents: 3500 },
+        ],
+      });
+      expect(await sha256Hex(before)).not.toBe(await sha256Hex(after));
+    });
+
+    it("preserves ordering -- reordering the same two lines changes the hash", async () => {
+      const a = buildAgreementSnapshot({
+        title: "T", body: "B", project: PROJECT,
+        lines: [
+          { description: "First", quantity: 1, unitCents: 100, amountCents: 100 },
+          { description: "Second", quantity: 1, unitCents: 200, amountCents: 200 },
+        ],
+      });
+      const b = buildAgreementSnapshot({
+        title: "T", body: "B", project: PROJECT,
+        lines: [
+          { description: "Second", quantity: 1, unitCents: 200, amountCents: 200 },
+          { description: "First", quantity: 1, unitCents: 100, amountCents: 100 },
+        ],
+      });
+      expect(await sha256Hex(a)).not.toBe(await sha256Hex(b));
+    });
+
+    it("throws TypeError when a line's unitCents is fractional -- integer cents only", () => {
+      expect(() => {
+        buildAgreementSnapshot({
+          title: "T",
+          body: "B",
+          project: PROJECT,
+          lines: [{ description: "Bad", quantity: 1, unitCents: 10.5, amountCents: 10 }],
+        });
+      }).toThrow(TypeError);
+    });
+  });
 });

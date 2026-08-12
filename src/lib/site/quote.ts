@@ -54,6 +54,27 @@ export function renderInvalidLink(tenant: Tenant): string {
   );
 }
 
+/**
+ * A valid, non-expired token whose project simply isn't signable right now
+ * -- a terminal status (cancelled/declined/already handled) or a blank
+ * agreement body. Renders a plain explanation instead of a sign form that
+ * would only reveal the problem after the customer fills it in and submits
+ * (Task 10 fix round 1, Minor findings 2 and 3). `message` is always a
+ * caller-supplied, customer-safe sentence -- never a raw internal status
+ * string or an assertTransition() error message.
+ */
+export function renderCannotSign(tenant: Tenant, project: Project, message: string): string {
+  return shell(
+    tenant,
+    `Estimate ${project.reference}`,
+    `<main class="qh-quote-main">
+<h1>Estimate ${escapeHtml(project.reference)}</h1>
+<p>${escapeHtml(message)}</p>
+<p>Please contact ${escapeHtml(tenant.name)} if you have questions.</p>
+</main>`
+  );
+}
+
 export function renderQuotePage(args: {
   tenant: Tenant;
   project: Project;
@@ -110,10 +131,20 @@ ${project.estimate_notes ? `<p class="qh-quote-notes">${escapeHtml(project.estim
         consent:f.consent.checked,
         agreement_sha256:f.agreement_sha256.value
       })
-    }).then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});})
+    }).then(function(r){return r.json().then(function(j){return {ok:r.ok,status:r.status,j:j};});})
       .then(function(res){
-        if(!res.ok){btn.disabled=false;s.textContent=res.j.error||'Something went wrong.';return;}
-        location.reload();
+        if(res.ok){location.reload();return;}
+        btn.disabled=false;
+        s.textContent=res.j.error||'Something went wrong.';
+        if(res.status===409){
+          // The agreement, the line items, or the project's status changed
+          // server-side between page load and submit. Self-heal by
+          // reloading automatically instead of asking the customer to do
+          // it themselves -- the reload always shows the current, correct
+          // state (a fresh hash, or the signed copy, or a terminal page).
+          s.textContent+=' Reloading…';
+          setTimeout(function(){location.reload();},1500);
+        }
       })
       .catch(function(){btn.disabled=false;s.textContent='Something went wrong. Please try again.';});
   });
@@ -123,20 +154,28 @@ ${project.estimate_notes ? `<p class="qh-quote-notes">${escapeHtml(project.estim
   );
 }
 
+/**
+ * Renders EXCLUSIVELY from the signature row -- no live `project_lines` or
+ * `project.total_cents` query result is accepted here (Task 10 fix round 1,
+ * Important #2). Those are mutable after signing (PUT /lines has no status
+ * guard), and `signature.agreement_text` already contains the frozen line
+ * items as of the moment of signing (buildAgreementSnapshot's `lines`
+ * argument, Important #1's fix). A page whose entire job is answering "what
+ * did I agree to" must not show numbers that can still change above the
+ * ones that can't.
+ */
 export function renderSignedCopy(args: {
   tenant: Tenant;
   project: Project;
-  lines: ProjectLine[];
   signature: AgreementSignature;
   baseUrl: string;
 }): string {
-  const { tenant, project, lines, signature } = args;
+  const { tenant, project, signature } = args;
   return shell(
     tenant,
     `Signed agreement ${project.reference}`,
     `<main class="qh-quote-main">
 <h1>Signed agreement ${escapeHtml(project.reference)}</h1>
-${linesTable(lines, project.total_cents)}
 <section class="qh-agreement"><h2>${escapeHtml(signature.agreement_title)}</h2>
 <pre class="qh-agreement-body">${escapeHtml(signature.agreement_text)}</pre></section>
 <section class="qh-signature">

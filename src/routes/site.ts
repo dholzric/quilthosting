@@ -7,15 +7,49 @@ import { all, first } from "../lib/db";
 import { renderPageHtml, readBranding } from "../lib/site/render";
 import { cachedRender } from "../lib/site/cache";
 import { tenantPublicBaseUrl } from "../lib/tenantHost";
-import { renderQuotePage, renderSignedCopy, renderInvalidLink } from "../lib/site/quote";
+import { renderQuotePage, renderSignedCopy, renderInvalidLink, renderCannotSign } from "../lib/site/quote";
 import { hashToken } from "../lib/projects/token";
 import { assertTransition } from "../lib/projects/status";
 import type { ProjectStatus } from "../lib/projects/types";
-import { buildAgreementSnapshot, CONSENT_TEXT } from "../lib/projects/agreement";
+import { buildAgreementSnapshot, CONSENT_TEXT, type AgreementSnapshotLine } from "../lib/projects/agreement";
 import { sha256Hex } from "../lib/projects/hash";
 import { sendEmail } from "../lib/email";
 import { escapeHtml } from "../lib/blocks";
 import { generateId } from "../lib/utils/id";
+
+// A shop that never finished configuring its agreement can't produce a
+// signable estimate -- shown on GET and enforced again on POST (Task 10 fix
+// round 1, Minor #3).
+const EMPTY_AGREEMENT_MESSAGE =
+  "This shop has not finished setting up a service agreement for this estimate yet. Please check back soon.";
+
+/**
+ * A customer-safe explanation for every project status other than
+ * 'estimated' -- the only status assertTransition() allows a transition to
+ * 'signed' from. Used both when rendering the GET page (so the sign form is
+ * never shown for a project that can't accept a signature) and inside
+ * signQuote's assertTransition catch block, so a customer is NEVER handed
+ * the raw internal string an Error("Illegal transition: a -> b") carries
+ * (Task 10 fix round 1, Minor #2).
+ */
+function cannotSignMessage(status: string): string {
+  switch (status) {
+    case "declined":
+      return "This estimate was declined and is no longer available for signature.";
+    case "cancelled":
+      return "This project was cancelled and is no longer available for signature.";
+    case "submitted":
+      return "This project has not been estimated yet. Please check back soon.";
+    case "signed":
+      return "This estimate has already been signed.";
+    case "in_progress":
+      return "This project is already in progress.";
+    case "completed":
+      return "This project has already been completed.";
+    default:
+      return "This estimate is not currently available for signature.";
+  }
+}
 
 type PageRow = {
   id: string;
@@ -203,14 +237,31 @@ export async function serveBusinessSite(
       ).bind(tokenHash, tenant.id)
     );
 
+    // Looked up BEFORE the expiry gate below, and only when a project was
+    // found. A signed project's customer must always be able to retrieve
+    // their own copy of what they agreed to -- the one thing this whole
+    // table exists to answer -- independent of the access token's normal
+    // 90-day TTL (Task 9's resend-link window). Without this reorder, the
+    // token going stale after a signature already exists would 404 the
+    // customer out of their own signed record forever (Task 10 fix round 1,
+    // Important #3).
+    const signature = project
+      ? await first<AgreementSignature>(
+          c.env.DB.prepare(
+            `SELECT * FROM agreement_signatures WHERE project_id = ? AND tenant_id = ?`
+          ).bind(project.id, tenant.id)
+        )
+      : null;
+
     const expired =
       !!project?.token_expires_at &&
       new Date(project.token_expires_at).getTime() < Date.now();
 
-    // Invalid and expired return the SAME response, same status. Distin-
-    // guishing them would let the endpoint be probed to learn which tokens
-    // exist (or existed).
-    if (!project || expired) {
+    // Invalid and expired-with-no-signature return the SAME response, same
+    // status. Distinguishing them would let the endpoint be probed to learn
+    // which tokens exist (or existed). Expired-WITH-a-signature is NOT
+    // folded into this branch -- see the comment above.
+    if (!project || (expired && !signature)) {
       return new Response(renderInvalidLink(tenant), {
         status: 404,
         headers: {
@@ -231,48 +282,66 @@ export async function serveBusinessSite(
       return signQuote(c, tenant, project, tokenHash);
     }
 
-    const lines = await all<ProjectLine>(
-      c.env.DB.prepare(
-        `SELECT * FROM project_lines WHERE project_id = ? ORDER BY sort_order`
-      ).bind(project.id)
-    );
-    const signature = await first<AgreementSignature>(
-      c.env.DB.prepare(
-        `SELECT * FROM agreement_signatures WHERE project_id = ? AND tenant_id = ?`
-      ).bind(project.id, tenant.id)
-    );
-
     let html: string;
     if (signature) {
-      html = renderSignedCopy({ tenant, project, lines, signature, baseUrl });
+      // Signed copy renders from the signature row alone -- see quote.ts's
+      // renderSignedCopy for why (Important #2). No project_lines query.
+      html = renderSignedCopy({ tenant, project, signature, baseUrl });
+    } else if (project.status !== "estimated") {
+      // A terminal (or not-yet-estimated) status can never legally reach
+      // 'signed' -- assertTransition() would refuse it anyway, but showing
+      // a full sign form the customer can fill in and submit only to be
+      // rejected on POST is a bad UX and, worse, an unnecessary place for an
+      // internal transition string to almost leak (Minor #2).
+      html = renderCannotSign(tenant, project, cannotSignMessage(project.status));
     } else {
-      // Hash the EXACT snapshot being rendered below, using the same
-      // buildAgreementSnapshot() call signQuote uses to rebuild it at POST
-      // time. The hash is round-tripped through a hidden form field so the
-      // POST can prove (see signQuote) that the text about to be signed
-      // matches what was on screen when the customer clicked -- not
-      // whatever happens to be live in settings by the time the request
-      // arrives.
       const { title: agreementTitle, body: agreementBody } = readAgreementFields(tenant);
-      const snapshot = buildAgreementSnapshot({
-        title: agreementTitle,
-        body: agreementBody,
-        project: {
-          reference: project.reference,
-          customerName: project.customer_name,
-          totalCents: project.total_cents,
-        },
-      });
-      const agreementSha256 = await sha256Hex(snapshot);
-      html = renderQuotePage({
-        tenant,
-        project,
-        lines,
-        baseUrl,
-        agreementTitle,
-        agreementBody,
-        agreementSha256,
-      });
+      if (!agreementBody.trim()) {
+        // A shop that never wrote terms has nothing for a customer to agree
+        // to -- refuse to render the signing form (Minor #3).
+        html = renderCannotSign(tenant, project, EMPTY_AGREEMENT_MESSAGE);
+      } else {
+        const lines = await all<ProjectLine>(
+          c.env.DB.prepare(
+            `SELECT * FROM project_lines WHERE project_id = ? ORDER BY sort_order`
+          ).bind(project.id)
+        );
+        // Hash the EXACT snapshot being rendered below, using the same
+        // buildAgreementSnapshot() call signQuote uses to rebuild it at POST
+        // time -- including the SAME line items, so a re-itemise between
+        // this render and the POST is caught the same way an edited
+        // agreement body is (Important #1). The hash is round-tripped
+        // through a hidden form field so the POST can prove (see signQuote)
+        // that the text about to be signed matches what was on screen when
+        // the customer clicked -- not whatever happens to be live by the
+        // time the request arrives.
+        const snapshotLines: AgreementSnapshotLine[] = lines.map((l) => ({
+          description: l.description,
+          quantity: l.quantity,
+          unitCents: l.unit_cents,
+          amountCents: l.amount_cents,
+        }));
+        const snapshot = buildAgreementSnapshot({
+          title: agreementTitle,
+          body: agreementBody,
+          project: {
+            reference: project.reference,
+            customerName: project.customer_name,
+            totalCents: project.total_cents,
+          },
+          lines: snapshotLines,
+        });
+        const agreementSha256 = await sha256Hex(snapshot);
+        html = renderQuotePage({
+          tenant,
+          project,
+          lines,
+          baseUrl,
+          agreementTitle,
+          agreementBody,
+          agreementSha256,
+        });
+      }
     }
 
     return new Response(html, {
@@ -371,15 +440,16 @@ export async function serveBusinessSite(
  * INSERT) is only a fast path for the common case -- a double-click or a
  * client retry -- and is deliberately NOT trusted to be race-free on its
  * own: two concurrent POSTs for the same project can both pass that SELECT
- * before either INSERT lands. This feature has already had three
+ * before either INSERT lands. This feature has already had four
  * check-then-act races land as bugs (the reference counter, the member
- * upsert in send-estimate, the intake_json optimistic-concurrency link), so
- * the actual guarantee here is the UNIQUE index on
- * agreement_signatures(project_id) plus `ON CONFLICT(project_id) DO NOTHING
- * RETURNING id`: exactly one concurrent request gets a row back and is the
- * one that performs the status transition and sends notifications. Every
- * other request -- whether it lost the pre-check or lost the INSERT itself
- * -- returns the same { ok: true, already_signed: true } response.
+ * upsert in send-estimate, the intake_json optimistic-concurrency link, and
+ * this endpoint's own INSERT-vs-UNIQUE-index race from fix round 1), so the
+ * actual guarantee here is the UNIQUE index on agreement_signatures
+ * (project_id) plus `ON CONFLICT(project_id) DO NOTHING RETURNING id`:
+ * exactly one concurrent request gets a row back and is the one that
+ * performs the status transition and sends notifications. Every other
+ * request -- whether it lost the pre-check or lost the INSERT itself --
+ * returns the same { ok: true, already_signed: true } response.
  */
 async function signQuote(
   c: Context<{ Bindings: Env }>,
@@ -405,19 +475,50 @@ async function signQuote(
 
   try {
     assertTransition(project.status as ProjectStatus, "signed");
-  } catch (err) {
-    return c.json({ error: (err as Error).message }, 409);
+  } catch {
+    // NEVER return the raw Error("Illegal transition: a -> b") string to an
+    // anonymous token holder -- it's an internal implementation detail, not
+    // customer-facing copy (Minor #2). cannotSignMessage() gives the same
+    // status-aware explanation the GET page would have shown instead of the
+    // sign form in the first place.
+    return c.json({ error: cannotSignMessage(project.status) }, 409);
   }
 
   const { title: agreementTitle, body: agreementBody } = readAgreementFields(tenant);
+  if (!agreementBody.trim()) {
+    // Mirrors the GET-side refusal (Minor #3): a shop with no configured
+    // terms has nothing for the customer to be signing.
+    return c.json({ error: EMPTY_AGREEMENT_MESSAGE }, 409);
+  }
 
-  // Rebuilt from whatever is live in tenant settings right now -- the same
-  // way the GET handler built it moments ago to render the page this POST
-  // is a response to. Those two builds are only guaranteed to match if
-  // nothing changed settings.longarm in between, which is exactly what the
-  // hash comparison below verifies before anything is persisted: the
-  // signature must attest to the text that was actually on screen, not to
-  // whatever happens to be live in settings by the time the request lands.
+  // Re-queried live, not trusted from whatever the GET rendered a moment
+  // ago -- exactly like agreementTitle/agreementBody above. A shop can
+  // re-itemise a project's line items (PUT /projects/:id/lines has no
+  // status guard) between the customer loading the page and clicking Sign;
+  // folding the live lines into the same snapshot/hash the GET page hashed
+  // is what makes that edit show up as a hash mismatch below instead of
+  // silently signing a different breakdown than the one on screen
+  // (Important #1).
+  const liveLines = await all<ProjectLine>(
+    c.env.DB.prepare(
+      `SELECT * FROM project_lines WHERE project_id = ? ORDER BY sort_order`
+    ).bind(project.id)
+  );
+  const snapshotLines: AgreementSnapshotLine[] = liveLines.map((l) => ({
+    description: l.description,
+    quantity: l.quantity,
+    unitCents: l.unit_cents,
+    amountCents: l.amount_cents,
+  }));
+
+  // Rebuilt from whatever is live in tenant settings AND live project_lines
+  // right now -- the same way the GET handler built it moments ago to
+  // render the page this POST is a response to. Those two builds are only
+  // guaranteed to match if nothing changed settings.longarm or the line
+  // items in between, which is exactly what the hash comparison below
+  // verifies before anything is persisted: the signature must attest to the
+  // text (and the pricing breakdown) that was actually on screen, not to
+  // whatever happens to be live by the time the request lands.
   const snapshot = buildAgreementSnapshot({
     title: agreementTitle,
     body: agreementBody,
@@ -426,17 +527,19 @@ async function signQuote(
       customerName: project.customer_name,
       totalCents: project.total_cents,
     },
+    lines: snapshotLines,
   });
   const hash = await sha256Hex(snapshot);
 
   // Fail closed, same discipline as the price gate: a missing or malformed
   // submitted hash is treated as a mismatch, never as "no opinion, sign
-  // whatever is live". This is what turns "the shop edited the agreement
-  // between page load and click" from a silent, undetectable gap into a
-  // rejected request the customer is told to reload and re-review. It
-  // proves the text hashed is the text that was rendered to the browser --
-  // it does not, and cannot, prove the human actually read it before
-  // clicking Sign; that is not a claim any server-side check can make.
+  // whatever is live". This is what turns "the shop edited the agreement (or
+  // re-itemised the lines) between page load and click" from a silent,
+  // undetectable gap into a rejected request the customer's browser
+  // automatically reloads to re-review. It proves the text hashed is the
+  // text that was rendered to the browser -- it does not, and cannot, prove
+  // the human actually read it before clicking Sign; that is not a claim
+  // any server-side check can make.
   const submittedHash =
     typeof body.agreement_sha256 === "string" ? body.agreement_sha256.trim() : "";
   if (!submittedHash || submittedHash !== hash) {
@@ -451,31 +554,52 @@ async function signQuote(
 
   const now = new Date().toISOString();
 
-  const inserted = await first<{ id: string }>(
-    c.env.DB.prepare(
-      `INSERT INTO agreement_signatures
-         (id, tenant_id, project_id, signer_name, signer_email, consent_text,
-          agreement_title, agreement_text, agreement_sha256, signing_token_hash,
-          signer_ip, signer_user_agent, signed_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(project_id) DO NOTHING
-       RETURNING id`
-    ).bind(
-      generateId(),
-      tenant.id,
-      project.id,
-      signerName,
-      project.customer_email,
-      CONSENT_TEXT,
-      agreementTitle,
-      snapshot,
-      hash,
-      tokenHash,
-      c.req.header("cf-connecting-ip") || null,
-      (c.req.header("user-agent") || "").slice(0, 500) || null,
-      now
-    )
+  const insertStmt = c.env.DB.prepare(
+    `INSERT INTO agreement_signatures
+       (id, tenant_id, project_id, signer_name, signer_email, consent_text,
+        agreement_title, agreement_text, agreement_sha256, signing_token_hash,
+        signer_ip, signer_user_agent, signed_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(project_id) DO NOTHING
+     RETURNING id`
+  ).bind(
+    generateId(),
+    tenant.id,
+    project.id,
+    signerName,
+    project.customer_email,
+    CONSENT_TEXT,
+    agreementTitle,
+    snapshot,
+    hash,
+    tokenHash,
+    c.req.header("cf-connecting-ip") || null,
+    (c.req.header("user-agent") || "").slice(0, 500) || null,
+    now
   );
+
+  const updateStmt = c.env.DB.prepare(
+    // The status predicate is load-bearing twice over (Important #4, the
+    // feature's FIFTH check-then-act race): it's what stops an owner's
+    // concurrent cancel/decline -- landing between this request's earlier
+    // assertTransition() read and this write -- from being silently
+    // reverted back to 'signed' underneath them, and it's what keeps this
+    // statement SAFE to run unconditionally in the same batch as the INSERT
+    // even when the INSERT no-ops for a race loser: DO NOTHING'd INSERT +
+    // WHERE-guarded UPDATE are each independently self-correct regardless of
+    // whether the other one actually changed anything this time.
+    `UPDATE projects SET status = 'signed', signed_at = ?, updated_at = ?
+     WHERE id = ? AND tenant_id = ? AND status = 'estimated'`
+  ).bind(now, now, project.id, tenant.id);
+
+  // Run together as ONE batch/transaction, not as two sequential round
+  // trips. Sequential calls left a window where the INSERT could commit and
+  // the UPDATE could then fail (worker eviction, transient D1 error) --
+  // leaving a permanently-orphaned signature attached to a project stuck in
+  // 'estimated', because every later POST short-circuits on the `existing`
+  // pre-check above and never revisits the status write.
+  const [insertResult] = await c.env.DB.batch<{ id: string }>([insertStmt, updateStmt]);
+  const inserted = insertResult.results[0] ?? null;
 
   if (!inserted) {
     // Lost the race at the database level: some other concurrent request's
@@ -485,17 +609,22 @@ async function signQuote(
     return c.json({ ok: true, already_signed: true });
   }
 
-  await c.env.DB.prepare(
-    `UPDATE projects SET status = 'signed', signed_at = ?, updated_at = ?
-     WHERE id = ? AND tenant_id = ?`
-  )
-    .bind(now, now, project.id, tenant.id)
-    .run();
-
+  // The customer's own permanent copy, independent of any link surviving:
+  // full agreement text (already includes the line items, per Important
+  // #1) plus the fingerprint that proves it hasn't been altered since. If
+  // this email is lost, the signed page itself remains reachable forever
+  // now (Important #3's expiry-gate fix) -- but the shop should not be the
+  // only party holding a durable copy.
+  const requestUrl = new URL(c.req.url);
+  const quoteUrl = `${requestUrl.origin}${requestUrl.pathname.replace(/\/sign$/, "")}`;
   await sendEmail(c.env, {
     to: project.customer_email,
     subject: `Signed — ${project.reference}`,
-    html: `<p>Thank you. Your agreement for ${escapeHtml(project.reference)} is signed.</p>`,
+    html: `<p>Thank you. Your agreement for ${escapeHtml(project.reference)} is signed.</p>
+<p>For your records, here is the complete agreement you signed:</p>
+<pre style="white-space:pre-wrap;font-family:inherit;border:1px solid #ddd;padding:12px">${escapeHtml(snapshot)}</pre>
+<p>Document fingerprint (SHA-256): <code>${escapeHtml(hash)}</code></p>
+<p><a href="${escapeHtml(quoteUrl)}">View your signed agreement online</a></p>`,
   }).catch(() => undefined);
 
   let settings: Record<string, unknown> = {};

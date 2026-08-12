@@ -67,6 +67,13 @@ type State = {
   lines: Map<string, ProjectLine[]>;
   signatures: Map<string, AgreementSignature>;
   updateCalls: number;
+  // Test-only hook for the Important #4 race: when set, the FIRST read of a
+  // project by access_token_hash returns a plain snapshot (what the request
+  // "saw" at read time) and then immediately flips the LIVE row's status to
+  // this value -- simulating a concurrent owner action (cancel/decline)
+  // landing between this request's read and its eventual guarded UPDATE.
+  raceStatusFlipTo?: string;
+  raceStatusFlipApplied?: boolean;
 };
 
 function makeState(project?: Project, lines: ProjectLine[] = []): State {
@@ -79,91 +86,132 @@ function makeState(project?: Project, lines: ProjectLine[] = []): State {
   return { projects, lines: linesMap, signatures: new Map(), updateCalls: 0 };
 }
 
-/** A fake D1 that enforces the same shapes/uniqueness the real schema does. */
+/**
+ * A fake D1 that enforces the same shapes/uniqueness the real schema does,
+ * including real `.batch()` semantics: each statement in a batch executes
+ * against the SAME live state, in order, exactly like signQuote's
+ * [INSERT ... ON CONFLICT DO NOTHING RETURNING id, UPDATE ... AND status =
+ * 'estimated'] pair is meant to. `execStatement` is the single place that
+ * knows how to run a (sql, binds) pair; `.first()/.all()/.run()` and
+ * `.batch()` are all thin wrappers over it so there is exactly one
+ * implementation of "what each statement does" to keep in sync with
+ * src/routes/site.ts.
+ */
 function makeDb(state: State): D1Database {
+  function execStatement(sql: string, binds: unknown[]): { results: unknown[] } {
+    if (sql.includes("FROM projects WHERE access_token_hash")) {
+      const [tokenHash, tenantId] = binds as [string, string];
+      for (const p of state.projects.values()) {
+        if (p.access_token_hash === tokenHash && p.tenant_id === tenantId) {
+          const snapshot = { ...p };
+          if (state.raceStatusFlipTo && !state.raceStatusFlipApplied) {
+            p.status = state.raceStatusFlipTo;
+            state.raceStatusFlipApplied = true;
+          }
+          return { results: [snapshot] };
+        }
+      }
+      return { results: [] };
+    }
+    if (sql.includes("FROM project_lines")) {
+      const projectId = binds[0] as string;
+      return { results: state.lines.get(projectId) ?? [] };
+    }
+    if (sql.includes("FROM agreement_signatures WHERE project_id")) {
+      const [projectId, tenantId] = binds as [string, string];
+      const sig = state.signatures.get(projectId);
+      return { results: sig && sig.tenant_id === tenantId ? [sig] : [] };
+    }
+    if (sql.includes("INSERT INTO agreement_signatures")) {
+      const [
+        id,
+        tenantId,
+        projectId,
+        signerName,
+        signerEmail,
+        consentText,
+        agreementTitle,
+        agreementText,
+        agreementSha256,
+        signingTokenHash,
+        signerIp,
+        signerUa,
+        signedAt,
+      ] = binds as string[];
+      // ON CONFLICT(project_id) DO NOTHING: a row already present for this
+      // project_id means the real UNIQUE index would have silently skipped
+      // this insert, so RETURNING yields no row.
+      if (state.signatures.has(projectId)) return { results: [] };
+      const row: AgreementSignature = {
+        id,
+        tenant_id: tenantId,
+        project_id: projectId,
+        signer_name: signerName,
+        signer_email: signerEmail,
+        consent_text: consentText,
+        agreement_title: agreementTitle,
+        agreement_text: agreementText,
+        agreement_sha256: agreementSha256,
+        signing_token_hash: signingTokenHash,
+        signer_ip: signerIp,
+        signer_user_agent: signerUa,
+        signed_at: signedAt,
+      };
+      state.signatures.set(projectId, row);
+      return { results: [row] };
+    }
+    if (sql.includes("UPDATE projects SET status = 'signed'")) {
+      const [signedAt, updatedAt, projectId, tenantId] = binds as string[];
+      const p = state.projects.get(projectId);
+      // Derived from the ACTUAL SQL TEXT signQuote sent, not a guard this
+      // mock imposes unconditionally -- if the production query ever drops
+      // "AND status = 'estimated'", this mock stops requiring it too, so
+      // Important #4's regression test genuinely exercises the real query
+      // string rather than passing regardless of what site.ts sends. A real
+      // SQLite/D1 WHERE clause behaves the same way: the predicate is part
+      // of the statement, not a side-channel the caller enforces itself.
+      const hasStatusGuard = sql.includes("AND status = 'estimated'");
+      const statusOk = !hasStatusGuard || p?.status === "estimated";
+      if (p && p.tenant_id === tenantId && statusOk) {
+        p.status = "signed";
+        p.signed_at = signedAt;
+        p.updated_at = updatedAt;
+        state.updateCalls++;
+        return { results: [{ id: projectId }] };
+      }
+      return { results: [] };
+    }
+    return { results: [] };
+  }
+
   return {
     prepare(sql: string) {
       return {
         bind(...binds: unknown[]) {
           return {
+            __sql: sql,
+            __binds: binds,
             async first<T>(): Promise<T | null> {
-              if (sql.includes("FROM projects WHERE access_token_hash")) {
-                const [tokenHash, tenantId] = binds as [string, string];
-                for (const p of state.projects.values()) {
-                  if (p.access_token_hash === tokenHash && p.tenant_id === tenantId) {
-                    return p as unknown as T;
-                  }
-                }
-                return null;
-              }
-              if (sql.includes("FROM agreement_signatures WHERE project_id")) {
-                const [projectId, tenantId] = binds as [string, string];
-                const sig = state.signatures.get(projectId);
-                return sig && sig.tenant_id === tenantId ? (sig as unknown as T) : null;
-              }
-              if (sql.includes("INSERT INTO agreement_signatures")) {
-                const [
-                  id,
-                  tenantId,
-                  projectId,
-                  signerName,
-                  signerEmail,
-                  consentText,
-                  agreementTitle,
-                  agreementText,
-                  agreementSha256,
-                  signingTokenHash,
-                  signerIp,
-                  signerUa,
-                  signedAt,
-                ] = binds as string[];
-                // ON CONFLICT(project_id) DO NOTHING: a row already present
-                // for this project_id means the real UNIQUE index would have
-                // silently skipped this insert, so RETURNING yields no row.
-                if (state.signatures.has(projectId)) return null;
-                const row: AgreementSignature = {
-                  id,
-                  tenant_id: tenantId,
-                  project_id: projectId,
-                  signer_name: signerName,
-                  signer_email: signerEmail,
-                  consent_text: consentText,
-                  agreement_title: agreementTitle,
-                  agreement_text: agreementText,
-                  agreement_sha256: agreementSha256,
-                  signing_token_hash: signingTokenHash,
-                  signer_ip: signerIp,
-                  signer_user_agent: signerUa,
-                  signed_at: signedAt,
-                };
-                state.signatures.set(projectId, row);
-                return row as unknown as T;
-              }
-              return null;
+              const { results } = execStatement(sql, binds);
+              return (results[0] as T) ?? null;
             },
             async all<T>(): Promise<D1Result<T>> {
-              if (sql.includes("FROM project_lines")) {
-                const projectId = binds[0] as string;
-                return { results: (state.lines.get(projectId) ?? []) as unknown as T[] } as D1Result<T>;
-              }
-              return { results: [] } as unknown as D1Result<T>;
+              const { results } = execStatement(sql, binds);
+              return { results: results as T[] } as D1Result<T>;
             },
             async run() {
-              if (sql.includes("UPDATE projects SET status = 'signed'")) {
-                const [signedAt, updatedAt, projectId, tenantId] = binds as string[];
-                const p = state.projects.get(projectId);
-                if (p && p.tenant_id === tenantId) {
-                  p.status = "signed";
-                  p.signed_at = signedAt;
-                  p.updated_at = updatedAt;
-                  state.updateCalls++;
-                }
-              }
+              execStatement(sql, binds);
               return { success: true } as D1Result;
             },
           };
         },
       };
+    },
+    async batch<T>(stmts: Array<{ __sql: string; __binds: unknown[] }>): Promise<D1Result<T>[]> {
+      return stmts.map((s) => {
+        const { results } = execStatement(s.__sql, s.__binds);
+        return { success: true, meta: {}, results: results as T[] } as D1Result<T>;
+      });
     },
   } as unknown as D1Database;
 }
@@ -250,6 +298,45 @@ describe("GET /quote/:token — unknown vs. expired tokens are indistinguishable
     expect(await expiredRes.text()).toBe(await unknownRes.text());
     expect(expiredRes.headers.get("Referrer-Policy")).toBe(unknownRes.headers.get("Referrer-Policy"));
     expect(expiredRes.headers.get("X-Robots-Tag")).toBe(unknownRes.headers.get("X-Robots-Tag"));
+    // Asserting equality between the two responses alone would pass even if
+    // BOTH sides were null/missing headers (Minor #1) -- pin the literal
+    // values on at least one side so a regression that silently drops the
+    // header on both paths is still caught.
+    expect(expiredRes.headers.get("Referrer-Policy")).toBe("no-referrer");
+    expect(expiredRes.headers.get("X-Robots-Tag")).toBe("noindex");
+  });
+
+  it("a token that expired AFTER the project was signed still shows the signed copy, not the invalid-link page (Important #3)", async () => {
+    const rawToken = mintAccessToken();
+    const tokenHash = await hashToken(rawToken);
+    const project = makeProject({
+      access_token_hash: tokenHash,
+      status: "signed",
+      token_expires_at: "2020-01-01T00:00:00.000Z", // long expired
+    });
+    const tenant = makeTenant();
+    const state = makeState(project);
+    state.signatures.set(project.id, {
+      id: "sig-1",
+      tenant_id: tenant.id,
+      project_id: project.id,
+      signer_name: "Jane Customer",
+      signer_email: project.customer_email,
+      consent_text: "I have read this agreement and I agree to be bound by it.",
+      agreement_title: "Service Agreement",
+      agreement_text: "Service Agreement\n\nStandard terms.",
+      agreement_sha256: "deadbeef",
+      signing_token_hash: tokenHash,
+      signer_ip: null,
+      signer_user_agent: null,
+      signed_at: "2026-08-05T00:00:00.000Z",
+    });
+    const { app, env } = harness(tenant, state);
+    const res = await app.request(`http://stitchstudioquilting.test/quote/${rawToken}`, {}, env);
+    expect(res.status).toBe(200);
+    const body = await res.text();
+    expect(body).toContain("Signed agreement");
+    expect(body).not.toContain("This link is no longer valid");
   });
 
   it("a valid token for a DIFFERENT tenant's host is treated as invalid, not found-but-wrong-tenant", async () => {
@@ -327,6 +414,43 @@ describe("GET /quote/:token — valid token", () => {
     const res = await app.request(`http://stitchstudioquilting.test/quote/${rawToken}/sign`, {}, env);
     expect(res.status).toBe(405);
   });
+
+  it("a cancelled project shows a terminal-state page, not a fillable sign form (Minor #2)", async () => {
+    const rawToken = mintAccessToken();
+    const tokenHash = await hashToken(rawToken);
+    const project = makeProject({ access_token_hash: tokenHash, status: "cancelled" });
+    const tenant = makeTenant();
+    const state = makeState(project);
+    const { app, env } = harness(tenant, state);
+    const res = await app.request(`http://stitchstudioquilting.test/quote/${rawToken}`, {}, env);
+    expect(res.status).toBe(200);
+    const body = await res.text();
+    expect(body).not.toContain("Sign agreement");
+    expect(body).not.toContain('name="signer_name"');
+    expect(body).toContain("cancelled");
+    // No raw internal transition-machine vocabulary leaked to the customer.
+    expect(body).not.toContain("Illegal transition");
+  });
+
+  it("a blank agreement body refuses to render the signing form (Minor #3)", async () => {
+    const rawToken = mintAccessToken();
+    const tokenHash = await hashToken(rawToken);
+    const project = makeProject({ access_token_hash: tokenHash });
+    const tenant = makeTenant({
+      settings_json: JSON.stringify({
+        longarm: { agreementTitle: "Service Agreement", agreementBody: "   " }, // blank/whitespace-only
+        business: { email: "owner@stitchstudio.test" },
+      }),
+    });
+    const state = makeState(project);
+    const { app, env } = harness(tenant, state);
+    const res = await app.request(`http://stitchstudioquilting.test/quote/${rawToken}`, {}, env);
+    expect(res.status).toBe(200);
+    const body = await res.text();
+    expect(body).not.toContain("Sign agreement");
+    expect(body).not.toContain('name="signer_name"');
+    expect(body).toContain("has not finished setting up a service agreement");
+  });
 });
 
 describe("POST /quote/:token/sign — validation", () => {
@@ -362,7 +486,7 @@ describe("POST /quote/:token/sign — validation", () => {
     expect(state.signatures.size).toBe(0);
   });
 
-  it("refuses to sign a project whose status makes 'signed' an illegal transition", async () => {
+  it("refuses to sign a project whose status makes 'signed' an illegal transition, WITHOUT leaking the raw transition string", async () => {
     const rawToken = mintAccessToken();
     const tokenHash = await hashToken(rawToken);
     // "submitted" has no legal transition straight to "signed" (status.ts).
@@ -373,6 +497,39 @@ describe("POST /quote/:token/sign — validation", () => {
     const res = await app.request(
       `http://stitchstudioquilting.test/quote/${rawToken}/sign`,
       { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ signer_name: "Jane", consent: true }) },
+      env
+    );
+    expect(res.status).toBe(409);
+    expect(state.signatures.size).toBe(0);
+    const json = (await res.json()) as { error?: string };
+    // Minor #2: assertTransition()'s own Error("Illegal transition: a -> b")
+    // must never reach an anonymous token holder.
+    expect(json.error).not.toContain("Illegal transition");
+    expect(json.error).not.toContain("->");
+  });
+
+  it("refuses to sign when the agreement body is blank (Minor #3)", async () => {
+    const rawToken = mintAccessToken();
+    const tokenHash = await hashToken(rawToken);
+    const project = makeProject({ access_token_hash: tokenHash });
+    const tenant = makeTenant({
+      settings_json: JSON.stringify({
+        longarm: { agreementTitle: "Service Agreement", agreementBody: "" },
+        business: { email: "owner@stitchstudio.test" },
+      }),
+    });
+    const state = makeState(project);
+    const { app, env } = harness(tenant, state);
+    const res = await app.request(
+      `http://stitchstudioquilting.test/quote/${rawToken}/sign`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // No agreement_sha256 could ever be valid here anyway (the GET page
+        // itself refuses to render a form with a hash), but this pins the
+        // POST-side refusal independently of what the GET does.
+        body: JSON.stringify({ signer_name: "Jane", consent: true, agreement_sha256: "irrelevant" }),
+      },
       env
     );
     expect(res.status).toBe(409);
@@ -443,6 +600,46 @@ describe("POST /quote/:token/sign — idempotency and the fourth check-then-act 
     // one status transition, regardless of how the two requests interleaved.
     expect(state.signatures.size).toBe(1);
     expect(state.updateCalls).toBe(1);
+  });
+
+  it("a status change landing between the read and the write is NOT silently overwritten back to 'signed' (Important #4, the fifth check-then-act race)", async () => {
+    const rawToken = mintAccessToken();
+    const tokenHash = await hashToken(rawToken);
+    const project = makeProject({ access_token_hash: tokenHash });
+    const tenant = makeTenant();
+    const state = makeState(project);
+    const { app, env } = harness(tenant, state);
+    const agreement_sha256 = await getRenderedAgreementHash(app, env, rawToken);
+
+    // Simulates an owner cancelling the project through the admin API in
+    // the window between this request's read of `project.status` (used by
+    // assertTransition, which therefore still sees 'estimated' and lets the
+    // request proceed) and the guarded UPDATE that runs moments later. See
+    // makeDb's `raceStatusFlipTo` hook: it flips the LIVE row the instant
+    // the project is read for this POST.
+    state.raceStatusFlipTo = "cancelled";
+
+    const res = await app.request(
+      `http://stitchstudioquilting.test/quote/${rawToken}/sign`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ signer_name: "Jane Customer", consent: true, agreement_sha256 }),
+      },
+      env
+    );
+    // The signing customer still gets a normal success response -- their
+    // signature IS real and IS recorded (the INSERT has no status
+    // dependency). What must NOT happen is the UPDATE clobbering the
+    // concurrent cancellation.
+    expect(res.status).toBe(200);
+    expect(state.signatures.size).toBe(1);
+    // The authoritative assertion: status stayed 'cancelled'. The naive,
+    // unguarded `UPDATE projects SET status = 'signed' WHERE id = ? AND
+    // tenant_id = ?` (no status predicate) would have silently reverted
+    // this back to 'signed'.
+    expect(state.projects.get(project.id)!.status).toBe("cancelled");
+    expect(state.updateCalls).toBe(0);
   });
 
   it("the stored agreement_sha256 is provably the hash of the stored agreement_text on a real signed row", async () => {
@@ -532,6 +729,42 @@ describe("POST /quote/:token/sign — the customer can only sign the text they a
     expect(state.projects.get(project.id)!.status).toBe("estimated");
   });
 
+  it("a line-item change between render and sign is rejected even though the TOTAL is unchanged (Important #1)", async () => {
+    const rawToken = mintAccessToken();
+    const tokenHash = await hashToken(rawToken);
+    const project = makeProject({ access_token_hash: tokenHash, total_cents: 8000 });
+    const tenant = makeTenant();
+    const state = makeState(project, [
+      { id: "line-1", project_id: project.id, kind: "service", description: "Edge to edge quilting", quantity: 1, unit_cents: 8000, amount_cents: 8000, sort_order: 0 },
+    ]);
+    const { app, env } = harness(tenant, state);
+    const agreement_sha256 = await getRenderedAgreementHash(app, env, rawToken);
+
+    // The shop re-itemises between render and sign: same total (8000), but
+    // now split across two different line items with a different rush
+    // charge/discount structure -- exactly the attack the coordinator
+    // described. Only the lines changed; title/body/total did not.
+    state.lines.set(project.id, [
+      { id: "line-2", project_id: project.id, kind: "service", description: "Custom quilting", quantity: 1, unit_cents: 8500, amount_cents: 8500, sort_order: 0 },
+      { id: "line-3", project_id: project.id, kind: "discount", description: "Adjustment", quantity: 1, unit_cents: -500, amount_cents: -500, sort_order: 1 },
+    ]);
+
+    const res = await app.request(
+      `http://stitchstudioquilting.test/quote/${rawToken}/sign`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ signer_name: "Jane Customer", consent: true, agreement_sha256 }),
+      },
+      env
+    );
+    expect(res.status).toBe(409);
+    const json = (await res.json()) as { error?: string };
+    expect(json.error).toMatch(/reload/i);
+    expect(state.signatures.size).toBe(0);
+    expect(state.projects.get(project.id)!.status).toBe("estimated");
+  });
+
   it("a MISSING agreement_sha256 field is rejected with 409 (fail closed), and writes no row", async () => {
     const rawToken = mintAccessToken();
     const tokenHash = await hashToken(rawToken);
@@ -608,5 +841,57 @@ describe("POST /quote/:token/sign — customer-supplied signer_name never reache
     const html = await viewRes.text();
     expect(html).not.toContain("<script>alert(1)</script>");
     expect(html).toContain("&lt;script&gt;");
+  });
+});
+
+describe("POST /quote/:token/sign — the customer's own permanent copy (Important #3)", () => {
+  it("the confirmation email includes the full agreement text (with line items) and the fingerprint", async () => {
+    const rawToken = mintAccessToken();
+    const tokenHash = await hashToken(rawToken);
+    const project = makeProject({ access_token_hash: tokenHash });
+    const tenant = makeTenant();
+    const state = makeState(project, [
+      { id: "line-1", project_id: project.id, kind: "service", description: "Edge to edge quilting", quantity: 1, unit_cents: 5000, amount_cents: 5000, sort_order: 0 },
+    ]);
+    const { app, env } = harness(tenant, state);
+    env.RESEND_API_KEY = "re_test";
+
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ id: "email-1" }), { status: 200 }));
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    let res: Response;
+    try {
+      const agreement_sha256 = await getRenderedAgreementHash(app, env, rawToken);
+      res = await app.request(
+        `http://stitchstudioquilting.test/quote/${rawToken}/sign`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ signer_name: "Jane Customer", consent: true, agreement_sha256 }),
+        },
+        env
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+
+    expect(res!.status).toBe(200);
+    const row = state.signatures.get(project.id);
+    expect(row).toBeTruthy();
+
+    const calls = fetchMock.mock.calls as unknown as [string, { body: string }][];
+    const customerCall = calls.find((call) => {
+      const parsed = JSON.parse(call[1].body) as { to: string[] };
+      return Array.isArray(parsed.to) && parsed.to.includes(project.customer_email);
+    });
+    expect(customerCall).toBeTruthy();
+    const emailBody = JSON.parse(customerCall![1].body) as { html: string };
+    // The frozen document itself -- which, per Important #1's fix, already
+    // contains the line items -- not just a one-line "you signed" notice.
+    expect(emailBody.html).toContain("Edge to edge quilting");
+    expect(emailBody.html).toContain("Line items:");
+    // The fingerprint, matching what actually got persisted.
+    expect(emailBody.html).toContain(row!.agreement_sha256);
   });
 });
