@@ -521,6 +521,12 @@ VALUES ('${HTML_FILE_ID}', '${TENANT}', '${TENANT}/${HTML_FILE_ID}/payload.html'
       html.status === 404, `got ${html.status}`);
   }
 
+  // Hoisted out of the block below so the site-builder editor section near
+  // the end of this file can reuse the same owner-scoped Authorization
+  // header instead of registering and tenant-linking a second harness user.
+  // Assigned once, inside that block, immediately after the token is proved.
+  let ownerAuth = null;
+
   console.log("\nCache invalidation on Business Details save (Fix 1: tenant.updated_at folded into the cache key):");
   {
     // Real PATCH /api/tenants/:id round trip -- not a direct SQL write to
@@ -561,6 +567,7 @@ DELETE FROM tenant_users WHERE tenant_id = '${TENANT}' AND user_id = '${userId}'
 INSERT INTO tenant_users (tenant_id, user_id, role) VALUES ('${TENANT}', '${userId}', 'owner');
 `);
     const auth = { Authorization: `Bearer ${jwt}`, "Content-Type": "application/json" };
+    ownerAuth = auth;
 
     const before = await req(HOST, "/");
     check("precondition: home page still carries the ORIGINAL phone number before the save",
@@ -730,6 +737,280 @@ VALUES ('lvl_bs_free', '${TENANT}', 'Free Plan', 0, 12, 'manual', 'active');
       join.json?.status === "active", JSON.stringify(join.json));
     check("join response is not the plan_limit error code",
       join.json?.code !== "plan_limit", JSON.stringify(join.json));
+  }
+
+  // ---------------------------------------------------------------------
+  // Closes the one `[~]` item in the plan's Definition of Done. Tasks 13-14
+  // shipped the site-builder panels (pages, blocks, appearance, nav, domain)
+  // with no end-to-end assertion behind them -- only Business Details and the
+  // launch toggle were covered. Every check below drives the SAME endpoint
+  // public/qh-site-builder.js calls from the owner's browser, with the same
+  // body shape, and then asserts the PUBLIC RENDER changed. Asserting the API
+  // returned 200 alone would be near-worthless here: the POST /pages handler
+  // has a catch-fallback that silently re-inserts WITHOUT blocks_json, so a
+  // status-only check would pass on a page whose content had been dropped.
+  //
+  // Placed last among the HTTP sections on purpose: it mutates theme, nav,
+  // pages, and custom_domain, and the "Guild theme compatibility" section
+  // above pins theme.primary to the seeded #8a2060. Each sub-block still
+  // restores what it touched, but the ordering means a restore bug surfaces
+  // as a failure here rather than as a confusing failure in an earlier
+  // section that has nothing to do with the site builder.
+  // ---------------------------------------------------------------------
+  console.log("\nSite builder editor round trips (Tasks 13-14: pages, blocks, appearance, nav, domain):");
+  {
+    const PAGE_SLUG = "harness-services";
+    const HERO_V1 = "HARNESS-HERO-V1-longarm";
+    const HERO_V2 = "HARNESS-HERO-V2-edited";
+    const TEXT_V1 = "HARNESS-TEXT-V1-body-copy";
+    const SEO_TITLE = "Harness SEO Title For Services";
+    const SEO_DESC = "Harness SEO description for the services page.";
+
+    check("precondition: an owner-scoped token is available from the section above",
+      !!ownerAuth, "ownerAuth was never assigned");
+
+    // ---- Pages: create -------------------------------------------------
+    const created = await reqJson(HOST, `/api/tenants/${TENANT}/pages`, {
+      method: "POST",
+      headers: ownerAuth,
+      body: JSON.stringify({
+        title: "Harness Services",
+        slug: PAGE_SLUG,
+        blocks: [
+          { type: "hero", title: HERO_V1, subtitle: "Edge to edge and custom" },
+          { type: "text", html: `<p>${TEXT_V1}</p>` },
+        ],
+        seo_title: SEO_TITLE,
+        seo_description: SEO_DESC,
+        noindex: false,
+        published: true,
+      }),
+    });
+    check("New page POST (the real 'New page' -> Save path) succeeds",
+      created.status === 200 || created.status === 201,
+      `got ${created.status} ${JSON.stringify(created.json).slice(0, 200)}`);
+    const pageId = created.json?.id || created.json?.page?.id;
+    check("the created page came back with an id", !!pageId,
+      JSON.stringify(created.json).slice(0, 200));
+
+    const rendered = await req(HOST, `/${PAGE_SLUG}`);
+    check("the new page is served at its own slug", rendered.status === 200,
+      `got ${rendered.status}`);
+    // This is the check that catches the POST handler's silent
+    // no-blocks_json fallback: the row would exist and 200, with no content.
+    check("the hero block the owner authored is in the rendered HTML",
+      rendered.body.includes(HERO_V1), rendered.body.slice(0, 1500));
+    check("the text block is rendered too (multi-block page, not just the first)",
+      rendered.body.includes(TEXT_V1), rendered.body.slice(0, 1500));
+    // Deliberately NOT `body.includes(SEO_TITLE)` with an `||` fallback: that
+    // string also appears in the meta description block, so the loose form
+    // would pass even if seo_title never reached <title> at all.
+    check("seo_title drives the <title> tag",
+      rendered.body.includes(`<title>${SEO_TITLE}`), rendered.body.slice(0, 800));
+    check("seo_description drives the meta description",
+      rendered.body.includes(SEO_DESC), rendered.body.slice(0, 800));
+
+    // ---- Blocks: edit an existing page ---------------------------------
+    // Also a second, independent proof that the page-level half of the
+    // cache key (pages.updated_at) invalidates -- the Business Details
+    // section above only exercised the tenant.updated_at half.
+    const edited = await reqJson(HOST, `/api/tenants/${TENANT}/pages/${pageId}`, {
+      method: "PATCH",
+      headers: ownerAuth,
+      body: JSON.stringify({
+        title: "Harness Services",
+        slug: PAGE_SLUG,
+        blocks: [{ type: "hero", title: HERO_V2, subtitle: "Edited" }],
+        seo_title: SEO_TITLE,
+        seo_description: SEO_DESC,
+        noindex: false,
+        published: true,
+      }),
+    });
+    check("Blocks edit PATCH succeeds", edited.status === 200,
+      `got ${edited.status} ${JSON.stringify(edited.json).slice(0, 200)}`);
+
+    const afterEdit = await req(HOST, `/${PAGE_SLUG}`);
+    check("the edited hero block is rendered", afterEdit.body.includes(HERO_V2),
+      afterEdit.body.slice(0, 1500));
+    check("the pre-edit block content is GONE (page-level cache invalidated)",
+      !afterEdit.body.includes(HERO_V1) && !afterEdit.body.includes(TEXT_V1),
+      afterEdit.body.slice(0, 1500));
+
+    // ---- Published toggle ----------------------------------------------
+    const unpub = await reqJson(HOST, `/api/tenants/${TENANT}/pages/${pageId}`, {
+      method: "PATCH",
+      headers: ownerAuth,
+      body: JSON.stringify({ published: false }),
+    });
+    check("unpublish PATCH succeeds", unpub.status === 200, `got ${unpub.status}`);
+    const whileUnpublished = await req(HOST, `/${PAGE_SLUG}`);
+    check("an unpublished page 404s to the public (published = 1 filter is real)",
+      whileUnpublished.status === 404, `got ${whileUnpublished.status}`);
+
+    const repub = await reqJson(HOST, `/api/tenants/${TENANT}/pages/${pageId}`, {
+      method: "PATCH",
+      headers: ownerAuth,
+      body: JSON.stringify({ published: true }),
+    });
+    check("re-publish PATCH succeeds", repub.status === 200, `got ${repub.status}`);
+    const afterRepub = await req(HOST, `/${PAGE_SLUG}`);
+    check("the re-published page is public again",
+      afterRepub.status === 200, `got ${afterRepub.status}`);
+
+    // ---- Appearance ----------------------------------------------------
+    // Capture the tenant's real settings first so theme AND nav below can be
+    // restored to exactly what the rest of this file expects.
+    const tenantBefore = await reqJson(HOST, `/api/tenants/${TENANT}`, { headers: ownerAuth });
+    let baseSettings = {};
+    try { baseSettings = JSON.parse(tenantBefore.json?.settings_json || "{}"); } catch { baseSettings = {}; }
+
+    const THEME_PRIMARY = "#123456";
+    const THEME_MUTED = "#654321";
+    const THEME_COLOR = "#0f0f0f";
+    const appearance = await reqJson(HOST, `/api/tenants/${TENANT}`, {
+      method: "PATCH",
+      headers: ownerAuth,
+      body: JSON.stringify({
+        settings: {
+          ...baseSettings,
+          theme: {
+            ...(baseSettings.theme || {}),
+            primary: THEME_PRIMARY,
+            textMuted: THEME_MUTED,
+            themeColor: THEME_COLOR,
+          },
+          fonts: { heading: "fraunces", body: "inter" },
+        },
+      }),
+    });
+    check("Save appearance PATCH succeeds", appearance.status === 200,
+      `got ${appearance.status} ${JSON.stringify(appearance.json).slice(0, 200)}`);
+
+    const themed = await req(HOST, "/");
+    check("the saved primary color reaches the inline :root custom properties",
+      themed.body.includes(`--color-primary:${THEME_PRIMARY}`), themed.body.slice(0, 2500));
+    // A token the seed never set: proves the whole token set is written from
+    // the save, not just the one field the fixture happened to carry.
+    check("a token the fixture never seeded (textMuted) is written from the save too",
+      themed.body.includes(`--color-text-muted:${THEME_MUTED}`), themed.body.slice(0, 2500));
+    check("themeColor drives <meta name=\"theme-color\">",
+      themed.body.includes(THEME_COLOR), themed.body.slice(0, 2500));
+    check("the pre-save primary color is gone from the render",
+      !themed.body.includes("--color-primary:#8a2060"), themed.body.slice(0, 2500));
+
+    // ---- Navigation ----------------------------------------------------
+    const NAV_LABEL = "Harness Nav Item";
+    const navSaved = await reqJson(HOST, `/api/tenants/${TENANT}`, {
+      method: "PATCH",
+      headers: ownerAuth,
+      body: JSON.stringify({
+        settings: {
+          ...baseSettings,
+          nav: [{ label: NAV_LABEL, href: `/${PAGE_SLUG}` }],
+        },
+      }),
+    });
+    check("Navigation save (part of the Business details panel) succeeds",
+      navSaved.status === 200, `got ${navSaved.status}`);
+
+    const withNav = await req(HOST, "/");
+    check("the explicit nav item is rendered in the site nav",
+      withNav.body.includes(NAV_LABEL) && withNav.body.includes(`href="/${PAGE_SLUG}"`),
+      withNav.body.slice(0, 3000));
+    check("the explicit nav is inside the <nav class=\"qh-site-nav\"> element",
+      /<nav class="qh-site-nav">[\s\S]*?Harness Nav Item[\s\S]*?<\/nav>/.test(withNav.body),
+      withNav.body.slice(0, 3000));
+
+    // Empty nav must fall back to listing published pages -- the admin panel
+    // documents that behavior ("Leave empty to list published pages
+    // automatically"), so it is part of the contract, not an implementation
+    // detail.
+    const navCleared = await reqJson(HOST, `/api/tenants/${TENANT}`, {
+      method: "PATCH",
+      headers: ownerAuth,
+      body: JSON.stringify({ settings: { ...baseSettings, nav: [] } }),
+    });
+    check("clearing the nav succeeds", navCleared.status === 200, `got ${navCleared.status}`);
+    const navFallback = await req(HOST, "/");
+    check("an empty nav falls back to auto-listing published pages",
+      navFallback.body.includes("Harness Services"), navFallback.body.slice(0, 3000));
+    check("the removed explicit nav label is no longer rendered",
+      !navFallback.body.includes(NAV_LABEL), navFallback.body.slice(0, 3000));
+
+    // Restore theme + nav to exactly the seeded settings object.
+    const restored = await reqJson(HOST, `/api/tenants/${TENANT}`, {
+      method: "PATCH",
+      headers: ownerAuth,
+      body: JSON.stringify({ settings: baseSettings }),
+    });
+    check("settings restored to the seeded fixture", restored.status === 200,
+      `got ${restored.status}`);
+    const afterRestore = await req(HOST, "/");
+    check("the seeded primary color is back after the restore",
+      afterRestore.body.includes("--color-primary:#8a2060"), afterRestore.body.slice(0, 2500));
+
+    // ---- Domain --------------------------------------------------------
+    // SAFE TO RUN: domain.ts calls provisionSaasDomain -> createSaasCustomHostname,
+    // which returns early with "CLOUDFLARE_API_TOKEN not configured" when that
+    // var is absent -- and it is absent from BOTH .dev.vars and wrangler.toml
+    // [vars] in this repo (verified). So no request ever reaches
+    // api.cloudflare.com and no real SaaS hostname is created by this test.
+    // The assertion on saas.www.ok below is what keeps that true: if someone
+    // adds a live token to local config, this check FAILS loudly instead of
+    // quietly provisioning a bogus hostname on the real zone.
+    const TEST_DOMAIN = "harness-domain-check.test";
+    const domainSaved = await reqJson(HOST, `/api/tenants/${TENANT}/domain`, {
+      method: "PUT",
+      headers: ownerAuth,
+      body: JSON.stringify({ domain: TEST_DOMAIN }),
+    });
+    check("Save domain PUT succeeds", domainSaved.status === 200,
+      `got ${domainSaved.status} ${JSON.stringify(domainSaved.json).slice(0, 200)}`);
+    check("the response echoes the normalized custom domain",
+      domainSaved.json?.custom_domain === TEST_DOMAIN,
+      JSON.stringify(domainSaved.json?.custom_domain));
+    check("SAFETY: no live Cloudflare token in local config, so no real SaaS hostname was created",
+      domainSaved.json?.saas?.www?.ok === false &&
+        /CLOUDFLARE_API_TOKEN not configured/.test(domainSaved.json?.saas?.www?.error || ""),
+      JSON.stringify(domainSaved.json?.saas));
+    check("the owner still gets DNS instructions to act on despite the failed provision",
+      !!domainSaved.json?.dns && !!domainSaved.json?.cname_target,
+      JSON.stringify(domainSaved.json?.dns).slice(0, 200));
+
+    // The real proof the save took effect: host-based tenant routing follows
+    // the new domain, and stops answering on the old one.
+    const onNewDomain = await req(TEST_DOMAIN, "/");
+    check("the site is served on the newly saved domain", onNewDomain.status === 200,
+      `got ${onNewDomain.status}`);
+    check("the site on the new domain is this tenant's site",
+      onNewDomain.body.includes("Stitch Studio Quilting"), onNewDomain.body.slice(0, 800));
+    const onOldDomain = await req(HOST, "/");
+    check("the previous host no longer resolves to this tenant (it is gated, not served)",
+      onOldDomain.status === 401, `got ${onOldDomain.status}`);
+
+    // Restore -- everything after this point, including the fixture cleanup
+    // in the finally block, expects HOST to be this tenant's domain.
+    const domainRestored = await reqJson(TEST_DOMAIN, `/api/tenants/${TENANT}/domain`, {
+      method: "PUT",
+      headers: ownerAuth,
+      body: JSON.stringify({ domain: HOST }),
+    });
+    check("domain restored to the fixture host", domainRestored.status === 200,
+      `got ${domainRestored.status} ${JSON.stringify(domainRestored.json).slice(0, 200)}`);
+    const backOnHost = await req(HOST, "/");
+    check("the original host serves the site again after the restore",
+      backOnHost.status === 200, `got ${backOnHost.status}`);
+
+    // ---- Pages: delete -------------------------------------------------
+    const deleted = await reqJson(HOST, `/api/tenants/${TENANT}/pages/${pageId}`, {
+      method: "DELETE",
+      headers: ownerAuth,
+    });
+    check("page DELETE succeeds", deleted.status === 200 || deleted.status === 204,
+      `got ${deleted.status}`);
+    const afterDelete = await req(HOST, `/${PAGE_SLUG}`);
+    check("the deleted page 404s", afterDelete.status === 404, `got ${afterDelete.status}`);
   }
 
   // Stop the HTTP worker before the renewals check below: that check opens

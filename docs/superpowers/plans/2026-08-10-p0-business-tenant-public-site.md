@@ -3418,15 +3418,23 @@ git push origin main
 
 ## Definition of done
 
-Verified 2026-08-11 on branch `p0-business-tenant` at `330cac1`.
+Verified 2026-08-11 on branch `p0-business-tenant` at `330cac1`, and re-verified after
+the site-builder coverage was added (see the last bullet).
 
 - [x] `npx tsc --noEmit` clean. — exit 0.
 - [x] `npx vitest run` green — grew past the planned 9 files: **18 test files, 232 assertions**, all passing.
-- [x] `npm run test:business-site` green — "All checks passed", 57 assertions.
+- [x] `npm run test:business-site` green — "All checks passed", **93 assertions** (was 57; +36 for the site-builder editor round trips).
 - [x] The five pre-existing `npm run test:*` scripts still pass (regression check on guilds). — `scale`, `integrations`, `idempotency`, `import`, `delivery` all exit 0.
 - [x] A launched business tenant serves server-rendered, indexable HTML on its own hostname. — home 200, server-rendered, theme custom properties, `LocalBusiness` json-ld, not noindexed; sitemap and robots correct.
 - [x] Uploaded images serve from `/img/:fileId` on the tenant host, and a file id from another tenant 404s. — plus content-type fidelity, `nosniff`, immutable cache, and a `text/html`-typed same-tenant file 404s rather than serving.
-- [~] The owner can edit pages, blocks, appearance, business details, nav, domain, and the launch toggle without touching the database. — **partially automated.** Business Details save is asserted through the real admin PATCH path (including cache invalidation), and the launch toggle is exercised by the gate matrix. Pages, blocks, appearance, nav, and domain editing are implemented (Tasks 13-14) but have no end-to-end assertion; they still need a manual admin pass before the client sees it.
+- [x] The owner can edit pages, blocks, appearance, business details, nav, domain, and the launch toggle without touching the database. — **now fully automated.** Business Details save is asserted through the real admin PATCH path (including cache invalidation) and the launch toggle through the gate matrix, as before. The remaining five panels are covered by the "Site builder editor round trips" section added to `scripts/verify-business-site.mjs` on 2026-08-11: every check drives the exact endpoint and body shape `public/qh-site-builder.js` sends from the owner's browser, then asserts the **public render** changed — not merely that the API returned 200.
+  - *Pages*: create → served at its own slug with both authored blocks, `seo_title` in `<title>`, `seo_description` in the meta; unpublish → 404; re-publish → 200; delete → 404.
+  - *Blocks*: PATCH → new block rendered **and** the pre-edit content gone, which independently proves the page-level half of the cache key (`pages.updated_at`) invalidates — the Business Details check only ever exercised the `tenant.updated_at` half.
+  - *Appearance*: saved tokens reach the inline `:root` custom properties, including one (`textMuted`) the fixture never seeded, plus `<meta name="theme-color">`; then restored, with the restore itself asserted.
+  - *Nav*: explicit items render inside `<nav class="qh-site-nav">`; clearing the nav falls back to auto-listing published pages, as the panel's help text promises.
+  - *Domain*: PUT → host-based routing follows the new domain (new host serves this tenant, old host goes back to 401), then restores.
+  - **Not vacuous — proven by mutation.** Two deliberate regressions were introduced and reverted: forcing `loadNav`'s explicit branch empty failed exactly the 2 nav checks; forcing the `POST /pages` insert to drop `blocks_json` (simulating its silent catch-fallback) failed exactly the 2 block-render checks. A status-only test suite would have passed both times.
+  - **Cloudflare safety.** The domain check reaches `provisionSaasDomain`, which no-ops because `CLOUDFLARE_API_TOKEN` is absent from both `.dev.vars` and `wrangler.toml [vars]` — so no request reaches `api.cloudflare.com` and no real SaaS hostname is created. That is *asserted*, not assumed: the check requires `saas.www.ok === false` with the "not configured" error, so if anyone adds a live token to local config the suite fails loudly instead of quietly provisioning a bogus hostname on the real zone.
 - [x] `quilthosting.com`, `/admin`, `/portal`, and unlaunched tenants all still return 401 behind the gate. — full gate matrix passes, including "a guild is never launch-exempt".
 - [x] An existing guild site renders unchanged through `guild.html`. — `/public/<slug>/site` reachable, legacy `theme.primary` preserved, full token set emitted.
 - [x] `package.json` version is `0.32.0-preview`. Branch push: see below.
