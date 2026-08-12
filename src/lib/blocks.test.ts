@@ -40,6 +40,23 @@ describe("parseBlocks — new business blocks", () => {
     expect(b).toMatchObject({ type: "contact_form", formSlug: "contact" });
   });
 
+  it("parses a project intake block", () => {
+    const [b] = parseBlocks([
+      { type: "project_intake", projectType: "tshirt_quilt", heading: "Get a quote", submitLabel: "Send it" },
+    ]);
+    expect(b).toMatchObject({
+      type: "project_intake",
+      projectType: "tshirt_quilt",
+      heading: "Get a quote",
+      submitLabel: "Send it",
+    });
+  });
+
+  it("falls back an invalid project_intake projectType to longarm", () => {
+    const [b] = parseBlocks([{ type: "project_intake", projectType: "not_a_real_type" }]);
+    expect(b).toMatchObject({ type: "project_intake", projectType: "longarm" });
+  });
+
   it("still drops unknown types", () => {
     expect(parseBlocks([{ type: "definitely_not_a_block" }])).toHaveLength(0);
   });
@@ -76,6 +93,14 @@ describe("blocksToHtml — escaping", () => {
     expect(html).not.toContain("<script>alert(1)</script>");
   });
 
+  it("escapes project_intake heading and submitLabel into their data- attributes", () => {
+    const html = blocksToHtml(parseBlocks([
+      { type: "project_intake", projectType: "longarm", heading: XSS, submitLabel: XSS },
+    ]));
+    expect(html).not.toContain("<img src=x");
+    expect(html).toContain("&lt;img");
+  });
+
   it("still passes the raw html block through untouched", () => {
     // Deliberate: owner-authored embed escape hatch, already length-capped.
     const html = blocksToHtml(parseBlocks([{ type: "html", html: "<iframe src='https://youtube.com'></iframe>" }]));
@@ -90,7 +115,7 @@ describe("block type lists", () => {
   });
 
   it("offers every new block to businesses", () => {
-    for (const t of ["hero", "service_cards", "gallery_grid", "faq", "testimonials", "contact_form"]) {
+    for (const t of ["hero", "service_cards", "gallery_grid", "faq", "testimonials", "contact_form", "project_intake"]) {
       expect(BUSINESS_BLOCK_TYPES, t).toContain(t);
     }
   });

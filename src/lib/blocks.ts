@@ -16,7 +16,8 @@ export type PageBlock =
   | { type: "gallery_grid"; items: { url: string; alt?: string; caption?: string }[] }
   | { type: "faq"; items: { q: string; a: string }[] }
   | { type: "testimonials"; items: { quote: string; author?: string }[] }
-  | { type: "contact_form"; formSlug: string; submitLabel?: string };
+  | { type: "contact_form"; formSlug: string; submitLabel?: string }
+  | { type: "project_intake"; projectType: string; heading?: string; submitLabel?: string };
 
 export type SiteTheme = {
   primary?: string;
@@ -148,6 +149,16 @@ export function parseBlocks(raw: unknown): PageBlock[] {
           type: "contact_form",
           formSlug: String(b.formSlug || "contact").slice(0, 100),
           submitLabel: String(b.submitLabel || "Send").slice(0, 60),
+        });
+        break;
+      case "project_intake":
+        out.push({
+          type: "project_intake",
+          projectType: ["longarm", "custom_quilt", "tshirt_quilt"].includes(String(b.projectType))
+            ? String(b.projectType)
+            : "longarm",
+          heading: String(b.heading || "Request a quote").slice(0, 120),
+          submitLabel: String(b.submitLabel || "Get my estimate").slice(0, 60),
         });
         break;
       default:
@@ -285,6 +296,18 @@ export function blocksToHtml(blocks: PageBlock[]): string {
           )}" data-submit-label="${escapeAttr(b.submitLabel || "Send")}"></div>`
         );
         break;
+      case "project_intake":
+        // Server-rendered placeholder, hydrated by public/qh-site.js against
+        // POST /public/:slug/projects/intake — the same shape contact_form
+        // already uses.
+        parts.push(
+          `<div class="qh-block-project-intake" data-project-type="${escapeAttr(
+            b.projectType
+          )}" data-heading="${escapeAttr(b.heading || "Request a quote")}" data-submit-label="${escapeAttr(
+            b.submitLabel || "Get my estimate"
+          )}"></div>`
+        );
+        break;
     }
   }
   return parts.join("\n");
@@ -405,8 +428,8 @@ function isCssUrlSafe(raw: string): boolean {
 /** Blocks offered in the admin picker for business tenants. */
 export const BUSINESS_BLOCK_TYPES = [
   "hero", "heading", "text", "image", "gallery_grid", "service_cards",
-  "faq", "testimonials", "contact_form", "button", "events_list",
-  "store_list", "divider", "spacer", "html",
+  "faq", "testimonials", "contact_form", "project_intake", "button",
+  "events_list", "store_list", "divider", "spacer", "html",
 ];
 
 /** Blocks that only make sense for a membership organisation. */

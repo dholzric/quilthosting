@@ -61,4 +61,91 @@
     });
     node.appendChild(form);
   });
+  document.querySelectorAll(".qh-block-project-intake").forEach(function (node) {
+    var projectType = node.getAttribute("data-project-type") || "longarm";
+    var form = el("form", "card");
+    form.appendChild(el("h3", "", node.getAttribute("data-heading") || "Request a quote"));
+
+    var name = el("input"); name.name = "name"; name.placeholder = "Your name"; name.required = true;
+    var email = el("input"); email.type = "email"; email.placeholder = "Your email"; email.required = true;
+    var phone = el("input"); phone.placeholder = "Phone (optional)";
+    form.appendChild(name); form.appendChild(email); form.appendChild(phone);
+
+    var width = el("input"); width.type = "number"; width.min = "1"; width.max = "200";
+    width.placeholder = "Quilt width (inches)";
+    var height = el("input"); height.type = "number"; height.min = "1"; height.max = "200";
+    height.placeholder = "Quilt height (inches)";
+    var blocks = el("input"); blocks.type = "number"; blocks.min = "1";
+    blocks.placeholder = "How many T-shirt blocks?";
+
+    if (projectType === "tshirt_quilt") {
+      form.appendChild(blocks);
+    } else {
+      form.appendChild(width); form.appendChild(height);
+    }
+
+    var level = document.createElement("select");
+    [["edge_to_edge", "Edge to edge"], ["custom", "Custom quilting"]].forEach(function (pair) {
+      var o = document.createElement("option");
+      o.value = pair[0]; o.textContent = pair[1];
+      level.appendChild(o);
+    });
+    if (projectType !== "tshirt_quilt") form.appendChild(level);
+
+    var addons = {};
+    [["batting", "Batting"], ["thread", "Thread"], ["binding", "Binding"],
+     ["backingPrep", "Backing preparation"], ["rush", "Rush turnaround"]].forEach(function (pair) {
+      var wrap = el("label");
+      var cb = document.createElement("input"); cb.type = "checkbox";
+      addons[pair[0]] = cb;
+      wrap.appendChild(cb);
+      wrap.appendChild(document.createTextNode(" " + pair[1]));
+      form.appendChild(wrap);
+    });
+
+    var btn = el("button", "btn", node.getAttribute("data-submit-label") || "Get my estimate");
+    btn.type = "submit";
+    form.appendChild(btn);
+    var out = el("div", "muted");
+    form.appendChild(out);
+
+    form.addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      btn.disabled = true;
+      var intake = {
+        widthIn: Number(width.value) || undefined,
+        heightIn: Number(height.value) || undefined,
+        blockCount: Number(blocks.value) || undefined,
+        serviceLevel: level.value,
+      };
+      Object.keys(addons).forEach(function (k) { intake[k] = addons[k].checked; });
+      fetch("/public/" + encodeURIComponent(slug) + "/projects/intake", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          project_type: projectType,
+          customer_name: name.value,
+          customer_email: email.value,
+          customer_phone: phone.value,
+          intake: intake,
+        }),
+      }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+        .then(function (res) {
+          btn.disabled = false;
+          if (!res.ok) { out.textContent = res.j.error || "Something went wrong."; return; }
+          node.replaceChildren();
+          node.appendChild(el("h3", "", "Thanks — we have your request."));
+          node.appendChild(el("p", "", "Your reference is " + res.j.reference + "."));
+          // Suppressed means the rate table can't price this. Show NOTHING
+          // rather than $0 — a confident wrong price is worse than no price.
+          if (res.j.ballpark && !res.j.ballpark.suppressed) {
+            node.appendChild(el("p", "",
+              "Estimated ballpark: $" + (res.j.ballpark.total_cents / 100).toFixed(2)));
+            node.appendChild(el("p", "muted",
+              "This is an estimate only. We'll review the details and send your final quote."));
+          }
+        });
+    });
+    node.appendChild(form);
+  });
 })();
