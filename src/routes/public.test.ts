@@ -292,9 +292,13 @@ describe("POST /public/:slug/projects/:projectRef/photos", () => {
     opts: {
       tenantOverrides?: Record<string, unknown>;
       project?: { id: string } | null;
+      // 1-indexed: which call to "INSERT INTO files" should throw, to
+      // exercise the R2-write-succeeds/D1-insert-fails compensation path.
+      failFilesInsertOnCall?: number;
     } = {}
   ) {
     const dbWrites: { sql: string; binds: unknown[] }[] = [];
+    let filesInsertCalls = 0;
     const tenant = {
       id: TENANT_ID,
       slug: "stitchstudio",
@@ -322,6 +326,12 @@ describe("POST /public/:slug/projects/:projectRef/photos", () => {
                 return null;
               },
               async run() {
+                if (sql.includes("INSERT INTO files")) {
+                  filesInsertCalls++;
+                  if (filesInsertCalls === opts.failFilesInsertOnCall) {
+                    throw new Error("D1_ERROR: simulated insert failure");
+                  }
+                }
                 dbWrites.push({ sql, binds });
                 if (sql.includes("UPDATE projects SET intake_json")) {
                   currentIntakeJson = binds[0] as string;
@@ -338,17 +348,21 @@ describe("POST /public/:slug/projects/:projectRef/photos", () => {
     };
 
     const r2Puts: { key: string; bytes: Uint8Array }[] = [];
+    const r2Deletes: string[] = [];
     const FILES = {
       async put(key: string, bytes: Uint8Array) {
         r2Puts.push({ key, bytes: bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes) });
         return {};
+      },
+      async delete(key: string) {
+        r2Deletes.push(key);
       },
     };
 
     const app = new Hono<{ Bindings: Env }>();
     app.route("/", publicRoutes);
     const env = { DB: db, FILES } as unknown as Env;
-    return { app, env, dbWrites, r2Puts, getIntakeJson: () => currentIntakeJson };
+    return { app, env, dbWrites, r2Puts, r2Deletes, getIntakeJson: () => currentIntakeJson };
   }
 
   function postPhotos(
@@ -530,5 +544,76 @@ describe("POST /public/:slug/projects/:projectRef/photos", () => {
     );
     expect(second.status).toBe(200);
     expect(JSON.parse(getIntakeJson()).photoFileIds.length).toBe(5);
+  });
+
+  // FINDING A: a batch where a later file fails validation must not leave
+  // earlier files in the same batch orphaned in R2/D1. Validation (pass 1)
+  // now runs to completion for the whole batch before anything is written
+  // (pass 2), so this asserts on what was NOT written, not just the status
+  // code — that's the actual defect this closes.
+  it("leaves zero files rows and zero R2 objects when a later file in the batch fails sniffing", async () => {
+    const html = new TextEncoder().encode("<!DOCTYPE html><script>alert(1)</script>");
+    const { app, env, r2Puts, dbWrites } = photoHarness();
+    const res = await postPhotos(app, env, [
+      { name: "good1.png", type: "image/png", bytes: PNG_BYTES },
+      { name: "good2.png", type: "image/png", bytes: PNG_BYTES },
+      { name: "evil.png", type: "image/png", bytes: html },
+    ]);
+    expect(res.status).toBe(400);
+    expect(r2Puts.length).toBe(0);
+    expect(dbWrites.filter((w) => w.sql.includes("INSERT INTO files")).length).toBe(0);
+    expect(dbWrites.length).toBe(0);
+  });
+
+  it("leaves zero files rows and zero R2 objects when a later file exceeds the size cap", async () => {
+    const big = new Uint8Array(10 * 1024 * 1024 + 1);
+    big.set(PNG_BYTES);
+    const { app, env, r2Puts, dbWrites } = photoHarness();
+    const res = await postPhotos(app, env, [
+      { name: "good1.png", type: "image/png", bytes: PNG_BYTES },
+      { name: "toobig.png", type: "image/png", bytes: big },
+    ]);
+    expect(res.status).toBe(400);
+    expect(r2Puts.length).toBe(0);
+    expect(dbWrites.length).toBe(0);
+  });
+
+  // FINDING B: R2 write succeeds, D1 insert fails. The one object whose
+  // insert failed must be deleted (best-effort); the request must still
+  // fail. Not asserting a full-batch rollback — see task-8-report.md for
+  // the residue this deliberately leaves open (files already committed
+  // earlier in the same pass-2 loop, before the failing one, are not
+  // unwound).
+  it("deletes the R2 object it just wrote when the D1 insert for that file fails, and still fails the request", async () => {
+    const { app, env, r2Puts, r2Deletes, dbWrites } = photoHarness({
+      failFilesInsertOnCall: 1,
+    });
+    const res = await postPhotos(app, env, [
+      { name: "a.png", type: "image/png", bytes: PNG_BYTES },
+    ]);
+    expect(res.status).toBe(500);
+    expect(r2Puts.length).toBe(1);
+    expect(r2Deletes).toEqual([r2Puts[0].key]);
+    expect(dbWrites.filter((w) => w.sql.includes("INSERT INTO files")).length).toBe(0);
+  });
+
+  it("does not unwind files already committed earlier in the same batch when a later file's D1 insert fails", async () => {
+    // Documents the known residue: file 1 commits successfully (R2 + D1),
+    // file 2's D1 insert fails and its own R2 object is cleaned up, but
+    // file 1 is NOT rolled back. This is the batch-level limit stated in
+    // the coordinator's ruling, pinned here so a future change can't
+    // silently regress the compensation into a full rollback (or lose it
+    // entirely) without a test noticing either way.
+    const { app, env, r2Puts, r2Deletes, dbWrites } = photoHarness({
+      failFilesInsertOnCall: 2,
+    });
+    const res = await postPhotos(app, env, [
+      { name: "a.png", type: "image/png", bytes: PNG_BYTES },
+      { name: "b.png", type: "image/png", bytes: PNG_BYTES },
+    ]);
+    expect(res.status).toBe(500);
+    expect(r2Puts.length).toBe(2);
+    expect(r2Deletes).toEqual([r2Puts[1].key]);
+    expect(dbWrites.filter((w) => w.sql.includes("INSERT INTO files")).length).toBe(1);
   });
 });
