@@ -79,6 +79,8 @@
         <a href="#" data-page="site-theme" id="nav-site-theme" class="business-only hidden">Appearance</a>
         <a href="#" data-page="site-domain" id="nav-site-domain" class="business-only hidden">Domain &amp; Launch</a>
         <a href="#" data-page="site-identity" class="business-only hidden">Business details</a>
+        <a href="#" data-page="projects" class="business-only hidden">Projects</a>
+        <a href="#" data-page="project-rates" class="business-only hidden">Quilting rates</a>
         <a href="#" data-page="dashboard" class="active">Dashboard</a>
         <a href="#" data-page="members" data-members-label>Members</a>
         <a href="#" data-page="levels" class="guild-only">Levels</a>
@@ -113,6 +115,7 @@
   <script src="/qh-cal.js"></script>
   <script src="/qh-admin-ext.js"></script>
   <script src="/qh-site-builder.js"></script>
+  <script src="/qh-projects.js"></script>
   <script>
     const API = window.location.origin;
     let token = localStorage.getItem("gb_token");
@@ -412,6 +415,8 @@
         else if (page === "site-theme") await window.qhSiteBuilder.renderTheme(el);
         else if (page === "site-domain") await window.qhSiteBuilder.renderDomain(el);
         else if (page === "site-identity") await window.qhSiteBuilder.renderIdentity(el);
+        else if (page === "projects") await window.qhProjects.renderQueue(el);
+        else if (page === "project-rates") await window.qhProjects.renderRates(el);
         else if (page === "reports") await renderReports(el);
         else if (page === "sms") await renderSms(el);
         else if (page === "chapters") await renderChapters(el);
