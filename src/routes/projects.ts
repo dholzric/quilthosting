@@ -82,7 +82,13 @@ projectRoutes.get("/:projectId", async (c) => {
   if (!project) return c.json({ error: "Project not found" }, 404);
   const lines = await all<ProjectLine>(
     c.env.DB.prepare(
-      `SELECT * FROM project_lines WHERE project_id = ? ORDER BY sort_order`
+      // ", id" tiebreaker for consistency with the two signature-affecting
+      // ORDER BY sort_order queries in site.ts (F7) -- same class of gap,
+      // scoped out of F7 itself since a tie here can't 409 a signature, but
+      // there's no reason to leave one of three sort_order queries
+      // untiebroken for a future reader to puzzle over (final review
+      // closeout, item 3).
+      `SELECT * FROM project_lines WHERE project_id = ? ORDER BY sort_order, id`
     ).bind(project.id)
   );
   return c.json({ project: sanitizeProject(project), lines });

@@ -10,7 +10,7 @@ import { tenantPublicBaseUrl } from "../lib/tenantHost";
 import { renderQuotePage, renderSignedCopy, renderInvalidLink, renderCannotSign } from "../lib/site/quote";
 import { hashToken } from "../lib/projects/token";
 import { assertTransition } from "../lib/projects/status";
-import { buildGuardedStatusUpdate, guardedUpdateApplied } from "../lib/projects/statusWrite";
+import { buildGuardedStatusUpdate } from "../lib/projects/statusWrite";
 import type { ProjectStatus } from "../lib/projects/types";
 import { buildAgreementSnapshot, CONSENT_TEXT, type AgreementSnapshotLine } from "../lib/projects/agreement";
 import { sha256Hex } from "../lib/projects/hash";

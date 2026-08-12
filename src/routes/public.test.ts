@@ -20,6 +20,12 @@ function harness(
   const prepared: string[] = [];
   let counterValue = 0;
   let projectInsertAttempts = 0;
+  // Each call to db.batch() recorded as its own array of {sql} entries, so
+  // a test can assert statements arrived in ONE batch call together, not
+  // merely that they landed in `writes` in the right relative order (which
+  // the old sequential-.run() code would also have produced — final
+  // review, closeout item 1).
+  const batchCalls: { sql: string }[][] = [];
   const tenant = {
     id: TENANT_ID,
     slug: "stitchstudio",
@@ -35,6 +41,7 @@ function harness(
       return {
         bind(...binds: unknown[]) {
           return {
+            __sql: sql,
             async first() {
               if (sql.includes("FROM tenants")) return tenant;
               if (sql.includes("project_counters") && sql.includes("RETURNING")) {
@@ -80,7 +87,8 @@ function harness(
     // real D1 transaction rolling back — keeps this a single implementation
     // of "what a statement does" rather than a second copy of the collision
     // simulation logic above.
-    async batch(stmts: { run: () => Promise<unknown> }[]) {
+    async batch(stmts: { __sql?: string; run: () => Promise<unknown> }[]) {
+      batchCalls.push(stmts.map((s) => ({ sql: s.__sql ?? "" })));
       const results = [];
       for (const s of stmts) {
         results.push(await s.run());
@@ -95,7 +103,14 @@ function harness(
   // success:false and no network call when it's unset, so these tests never
   // need to mock fetch.
   const env = { DB: db } as unknown as Env;
-  return { app, writes, prepared, env, projectInsertAttempts: () => projectInsertAttempts };
+  return {
+    app,
+    writes,
+    prepared,
+    env,
+    projectInsertAttempts: () => projectInsertAttempts,
+    batchCalls: () => batchCalls,
+  };
 }
 
 function post(app: Hono<{ Bindings: Env }>, env: Env, body: unknown) {
@@ -224,14 +239,25 @@ describe("POST /public/:slug/projects/intake", () => {
     expect(projectInsertAttempts()).toBe(2);
   });
 
-  it("F5: the project row and its ballpark lines commit as a single atomic batch, not independent round trips", async () => {
+  it("F5: the project row and its ballpark lines commit as a single db.batch() call, not independent round trips", async () => {
     // final review, F5: the project INSERT used to commit on its own, with
     // the ballpark's line rows inserted afterward one .run() at a time. A
     // partial failure between them could leave lines summing to less than
     // the total_cents already committed on the project row -- and the
     // quote page reads lines from one write and the total from the other
     // before freezing both into the signature.
-    const { app, env, writes } = harness({
+    //
+    // Closeout item 1: the original version of this test only checked
+    // relative order inside `writes` (project insert's index < every line
+    // insert's index). That was true under the OLD sequential-.run() code
+    // too -- .run() calls still land in `writes` in call order whether or
+    // not they're wrapped in a batch -- so the assertion never actually
+    // discriminated the fix from its absence. This version instead counts
+    // db.batch() invocations directly and inspects the SQL of the
+    // statements handed to that one call, which only passes if the route
+    // genuinely called db.batch([projectInsertStmt, ...lineInsertStmts])
+    // rather than N+1 separate .run()s.
+    const { app, env, batchCalls } = harness({
       tenantOverrides: {
         settings_json: JSON.stringify({ longarm: { edgeToEdgeCentsPer100SqIn: 250 } }),
       },
@@ -243,17 +269,26 @@ describe("POST /public/:slug/projects/intake", () => {
       intake: { widthIn: 60, heightIn: 80 },
     });
     expect(res.status).toBe(200);
-    const projectInsert = writes.find((w) => w.sql.includes("INSERT INTO projects"));
-    const lineInserts = writes.filter((w) => w.sql.includes("INSERT INTO project_lines"));
-    expect(projectInsert).toBeDefined();
-    expect(lineInserts.length).toBeGreaterThan(0);
-    // Both statement kinds land in `writes` in the SAME batch call, project
-    // first then its lines -- matching the array order
-    // db.batch([projectInsertStmt, ...lineInsertStmts]) is called with (the
-    // harness's fake .batch() runs each statement's own .run() in that
-    // order, so this only holds if the route really passed them together).
-    const projectIdx = writes.indexOf(projectInsert!);
-    expect(lineInserts.every((w) => writes.indexOf(w) > projectIdx)).toBe(true);
+    const calls = batchCalls();
+    // Exactly one db.batch() call for the whole intake -- not zero (which
+    // would mean everything still ran as independent .run()s) and not more
+    // than one (which would mean the project write and its lines were
+    // split across separate batches, reopening the same partial-failure
+    // window this fix closes).
+    expect(calls.length).toBe(1);
+    const [stmts] = calls;
+    const projectIdx = stmts.findIndex((s) => s.sql.includes("INSERT INTO projects"));
+    const lineIdxs = stmts
+      .map((s, i) => ({ isLine: s.sql.includes("INSERT INTO project_lines"), i }))
+      .filter((x) => x.isLine)
+      .map((x) => x.i);
+    expect(projectIdx).toBeGreaterThanOrEqual(0);
+    // This ballpark (60x80 at 250 c/100sqin, no minimum/rush configured)
+    // produces exactly one line -- assert on that concrete count, not just
+    // "some," so a regression that dropped line inserts entirely (leaving
+    // the batch with only the project statement) would also be caught.
+    expect(lineIdxs.length).toBe(1);
+    expect(lineIdxs.every((i) => i > projectIdx)).toBe(true);
   });
 
   it("F5: a reference-collision retry leaves no orphaned line rows from the failed attempt", async () => {
