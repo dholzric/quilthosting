@@ -144,6 +144,15 @@
             node.appendChild(el("p", "muted",
               "This is an estimate only. We'll review the details and send your final quote."));
           }
+        })
+        .catch(function () {
+          // The fetch itself failed to complete — dropped connection, DNS
+          // failure, offline — as opposed to a completed response the server
+          // rejected (handled in the .then above). Distinct wording so the
+          // customer can tell "you said no" from "it never arrived", and the
+          // button is re-enabled so they are not stuck on a dead form.
+          btn.disabled = false;
+          out.textContent = "We couldn't send this — check your connection and try again.";
         });
     });
     node.appendChild(form);
