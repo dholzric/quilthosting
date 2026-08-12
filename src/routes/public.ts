@@ -51,6 +51,29 @@ async function getTenantBySlug(db: D1Database, slug: string) {
   );
 }
 
+// Everything stored in intake_json comes from exactly these keys — an
+// allowlist, not a filter — so an anonymous caller cannot smuggle arbitrary
+// extra keys or deeply nested structures into the row no matter what shape
+// body.intake arrives in.
+type SanitizedIntake = {
+  widthIn?: number;
+  heightIn?: number;
+  serviceLevel: "edge_to_edge" | "custom";
+  batting: boolean;
+  thread: boolean;
+  binding: boolean;
+  backingPrep: boolean;
+  rush: boolean;
+  blockCount?: number;
+};
+
+const MAX_INTAKE_RAW_BYTES = 8192;
+
+/** UTF-8 byte length (JS string .length is UTF-16 code units, not bytes). */
+function byteLength(s: string): number {
+  return new TextEncoder().encode(s).length;
+}
+
 // POST /public/:slug/projects/intake
 // Reachable unauthenticated on a launched business tenant's own host via
 // siteGate rule 4 (/public/<own-slug>/...), the same rule under which /join
@@ -79,16 +102,38 @@ publicRoutes.post("/:slug/projects/intake", async (c) => {
     ? (body.project_type as ProjectType)
     : null;
   const name = String(body.customer_name || "").trim().slice(0, 200);
-  const email = String(body.customer_email || "").trim().slice(0, 320);
+  // Lowercased for consistency with every other public write in this file
+  // (/join, /donate, /events/:id/register, /products/:id/buy, /cart/checkout,
+  // /forms/:slug all do this) — matters once send-estimate's case-insensitive
+  // member lookup creates a NEW member row from this value verbatim.
+  const email = String(body.customer_email || "").trim().toLowerCase().slice(0, 320);
   if (!projectType) return c.json({ error: "Choose a project type" }, 400);
   if (!name) return c.json({ error: "Name is required" }, 400);
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     return c.json({ error: "A valid email is required" }, 400);
   }
 
-  const intake = (body.intake && typeof body.intake === "object") ? body.intake : {};
-  const widthIn = Number(intake.widthIn);
-  const heightIn = Number(intake.heightIn);
+  const intakeRaw = (body.intake && typeof body.intake === "object") ? body.intake : {};
+  // Reject grossly oversized or padded intake payloads before doing any
+  // further work with them. Checked on the RAW parsed object rather than the
+  // sanitized one below: once stripped to the fixed allowlist of scalar
+  // fields, the sanitized object can never itself approach this size, so
+  // checking post-strip would be dead code. This is what actually stops an
+  // anonymous caller from making the worker serialize/store an unbounded
+  // blob — the allowlist stripping below is what stops arbitrary/nested
+  // KEYS from reaching storage; this stops an arbitrarily large one.
+  let intakeRawJson: string;
+  try {
+    intakeRawJson = JSON.stringify(intakeRaw);
+  } catch {
+    return c.json({ error: "Invalid intake details" }, 400);
+  }
+  if (byteLength(intakeRawJson) > MAX_INTAKE_RAW_BYTES) {
+    return c.json({ error: "Intake details are too large" }, 400);
+  }
+
+  const widthIn = Number(intakeRaw.widthIn);
+  const heightIn = Number(intakeRaw.heightIn);
   // Sane bounds: a quilt wider than 200in does not exist, and a negative one
   // would sail straight into the area multiplication.
   const dimsOk = (n: unknown) => typeof n === "number" && Number.isFinite(n) && n > 0 && n <= 200;
@@ -96,37 +141,37 @@ publicRoutes.post("/:slug/projects/intake", async (c) => {
     return c.json({ error: "Enter the quilt's width and height in inches" }, 400);
   }
 
+  // blockCount feeds a straight multiplication against a per-block rate with
+  // no other ceiling in computeEstimate, unlike width/height's 200in bound —
+  // an unbounded value here is the one numeric input that could reach the
+  // database unchecked. A caller that supplies one must supply a sane one;
+  // omitting it entirely is fine (tshirt_quilt without it just suppresses).
+  let blockCount: number | undefined;
+  if (intakeRaw.blockCount !== undefined && intakeRaw.blockCount !== null) {
+    const bc = Number(intakeRaw.blockCount);
+    if (!Number.isFinite(bc) || bc < 1 || bc > 500) {
+      return c.json({ error: "Block count must be between 1 and 500" }, 400);
+    }
+    blockCount = bc;
+  }
+
   let settings: Record<string, unknown> = {};
   try { settings = JSON.parse(tenant.settings_json || "{}"); } catch { settings = {}; }
   const rates = ((settings.longarm as LongarmRates) || {}) as LongarmRates;
 
-  const ballpark = computeEstimate(
-    {
-      projectType,
-      widthIn: dimsOk(widthIn) ? widthIn : undefined,
-      heightIn: dimsOk(heightIn) ? heightIn : undefined,
-      serviceLevel: intake.serviceLevel === "custom" ? "custom" : "edge_to_edge",
-      batting: !!intake.batting,
-      thread: !!intake.thread,
-      binding: !!intake.binding,
-      backingPrep: !!intake.backingPrep,
-      rush: !!intake.rush,
-      blockCount: Number(intake.blockCount) || undefined,
-    },
-    rates
-  );
+  const sanitizedIntake: SanitizedIntake = {
+    widthIn: dimsOk(widthIn) ? widthIn : undefined,
+    heightIn: dimsOk(heightIn) ? heightIn : undefined,
+    serviceLevel: intakeRaw.serviceLevel === "custom" ? "custom" : "edge_to_edge",
+    batting: !!intakeRaw.batting,
+    thread: !!intakeRaw.thread,
+    binding: !!intakeRaw.binding,
+    backingPrep: !!intakeRaw.backingPrep,
+    rush: !!intakeRaw.rush,
+    blockCount,
+  };
 
-  // Allocate the reference. UPSERT-then-read keeps the counter monotonic
-  // without a transaction, which D1 does not offer across statements.
-  await c.env.DB.prepare(
-    `INSERT INTO project_counters (tenant_id, next_number) VALUES (?, 1)
-     ON CONFLICT(tenant_id) DO UPDATE SET next_number = next_number + 1`
-  ).bind(tenant.id).run();
-  const counter = await first<{ next_number: number }>(
-    c.env.DB.prepare(`SELECT next_number FROM project_counters WHERE tenant_id = ?`)
-      .bind(tenant.id)
-  );
-  const reference = buildReference(rates.referencePrefix, tenant.slug, counter?.next_number ?? 1);
+  const ballpark = computeEstimate({ projectType, ...sanitizedIntake }, rates);
 
   const token = mintAccessToken();
   const tokenHash = await hashToken(token);
@@ -134,24 +179,64 @@ publicRoutes.post("/:slug/projects/intake", async (c) => {
   const now = new Date().toISOString();
   const expires = new Date(Date.now() + 90 * 24 * 3600 * 1000).toISOString();
 
-  // The row commits BEFORE any email is attempted. A Resend outage must never
-  // lose a customer's submission.
-  await c.env.DB.prepare(
-    `INSERT INTO projects
-       (id, tenant_id, project_type, status, reference, customer_name, customer_email,
-        customer_phone, intake_json, subtotal_cents, total_cents,
-        access_token_hash, token_expires_at, created_at, updated_at)
-     VALUES (?, ?, ?, 'submitted', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  )
-    .bind(
-      id, tenant.id, projectType, reference, name, email,
-      String(body.customer_phone || "").slice(0, 50) || null,
-      JSON.stringify(intake),
-      ballpark.suppressed ? 0 : ballpark.subtotalCents,
-      ballpark.suppressed ? 0 : ballpark.totalCents,
-      tokenHash, expires, now, now
-    )
-    .run();
+  // Allocate the reference with a single atomic RETURNING statement: the
+  // increment and the read of its new value happen as one D1 round trip, so
+  // there is no window between them for a concurrent submission to read the
+  // same next_number (the failure mode a two-statement UPSERT-then-SELECT
+  // has — verified against local D1 that RETURNING is supported and gives
+  // the atomically-incremented value back). Retried a bounded number of
+  // times so that IF a reference collision still somehow reaches the
+  // `projects` insert (e.g. a hand-edited counter row), the customer gets a
+  // fresh reference instead of an unhandled 500 losing their submission.
+  const MAX_REFERENCE_ATTEMPTS = 3;
+  let reference = "";
+  let inserted = false;
+  let lastInsertErr: unknown;
+  for (let attempt = 0; attempt < MAX_REFERENCE_ATTEMPTS && !inserted; attempt++) {
+    const counter = await first<{ next_number: number }>(
+      c.env.DB.prepare(
+        `INSERT INTO project_counters (tenant_id, next_number) VALUES (?, 1)
+         ON CONFLICT(tenant_id) DO UPDATE SET next_number = next_number + 1
+         RETURNING next_number`
+      ).bind(tenant.id)
+    );
+    reference = buildReference(rates.referencePrefix, tenant.slug, counter?.next_number ?? 1);
+
+    try {
+      // The row commits BEFORE any email is attempted. A Resend outage must
+      // never lose a customer's submission.
+      await c.env.DB.prepare(
+        `INSERT INTO projects
+           (id, tenant_id, project_type, status, reference, customer_name, customer_email,
+            customer_phone, intake_json, subtotal_cents, total_cents,
+            access_token_hash, token_expires_at, created_at, updated_at)
+         VALUES (?, ?, ?, 'submitted', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+        .bind(
+          id, tenant.id, projectType, reference, name, email,
+          String(body.customer_phone || "").slice(0, 50) || null,
+          JSON.stringify(sanitizedIntake),
+          ballpark.suppressed ? 0 : ballpark.subtotalCents,
+          ballpark.suppressed ? 0 : ballpark.totalCents,
+          tokenHash, expires, now, now
+        )
+        .run();
+      inserted = true;
+    } catch (err) {
+      lastInsertErr = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      // Only retry the specific failure this loop exists to recover from —
+      // a reference collision. Any other insert failure is a real error and
+      // must surface, not be silently retried away.
+      if (!/UNIQUE constraint failed.*\breference\b/i.test(msg)) {
+        throw err;
+      }
+    }
+  }
+  if (!inserted) {
+    console.error("intake: could not allocate a unique reference after retries", lastInsertErr);
+    return c.json({ error: "Could not process your request. Please try again." }, 500);
+  }
 
   if (!ballpark.suppressed) {
     for (let i = 0; i < ballpark.lines.length; i++) {
