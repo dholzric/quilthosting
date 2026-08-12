@@ -18,6 +18,7 @@ describe("status machine", () => {
   it("refuses to skip the signature", () => {
     expect(canTransition("estimated", "in_progress")).toBe(false);
     expect(canTransition("submitted", "signed")).toBe(false);
+    expect(canTransition("submitted", "in_progress")).toBe(false);
   });
 
   it("refuses to move backwards", () => {
