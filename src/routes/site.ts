@@ -18,6 +18,20 @@ import { sendEmail } from "../lib/email";
 import { escapeHtml } from "../lib/blocks";
 import { generateId } from "../lib/utils/id";
 
+// Shared by every route that echoes a stored `files.content_type` back as a
+// real image response (this file's /img/:fileId, galleries.ts's photo raw
+// route, public.ts's public gallery photo route): allowlists the handful of
+// real raster image types and excludes everything else, including
+// image/svg+xml -- SVG is active content (it can carry inline <script>) and
+// would reopen stored-XSS even though its MIME type looks image-y.
+export const ALLOWED_IMAGE_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/gif",
+  "image/webp",
+  "image/avif",
+]);
+
 // A shop that never finished configuring its agreement can't produce a
 // signable estimate -- shown on GET and enforced again on POST (Task 10 fix
 // round 1, Minor #3).
@@ -173,13 +187,6 @@ export async function serveBusinessSite(
     // guessing or falling back to a default. image/svg+xml is deliberately
     // EXCLUDED: SVG is active content (it can carry inline <script>) and
     // would reopen the same hole even though its MIME type looks image-y.
-    const ALLOWED_IMAGE_TYPES = new Set([
-      "image/png",
-      "image/jpeg",
-      "image/gif",
-      "image/webp",
-      "image/avif",
-    ]);
     const contentType = fileRow.content_type || "";
     if (!ALLOWED_IMAGE_TYPES.has(contentType)) {
       return new Response("Not found", { status: 404 });

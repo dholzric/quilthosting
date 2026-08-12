@@ -57,6 +57,15 @@
         body: JSON.stringify({ name: name.value, email: email.value, message: msg.value }),
       }).then(function (r) {
         node.replaceChildren(el("p", "", r.ok ? "Thanks — I'll be in touch." : "Something went wrong."));
+      }).catch(function () {
+        // The fetch itself failed to complete (dropped connection, DNS
+        // failure, offline) as opposed to a completed response the server
+        // rejected (handled in the .then above). Without this, a
+        // network-level failure left the submit button permanently disabled
+        // with nothing on screen -- same bug the project-intake handler
+        // below was fixed for; this copies that fix.
+        btn.disabled = false;
+        node.replaceChildren(el("p", "", "We couldn't send this — check your connection and try again."));
       });
     });
     node.appendChild(form);

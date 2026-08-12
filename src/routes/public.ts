@@ -22,6 +22,7 @@ import { buildReference } from "../lib/projects/reference";
 import { PROJECT_TYPES } from "../lib/projects/types";
 import type { ProjectType, LongarmRates } from "../lib/projects/types";
 import { sniffImageType } from "../lib/projects/imageSniff";
+import { ALLOWED_IMAGE_TYPES } from "./site";
 
 export const publicRoutes = new Hono<{ Bindings: Env }>();
 
@@ -2115,12 +2116,22 @@ publicRoutes.get("/:slug/photo/:photoId", async (c) => {
     ).bind(c.req.param("photoId"), tenant.id)
   );
   if (!row || row.members_only) return c.json({ error: "Photo not found" }, 404);
+  // Same reasoning as site.ts's /img/:fileId and galleries.ts's raw photo
+  // route: this serves from the shared `files` table, which now also holds
+  // anonymous public-intake uploads. Allowlist real raster image types and
+  // 404 on anything else, plus nosniff, so a stored non-image content_type
+  // can never be echoed back and executed as same-origin content.
+  const contentType = row.content_type || "";
+  if (!ALLOWED_IMAGE_TYPES.has(contentType)) {
+    return c.json({ error: "Photo not found" }, 404);
+  }
   const obj = await c.env.FILES.get(row.r2_key);
   if (!obj) return c.json({ error: "Photo data missing" }, 404);
   return new Response(obj.body, {
     headers: {
-      "Content-Type": row.content_type || "image/jpeg",
+      "Content-Type": contentType,
       "Cache-Control": "public, max-age=86400",
+      "X-Content-Type-Options": "nosniff",
     },
   });
 });

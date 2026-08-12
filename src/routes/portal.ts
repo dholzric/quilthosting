@@ -832,13 +832,26 @@ portalRoutes.post("/:slug/photo", async (c) => {
 });
 
 // GET /api/portal/:slug/files — guild document library
+//
+// Security: `files` is a shared, tenant-wide table. It used to hold ONLY
+// staff-uploaded content (this route's own POST /:slug/photo above,
+// galleries.ts's photo upload), which always set uploaded_by. The P1 "longarm
+// projects" public intake form (public.ts's photo upload) now also writes
+// into this same table, deliberately WITHOUT uploaded_by, for anonymous
+// members of the public. Without the filter below, every customer's intake
+// photos would be listable and downloadable by any authenticated member of
+// the tenant they happened to submit to -- not just staff. The document
+// library is staff-curated content, so rows with no uploader (public-intake
+// uploads) are excluded; every guild document library file already has an
+// uploader, so this is a no-op for existing behavior.
 portalRoutes.get("/:slug/files", async (c) => {
   const ctx = await requireGuildMember(c, c.req.param("slug"));
   if ("error" in ctx) return ctx.error;
   const rows = await all(
     c.env.DB.prepare(
       `SELECT id, filename, content_type, size, created_at
-       FROM files WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 200`
+       FROM files WHERE tenant_id = ? AND uploaded_by IS NOT NULL
+       ORDER BY created_at DESC LIMIT 200`
     ).bind(ctx.tenant.id)
   );
   return c.json(rows);
@@ -858,9 +871,13 @@ portalRoutes.get("/:slug/files/:fileId", async (c) => {
     ).bind(tenant.id, payload.email.toLowerCase())
   );
   if (!member) return c.json({ error: "Not a member of this guild" }, 403);
+  // Same uploaded_by exclusion as the listing above -- a listing fix that
+  // leaves the direct-ID download open isn't a fix. Without this, a member
+  // who guessed or otherwise obtained a public-intake file's id could still
+  // download it directly even though it no longer appears in the listing.
   const row = await first<{ r2_key: string; filename: string; content_type: string | null }>(
     c.env.DB.prepare(
-      "SELECT r2_key, filename, content_type FROM files WHERE id = ? AND tenant_id = ?"
+      "SELECT r2_key, filename, content_type FROM files WHERE id = ? AND tenant_id = ? AND uploaded_by IS NOT NULL"
     ).bind(c.req.param("fileId"), tenant.id)
   );
   if (!row) return c.json({ error: "File not found" }, 404);
@@ -870,6 +887,14 @@ portalRoutes.get("/:slug/files/:fileId", async (c) => {
     headers: {
       "Content-Type": row.content_type || "application/octet-stream",
       "Content-Disposition": `attachment; filename="${row.filename.replace(/"/g, "")}"`,
+      // This route legitimately serves arbitrary documents (not just
+      // images), so it deliberately does NOT allowlist content types the way
+      // site.ts's /img/:fileId does -- Content-Disposition: attachment above
+      // already tells the browser to download rather than render the body,
+      // which is what makes serving arbitrary types here safe. nosniff is
+      // still added as defense in depth against any code path that might
+      // ever render this response inline instead of downloading it.
+      "X-Content-Type-Options": "nosniff",
     },
   });
 });

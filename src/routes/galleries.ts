@@ -3,6 +3,7 @@ import type { Env, TenantVariables } from "../types";
 import type { AuthVariables } from "../middleware/auth";
 import { all, first } from "../lib/db";
 import { generateId } from "../lib/utils/id";
+import { ALLOWED_IMAGE_TYPES } from "./site";
 
 export const galleryRoutes = new Hono<{
   Bindings: Env;
@@ -251,9 +252,24 @@ galleryRoutes.get("/:galleryId/photos/:photoId/raw", async (c) => {
     ).bind(c.req.param("photoId"), tenant.id)
   );
   if (!row) return c.json({ error: "Photo not found" }, 404);
+  // Same reasoning as site.ts's /img/:fileId: this route serves from the
+  // shared `files` table, which now also holds content anonymous members of
+  // the public uploaded (the P1 longarm project intake). Echoing back
+  // whatever content_type was recorded at upload time would let a stored
+  // non-image type execute as same-origin content; allowlist real raster
+  // image types and 404 on anything else, and set nosniff as a
+  // belt-and-suspenders against the browser guessing a different
+  // interpretation of the (already-allowlisted) body.
+  const contentType = row.content_type || "";
+  if (!ALLOWED_IMAGE_TYPES.has(contentType)) {
+    return c.json({ error: "Photo not found" }, 404);
+  }
   const obj = await c.env.FILES.get(row.r2_key);
   if (!obj) return c.json({ error: "Photo data missing" }, 404);
   return new Response(obj.body, {
-    headers: { "Content-Type": row.content_type || "image/jpeg" },
+    headers: {
+      "Content-Type": contentType,
+      "X-Content-Type-Options": "nosniff",
+    },
   });
 });
