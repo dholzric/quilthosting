@@ -75,7 +75,7 @@
     width.placeholder = "Quilt width (inches)";
     var height = el("input"); height.type = "number"; height.min = "1"; height.max = "200";
     height.placeholder = "Quilt height (inches)";
-    var blocks = el("input"); blocks.type = "number"; blocks.min = "1";
+    var blocks = el("input"); blocks.type = "number"; blocks.min = "1"; blocks.max = "500";
     blocks.placeholder = "How many T-shirt blocks?";
 
     if (projectType === "tshirt_quilt") {
@@ -136,9 +136,20 @@
           node.replaceChildren();
           node.appendChild(el("h3", "", "Thanks — we have your request."));
           node.appendChild(el("p", "", "Your reference is " + res.j.reference + "."));
-          // Suppressed means the rate table can't price this. Show NOTHING
-          // rather than $0 — a confident wrong price is worse than no price.
-          if (res.j.ballpark && !res.j.ballpark.suppressed) {
+          // Fail CLOSED: show a price only when the response positively
+          // proves it is showable (suppressed === false AND total_cents is
+          // a finite number). Anything else — suppressed true, suppressed
+          // missing, total_cents missing/null/NaN, a malformed or tampered
+          // body, a future refactor of the route — renders no price at all.
+          // A guard that only works while the server keeps its current
+          // shape is not a guard; this must be impossible to fool into
+          // fabricating a price.
+          if (
+            res.j.ballpark &&
+            res.j.ballpark.suppressed === false &&
+            typeof res.j.ballpark.total_cents === "number" &&
+            Number.isFinite(res.j.ballpark.total_cents)
+          ) {
             node.appendChild(el("p", "",
               "Estimated ballpark: $" + (res.j.ballpark.total_cents / 100).toFixed(2)));
             node.appendChild(el("p", "muted",
