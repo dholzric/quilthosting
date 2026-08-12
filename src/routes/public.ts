@@ -21,6 +21,7 @@ import { mintAccessToken, hashToken } from "../lib/projects/token";
 import { buildReference } from "../lib/projects/reference";
 import { PROJECT_TYPES } from "../lib/projects/types";
 import type { ProjectType, LongarmRates } from "../lib/projects/types";
+import { sniffImageType } from "../lib/projects/imageSniff";
 
 export const publicRoutes = new Hono<{ Bindings: Env }>();
 
@@ -289,6 +290,80 @@ publicRoutes.post("/:slug/projects/intake", async (c) => {
       lines: ballpark.lines,
     },
   });
+});
+
+// POST /public/:slug/projects/:projectRef/photos
+// Deliberately open to the internet — a T-shirt quilt cannot be quoted
+// without seeing the shirts. Bounded by: the rate limit registered above
+// (Task 7), a hard file count and size cap, and magic-byte type detection.
+// The stored content_type is decided from BYTES via sniffImageType, never
+// from the client's Content-Type header — the files this endpoint writes
+// are also servable through portal.ts / galleries.ts / public.ts:photo,
+// none of which allowlist content_type or set X-Content-Type-Options on the
+// way out (unlike site.ts's /img/:fileId), so this route is the only line
+// of defence against stored XSS for rows it creates.
+const MAX_FILES = 5;
+const MAX_BYTES = 10 * 1024 * 1024;
+
+publicRoutes.post("/:slug/projects/:projectRef/photos", async (c) => {
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant || tenant.tenant_type !== "business") {
+    return c.json({ error: "Not found" }, 404);
+  }
+  const project = await first<{ id: string }>(
+    c.env.DB.prepare(
+      `SELECT id FROM projects WHERE tenant_id = ? AND reference = ? AND status = 'submitted'`
+    ).bind(tenant.id, c.req.param("projectRef"))
+  );
+  if (!project) return c.json({ error: "Not found" }, 404);
+
+  const form = await c.req.formData().catch(() => null);
+  if (!form) return c.json({ error: "Expected multipart form data" }, 400);
+
+  const files = form.getAll("photos").filter((f): f is File => f instanceof File);
+  if (!files.length) return c.json({ error: "No photos supplied" }, 400);
+  if (files.length > MAX_FILES) {
+    return c.json({ error: `At most ${MAX_FILES} photos` }, 400);
+  }
+
+  const fileIds: string[] = [];
+  for (const file of files) {
+    if (file.size > MAX_BYTES) {
+      return c.json({ error: "Each photo must be under 10MB" }, 400);
+    }
+    const buf = new Uint8Array(await file.arrayBuffer());
+    const contentType = sniffImageType(buf);
+    if (!contentType) {
+      return c.json({ error: "Photos must be PNG, JPEG, GIF, WebP or AVIF" }, 400);
+    }
+    const fileId = generateId();
+    const key = `${tenant.id}/${fileId}/${file.name.replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 100)}`;
+    await c.env.FILES.put(key, buf);
+    await c.env.DB.prepare(
+      `INSERT INTO files (id, tenant_id, r2_key, filename, content_type, size, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`
+    )
+      .bind(fileId, tenant.id, key, file.name.slice(0, 200), contentType, buf.byteLength)
+      .run();
+    fileIds.push(fileId);
+  }
+
+  // Bind the photos to the project by appending to intake_json rather than
+  // adding a table: they are intake data, and intake_json is where
+  // type-varying intake data lives.
+  const row = await first<{ intake_json: string }>(
+    c.env.DB.prepare(`SELECT intake_json FROM projects WHERE id = ? AND tenant_id = ?`)
+      .bind(project.id, tenant.id)
+  );
+  let intake: Record<string, unknown> = {};
+  try { intake = JSON.parse(row?.intake_json || "{}"); } catch { intake = {}; }
+  const existing = Array.isArray(intake.photoFileIds) ? intake.photoFileIds : [];
+  intake.photoFileIds = [...existing, ...fileIds].slice(0, MAX_FILES);
+  await c.env.DB.prepare(
+    `UPDATE projects SET intake_json = ?, updated_at = ? WHERE id = ? AND tenant_id = ?`
+  ).bind(JSON.stringify(intake), new Date().toISOString(), project.id, tenant.id).run();
+
+  return c.json({ ok: true, file_ids: fileIds });
 });
 
 /**
