@@ -103,6 +103,42 @@
       form.appendChild(wrap);
     });
 
+    // Photos: offered for every project type, not just T-shirt quilts — a
+    // photo of a quilt top is just as useful for a longarm job. These mirror
+    // the server's bounds (src/routes/public.ts:309-310, MAX_FILES=5,
+    // MAX_BYTES=10MB) so the customer finds out before anything is sent,
+    // the same way the width/height/block-count inputs above mirror their
+    // server-side caps.
+    var MAX_PHOTOS = 5;
+    var MAX_PHOTO_BYTES = 10 * 1024 * 1024;
+    form.appendChild(el("label", "", "Photos (optional)"));
+    var photoInput = document.createElement("input");
+    photoInput.type = "file";
+    photoInput.multiple = true;
+    photoInput.accept = "image/png,image/jpeg,image/gif,image/webp,image/avif";
+    form.appendChild(photoInput);
+    var photoHint = el("p", "muted",
+      "Up to " + MAX_PHOTOS + " photos, 10MB each." +
+      (projectType === "tshirt_quilt" ? " A photo of the shirts really helps." : ""));
+    form.appendChild(photoHint);
+    var photoError = el("p", "muted", "");
+    form.appendChild(photoError);
+
+    function validatePhotoSelection(files) {
+      if (files.length > MAX_PHOTOS) {
+        return "Please choose at most " + MAX_PHOTOS + " photos.";
+      }
+      for (var i = 0; i < files.length; i++) {
+        if (files[i].size > MAX_PHOTO_BYTES) {
+          return "Each photo must be under 10MB (\"" + files[i].name + "\" is larger).";
+        }
+      }
+      return null;
+    }
+    photoInput.addEventListener("change", function () {
+      photoError.textContent = validatePhotoSelection(photoInput.files) || "";
+    });
+
     var btn = el("button", "btn", node.getAttribute("data-submit-label") || "Get my estimate");
     btn.type = "submit";
     form.appendChild(btn);
@@ -111,6 +147,20 @@
 
     form.addEventListener("submit", function (ev) {
       ev.preventDefault();
+      // Checked before any request is sent — same reasoning as the server's
+      // own gate, just earlier: a customer who's over the cap should learn
+      // now, not after the intake has already been recorded.
+      var photoValidationError = validatePhotoSelection(photoInput.files);
+      if (photoValidationError) {
+        photoError.textContent = photoValidationError;
+        return;
+      }
+      // Snapshot the File objects now. The intake needs to succeed first —
+      // it returns the project reference the upload endpoint requires — so
+      // the upload can't fire until after that response comes back. Holding
+      // the File objects (not the <input> itself) means the upload still
+      // works even though `node` gets emptied out by replaceChildren below.
+      var selectedPhotos = Array.prototype.slice.call(photoInput.files);
       btn.disabled = true;
       var intake = {
         widthIn: Number(width.value) || undefined,
@@ -154,6 +204,41 @@
               "Estimated ballpark: $" + (res.j.ballpark.total_cents / 100).toFixed(2)));
             node.appendChild(el("p", "muted",
               "This is an estimate only. We'll review the details and send your final quote."));
+          }
+          // The intake has already succeeded and the shop already has this
+          // request — that must never be walked back by anything below.
+          // A photo upload failure is reported as its own, separate line;
+          // it must never read as "your submission failed" (it didn't).
+          if (selectedPhotos.length) {
+            var uploadStatus = el("p", "muted",
+              "Uploading " + selectedPhotos.length +
+              (selectedPhotos.length === 1 ? " photo" : " photos") + "...");
+            node.appendChild(uploadStatus);
+            var photoForm = new FormData();
+            selectedPhotos.forEach(function (f) { photoForm.append("photos", f); });
+            fetch(
+              "/public/" + encodeURIComponent(slug) + "/projects/" +
+                encodeURIComponent(res.j.reference) + "/photos",
+              { method: "POST", body: photoForm }
+            ).then(function (r) {
+              return r.json().catch(function () { return null; }).then(function (j) {
+                return { ok: r.ok, j: j };
+              });
+            }).then(function (uploadRes) {
+              if (uploadRes.ok && uploadRes.j && uploadRes.j.ok) {
+                uploadStatus.textContent = "Photos attached — thanks!";
+              } else {
+                uploadStatus.textContent =
+                  "We have your request (reference " + res.j.reference + "), but the " +
+                  "photos didn't attach. Please contact us directly to send them, and " +
+                  "mention your reference number.";
+              }
+            }).catch(function () {
+              uploadStatus.textContent =
+                "We have your request (reference " + res.j.reference + "), but the " +
+                "photos didn't attach. Please contact us directly to send them, and " +
+                "mention your reference number.";
+            });
           }
         })
         .catch(function () {
