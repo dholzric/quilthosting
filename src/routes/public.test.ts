@@ -273,3 +273,262 @@ describe("POST /public/:slug/projects/intake", () => {
     expect(writes.length).toBe(0);
   });
 });
+
+// Coverage for the intake photo upload route added in Task 8. This endpoint
+// is unauthenticated and writes to R2, so the tests lean adversarial: the
+// single most important property is that the persisted content_type comes
+// from sniffImageType (bytes), never from the client-declared multipart
+// Content-Type header — see the security-context comment above the route.
+describe("POST /public/:slug/projects/:projectRef/photos", () => {
+  const PROJECT_ID = "project-1";
+  const REFERENCE = "STITCH-0001";
+  // A genuine, complete PNG signature — 8-byte magic plus 4 padding bytes to
+  // clear sniffImageType's `bytes.length < 12` floor.
+  const PNG_BYTES = new Uint8Array([
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0,
+  ]);
+
+  function photoHarness(
+    opts: {
+      tenantOverrides?: Record<string, unknown>;
+      project?: { id: string } | null;
+    } = {}
+  ) {
+    const dbWrites: { sql: string; binds: unknown[] }[] = [];
+    const tenant = {
+      id: TENANT_ID,
+      slug: "stitchstudio",
+      tenant_type: "business",
+      status: "active",
+      settings_json: "{}",
+      ...opts.tenantOverrides,
+    };
+    const project = "project" in opts ? opts.project : { id: PROJECT_ID };
+    let currentIntakeJson = "{}";
+
+    const db = {
+      prepare(sql: string) {
+        return {
+          bind(...binds: unknown[]) {
+            return {
+              async first() {
+                if (sql.includes("FROM tenants")) return tenant;
+                if (sql.includes("FROM projects") && sql.includes("reference = ?")) {
+                  return project;
+                }
+                if (sql.includes("SELECT intake_json FROM projects")) {
+                  return { intake_json: currentIntakeJson };
+                }
+                return null;
+              },
+              async run() {
+                dbWrites.push({ sql, binds });
+                if (sql.includes("UPDATE projects SET intake_json")) {
+                  currentIntakeJson = binds[0] as string;
+                }
+                return { success: true };
+              },
+              async all() {
+                return { results: [] };
+              },
+            };
+          },
+        };
+      },
+    };
+
+    const r2Puts: { key: string; bytes: Uint8Array }[] = [];
+    const FILES = {
+      async put(key: string, bytes: Uint8Array) {
+        r2Puts.push({ key, bytes: bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes) });
+        return {};
+      },
+    };
+
+    const app = new Hono<{ Bindings: Env }>();
+    app.route("/", publicRoutes);
+    const env = { DB: db, FILES } as unknown as Env;
+    return { app, env, dbWrites, r2Puts, getIntakeJson: () => currentIntakeJson };
+  }
+
+  function postPhotos(
+    app: Hono<{ Bindings: Env }>,
+    env: Env,
+    files: Array<{ name: string; type: string; bytes: Uint8Array }>,
+    opts: { slug?: string; ref?: string; fieldName?: string } = {}
+  ) {
+    const form = new FormData();
+    for (const f of files) {
+      form.append(
+        opts.fieldName ?? "photos",
+        new File([f.bytes], f.name, { type: f.type })
+      );
+    }
+    return app.request(
+      `/${opts.slug ?? "stitchstudio"}/projects/${opts.ref ?? REFERENCE}/photos`,
+      { method: "POST", body: form },
+      env
+    );
+  }
+
+  it("404s when the tenant does not exist or is not a business tenant", async () => {
+    const { app, env } = photoHarness({ tenantOverrides: { tenant_type: "guild" } });
+    const res = await postPhotos(app, env, [{ name: "a.png", type: "image/png", bytes: PNG_BYTES }]);
+    expect(res.status).toBe(404);
+  });
+
+  it("404s when no project matches the reference (also covers cross-tenant reference guessing)", async () => {
+    const { app, env, r2Puts } = photoHarness({ project: null });
+    const res = await postPhotos(app, env, [{ name: "a.png", type: "image/png", bytes: PNG_BYTES }]);
+    expect(res.status).toBe(404);
+    expect(r2Puts.length).toBe(0);
+  });
+
+  it("400s when the body is not multipart form data", async () => {
+    const { app, env } = photoHarness();
+    const res = await app.request(
+      `/stitchstudio/projects/${REFERENCE}/photos`,
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" },
+      env
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("400s when no photos field is supplied", async () => {
+    const { app, env } = photoHarness();
+    const form = new FormData();
+    form.append("not_photos", "x");
+    const res = await app.request(
+      `/stitchstudio/projects/${REFERENCE}/photos`,
+      { method: "POST", body: form },
+      env
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("400s when more than MAX_FILES (5) photos are supplied, and writes nothing", async () => {
+    const { app, env, r2Puts, dbWrites } = photoHarness();
+    const files = Array.from({ length: 6 }, (_, i) => ({
+      name: `p${i}.png`,
+      type: "image/png",
+      bytes: PNG_BYTES,
+    }));
+    const res = await postPhotos(app, env, files);
+    expect(res.status).toBe(400);
+    expect(r2Puts.length).toBe(0);
+    expect(dbWrites.length).toBe(0);
+  });
+
+  it("400s when a file's declared size exceeds the 10MB cap", async () => {
+    const { app, env, r2Puts } = photoHarness();
+    const big = new Uint8Array(10 * 1024 * 1024 + 1);
+    big.set(PNG_BYTES);
+    const res = await postPhotos(app, env, [{ name: "big.png", type: "image/png", bytes: big }]);
+    expect(res.status).toBe(400);
+    expect(r2Puts.length).toBe(0);
+  });
+
+  it("400s a zero-byte file (too short for any magic-byte signature)", async () => {
+    const { app, env } = photoHarness();
+    const res = await postPhotos(app, env, [
+      { name: "empty.png", type: "image/png", bytes: new Uint8Array(0) },
+    ]);
+    expect(res.status).toBe(400);
+  });
+
+  // The security-critical case: a caller can put any string in the
+  // multipart part's Content-Type, and does here — "image/png" — while the
+  // actual bytes are HTML/script. Because the sibling routes that serve this
+  // same `files` table (portal.ts, galleries.ts, public.ts:photo) echo
+  // content_type back with no allowlist and no X-Content-Type-Options, a
+  // wrong stored value here is a direct stored-XSS path through them.
+  it("rejects a file whose bytes are not a real image even when Content-Type claims image/png", async () => {
+    const html = new TextEncoder().encode("<!DOCTYPE html><script>alert(1)</script>");
+    const { app, env, r2Puts, dbWrites } = photoHarness();
+    const res = await postPhotos(app, env, [
+      { name: "evil.png", type: "image/png", bytes: html },
+    ]);
+    expect(res.status).toBe(400);
+    expect(r2Puts.length).toBe(0);
+    expect(dbWrites.length).toBe(0);
+  });
+
+  it("stores the SNIFFED content_type, not the client-declared header, for a genuine but mislabeled image", async () => {
+    // Real PNG bytes, but the client claims it's a GIF — the persisted
+    // content_type must reflect the bytes (image/png), not the header.
+    const { app, env, dbWrites } = photoHarness();
+    const res = await postPhotos(app, env, [
+      { name: "actually-a-png.gif", type: "image/gif", bytes: PNG_BYTES },
+    ]);
+    expect(res.status).toBe(200);
+    const insert = dbWrites.find((w) => w.sql.includes("INSERT INTO files"));
+    expect(insert).toBeDefined();
+    // bind order: id, tenant_id, r2_key, filename, content_type, size
+    expect(insert!.binds[4]).toBe("image/png");
+  });
+
+  it("accepts a real PNG end to end: R2 key is tenant-scoped, size is recomputed from actual bytes, and the fileId is appended to intake_json.photoFileIds", async () => {
+    const { app, env, r2Puts, dbWrites, getIntakeJson } = photoHarness();
+    const res = await postPhotos(app, env, [
+      { name: "quilt.png", type: "image/png", bytes: PNG_BYTES },
+    ]);
+    expect(res.status).toBe(200);
+    const body = await res.json<{ ok: boolean; file_ids: string[] }>();
+    expect(body.ok).toBe(true);
+    expect(body.file_ids.length).toBe(1);
+
+    expect(r2Puts.length).toBe(1);
+    expect(r2Puts[0].key.startsWith(`${TENANT_ID}/`)).toBe(true);
+    expect(r2Puts[0].bytes.byteLength).toBe(PNG_BYTES.byteLength);
+
+    const insert = dbWrites.find((w) => w.sql.includes("INSERT INTO files"));
+    // size (bind index 5) is the actually-written byte length, matching what
+    // was put into R2 — not a client-declared value.
+    expect(insert!.binds[5]).toBe(PNG_BYTES.byteLength);
+
+    const intake = JSON.parse(getIntakeJson());
+    expect(intake.photoFileIds).toEqual(body.file_ids);
+  });
+
+  it("sanitizes a path-traversal filename before it reaches the R2 key", async () => {
+    const { app, env, r2Puts } = photoHarness();
+    const res = await postPhotos(app, env, [
+      { name: "../../etc/passwd.png", type: "image/png", bytes: PNG_BYTES },
+    ]);
+    expect(res.status).toBe(200);
+    expect(r2Puts.length).toBe(1);
+    // No raw slash from the filename should survive into the key beyond the
+    // two structural separators (tenant_id/fileId/filename).
+    expect(r2Puts[0].key.split("/").length).toBe(3);
+    expect(r2Puts[0].key).not.toContain("etc/passwd");
+  });
+
+  it("caps intake_json.photoFileIds at MAX_FILES when photos already exist on the project", async () => {
+    const { app, env, getIntakeJson } = photoHarness();
+    // First upload: 3 photos.
+    const first = await postPhotos(
+      app,
+      env,
+      Array.from({ length: 3 }, (_, i) => ({
+        name: `p${i}.png`,
+        type: "image/png",
+        bytes: PNG_BYTES,
+      }))
+    );
+    expect(first.status).toBe(200);
+    expect(JSON.parse(getIntakeJson()).photoFileIds.length).toBe(3);
+
+    // Second upload: 3 more, for a total of 6 — must be capped at 5.
+    const second = await postPhotos(
+      app,
+      env,
+      Array.from({ length: 3 }, (_, i) => ({
+        name: `q${i}.png`,
+        type: "image/png",
+        bytes: PNG_BYTES,
+      }))
+    );
+    expect(second.status).toBe(200);
+    expect(JSON.parse(getIntakeJson()).photoFileIds.length).toBe(5);
+  });
+});
