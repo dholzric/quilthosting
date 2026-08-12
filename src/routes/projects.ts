@@ -38,6 +38,18 @@ async function requireOwnerAdmin(c: {
   return null;
 }
 
+/**
+ * access_token_hash and token_expires_at are never returned to the browser:
+ * the hash is the lookup key for the customer's link, and the admin UI has
+ * no use for either. Shared by the list and detail routes so this can't
+ * drift between them again (the list route previously leaked both via
+ * `SELECT *`).
+ */
+function sanitizeProject(project: Project): Omit<Project, "access_token_hash" | "token_expires_at"> {
+  const { access_token_hash: _hash, token_expires_at: _expires, ...safe } = project;
+  return safe;
+}
+
 // GET /api/tenants/:tenantId/projects?status=&type=
 projectRoutes.get("/", async (c) => {
   const denied = await requireOwnerAdmin(c);
@@ -51,7 +63,7 @@ projectRoutes.get("/", async (c) => {
   if (type) { sql += ` AND project_type = ?`; binds.push(type); }
   sql += ` ORDER BY created_at DESC LIMIT 500`;
   const rows = await all<Project>(c.env.DB.prepare(sql).bind(...binds));
-  return c.json(rows);
+  return c.json(rows.map(sanitizeProject));
 });
 
 // GET /api/tenants/:tenantId/projects/:projectId
@@ -70,10 +82,7 @@ projectRoutes.get("/:projectId", async (c) => {
       `SELECT * FROM project_lines WHERE project_id = ? ORDER BY sort_order`
     ).bind(project.id)
   );
-  // access_token_hash is never returned to the browser: it is the lookup key
-  // for the customer's link, and the admin UI has no use for it.
-  const { access_token_hash: _omit, ...safe } = project;
-  return c.json({ project: safe, lines });
+  return c.json({ project: sanitizeProject(project), lines });
 });
 
 // PATCH /api/tenants/:tenantId/projects/:projectId
@@ -108,15 +117,24 @@ projectRoutes.patch("/:projectId", async (c) => {
     }
   }
 
+  // due_date and customer_phone are the only nullable columns here. The
+  // PatchBody type promises `string | null` for both, meaning "send null to
+  // clear it" — but coalesce(?, col) cannot tell a bound null apart from
+  // "field omitted," so it silently keeps the old value either way. Resolve
+  // the intended value in JS instead: an explicitly-present key (even when
+  // its value is null) clears the column; an omitted key leaves it alone.
+  const dueDate = "due_date" in body ? (body.due_date ?? null) : project.due_date;
+  const customerPhone = "customer_phone" in body ? (body.customer_phone ?? null) : project.customer_phone;
+
   const now = new Date().toISOString();
   await c.env.DB.prepare(
     `UPDATE projects SET
        status = coalesce(?, status),
        estimate_notes = coalesce(?, estimate_notes),
-       due_date = coalesce(?, due_date),
+       due_date = ?,
        customer_name = coalesce(?, customer_name),
        customer_email = coalesce(?, customer_email),
-       customer_phone = coalesce(?, customer_phone),
+       customer_phone = ?,
        completed_at = CASE WHEN ? = 'completed' THEN ? ELSE completed_at END,
        updated_at = ?
      WHERE id = ? AND tenant_id = ?`
@@ -124,10 +142,10 @@ projectRoutes.patch("/:projectId", async (c) => {
     .bind(
       body.status ?? null,
       body.estimate_notes ?? null,
-      body.due_date ?? null,
+      dueDate,
       body.customer_name ?? null,
       body.customer_email ?? null,
-      body.customer_phone ?? null,
+      customerPhone,
       body.status ?? "",
       now,
       now,
@@ -151,7 +169,7 @@ projectRoutes.put("/:projectId/lines", async (c) => {
   );
   if (!project) return c.json({ error: "Project not found" }, 404);
 
-  const body = await c.req.json<{
+  type LinesBody = {
     lines?: {
       kind?: string;
       description?: string;
@@ -159,7 +177,19 @@ projectRoutes.put("/:projectId/lines", async (c) => {
       unit_cents?: number;
       amount_cents?: number;
     }[];
-  }>().catch(() => ({ lines: [] }));
+  };
+  // A missing, empty, or unparseable body must be REJECTED, not silently
+  // treated as "replace with zero lines" — that used to wipe every existing
+  // line and zero out the total a customer is about to be asked to sign,
+  // while reporting 200 {ok:true}. A body that legitimately parses to
+  // `{ lines: [] }` is different: that's an explicit "clear all lines" and
+  // must still succeed below.
+  let body: LinesBody;
+  try {
+    body = await c.req.json<LinesBody>();
+  } catch {
+    return c.json({ error: "Invalid JSON body" }, 400);
+  }
 
   const lines = (body.lines || []).slice(0, 100).map((l, i) => ({
     id: generateId(),
@@ -175,24 +205,26 @@ projectRoutes.put("/:projectId/lines", async (c) => {
   // trusted — it is the number the customer will be asked to agree to.
   const subtotalCents = lines.reduce((s, l) => s + l.amountCents, 0);
 
-  await c.env.DB.prepare(`DELETE FROM project_lines WHERE project_id = ?`)
-    .bind(project.id)
-    .run();
-  for (const l of lines) {
-    await c.env.DB.prepare(
-      `INSERT INTO project_lines
-         (id, project_id, kind, description, quantity, unit_cents, amount_cents, sort_order)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-      .bind(l.id, project.id, l.kind, l.description, l.quantity, l.unitCents, l.amountCents, l.sortOrder)
-      .run();
-  }
-  await c.env.DB.prepare(
-    `UPDATE projects SET subtotal_cents = ?, total_cents = ?, updated_at = ?
-     WHERE id = ? AND tenant_id = ?`
-  )
-    .bind(subtotalCents, subtotalCents, new Date().toISOString(), project.id, tenant.id)
-    .run();
+  // DELETE + N INSERTs + the totals UPDATE run as one D1 batch (same idiom
+  // as tenants.ts / galleries.ts / members.ts) so the rewrite is atomic: an
+  // interruption can no longer leave project_lines partially rewritten, or
+  // projects.total_cents out of sync with the rows actually stored.
+  const now = new Date().toISOString();
+  const stmts = [
+    c.env.DB.prepare(`DELETE FROM project_lines WHERE project_id = ?`).bind(project.id),
+    ...lines.map((l) =>
+      c.env.DB.prepare(
+        `INSERT INTO project_lines
+           (id, project_id, kind, description, quantity, unit_cents, amount_cents, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(l.id, project.id, l.kind, l.description, l.quantity, l.unitCents, l.amountCents, l.sortOrder)
+    ),
+    c.env.DB.prepare(
+      `UPDATE projects SET subtotal_cents = ?, total_cents = ?, updated_at = ?
+       WHERE id = ? AND tenant_id = ?`
+    ).bind(subtotalCents, subtotalCents, now, project.id, tenant.id),
+  ];
+  await c.env.DB.batch(stmts);
 
   return c.json({ ok: true, subtotal_cents: subtotalCents, total_cents: subtotalCents });
 });
