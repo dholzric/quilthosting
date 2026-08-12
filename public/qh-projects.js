@@ -306,7 +306,14 @@
         } catch (err) {
           site = {};
         }
-        const host = site.custom_domain ? site.custom_domain.replace(/^www\./, "") : tenantSlug + ".quilthosting.com";
+        // Derive the platform host from where this admin page is actually
+        // being served (window.location.host), not a literal — admin.html
+        // is only ever reached on the platform host (see platformPaths.ts),
+        // so this is exactly appHostname(env.APP_URL) as the server itself
+        // would compute it, and unlike a hardcoded "quilthosting.com" it is
+        // also correct in local dev (localhost:8787), where APP_URL is
+        // http://localhost:8787.
+        const host = site.custom_domain ? site.custom_domain.replace(/^www\./, "") : tenantSlug + "." + window.location.host;
         const url = "https://" + host + "/quote/" + res.token;
         actionsStatus.textContent = "New link (previous one no longer works): " + url;
       } catch (err) {
