@@ -55,6 +55,17 @@ describe("isPlatformOnlyPath — sanity checks independent of the directory scan
     expect(PLATFORM_EXACT_PATHS.has("/terms.html")).toBe(true);
   });
 
+  it("does not reserve the customer quote path (Task 10: /quote/<token>)", () => {
+    // serveBusinessSite matches /quote/<token> and /quote/<token>/sign
+    // itself, ahead of the page-slug lookup. If "quote" were ever added
+    // here, siteGate's rule 5 would stop passing it through and the
+    // customer-facing e-signature page would 401 behind the private-preview
+    // password -- exactly the accidental-widening failure mode this list
+    // exists to prevent (see the module header comment).
+    expect(isPlatformOnlyPath("/quote/abctoken1234567890123456")).toBe(false);
+    expect(isPlatformOnlyPath("/quote/abctoken1234567890123456/sign")).toBe(false);
+  });
+
   it("PLATFORM_PATH_PREFIXES is non-empty and every prefix starts with /", () => {
     expect(PLATFORM_PATH_PREFIXES.length).toBeGreaterThan(0);
     for (const prefix of PLATFORM_PATH_PREFIXES) {

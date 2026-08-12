@@ -287,6 +287,29 @@ describe("siteGate — a launched business's own site (must open)", () => {
     });
     expect(res.status).toBe(200);
   });
+
+  // Task 10: the customer quote page. "quote" is not in PLATFORM_PATH_PREFIXES
+  // or PLATFORM_EXACT_PATHS, so it must fall through to rule 5 (any path that
+  // isn't a reserved platform prefix) exactly like any other page slug — no
+  // new allowlist rule was added, and none should be, per the task brief.
+  it("opens at /quote/<token> (GET) — rule 5, no dedicated allowlist entry needed", async () => {
+    getTenantByHostMock.mockResolvedValue(launchedBusiness);
+    const res = await requestPath(
+      "/quote/AbCd1234EfGh5678IjKl9012MnOp",
+      "stitchstudioquilting.test"
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it("opens at /quote/<token>/sign (POST) — same rule, method is irrelevant to the gate", async () => {
+    getTenantByHostMock.mockResolvedValue(launchedBusiness);
+    const res = await requestPath(
+      "/quote/AbCd1234EfGh5678IjKl9012MnOp/sign",
+      "stitchstudioquilting.test",
+      { method: "POST", body: "{}" }
+    );
+    expect(res.status).toBe(200);
+  });
 });
 
 describe("rule 4 boundary — /public/<own slug> must not match a near-miss slug", () => {
