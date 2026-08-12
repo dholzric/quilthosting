@@ -4,7 +4,7 @@ import { generateId } from "../lib/utils/id";
 import { first, all } from "../lib/db";
 import { requireAuth, type AuthVariables } from "../middleware/auth";
 import { TRIAL_DAYS } from "../lib/plans";
-import { ensurePlatformSubdomain } from "../lib/tenantHost";
+import { ensurePlatformSubdomain, tenantPublicBaseUrl } from "../lib/tenantHost";
 
 export const tenantRoutes = new Hono<{
   Bindings: Env;
@@ -123,7 +123,15 @@ tenantRoutes.get("/:id", async (c) => {
     c.env.DB.prepare("SELECT * FROM tenants WHERE id = ?").bind(id)
   );
   if (!tenant) return c.json({ error: "Not found" }, 404);
-  return c.json(tenant);
+  // Computed server-side (custom domain > platform subdomain > APP_URL),
+  // the same helper site.ts's send-estimate email already uses for this
+  // exact purpose -- so the admin UI's "Resend link" flow can build the
+  // customer-facing URL from an authoritative value instead of guessing at
+  // the platform host from window.location.host, which is wrong whenever
+  // admin.html happens to be reached on a launched tenant's own hostname
+  // (final review, F9: an authenticated caller CAN reach raw public/ files
+  // there -- siteGate's JWT-bearer bypass is host-agnostic by design).
+  return c.json({ ...tenant, public_base_url: tenantPublicBaseUrl(c.env, tenant) });
 });
 
 // PATCH /api/tenants/:id — owner/admin can rename or update settings
@@ -138,7 +146,11 @@ tenantRoutes.patch("/:id", async (c) => {
   if (!membership || !["owner", "admin"].includes(membership.role)) {
     return c.json({ error: "Forbidden" }, 403);
   }
-  const body = await c.req.json<{ name?: string; settings?: Record<string, unknown> }>();
+  const body = await c.req.json<{
+    name?: string;
+    settings?: Record<string, unknown>;
+    public_launched?: number | boolean;
+  }>();
   const fields: string[] = [];
   const params: any[] = [];
   if (body.name !== undefined) {
@@ -149,6 +161,15 @@ tenantRoutes.patch("/:id", async (c) => {
   if (body.settings !== undefined) {
     fields.push("settings_json = ?");
     params.push(JSON.stringify(body.settings));
+  }
+  // Deliberately NOT handled here: tenant_type. A tenant owner/admin who
+  // could flip their own guild to "business" would drop their member cap
+  // (src/lib/plans.ts) and gain the public launch toggle below. tenant_type
+  // is set at tenant creation or by a platform admin only — see
+  // PATCH /api/platform/tenants/:id in src/routes/platform.ts.
+  if (body.public_launched !== undefined) {
+    fields.push("public_launched = ?");
+    params.push(body.public_launched ? 1 : 0);
   }
   if (!fields.length) return c.json({ error: "No fields to update" }, 400);
   fields.push("updated_at = ?");

@@ -1,5 +1,6 @@
 import type { Plan, Tenant } from "../types";
 import { first } from "./db";
+import { isBusiness } from "./tenantType";
 
 /** Free / Starter tier: max active members before upgrade required. */
 export const FREE_ACTIVE_MEMBER_LIMIT = 30;
@@ -50,8 +51,13 @@ export function activeMemberLimit(
 }
 
 export function activeMemberLimitForTenant(
-  tenant: Pick<Tenant, "plan" | "trial_ends_at" | "stripe_subscription_id">
+  tenant: Pick<Tenant, "plan" | "trial_ends_at" | "stripe_subscription_id"> & {
+    tenant_type?: string | null;
+  }
 ): number | null {
+  // Businesses have customers, not members. The free-plan member cap is a
+  // membership-organisation concept and does not apply to them.
+  if (isBusiness(tenant)) return null;
   return activeMemberLimit(effectivePlan(tenant));
 }
 

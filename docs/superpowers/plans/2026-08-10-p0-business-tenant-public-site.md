@@ -870,6 +870,34 @@ git add src/lib/site/themeMigrate.ts src/lib/site/themeMigrate.test.ts src/route
 git commit -m "feat(site): legacy theme expansion + derivation for guild.html compatibility"
 ```
 
+> **CORRECTIONS APPLIED DURING EXECUTION.** Three defects in this task's own
+> text were found and fixed while implementing it. The code above is left as
+> originally written for the record; what actually shipped differs as follows.
+>
+> 1. **The `guild.html` field list above is wrong.** Step 6 asserted it reads
+>    `primary`, `accent`, `headerBg`. It actually reads `primary`, `font`, and
+>    `style` (`public/guild.html:918-930`) and never touches `accent` or
+>    `headerBg`. `deriveLegacyTheme` therefore takes an optional second
+>    parameter carrying the raw legacy theme, so `font` and `style` pass
+>    through. Without this every guild would have lost its font and layout
+>    style. Step 6 existed to catch exactly this, and did.
+> 2. **`themeColor: primary` contradicted this task's own test.** The test
+>    requires `expandLegacyTheme({})` to deep-equal `DEFAULT_THEME`, whose
+>    `themeColor` (`#c060a0`) differs from its `primary` (`#8a2060`). Shipped
+>    as `safeColor(src.primary, "") || DEFAULT_THEME.themeColor`, so a custom
+>    `primary` still drives the browser theme-color.
+> 3. **`deriveLegacyTheme` must be presence-based, not defaulted.** As written
+>    above it always returns a `primary`, so every guild with
+>    `settings_json = '{}'` — the default at signup, and the common case —
+>    would flip from the platform's brand orange (`--brand: #b5501f`,
+>    `public/qh.css:20`) to austinlongarm's purple, because `guild.html`'s
+>    `if (theme.primary)` guard would start firing. That violates this plan's
+>    own "guilds must not regress" constraint. Shipped emitting
+>    `primary`/`accent`/`headerBg` only when the tenant actually stored one,
+>    mirroring the `font`/`style` logic. `expandLegacyTheme` and
+>    `readTenantTheme` still return a fully-defaulted 13-token `ThemeConfig` —
+>    the business renderer depends on that.
+
 **Deliberate deviation from the spec.** The spec called for a one-time data
 backfill rewriting `settings_json` for every tenant. This task does read-time
 expansion instead: `readTenantTheme` expands legacy shapes on every read, and
@@ -1252,14 +1280,17 @@ describe("blocksToHtml — escaping", () => {
     const html = blocksToHtml(parseBlocks([
       { type: "service_cards", items: [{ title: XSS, body: XSS, icon: XSS }] },
     ]));
-    expect(html).not.toContain("onerror=");
+    expect(html).not.toContain("<img src=x");
+    expect(html).toContain("&lt;img");
   });
 
   it("escapes faq and testimonial text", () => {
     const faq = blocksToHtml(parseBlocks([{ type: "faq", items: [{ q: XSS, a: XSS }] }]));
     const tst = blocksToHtml(parseBlocks([{ type: "testimonials", items: [{ quote: XSS, author: XSS }] }]));
-    expect(faq).not.toContain("onerror=");
-    expect(tst).not.toContain("onerror=");
+    expect(faq).not.toContain("<img src=x");
+    expect(faq).toContain("&lt;img");
+    expect(tst).not.toContain("<img src=x");
+    expect(tst).toContain("&lt;img");
   });
 
   it("escapes gallery urls into the src attribute", () => {
@@ -1490,6 +1521,17 @@ git add src/lib/blocks.ts src/lib/blocks.test.ts
 git commit -m "feat(site): hero, service cards, gallery, faq, testimonials, contact form blocks"
 ```
 
+> **CORRECTION APPLIED DURING EXECUTION.** The escaping tests for
+> `service_cards`, `faq`, and `testimonials` originally asserted
+> `not.toContain("onerror=")`. That assertion can never hold and was fixed
+> above. `escapeHtml` neutralizes *structure*, not substrings: the payload
+> becomes `&lt;img src=x onerror=alert(1)&gt;`, which is inert but still
+> contains the literal text `onerror=`. The correct assertion — already used
+> by the `hero` and `gallery_grid` tests in this same file — is that the
+> unescaped tag is absent and the escaped form is present. The alternative,
+> adding attribute-stripping sanitization, was explicitly out of scope: this
+> task must not alter `escapeHtml`/`escapeAttr`.
+
 ---
 
 ### Task 7: Page renderer
@@ -1552,8 +1594,11 @@ describe("renderPageHtml", () => {
 
   it("emits the seo head and the json-ld", () => {
     const html = renderPageHtml(args);
-    expect(html).toContain("<title>Services | Stitch Studio</title>");
+    // The business-identity name wins over tenant.name for the visible site
+    // name — that is the whole point of the Business details field.
+    expect(html).toContain("<title>Services | Stitch Studio Quilting</title>");
     expect(html).toContain('"@type":"LocalBusiness"');
+    expect(html).toContain('"name":"Stitch Studio Quilting"');
   });
 
   it("renders the page blocks", () => {
@@ -1875,6 +1920,23 @@ git add src/lib/site/render.ts src/lib/site/render.test.ts public/qh-site.css pu
 git commit -m "feat(site): server-rendered page shell, stylesheet, and block hydration"
 ```
 
+> **CORRECTIONS APPLIED DURING EXECUTION.** Two defects in this task's own text.
+>
+> 1. **The fixture contradicted the implementation.** `siteName` is
+>    `identity.name || tenant.name`, but the fixture set `tenant.name` to
+>    "Stitch Studio" and `settings.business.name` to "Stitch Studio Quilting"
+>    while asserting the *tenant* name in the title — unsatisfiable. The
+>    implementation is correct and the fixture was wrong: the business-identity
+>    name must win for the title, header, and footer, or Task 14's Business
+>    details panel ("used in the site footer and in the structured data") is
+>    lying to the owner. Assertions corrected above; the two names are kept
+>    deliberately distinct so the test now pins precedence rather than
+>    accidentally passing.
+> 2. **The escaping test repeated Task 6's unsatisfiable pattern.**
+>    `not.toContain("onerror=alert(1)")` cannot hold against `esc()`. Same
+>    test-only correction as Task 6: assert the unescaped tag is absent and the
+>    escaped form present.
+
 ---
 
 ### Task 8: Render cache
@@ -2121,7 +2183,12 @@ Inside the tenant-host middleware, immediately after `if (!tenant) return next()
     if (!isPlatformPath) {
       const res = await serveBusinessSite(c, tenant);
       if (res) return res;
-      // No matching page — fall through so the 404 handler runs.
+      // A real 404. Falling through does NOT reach app.notFound — execution
+      // continues in this same middleware to the catch-all below, which
+      // rewrites to /guild and serves the guild SPA shell at HTTP 200. On a
+      // business tenant that means a missing page returns someone else's app,
+      // indexable, under the customer's own domain.
+      return c.notFound();
     }
   }
 ```
@@ -2249,6 +2316,35 @@ function isPlatformOnlyPath(path: string): boolean {
   );
 }
 ```
+
+> **CRITICAL DEFECT — DO NOT IMPLEMENT THE CODE ABOVE.** Superseded during
+> execution; kept only so the mistake is legible.
+>
+> This is a five-entry **denylist** against a route surface with dozens of
+> entries, so on a launched tenant's hostname everything not listed is
+> ungated. An adversarial review found it exposes:
+>
+> - **`/docs/*`** — the whole product documentation site, nine pages
+>   `CLAUDE.md` calls "site-gated while stealth", served unauthenticated and
+>   crawlable under the tenant's `Allow: /` robots policy.
+> - **`/public/*`** — cross-tenant reads *and unauthenticated writes*. Those
+>   handlers resolve any tenant by URL slug with no host binding:
+>   `POST /public/{anyslug}/join`, `/donate`, `/cart/checkout`.
+> - `/index.html`, `/guild.html`, `/embed/{anyslug}/*`, `/__scheduled`.
+>
+> Root cause: `src/index.ts:94-103` already held a longer, disagreeing
+> platform-path list, and the gate carried the shorter one. Two lists that
+> must stay in sync is the bug; the missing entries are just symptoms.
+>
+> **Shipped instead:** an allowlist, `isLaunchedSitePath(path, tenantSlug)`,
+> permitting only what the business site actually serves — `/robots.txt`,
+> `/sitemap.xml`, `/qh-site.css`, `/qh-site.js`, `/img/<id>`,
+> `/public/<thisTenantSlug>/*` scoped to the launched tenant alone, and page
+> slugs not beginning with a reserved prefix drawn from a single shared
+> constant. A new route is gated by default rather than exposed by default.
+> The path is normalized (repeated slashes collapsed, percent-decoded in a
+> try/catch that fails closed, lowercased) before matching, because `//admin`,
+> `/%61dmin`, and `/Admin` all evaded the raw prefix check.
 
 - [ ] **Step 2: Make robots.txt respect the launch**
 
@@ -3322,16 +3418,28 @@ git push origin main
 
 ## Definition of done
 
-- [ ] `npx tsc --noEmit` clean.
-- [ ] `npx vitest run` green — 9 test files (`tenantType`, `plans`, `theme`, `fonts`, `themeMigrate`, `seo`, `blocks`, `render`, `credentials`), ~70 assertions.
-- [ ] `npm run test:business-site` green.
-- [ ] The five pre-existing `npm run test:*` scripts still pass (regression check on guilds).
-- [ ] A launched business tenant serves server-rendered, indexable HTML on its own hostname.
-- [ ] Uploaded images serve from `/img/:fileId` on the tenant host, and a file id from another tenant 404s.
-- [ ] The owner can edit pages, blocks, appearance, business details, nav, domain, and the launch toggle without touching the database.
-- [ ] `quilthosting.com`, `/admin`, `/portal`, and unlaunched tenants all still return 401 behind the gate.
-- [ ] An existing guild site renders unchanged through `guild.html`.
-- [ ] `package.json` version is `0.32.0-preview` and the work is pushed to `origin/main`.
+Verified 2026-08-11 on branch `p0-business-tenant` at `330cac1`, and re-verified after
+the site-builder coverage was added (see the last bullet).
+
+- [x] `npx tsc --noEmit` clean. — exit 0.
+- [x] `npx vitest run` green — grew past the planned 9 files: **18 test files, 232 assertions**, all passing.
+- [x] `npm run test:business-site` green — "All checks passed", **93 assertions** (was 57; +36 for the site-builder editor round trips).
+- [x] The five pre-existing `npm run test:*` scripts still pass (regression check on guilds). — `scale`, `integrations`, `idempotency`, `import`, `delivery` all exit 0.
+- [x] A launched business tenant serves server-rendered, indexable HTML on its own hostname. — home 200, server-rendered, theme custom properties, `LocalBusiness` json-ld, not noindexed; sitemap and robots correct.
+- [x] Uploaded images serve from `/img/:fileId` on the tenant host, and a file id from another tenant 404s. — plus content-type fidelity, `nosniff`, immutable cache, and a `text/html`-typed same-tenant file 404s rather than serving.
+- [x] The owner can edit pages, blocks, appearance, business details, nav, domain, and the launch toggle without touching the database. — **now fully automated.** Business Details save is asserted through the real admin PATCH path (including cache invalidation) and the launch toggle through the gate matrix, as before. The remaining five panels are covered by the "Site builder editor round trips" section added to `scripts/verify-business-site.mjs` on 2026-08-11: every check drives the exact endpoint and body shape `public/qh-site-builder.js` sends from the owner's browser, then asserts the **public render** changed — not merely that the API returned 200.
+  - *Pages*: create → served at its own slug with both authored blocks, `seo_title` in `<title>`, `seo_description` in the meta; unpublish → 404; re-publish → 200; delete → 404.
+  - *Blocks*: PATCH → new block rendered **and** the pre-edit content gone, which independently proves the page-level half of the cache key (`pages.updated_at`) invalidates — the Business Details check only ever exercised the `tenant.updated_at` half.
+  - *Appearance*: saved tokens reach the inline `:root` custom properties, including one (`textMuted`) the fixture never seeded, plus `<meta name="theme-color">`; then restored, with the restore itself asserted.
+  - *Nav*: explicit items render inside `<nav class="qh-site-nav">`; clearing the nav falls back to auto-listing published pages, as the panel's help text promises.
+  - *Domain*: PUT → host-based routing follows the new domain (new host serves this tenant, old host goes back to 401), then restores.
+  - **Not vacuous — proven by mutation.** Two deliberate regressions were introduced and reverted: forcing `loadNav`'s explicit branch empty failed exactly the 2 nav checks; forcing the `POST /pages` insert to drop `blocks_json` (simulating its silent catch-fallback) failed exactly the 2 block-render checks. A status-only test suite would have passed both times.
+  - **Cloudflare safety.** The domain check reaches `provisionSaasDomain`, which no-ops because `CLOUDFLARE_API_TOKEN` is absent from both `.dev.vars` and `wrangler.toml [vars]` — so no request reaches `api.cloudflare.com` and no real SaaS hostname is created. That is *asserted*, not assumed: the check requires `saas.www.ok === false` with the "not configured" error, so if anyone adds a live token to local config the suite fails loudly instead of quietly provisioning a bogus hostname on the real zone.
+- [x] `quilthosting.com`, `/admin`, `/portal`, and unlaunched tenants all still return 401 behind the gate. — full gate matrix passes, including "a guild is never launch-exempt".
+- [x] An existing guild site renders unchanged through `guild.html`. — `/public/<slug>/site` reachable, legacy `theme.primary` preserved, full token set emitted.
+- [x] `package.json` version is `0.32.0-preview`. Branch push: see below.
+
+**Harness note.** The four server-driven scripts (`integrations`, `idempotency`, `import`, `delivery`) default to `http://127.0.0.1:8787` and will fail with `403 Missing origin header` if any *other* project's `wrangler dev` holds that port — that string does not exist in this codebase, so it is a wrong-server symptom, not a regression. Run them against an explicit port instead: `QH_BASE=http://127.0.0.1:8798 npm run test:idempotency`, with `npx wrangler dev --port 8798 --local` up.
 
 ## Deferred to later sub-projects
 

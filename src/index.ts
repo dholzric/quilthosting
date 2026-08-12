@@ -29,6 +29,7 @@ import { groupRoutes } from "./routes/groups";
 import { productRoutes } from "./routes/products";
 import { formRoutes } from "./routes/forms";
 import { invoiceRoutes } from "./routes/invoices";
+import { credentialRoutes } from "./routes/credentials";
 import { automationRoutes } from "./routes/automations";
 import { forumAdminRoutes } from "./routes/forums";
 import { apiKeyRoutes } from "./routes/apiKeys";
@@ -39,10 +40,13 @@ import { outboundWebhookRoutes } from "./routes/outboundWebhooks";
 import { qboRoutes } from "./routes/qbo";
 import { platformRoutes } from "./routes/platform";
 import { domainRoutes } from "./routes/domain";
+import { projectRoutes } from "./routes/projects";
 import { runAutomationJob } from "./lib/automations";
 import { processQueuedBlasts } from "./lib/blastSend";
 import { generateId } from "./lib/utils/id";
 import { getTenantByHost } from "./lib/tenantHost";
+import { isBusiness } from "./lib/tenantType";
+import { serveBusinessSite } from "./routes/site";
 import { handleWebhookQueue } from "./consumers/webhookConsumer";
 import { sweepOutbox } from "./lib/webhookOutbox";
 import { sweepExpired } from "./lib/idempotency";
@@ -86,6 +90,45 @@ app.use("*", async (c, next) => {
   const tenant = await getTenantByHost(c.env.DB, host, c.env.APP_URL);
   if (!tenant) return next();
 
+  // Business tenants get the server-rendered site. Guilds keep guild.html.
+  if (isBusiness(tenant)) {
+    // Platform surfaces stay on the platform, even on a custom domain.
+    //
+    // This list is deliberately NOT sourced from
+    // `../lib/platformPaths.ts`'s (broader) `PLATFORM_PATH_PREFIXES`, even
+    // though that constant exists precisely to avoid two lists drifting.
+    // siteGate.ts's list has to include prefixes like "/g" and "/guild"
+    // that this one does not: if this `isPlatformPath` check is ever
+    // widened to match it, a business-tenant request to e.g. "/g/x" or
+    // "/guildxyz" stops 404ing via `serveBusinessSite` below and instead
+    // falls through the rest of this middleware into the guild-oriented
+    // tail (the `/g/` redirect and the final "serve guild.html" catch-all),
+    // serving the wrong product's shell on a paying business's domain. That
+    // is a routing regression, not a security hole (siteGate.ts's own
+    // reserved-prefix check is what actually keeps the gate closed on those
+    // paths), but it's real, so it wasn't done silently as part of Task 10 —
+    // see task-10-fix-report.md. Fixing it for real means restructuring this
+    // `if (isBusiness(tenant))` branch to `return` unconditionally after the
+    // platform-path check instead of falling into guild-branch logic when
+    // `isPlatformPath` is true; that's its own follow-up task, not a
+    // constant swap.
+    const isPlatformPath =
+      path.startsWith("/admin") ||
+      path.startsWith("/portal") ||
+      path.startsWith("/docs") ||
+      path.startsWith("/embed") ||
+      path === "/qh.css" ||
+      path === "/sw.js" ||
+      path === "/manifest.webmanifest" ||
+      path === "/icon.svg" ||
+      path.startsWith("/assets");
+    if (!isPlatformPath) {
+      const res = await serveBusinessSite(c, tenant);
+      if (res) return res;
+      return c.notFound();
+    }
+  }
+
   // Portal: ensure slug query so portal.js finds the tenant
   if (path === "/portal" || path === "/portal.html") {
     const url = new URL(c.req.url);
@@ -101,7 +144,9 @@ app.use("*", async (c, next) => {
     path.startsWith("/docs") ||
     path.startsWith("/embed") ||
     path === "/privacy" ||
+    path === "/privacy.html" ||
     path === "/terms" ||
+    path === "/terms.html" ||
     path === "/qh.css" ||
     path === "/guild" ||
     path === "/guild.html" ||
@@ -314,6 +359,7 @@ tenantApp.route("/products", productRoutes);
 tenantApp.route("/billing", billingRoutes);
 tenantApp.route("/forms", formRoutes);
 tenantApp.route("/invoices", invoiceRoutes);
+tenantApp.route("/credentials", credentialRoutes);
 tenantApp.route("/automations", automationRoutes);
 tenantApp.route("/forum", forumAdminRoutes);
 tenantApp.route("/api-keys", apiKeyRoutes);
@@ -323,6 +369,7 @@ tenantApp.route("/webhooks", outboundWebhookRoutes);
 tenantApp.route("/qbo", qboRoutes);
 tenantApp.route("/domain", domainRoutes);
 tenantApp.route("/galleries", galleryRoutes);
+tenantApp.route("/projects", projectRoutes);
 app.route("/api/tenants/:tenantId", tenantApp);
 
 app.route("/public", publicRoutes);

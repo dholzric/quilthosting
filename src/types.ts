@@ -24,6 +24,8 @@ export type Env = {
   STRIPE_GUILD_PRICE_ID?: string;
   RESEND_API_KEY: string;
   JWT_SECRET: string;
+  /** AES-GCM key (base64, 32 bytes) for tenant_credentials. Required in production. */
+  CREDENTIAL_KEY?: string;
   ENVIRONMENT: string;
   APP_URL: string;
   /** Intuit QuickBooks Online app (optional) */
@@ -54,6 +56,10 @@ export interface Tenant {
   name: string;
   slug: string;
   custom_domain: string | null;
+  /** 'guild' (default) or 'business'. Read via isBusiness() in lib/tenantType. */
+  tenant_type: "guild" | "business";
+  /** 1 = this tenant's public site bypasses the site gate. Businesses only. */
+  public_launched: number;
   stripe_account_id: string | null;
   /** Platform billing (guild pays QuiltHosting) */
   stripe_customer_id?: string | null;
@@ -124,3 +130,54 @@ export interface Event {
 export type TenantVariables = {
   tenant: Tenant;
 };
+
+export interface Project {
+  id: string;
+  tenant_id: string;
+  project_type: string;
+  status: string;
+  reference: string;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string | null;
+  member_id: string | null;
+  intake_json: string;
+  estimate_notes: string | null;
+  subtotal_cents: number;
+  total_cents: number;
+  due_date: string | null;
+  access_token_hash: string;
+  token_expires_at: string | null;
+  estimated_at: string | null;
+  signed_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectLine {
+  id: string;
+  project_id: string;
+  kind: string;
+  description: string;
+  quantity: number;
+  unit_cents: number;
+  amount_cents: number;
+  sort_order: number;
+}
+
+export interface AgreementSignature {
+  id: string;
+  tenant_id: string;
+  project_id: string;
+  signer_name: string;
+  signer_email: string;
+  consent_text: string;
+  agreement_title: string;
+  agreement_text: string;
+  agreement_sha256: string;
+  signing_token_hash: string;
+  signer_ip: string | null;
+  signer_user_agent: string | null;
+  signed_at: string;
+}

@@ -14,6 +14,14 @@ import {
   validateAnswers,
 } from "../lib/eventQuestions";
 import { getTenantByHost, tenantPublicBaseUrl } from "../lib/tenantHost";
+import { readTenantTheme, deriveLegacyTheme } from "../lib/site/themeMigrate";
+import { escapeHtml } from "../lib/blocks";
+import { computeEstimate } from "../lib/projects/pricing";
+import { mintAccessToken, hashToken } from "../lib/projects/token";
+import { buildReference } from "../lib/projects/reference";
+import { PROJECT_TYPES } from "../lib/projects/types";
+import type { ProjectType, LongarmRates } from "../lib/projects/types";
+import { sniffImageType } from "../lib/projects/imageSniff";
 
 export const publicRoutes = new Hono<{ Bindings: Env }>();
 
@@ -27,6 +35,14 @@ publicRoutes.use(
   "/:slug/products/:productId/buy",
   rateLimit({ keyPrefix: "buy", limit: 30, windowSeconds: 600 })
 );
+publicRoutes.use(
+  "/:slug/projects/intake",
+  rateLimit({ keyPrefix: "intake", limit: 20, windowSeconds: 600 })
+);
+publicRoutes.use(
+  "/:slug/projects/:projectRef/photos",
+  rateLimit({ keyPrefix: "intakephoto", limit: 40, windowSeconds: 600 })
+);
 
 async function getTenantBySlug(db: D1Database, slug: string) {
   return first<Tenant>(
@@ -35,6 +51,431 @@ async function getTenantBySlug(db: D1Database, slug: string) {
       .bind(slug)
   );
 }
+
+// Everything stored in intake_json comes from exactly these keys — an
+// allowlist, not a filter — so an anonymous caller cannot smuggle arbitrary
+// extra keys or deeply nested structures into the row no matter what shape
+// body.intake arrives in.
+type SanitizedIntake = {
+  widthIn?: number;
+  heightIn?: number;
+  serviceLevel: "edge_to_edge" | "custom";
+  batting: boolean;
+  thread: boolean;
+  binding: boolean;
+  backingPrep: boolean;
+  rush: boolean;
+  blockCount?: number;
+};
+
+const MAX_INTAKE_RAW_BYTES = 8192;
+
+/** UTF-8 byte length (JS string .length is UTF-16 code units, not bytes). */
+function byteLength(s: string): number {
+  return new TextEncoder().encode(s).length;
+}
+
+// POST /public/:slug/projects/intake
+// Reachable unauthenticated on a launched business tenant's own host via
+// siteGate rule 4 (/public/<own-slug>/...), the same rule under which /join
+// and /cart/checkout already accept unauthenticated writes. No new gate rule.
+publicRoutes.post("/:slug/projects/intake", async (c) => {
+  // getTenantBySlug is the existing helper above — it takes the D1 binding,
+  // not env.
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant || tenant.tenant_type !== "business") {
+    return c.json({ error: "Not found" }, 404);
+  }
+
+  type IntakeBody = {
+    project_type?: string;
+    customer_name?: string;
+    customer_email?: string;
+    customer_phone?: string;
+    intake?: Record<string, unknown>;
+  };
+  // A missing/unparseable body must not throw — it must fall through to the
+  // validation below and come back as a 400, the same idiom used by the
+  // other public routes in this file.
+  const body = await c.req.json<IntakeBody>().catch(() => ({}) as IntakeBody);
+
+  const projectType = PROJECT_TYPES.includes(body.project_type as ProjectType)
+    ? (body.project_type as ProjectType)
+    : null;
+  const name = String(body.customer_name || "").trim().slice(0, 200);
+  // Lowercased for consistency with every other public write in this file
+  // (/join, /donate, /events/:id/register, /products/:id/buy, /cart/checkout,
+  // /forms/:slug all do this) — matters once send-estimate's case-insensitive
+  // member lookup creates a NEW member row from this value verbatim.
+  const email = String(body.customer_email || "").trim().toLowerCase().slice(0, 320);
+  if (!projectType) return c.json({ error: "Choose a project type" }, 400);
+  if (!name) return c.json({ error: "Name is required" }, 400);
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    return c.json({ error: "A valid email is required" }, 400);
+  }
+
+  const intakeRaw = (body.intake && typeof body.intake === "object") ? body.intake : {};
+  // Reject grossly oversized or padded intake payloads before doing any
+  // further work with them. Checked on the RAW parsed object rather than the
+  // sanitized one below: once stripped to the fixed allowlist of scalar
+  // fields, the sanitized object can never itself approach this size, so
+  // checking post-strip would be dead code. This is what actually stops an
+  // anonymous caller from making the worker serialize/store an unbounded
+  // blob — the allowlist stripping below is what stops arbitrary/nested
+  // KEYS from reaching storage; this stops an arbitrarily large one.
+  let intakeRawJson: string;
+  try {
+    intakeRawJson = JSON.stringify(intakeRaw);
+  } catch {
+    return c.json({ error: "Invalid intake details" }, 400);
+  }
+  if (byteLength(intakeRawJson) > MAX_INTAKE_RAW_BYTES) {
+    return c.json({ error: "Intake details are too large" }, 400);
+  }
+
+  const widthIn = Number(intakeRaw.widthIn);
+  const heightIn = Number(intakeRaw.heightIn);
+  // Sane bounds: a quilt wider than 200in does not exist, and a negative one
+  // would sail straight into the area multiplication.
+  const dimsOk = (n: unknown) => typeof n === "number" && Number.isFinite(n) && n > 0 && n <= 200;
+  if (projectType !== "tshirt_quilt" && (!dimsOk(widthIn) || !dimsOk(heightIn))) {
+    return c.json({ error: "Enter the quilt's width and height in inches" }, 400);
+  }
+
+  // blockCount feeds a straight multiplication against a per-block rate with
+  // no other ceiling in computeEstimate, unlike width/height's 200in bound —
+  // an unbounded value here is the one numeric input that could reach the
+  // database unchecked. A caller that supplies one must supply a sane one;
+  // omitting it entirely is fine (tshirt_quilt without it just suppresses).
+  let blockCount: number | undefined;
+  if (intakeRaw.blockCount !== undefined && intakeRaw.blockCount !== null) {
+    const bc = Number(intakeRaw.blockCount);
+    if (!Number.isFinite(bc) || bc < 1 || bc > 500) {
+      return c.json({ error: "Block count must be between 1 and 500" }, 400);
+    }
+    blockCount = bc;
+  }
+
+  let settings: Record<string, unknown> = {};
+  try { settings = JSON.parse(tenant.settings_json || "{}"); } catch { settings = {}; }
+  const rates = ((settings.longarm as LongarmRates) || {}) as LongarmRates;
+
+  const sanitizedIntake: SanitizedIntake = {
+    widthIn: dimsOk(widthIn) ? widthIn : undefined,
+    heightIn: dimsOk(heightIn) ? heightIn : undefined,
+    serviceLevel: intakeRaw.serviceLevel === "custom" ? "custom" : "edge_to_edge",
+    batting: !!intakeRaw.batting,
+    thread: !!intakeRaw.thread,
+    binding: !!intakeRaw.binding,
+    backingPrep: !!intakeRaw.backingPrep,
+    rush: !!intakeRaw.rush,
+    blockCount,
+  };
+
+  const ballpark = computeEstimate({ projectType, ...sanitizedIntake }, rates);
+
+  const token = mintAccessToken();
+  const tokenHash = await hashToken(token);
+  const id = generateId();
+  const now = new Date().toISOString();
+  const expires = new Date(Date.now() + 90 * 24 * 3600 * 1000).toISOString();
+
+  // Allocate the reference with a single atomic RETURNING statement: the
+  // increment and the read of its new value happen as one D1 round trip, so
+  // there is no window between them for a concurrent submission to read the
+  // same next_number (the failure mode a two-statement UPSERT-then-SELECT
+  // has — verified against local D1 that RETURNING is supported and gives
+  // the atomically-incremented value back). Retried a bounded number of
+  // times so that IF a reference collision still somehow reaches the
+  // `projects` insert (e.g. a hand-edited counter row), the customer gets a
+  // fresh reference instead of an unhandled 500 losing their submission.
+  const MAX_REFERENCE_ATTEMPTS = 3;
+  let reference = "";
+  let inserted = false;
+  let lastInsertErr: unknown;
+  for (let attempt = 0; attempt < MAX_REFERENCE_ATTEMPTS && !inserted; attempt++) {
+    const counter = await first<{ next_number: number }>(
+      c.env.DB.prepare(
+        `INSERT INTO project_counters (tenant_id, next_number) VALUES (?, 1)
+         ON CONFLICT(tenant_id) DO UPDATE SET next_number = next_number + 1
+         RETURNING next_number`
+      ).bind(tenant.id)
+    );
+    reference = buildReference(rates.referencePrefix, tenant.slug, counter?.next_number ?? 1);
+
+    try {
+      const projectInsertStmt = c.env.DB.prepare(
+        `INSERT INTO projects
+           (id, tenant_id, project_type, status, reference, customer_name, customer_email,
+            customer_phone, intake_json, subtotal_cents, total_cents,
+            access_token_hash, token_expires_at, created_at, updated_at)
+         VALUES (?, ?, ?, 'submitted', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        id, tenant.id, projectType, reference, name, email,
+        String(body.customer_phone || "").slice(0, 50) || null,
+        JSON.stringify(sanitizedIntake),
+        ballpark.suppressed ? 0 : ballpark.subtotalCents,
+        ballpark.suppressed ? 0 : ballpark.totalCents,
+        tokenHash, expires, now, now
+      );
+      // The project row and every ballpark line row commit as ONE D1 batch
+      // (same idiom as PUT /projects/:id/lines' rewrite), not as the
+      // project INSERT followed by N independent .run() calls — a partial
+      // failure used to be able to leave project_lines summing to less
+      // than the total_cents already committed on the project row, and the
+      // quote page reads lines from one write and the total from the
+      // other before freezing both into the signature (final review, F5).
+      // This also runs BEFORE any email is attempted, same as before — a
+      // Resend outage must never lose a customer's submission.
+      const lineInsertStmts = ballpark.suppressed
+        ? []
+        : ballpark.lines.map((l, i) =>
+            c.env.DB.prepare(
+              `INSERT INTO project_lines
+                 (id, project_id, kind, description, quantity, unit_cents, amount_cents, sort_order)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+            ).bind(generateId(), id, l.kind, l.description, l.quantity, l.unitCents, l.amountCents, i)
+          );
+      await c.env.DB.batch([projectInsertStmt, ...lineInsertStmts]);
+      inserted = true;
+    } catch (err) {
+      lastInsertErr = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      // Only retry the specific failure this loop exists to recover from —
+      // a reference collision. Any other insert failure is a real error and
+      // must surface, not be silently retried away.
+      //
+      // Matched against the REAL D1 runtime error text, not a guess: a
+      // genuine UNIQUE(tenant_id, reference) collision, provoked against
+      // local D1 through the actual Worker (not the wrangler CLI, which
+      // formats errors differently), throws exactly:
+      //   D1_ERROR: UNIQUE constraint failed: projects.tenant_id,
+      //   projects.reference: SQLITE_CONSTRAINT (extended:
+      //   SQLITE_CONSTRAINT_UNIQUE)
+      // Anchored on the extended result code (SQLITE_CONSTRAINT_UNIQUE) —
+      // a stable SQLite constant — plus the column name, rather than on the
+      // surrounding sentence wording, which is D1/Workers-runtime-owned and
+      // not something this codebase controls.
+      if (!(/SQLITE_CONSTRAINT_UNIQUE/i.test(msg) && /\breference\b/i.test(msg))) {
+        throw err;
+      }
+    }
+  }
+  if (!inserted) {
+    console.error("intake: could not allocate a unique reference after retries", lastInsertErr);
+    return c.json({ error: "Could not process your request. Please try again." }, 500);
+  }
+
+  // Acknowledgement only. The ballpark is NEVER emailed as a price — it is
+  // shown on screen to convert a browsing visitor, and only the estimate
+  // Linda has reviewed goes out.
+  await sendEmail(c.env, {
+    to: email,
+    subject: `We received your quilt request (${reference})`,
+    html: `<p>Thanks ${escapeHtml(name)} — we have your request, reference <strong>${reference}</strong>.</p>
+           <p>We'll review the details and send your estimate shortly.</p>`,
+  }).catch(() => undefined);
+
+  const ownerEmail = (settings.business as { email?: string } | undefined)?.email;
+  if (ownerEmail) {
+    await sendEmail(c.env, {
+      to: ownerEmail,
+      subject: `New ${projectType.replace("_", " ")} intake — ${reference}`,
+      html: `<p>${escapeHtml(name)} (${escapeHtml(email)}) submitted ${reference}.</p>`,
+    }).catch(() => undefined);
+  }
+
+  return c.json({
+    ok: true,
+    reference,
+    ballpark: {
+      suppressed: ballpark.suppressed,
+      total_cents: ballpark.totalCents,
+      lines: ballpark.lines,
+    },
+  });
+});
+
+// POST /public/:slug/projects/:projectRef/photos
+// Deliberately open to the internet — a T-shirt quilt cannot be quoted
+// without seeing the shirts. Bounded by: the rate limit registered above
+// (Task 7), a hard file count and size cap, and magic-byte type detection.
+// The stored content_type is decided from BYTES via sniffImageType, never
+// from the client's Content-Type header — the files this endpoint writes
+// are also servable through portal.ts / galleries.ts / public.ts:photo,
+// none of which allowlist content_type or set X-Content-Type-Options on the
+// way out (unlike site.ts's /img/:fileId), so this route is the only line
+// of defence against stored XSS for rows it creates.
+const MAX_FILES = 5;
+const MAX_BYTES = 10 * 1024 * 1024;
+
+publicRoutes.post("/:slug/projects/:projectRef/photos", async (c) => {
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant || tenant.tenant_type !== "business") {
+    return c.json({ error: "Not found" }, 404);
+  }
+  const project = await first<{ id: string }>(
+    c.env.DB.prepare(
+      `SELECT id FROM projects WHERE tenant_id = ? AND reference = ? AND status = 'submitted'`
+    ).bind(tenant.id, c.req.param("projectRef"))
+  );
+  if (!project) return c.json({ error: "Not found" }, 404);
+
+  const form = await c.req.formData().catch(() => null);
+  if (!form) return c.json({ error: "Expected multipart form data" }, 400);
+
+  const files = form.getAll("photos").filter((f): f is File => f instanceof File);
+  if (!files.length) return c.json({ error: "No photos supplied" }, 400);
+  if (files.length > MAX_FILES) {
+    return c.json({ error: `At most ${MAX_FILES} photos` }, 400);
+  }
+
+  // Pass 1: validate every file — count cap (above), per-file size cap, and
+  // magic-byte sniff — before writing anything. A batch that fails partway
+  // through must not leave earlier files in the same batch permanently
+  // orphaned in R2/D1 (nothing links them to a project until after this
+  // whole handler succeeds, and nothing ever sweeps them). Holds up to
+  // MAX_FILES (5) buffers of up to MAX_BYTES (10MB) each in memory at once
+  // — see task-8-report.md for why that ceiling was judged acceptable.
+  const validated: Array<{ file: File; buf: Uint8Array; contentType: string }> = [];
+  for (const file of files) {
+    if (file.size > MAX_BYTES) {
+      return c.json({ error: "Each photo must be under 10MB" }, 400);
+    }
+    const buf = new Uint8Array(await file.arrayBuffer());
+    const contentType = sniffImageType(buf);
+    if (!contentType) {
+      return c.json({ error: "Photos must be PNG, JPEG, GIF, WebP or AVIF" }, 400);
+    }
+    validated.push({ file, buf, contentType });
+  }
+
+  function readPhotoFileIds(intakeJson: string | null | undefined): string[] {
+    try {
+      const parsed = JSON.parse(intakeJson || "{}");
+      return Array.isArray(parsed.photoFileIds) ? parsed.photoFileIds : [];
+    } catch {
+      return [];
+    }
+  }
+
+  // Reject up front, before anything is written, when this project doesn't
+  // have room for this many more photos. The alternative — slicing the
+  // merged array down to MAX_FILES after writing — silently drops some of
+  // THIS request's just-committed ids while still telling the caller they
+  // were all linked. Rejecting first means a caller who's over the cap
+  // learns before any R2/D1 write happens, and file_ids in the response is
+  // always exactly what's linked.
+  const preCheckRow = await first<{ intake_json: string }>(
+    c.env.DB.prepare(`SELECT intake_json FROM projects WHERE id = ? AND tenant_id = ?`)
+      .bind(project.id, tenant.id)
+  );
+  if (readPhotoFileIds(preCheckRow?.intake_json).length + validated.length > MAX_FILES) {
+    return c.json(
+      { error: `This project can have at most ${MAX_FILES} photos attached in total` },
+      400
+    );
+  }
+
+  // Pass 2: every file passed validation and there's room for all of
+  // them — now write. If the D1 insert for a file fails after its R2
+  // object is already written, best-effort delete that one object rather
+  // than leave it dangling; do not attempt to unwind files already
+  // committed earlier in this same pass (see task-8-report.md for the
+  // residue that leaves open).
+  const fileIds: string[] = [];
+  for (const { file, buf, contentType } of validated) {
+    const fileId = generateId();
+    const key = `${tenant.id}/${fileId}/${file.name.replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 100)}`;
+    await c.env.FILES.put(key, buf);
+    try {
+      await c.env.DB.prepare(
+        `INSERT INTO files (id, tenant_id, r2_key, filename, content_type, size, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`
+      )
+        .bind(fileId, tenant.id, key, file.name.slice(0, 200), contentType, buf.byteLength)
+        .run();
+    } catch (err) {
+      // Best-effort cleanup of the object we just orphaned. Wrapped so a
+      // delete failure can never mask the original D1 error below.
+      try {
+        await c.env.FILES.delete(key);
+      } catch (cleanupErr) {
+        console.error("intake photos: R2 cleanup failed after D1 insert error", cleanupErr);
+      }
+      throw err;
+    }
+    fileIds.push(fileId);
+  }
+
+  // Bind the photos to the project by appending to intake_json rather than
+  // adding a table: they are intake data, and intake_json is where
+  // type-varying intake data lives.
+  //
+  // Read-modify-write, so it's raced by any other concurrent write to the
+  // same project's intake_json (another overlapping upload, a client
+  // retry racing the original request). Closed with optimistic
+  // concurrency: the UPDATE's WHERE clause pins the exact intake_json
+  // string this attempt read, so it only lands if nothing changed
+  // underneath it — the same shape as the reference-counter fix in
+  // /projects/intake. Verified against a real D1 Worker binding (not just
+  // the wrangler CLI, whose `d1 execute` output doesn't surface
+  // meta.changes at all) via a temporary debug route + `wrangler dev
+  // --local`: a matching guard returned meta.changes:1 / changed_db:true;
+  // a stale guard on the same row returned meta.changes:0 /
+  // changed_db:false. That's the field this checks below.
+  const MAX_LINK_ATTEMPTS = 3;
+  let linked = false;
+  for (let attempt = 0; attempt < MAX_LINK_ATTEMPTS && !linked; attempt++) {
+    const row = await first<{ intake_json: string }>(
+      c.env.DB.prepare(`SELECT intake_json FROM projects WHERE id = ? AND tenant_id = ?`)
+        .bind(project.id, tenant.id)
+    );
+    const beforeJson = row?.intake_json ?? "{}";
+    const existing = readPhotoFileIds(beforeJson);
+    if (existing.length + fileIds.length > MAX_FILES) {
+      // A concurrent upload used up the remaining capacity between the
+      // pre-check above and this attempt. Nothing in this handler ever
+      // removes ids, so capacity only shrinks from here — retrying again
+      // will not help. Fall through to the loud failure below rather than
+      // silently dropping any of fileIds (which the response promises are
+      // linked) or exceeding MAX_FILES.
+      break;
+    }
+    let intake: Record<string, unknown> = {};
+    try { intake = JSON.parse(beforeJson || "{}"); } catch { intake = {}; }
+    intake.photoFileIds = [...existing, ...fileIds];
+    const result = await c.env.DB.prepare(
+      `UPDATE projects SET intake_json = ?, updated_at = ?
+       WHERE id = ? AND tenant_id = ? AND intake_json = ?`
+    )
+      .bind(JSON.stringify(intake), new Date().toISOString(), project.id, tenant.id, beforeJson)
+      .run();
+    if (result.meta.changes > 0) {
+      linked = true;
+    }
+  }
+
+  if (!linked) {
+    // The photos themselves are already safely committed to R2 + files
+    // (see the residue note above and in task-8-report.md) but this
+    // request could not safely record them against the project without
+    // risking a silent lost update or exceeding MAX_FILES. Fail loudly —
+    // returning ok:true here would be exactly the silent-drop failure
+    // this fix exists to close.
+    console.error("intake photos: could not link file ids to project after retries", {
+      tenantId: tenant.id,
+      projectId: project.id,
+      fileIds,
+    });
+    return c.json(
+      { error: "Could not save these photos to the project. Please try again." },
+      500
+    );
+  }
+
+  return c.json({ ok: true, file_ids: fileIds });
+});
 
 /**
  * GET /public/_host — resolve tenant from Host (custom domain or subdomain).
@@ -1102,8 +1543,18 @@ publicRoutes.get("/:slug/site", async (c) => {
     navPages = [];
   }
   const taxRateBps = Number(settings.store?.tax_rate_bps || 0) || 0;
+  const { theme: tokens, fonts } = readTenantTheme(tenant.settings_json);
   return c.json({
-    theme: settings.theme || {},
+    // guild.html reads theme.primary, theme.font, and theme.style directly
+    // (confirmed by grep of public/guild.html; accent/headerBg are kept for
+    // shape-compatibility though nothing reads them today). Presence-based
+    // against the stored settings.theme: an unconfigured tenant must get {}
+    // back, not DEFAULT_THEME's colors, or every unconfigured guild site
+    // gets repainted with the wrong brand color (see deriveLegacyTheme).
+    theme: deriveLegacyTheme(tokens, settings.theme),
+    // Full token set + fonts for the server renderer and the new admin.
+    theme_tokens: tokens,
+    fonts,
     nav: settings.nav || [],
     nav_pages: navPages,
     store: {
