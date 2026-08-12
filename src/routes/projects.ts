@@ -17,6 +17,7 @@ import { all, first } from "../lib/db";
 import { generateId } from "../lib/utils/id";
 import { assertTransition } from "../lib/projects/status";
 import { mintAccessToken, hashToken } from "../lib/projects/token";
+import { runGuardedStatusUpdate } from "../lib/projects/statusWrite";
 import type { ProjectStatus } from "../lib/projects/types";
 import { sendEmail } from "../lib/email";
 import { tenantPublicBaseUrl } from "../lib/tenantHost";
@@ -129,32 +130,49 @@ projectRoutes.patch("/:projectId", async (c) => {
   const customerPhone = "customer_phone" in body ? (body.customer_phone ?? null) : project.customer_phone;
 
   const now = new Date().toISOString();
-  await c.env.DB.prepare(
-    `UPDATE projects SET
-       status = coalesce(?, status),
-       estimate_notes = coalesce(?, estimate_notes),
-       due_date = ?,
-       customer_name = coalesce(?, customer_name),
-       customer_email = coalesce(?, customer_email),
-       customer_phone = ?,
-       completed_at = CASE WHEN ? = 'completed' THEN ? ELSE completed_at END,
-       updated_at = ?
-     WHERE id = ? AND tenant_id = ?`
-  )
-    .bind(
-      body.status ?? null,
+  // Guarded against the sixth check-then-act race (final review, F1): the
+  // status this write depends on -- `project.status`, read above and
+  // already used by assertTransition -- is bound into the WHERE clause, not
+  // trusted to still be true. A concurrent write that moved the project's
+  // status between that read and this UPDATE (e.g. the customer's sign
+  // batch committing 'signed' between this PATCH's read and its write)
+  // makes this match zero rows; that is reported as a 409, never silently
+  // ignored. toStatus is body.status when the caller is actually changing
+  // it, else project.status itself (a PATCH that only touches
+  // estimate_notes/due_date/etc. still re-affirms the SAME status it read,
+  // which is exactly what the guard needs to detect a race even when this
+  // request isn't a status change at all).
+  const toStatus = (body.status ?? project.status) as ProjectStatus;
+  const applied = await runGuardedStatusUpdate(c.env.DB, {
+    tenantId: tenant.id,
+    projectId: project.id,
+    fromStatus: project.status as ProjectStatus,
+    toStatus,
+    now,
+    extraSet:
+      "estimate_notes = coalesce(?, estimate_notes), due_date = ?, customer_name = coalesce(?, customer_name), customer_email = coalesce(?, customer_email), customer_phone = ?, completed_at = CASE WHEN ? = 'completed' THEN ? ELSE completed_at END",
+    extraBinds: [
       body.estimate_notes ?? null,
       dueDate,
       body.customer_name ?? null,
       body.customer_email ?? null,
       customerPhone,
+      // Deliberately body.status (not toStatus): this CASE must only fire
+      // when THIS request is explicitly setting status to 'completed', not
+      // merely because the project's current status already happens to be
+      // 'completed' (which toStatus would equal whenever body.status is
+      // omitted) -- that would reset completed_at on every unrelated edit
+      // to an already-completed project.
       body.status ?? "",
       now,
-      now,
-      project.id,
-      tenant.id
-    )
-    .run();
+    ],
+  });
+  if (!applied) {
+    return c.json(
+      { error: "This project's status changed since it was loaded. Please reload and try again." },
+      409
+    );
+  }
 
   return c.json({ ok: true });
 });
@@ -193,7 +211,20 @@ projectRoutes.put("/:projectId/lines", async (c) => {
     return c.json({ error: "Invalid JSON body" }, 400);
   }
 
-  const lines = (body.lines || []).slice(0, 100).map((l, i) => ({
+  // A syntactically valid body that simply omits `lines` (e.g. `{}`) is a
+  // DIFFERENT trigger for the exact same defect Task 6 fixed for
+  // unparseable JSON (final review, F2): `body.lines || []` treated
+  // "omitted" the same as "explicit empty array," silently wiping every
+  // existing line and zeroing both totals on a 200 response -- worse here
+  // than the unparseable-body case because this route has no status guard,
+  // so it could zero out a SIGNED project's lines. Reject anything that
+  // isn't literally an array; `{ lines: [] }` still passes this check and
+  // still means "clear all lines" further down.
+  if (!Array.isArray(body.lines)) {
+    return c.json({ error: "lines must be an array" }, 400);
+  }
+
+  const lines = body.lines.slice(0, 100).map((l, i) => ({
     id: generateId(),
     kind: ["service", "addon", "discount"].includes(String(l.kind)) ? String(l.kind) : "service",
     description: String(l.description || "").slice(0, 300),
@@ -273,6 +304,25 @@ projectRoutes.post("/:projectId/send-estimate", async (c) => {
     assertTransition(project.status as ProjectStatus, "estimated");
   } catch (err) {
     return c.json({ error: (err as Error).message }, 409);
+  }
+
+  // A suppressed ballpark stores zero line rows and total_cents = 0 -- and
+  // nothing downstream of intake ever re-checks that (final review, F3).
+  // Without this guard, sending the estimate hands the customer a fully
+  // signable agreement whose frozen, hashed text reads "Agreed total:
+  // $0.00" for a project the admin queue itself labels "No ballpark yet."
+  // Checked before any side effect below (the member upsert, the outbox
+  // event) so a rejected send-estimate leaves nothing partially done.
+  const lineCount = await first<{ cnt: number }>(
+    c.env.DB.prepare(`SELECT COUNT(*) as cnt FROM project_lines WHERE project_id = ?`).bind(
+      project.id
+    )
+  );
+  if (!lineCount || lineCount.cnt === 0) {
+    return c.json(
+      { error: "This project has no line items yet. Add at least one before sending the estimate." },
+      409
+    );
   }
 
   // Find-or-create must be a single atomic statement, not a check-then-act
@@ -357,11 +407,29 @@ projectRoutes.post("/:projectId/send-estimate", async (c) => {
   const tokenHash = await hashToken(token);
   const now = new Date().toISOString();
   const expires = new Date(Date.now() + 90 * 24 * 3600 * 1000).toISOString();
-  await c.env.DB.prepare(
-    `UPDATE projects SET status = 'estimated', member_id = ?, access_token_hash = ?,
-       token_expires_at = ?, estimated_at = ?, updated_at = ?
-     WHERE id = ? AND tenant_id = ?`
-  ).bind(memberId, tokenHash, expires, now, now, project.id, tenant.id).run();
+  // Guarded the same way as PATCH (final review, F1): project.status was
+  // read above and already validated by assertTransition, but a concurrent
+  // write (the customer's own sign batch, or another admin action) could
+  // have moved the row's status in the time since. Binding that read value
+  // into the WHERE clause and checking meta.changes is what turns "the
+  // customer signed a moment ago" into a 409 here instead of silently
+  // reverting a just-signed project back to 'estimated' and rotating its
+  // token out from under them.
+  const applied = await runGuardedStatusUpdate(c.env.DB, {
+    tenantId: tenant.id,
+    projectId: project.id,
+    fromStatus: project.status as ProjectStatus,
+    toStatus: "estimated",
+    now,
+    extraSet: "member_id = ?, access_token_hash = ?, token_expires_at = ?, estimated_at = ?",
+    extraBinds: [memberId, tokenHash, expires, now],
+  });
+  if (!applied) {
+    return c.json(
+      { error: "This project's status changed since it was loaded. Please reload and try again." },
+      409
+    );
+  }
 
   const baseUrl = tenantPublicBaseUrl(c.env, tenant);
   await sendEmail(c.env, {

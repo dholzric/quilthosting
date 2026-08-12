@@ -174,4 +174,27 @@ describe("computeEstimate", () => {
   it("suppresses a T-shirt quilt with no block count", () => {
     expect(computeEstimate({ projectType: "tshirt_quilt" }, RATES).suppressed).toBe(true);
   });
+
+  it("the shared SUPPRESSED instance (and its lines array) cannot be mutated by a caller (final review, F9)", () => {
+    // SUPPRESSED is a single module-level object returned BY REFERENCE from
+    // every suppressed call site -- a caller mutating result.lines (e.g.
+    // pushing a line onto what it thinks is ITS result) would corrupt every
+    // other suppressed result anywhere else in the process, past or future.
+    // Object.freeze must make that a thrown TypeError (strict mode, which
+    // ES modules always are) rather than a silent, shared corruption.
+    const a = computeEstimate({ projectType: "tshirt_quilt" }, RATES);
+    expect(a.suppressed).toBe(true);
+    expect(() => {
+      (a.lines as unknown[]).push({ kind: "service", description: "x", quantity: 1, unitCents: 1, amountCents: 1 });
+    }).toThrow(TypeError);
+    expect(() => {
+      (a as { totalCents: number }).totalCents = 999;
+    }).toThrow(TypeError);
+    // A second, independently-obtained suppressed result is unaffected --
+    // proving the two calls really do share the frozen instance rather
+    // than each getting its own copy that merely happened to survive.
+    const b = computeEstimate({ projectType: "tshirt_quilt" }, RATES);
+    expect(b.lines).toEqual([]);
+    expect(b.totalCents).toBe(0);
+  });
 });

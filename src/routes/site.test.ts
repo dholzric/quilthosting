@@ -160,20 +160,23 @@ function makeDb(state: State): D1Database {
       state.signatures.set(projectId, row);
       return { results: [row] };
     }
-    if (sql.includes("UPDATE projects SET status = 'signed'")) {
-      const [signedAt, updatedAt, projectId, tenantId] = binds as string[];
+    if (sql.startsWith("UPDATE projects SET status = ?")) {
+      // Shape produced by statusWrite.ts's buildGuardedStatusUpdate (final
+      // review, F1): `UPDATE projects SET status = ?, updated_at = ?,
+      // signed_at = ? WHERE id = ? AND tenant_id = ? AND status = ?`. The
+      // status guard is no longer a literal "AND status = 'estimated'" in
+      // the SQL text -- it's the bound `fromStatus` value at the end of
+      // `binds`. Deriving `statusOk` from that ACTUAL bound value (not a
+      // guard this mock imposes unconditionally) is what keeps this
+      // exercising the real query site.ts sent: if production ever bound
+      // the wrong fromStatus, this mock would stop requiring the right one
+      // too, so Important #4 / F1's regression test below genuinely tests
+      // site.ts's own logic rather than passing regardless of what it sent.
+      const [toStatus, updatedAt, signedAt, projectId, tenantId, fromStatus] = binds as string[];
       const p = state.projects.get(projectId);
-      // Derived from the ACTUAL SQL TEXT signQuote sent, not a guard this
-      // mock imposes unconditionally -- if the production query ever drops
-      // "AND status = 'estimated'", this mock stops requiring it too, so
-      // Important #4's regression test genuinely exercises the real query
-      // string rather than passing regardless of what site.ts sends. A real
-      // SQLite/D1 WHERE clause behaves the same way: the predicate is part
-      // of the statement, not a side-channel the caller enforces itself.
-      const hasStatusGuard = sql.includes("AND status = 'estimated'");
-      const statusOk = !hasStatusGuard || p?.status === "estimated";
+      const statusOk = p?.status === fromStatus;
       if (p && p.tenant_id === tenantId && statusOk) {
-        p.status = "signed";
+        p.status = toStatus;
         p.signed_at = signedAt;
         p.updated_at = updatedAt;
         state.updateCalls++;
@@ -451,6 +454,28 @@ describe("GET /quote/:token — valid token", () => {
     expect(body).not.toContain('name="signer_name"');
     expect(body).toContain("has not finished setting up a service agreement");
   });
+
+  it("a fractional total_cents renders the cannot-sign page instead of 500ing (F8)", async () => {
+    // Reachable in practice: the admin UI rounds rate inputs before saving,
+    // but PATCH /api/tenants/:id does not, so a fractional minimumCents
+    // written straight through the API produces a fractional amount_cents
+    // at intake -- money()/assertIntCents() inside buildAgreementSnapshot
+    // then throw a TypeError that neither call site in site.ts used to
+    // catch, 500ing the one page an anonymous token holder has no way to
+    // route around.
+    const rawToken = mintAccessToken();
+    const tokenHash = await hashToken(rawToken);
+    const project = makeProject({ access_token_hash: tokenHash, total_cents: 100.5 });
+    const tenant = makeTenant();
+    const state = makeState(project);
+    const { app, env } = harness(tenant, state);
+    const res = await app.request(`http://stitchstudioquilting.test/quote/${rawToken}`, {}, env);
+    expect(res.status).toBe(200);
+    const body = await res.text();
+    expect(body).not.toContain("Sign agreement");
+    expect(body).not.toContain('name="signer_name"');
+    expect(body).toContain("pricing configuration issue");
+  });
 });
 
 describe("POST /quote/:token/sign — validation", () => {
@@ -534,6 +559,34 @@ describe("POST /quote/:token/sign — validation", () => {
     );
     expect(res.status).toBe(409);
     expect(state.signatures.size).toBe(0);
+  });
+
+  it("a fractional total_cents is refused with 409, not a 500 (F8)", async () => {
+    // Same underlying defect as the GET-side F8 test above, pinned
+    // independently on the POST path: an attacker (or a stale page load
+    // from before a bad rate was entered) could hit /sign directly even
+    // though the GET page itself would refuse to render a form. The
+    // submitted agreement_sha256 is irrelevant here -- the snapshot build
+    // throws before the hash comparison is ever reached.
+    const rawToken = mintAccessToken();
+    const tokenHash = await hashToken(rawToken);
+    const project = makeProject({ access_token_hash: tokenHash, total_cents: 100.5 });
+    const tenant = makeTenant();
+    const state = makeState(project);
+    const { app, env } = harness(tenant, state);
+    const res = await app.request(
+      `http://stitchstudioquilting.test/quote/${rawToken}/sign`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ signer_name: "Jane", consent: true, agreement_sha256: "irrelevant" }),
+      },
+      env
+    );
+    expect(res.status).toBe(409);
+    expect(state.signatures.size).toBe(0);
+    const json = (await res.json()) as { error?: string };
+    expect(json.error).toMatch(/pricing configuration issue/i);
   });
 });
 

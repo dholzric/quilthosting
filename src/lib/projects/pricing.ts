@@ -26,12 +26,21 @@ export interface EstimateInput {
   blockCount?: number;
 }
 
-const SUPPRESSED: EstimateResult = {
+// A single module-level object returned BY REFERENCE from every early-return
+// above (and from finalize() below) -- every suppressed call site shares
+// this exact instance, not a fresh copy. A caller mutating `result.lines`
+// (e.g. `result.lines.push(...)`) would corrupt every other, unrelated
+// suppressed result anywhere else in the process, past or future (final
+// review, F9). Object.freeze on both the object and its `lines` array turns
+// that mutation into a silent no-op in non-strict code and a thrown
+// TypeError in strict/module code, rather than shared, invisible state
+// corruption.
+const SUPPRESSED: EstimateResult = Object.freeze({
   suppressed: true,
-  lines: [],
+  lines: Object.freeze([]) as unknown as EstimateLine[],
   subtotalCents: 0,
   totalCents: 0,
-};
+});
 
 function positive(n: unknown): n is number {
   return typeof n === "number" && Number.isFinite(n) && n > 0;

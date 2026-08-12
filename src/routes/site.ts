@@ -10,6 +10,7 @@ import { tenantPublicBaseUrl } from "../lib/tenantHost";
 import { renderQuotePage, renderSignedCopy, renderInvalidLink, renderCannotSign } from "../lib/site/quote";
 import { hashToken } from "../lib/projects/token";
 import { assertTransition } from "../lib/projects/status";
+import { buildGuardedStatusUpdate, guardedUpdateApplied } from "../lib/projects/statusWrite";
 import type { ProjectStatus } from "../lib/projects/types";
 import { buildAgreementSnapshot, CONSENT_TEXT, type AgreementSnapshotLine } from "../lib/projects/agreement";
 import { sha256Hex } from "../lib/projects/hash";
@@ -22,6 +23,18 @@ import { generateId } from "../lib/utils/id";
 // round 1, Minor #3).
 const EMPTY_AGREEMENT_MESSAGE =
   "This shop has not finished setting up a service agreement for this estimate yet. Please check back soon.";
+
+// buildAgreementSnapshot's money()/assertIntCents() throw a TypeError on a
+// non-integer cents value -- reachable in practice, not just theoretically:
+// the admin UI rounds rate inputs before saving, but PATCH /api/tenants/:id
+// does not, so a fractional minimumCents written straight through the API
+// produces a fractional amount_cents at intake, which flows into
+// total_cents and every line's amount_cents untouched. Before this guard,
+// that reached the customer's quote page as an uncaught throw -- a 500 on
+// the one page an anonymous token holder has no way to route around (final
+// review, F8).
+const INVALID_PRICING_MESSAGE =
+  "This estimate cannot be displayed right now due to a pricing configuration issue. Please contact us for an updated quote.";
 
 /**
  * A customer-safe explanation for every project status other than
@@ -308,7 +321,16 @@ export async function serveBusinessSite(
       } else {
         const lines = await all<ProjectLine>(
           c.env.DB.prepare(
-            `SELECT * FROM project_lines WHERE project_id = ? ORDER BY sort_order`
+            // ", id" makes the ordering total: sort_order alone has no
+            // UNIQUE constraint, so a future writer that produces a tie
+            // would let this GET and signQuote's own identically-shaped
+            // query (below) order their rows differently -- and since both
+            // build the SAME hash from that order, any tie would make every
+            // signature attempt 409 forever (final review, F7). `id` is
+            // unique and stable, so appending it as the tiebreaker is a
+            // no-op today (no ties exist) and a guarantee for whenever one
+            // does.
+            `SELECT * FROM project_lines WHERE project_id = ? ORDER BY sort_order, id`
           ).bind(project.id)
         );
         // Hash the EXACT snapshot being rendered below, using the same
@@ -326,26 +348,36 @@ export async function serveBusinessSite(
           unitCents: l.unit_cents,
           amountCents: l.amount_cents,
         }));
-        const snapshot = buildAgreementSnapshot({
-          title: agreementTitle,
-          body: agreementBody,
-          project: {
-            reference: project.reference,
-            customerName: project.customer_name,
-            totalCents: project.total_cents,
-          },
-          lines: snapshotLines,
-        });
-        const agreementSha256 = await sha256Hex(snapshot);
-        html = renderQuotePage({
-          tenant,
-          project,
-          lines,
-          baseUrl,
-          agreementTitle,
-          agreementBody,
-          agreementSha256,
-        });
+        try {
+          const snapshot = buildAgreementSnapshot({
+            title: agreementTitle,
+            body: agreementBody,
+            project: {
+              reference: project.reference,
+              customerName: project.customer_name,
+              totalCents: project.total_cents,
+            },
+            lines: snapshotLines,
+          });
+          const agreementSha256 = await sha256Hex(snapshot);
+          html = renderQuotePage({
+            tenant,
+            project,
+            lines,
+            baseUrl,
+            agreementTitle,
+            agreementBody,
+            agreementSha256,
+          });
+        } catch (err) {
+          // money()/assertIntCents() threw -- a fractional cents value
+          // somewhere in project.total_cents or a line's amount_cents/
+          // unit_cents. Render the same "can't sign right now" page a
+          // terminal status or a blank agreement body already produces,
+          // rather than letting the TypeError propagate into a 500 (F8).
+          console.error("quote page: could not build agreement snapshot", err);
+          html = renderCannotSign(tenant, project, INVALID_PRICING_MESSAGE);
+        }
       }
     }
 
@@ -506,7 +538,11 @@ async function signQuote(
   // (Important #1).
   const liveLines = await all<ProjectLine>(
     c.env.DB.prepare(
-      `SELECT * FROM project_lines WHERE project_id = ? ORDER BY sort_order`
+      // ", id" -- same total-ordering fix as the GET branch above (F7): a
+      // tie in sort_order alone could let this query and the GET's return
+      // rows in different orders, producing a different hash and 409ing a
+      // customer who did nothing wrong.
+      `SELECT * FROM project_lines WHERE project_id = ? ORDER BY sort_order, id`
     ).bind(project.id)
   );
   const snapshotLines: AgreementSnapshotLine[] = liveLines.map((l) => ({
@@ -524,16 +560,24 @@ async function signQuote(
   // verifies before anything is persisted: the signature must attest to the
   // text (and the pricing breakdown) that was actually on screen, not to
   // whatever happens to be live by the time the request lands.
-  const snapshot = buildAgreementSnapshot({
-    title: agreementTitle,
-    body: agreementBody,
-    project: {
-      reference: project.reference,
-      customerName: project.customer_name,
-      totalCents: project.total_cents,
-    },
-    lines: snapshotLines,
-  });
+  let snapshot: string;
+  try {
+    snapshot = buildAgreementSnapshot({
+      title: agreementTitle,
+      body: agreementBody,
+      project: {
+        reference: project.reference,
+        customerName: project.customer_name,
+        totalCents: project.total_cents,
+      },
+      lines: snapshotLines,
+    });
+  } catch (err) {
+    // Same fractional-cents failure mode the GET branch above now guards
+    // (F8) -- a TypeError here must never 500 the sign endpoint.
+    console.error("signQuote: could not build agreement snapshot", err);
+    return c.json({ error: INVALID_PRICING_MESSAGE }, 409);
+  }
   const hash = await sha256Hex(snapshot);
 
   // Fail closed, same discipline as the price gate: a missing or malformed
@@ -583,19 +627,44 @@ async function signQuote(
     now
   );
 
-  const updateStmt = c.env.DB.prepare(
-    // The status predicate is load-bearing twice over (Important #4, the
-    // feature's FIFTH check-then-act race): it's what stops an owner's
-    // concurrent cancel/decline -- landing between this request's earlier
-    // assertTransition() read and this write -- from being silently
-    // reverted back to 'signed' underneath them, and it's what keeps this
-    // statement SAFE to run unconditionally in the same batch as the INSERT
-    // even when the INSERT no-ops for a race loser: DO NOTHING'd INSERT +
-    // WHERE-guarded UPDATE are each independently self-correct regardless of
-    // whether the other one actually changed anything this time.
-    `UPDATE projects SET status = 'signed', signed_at = ?, updated_at = ?
-     WHERE id = ? AND tenant_id = ? AND status = 'estimated'`
-  ).bind(now, now, project.id, tenant.id);
+  // The status predicate is load-bearing twice over (Important #4, the
+  // feature's FIFTH check-then-act race): it's what stops an owner's
+  // concurrent cancel/decline -- landing between this request's earlier
+  // assertTransition() read and this write -- from being silently reverted
+  // back to 'signed' underneath them, and it's what keeps this statement
+  // SAFE to run unconditionally in the same batch as the INSERT even when
+  // the INSERT no-ops for a race loser: DO NOTHING'd INSERT + WHERE-guarded
+  // UPDATE are each independently self-correct regardless of whether the
+  // other one actually changed anything this time.
+  //
+  // Built through the shared helper (final review, F1) instead of
+  // hardcoding "AND status = 'estimated'" here: that literal duplicated
+  // knowledge that already lives in status.ts's ALLOWED table (only
+  // 'estimated' can transition to 'signed'), and PATCH/send-estimate in
+  // projects.ts had the identical race with no guard at all until this
+  // review. Deliberately NOT gating the response on guardedUpdateApplied()
+  // below, unlike PATCH/send-estimate: the signature INSERT is the source
+  // of truth that the customer signed, and that already succeeded by the
+  // time this UPDATE runs -- a lost status-guard race here means the
+  // signature is real but the project's status column doesn't flip, not
+  // that signing itself failed. See the "fifth check-then-act race" test
+  // below for the exact scenario this protects.
+  const updateStmt = buildGuardedStatusUpdate(c.env.DB, {
+    tenantId: tenant.id,
+    projectId: project.id,
+    // project.status, not a hardcoded "estimated": assertTransition() above
+    // already proved this specific value is a legal source for "signed" per
+    // status.ts's ALLOWED table, so binding what was actually read (rather
+    // than re-asserting the literal that happens to be the only legal
+    // source today) is what keeps this correct if that table ever grows a
+    // second legal source status for "signed" -- exactly the failure mode
+    // F1 calls out for a hardcoded literal.
+    fromStatus: project.status as ProjectStatus,
+    toStatus: "signed",
+    now,
+    extraSet: "signed_at = ?",
+    extraBinds: [now],
+  });
 
   // Run together as ONE batch/transaction, not as two sequential round
   // trips. Sequential calls left a window where the INSERT could commit and

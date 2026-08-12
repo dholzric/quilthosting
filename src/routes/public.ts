@@ -204,24 +204,39 @@ publicRoutes.post("/:slug/projects/intake", async (c) => {
     reference = buildReference(rates.referencePrefix, tenant.slug, counter?.next_number ?? 1);
 
     try {
-      // The row commits BEFORE any email is attempted. A Resend outage must
-      // never lose a customer's submission.
-      await c.env.DB.prepare(
+      const projectInsertStmt = c.env.DB.prepare(
         `INSERT INTO projects
            (id, tenant_id, project_type, status, reference, customer_name, customer_email,
             customer_phone, intake_json, subtotal_cents, total_cents,
             access_token_hash, token_expires_at, created_at, updated_at)
          VALUES (?, ?, ?, 'submitted', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      )
-        .bind(
-          id, tenant.id, projectType, reference, name, email,
-          String(body.customer_phone || "").slice(0, 50) || null,
-          JSON.stringify(sanitizedIntake),
-          ballpark.suppressed ? 0 : ballpark.subtotalCents,
-          ballpark.suppressed ? 0 : ballpark.totalCents,
-          tokenHash, expires, now, now
-        )
-        .run();
+      ).bind(
+        id, tenant.id, projectType, reference, name, email,
+        String(body.customer_phone || "").slice(0, 50) || null,
+        JSON.stringify(sanitizedIntake),
+        ballpark.suppressed ? 0 : ballpark.subtotalCents,
+        ballpark.suppressed ? 0 : ballpark.totalCents,
+        tokenHash, expires, now, now
+      );
+      // The project row and every ballpark line row commit as ONE D1 batch
+      // (same idiom as PUT /projects/:id/lines' rewrite), not as the
+      // project INSERT followed by N independent .run() calls — a partial
+      // failure used to be able to leave project_lines summing to less
+      // than the total_cents already committed on the project row, and the
+      // quote page reads lines from one write and the total from the
+      // other before freezing both into the signature (final review, F5).
+      // This also runs BEFORE any email is attempted, same as before — a
+      // Resend outage must never lose a customer's submission.
+      const lineInsertStmts = ballpark.suppressed
+        ? []
+        : ballpark.lines.map((l, i) =>
+            c.env.DB.prepare(
+              `INSERT INTO project_lines
+                 (id, project_id, kind, description, quantity, unit_cents, amount_cents, sort_order)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+            ).bind(generateId(), id, l.kind, l.description, l.quantity, l.unitCents, l.amountCents, i)
+          );
+      await c.env.DB.batch([projectInsertStmt, ...lineInsertStmts]);
       inserted = true;
     } catch (err) {
       lastInsertErr = err;
@@ -249,17 +264,6 @@ publicRoutes.post("/:slug/projects/intake", async (c) => {
   if (!inserted) {
     console.error("intake: could not allocate a unique reference after retries", lastInsertErr);
     return c.json({ error: "Could not process your request. Please try again." }, 500);
-  }
-
-  if (!ballpark.suppressed) {
-    for (let i = 0; i < ballpark.lines.length; i++) {
-      const l = ballpark.lines[i];
-      await c.env.DB.prepare(
-        `INSERT INTO project_lines
-           (id, project_id, kind, description, quantity, unit_cents, amount_cents, sort_order)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-      ).bind(generateId(), id, l.kind, l.description, l.quantity, l.unitCents, l.amountCents, i).run();
-    }
   }
 
   // Acknowledgement only. The ballpark is NEVER emailed as a price — it is

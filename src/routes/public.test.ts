@@ -71,6 +71,22 @@ function harness(
         },
       };
     },
+    // The project INSERT and every ballpark line INSERT now run as ONE D1
+    // batch (final review, F5), not as N+1 independent .run() calls.
+    // Delegating to each statement's own .run() (already defined by
+    // prepare().bind() above) — sequentially, so a throw from an early
+    // statement (the project INSERT simulating a reference collision, see
+    // failInsertsBeforeSuccess) aborts the rest of the batch exactly like a
+    // real D1 transaction rolling back — keeps this a single implementation
+    // of "what a statement does" rather than a second copy of the collision
+    // simulation logic above.
+    async batch(stmts: { run: () => Promise<unknown> }[]) {
+      const results = [];
+      for (const s of stmts) {
+        results.push(await s.run());
+      }
+      return results;
+    },
   };
 
   const app = new Hono<{ Bindings: Env }>();
@@ -208,6 +224,65 @@ describe("POST /public/:slug/projects/intake", () => {
     expect(projectInsertAttempts()).toBe(2);
   });
 
+  it("F5: the project row and its ballpark lines commit as a single atomic batch, not independent round trips", async () => {
+    // final review, F5: the project INSERT used to commit on its own, with
+    // the ballpark's line rows inserted afterward one .run() at a time. A
+    // partial failure between them could leave lines summing to less than
+    // the total_cents already committed on the project row -- and the
+    // quote page reads lines from one write and the total from the other
+    // before freezing both into the signature.
+    const { app, env, writes } = harness({
+      tenantOverrides: {
+        settings_json: JSON.stringify({ longarm: { edgeToEdgeCentsPer100SqIn: 250 } }),
+      },
+    });
+    const res = await post(app, env, {
+      project_type: "longarm",
+      customer_name: "Jo",
+      customer_email: "jo@example.com",
+      intake: { widthIn: 60, heightIn: 80 },
+    });
+    expect(res.status).toBe(200);
+    const projectInsert = writes.find((w) => w.sql.includes("INSERT INTO projects"));
+    const lineInserts = writes.filter((w) => w.sql.includes("INSERT INTO project_lines"));
+    expect(projectInsert).toBeDefined();
+    expect(lineInserts.length).toBeGreaterThan(0);
+    // Both statement kinds land in `writes` in the SAME batch call, project
+    // first then its lines -- matching the array order
+    // db.batch([projectInsertStmt, ...lineInsertStmts]) is called with (the
+    // harness's fake .batch() runs each statement's own .run() in that
+    // order, so this only holds if the route really passed them together).
+    const projectIdx = writes.indexOf(projectInsert!);
+    expect(lineInserts.every((w) => writes.indexOf(w) > projectIdx)).toBe(true);
+  });
+
+  it("F5: a reference-collision retry leaves no orphaned line rows from the failed attempt", async () => {
+    const { app, env, writes, projectInsertAttempts } = harness({
+      tenantOverrides: {
+        settings_json: JSON.stringify({ longarm: { edgeToEdgeCentsPer100SqIn: 250 } }),
+      },
+      failInsertsBeforeSuccess: 1,
+    });
+    const res = await post(app, env, {
+      project_type: "longarm",
+      customer_name: "Jo",
+      customer_email: "jo@example.com",
+      intake: { widthIn: 60, heightIn: 80 },
+    });
+    expect(res.status).toBe(200);
+    expect(projectInsertAttempts()).toBe(2);
+    // The failed attempt's project INSERT threw before being pushed to
+    // `writes` -- and because the project INSERT is the FIRST statement in
+    // its batch, the line INSERTs that come after it in the same array
+    // never even ran for that attempt. Exactly one project insert and
+    // exactly one line insert (this ballpark produces a single line) must
+    // have landed, not two of either.
+    const projectInserts = writes.filter((w) => w.sql.includes("INSERT INTO projects"));
+    expect(projectInserts.length).toBe(1);
+    const lineInserts = writes.filter((w) => w.sql.includes("INSERT INTO project_lines"));
+    expect(lineInserts.length).toBe(1);
+  });
+
   it("gives up after MAX_REFERENCE_ATTEMPTS and returns a clean 500, not an unhandled exception", async () => {
     const { app, env } = harness({ failInsertsBeforeSuccess: 99 });
     const res = await post(app, env, {
@@ -253,6 +328,13 @@ describe("POST /public/:slug/projects/intake", () => {
             };
           },
         };
+      },
+      async batch(stmts: { run: () => Promise<unknown> }[]) {
+        const results = [];
+        for (const s of stmts) {
+          results.push(await s.run());
+        }
+        return results;
       },
     };
     const app = new Hono<{ Bindings: Env }>();

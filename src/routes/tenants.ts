@@ -4,7 +4,7 @@ import { generateId } from "../lib/utils/id";
 import { first, all } from "../lib/db";
 import { requireAuth, type AuthVariables } from "../middleware/auth";
 import { TRIAL_DAYS } from "../lib/plans";
-import { ensurePlatformSubdomain } from "../lib/tenantHost";
+import { ensurePlatformSubdomain, tenantPublicBaseUrl } from "../lib/tenantHost";
 
 export const tenantRoutes = new Hono<{
   Bindings: Env;
@@ -123,7 +123,15 @@ tenantRoutes.get("/:id", async (c) => {
     c.env.DB.prepare("SELECT * FROM tenants WHERE id = ?").bind(id)
   );
   if (!tenant) return c.json({ error: "Not found" }, 404);
-  return c.json(tenant);
+  // Computed server-side (custom domain > platform subdomain > APP_URL),
+  // the same helper site.ts's send-estimate email already uses for this
+  // exact purpose -- so the admin UI's "Resend link" flow can build the
+  // customer-facing URL from an authoritative value instead of guessing at
+  // the platform host from window.location.host, which is wrong whenever
+  // admin.html happens to be reached on a launched tenant's own hostname
+  // (final review, F9: an authenticated caller CAN reach raw public/ files
+  // there -- siteGate's JWT-bearer bypass is host-agnostic by design).
+  return c.json({ ...tenant, public_base_url: tenantPublicBaseUrl(c.env, tenant) });
 });
 
 // PATCH /api/tenants/:id — owner/admin can rename or update settings

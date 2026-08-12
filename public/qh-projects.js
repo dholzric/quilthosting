@@ -26,6 +26,18 @@
     if (placeholder) n.placeholder = placeholder;
     return n;
   }
+  const LINE_KINDS = ["service", "addon", "discount"];
+  function kindSelect(value) {
+    const n = document.createElement("select");
+    LINE_KINDS.forEach(function (k) {
+      const o = document.createElement("option");
+      o.value = k;
+      o.textContent = k;
+      if (k === value) o.selected = true;
+      n.appendChild(o);
+    });
+    return n;
+  }
   function money(cents) {
     return "$" + ((Number(cents) || 0) / 100).toFixed(2);
   }
@@ -193,6 +205,14 @@
 
     function addRow(line) {
       const row = e("div", "card");
+      // Defaults to "service" only for a brand-new row (line === null, from
+      // "Add line"); an existing row keeps whatever kind it was loaded
+      // with. Previously this control didn't exist at all and every save
+      // hardcoded "service" regardless of what was loaded — silently
+      // rewriting ballpark "addon" rows to "service" on every edit, with no
+      // way to author a "discount" line even though the server already
+      // accepts one (final review, F6).
+      const kind = kindSelect(line ? line.kind : "service");
       const desc = input(line ? line.description : "", "Description");
       const qty = input(line ? line.quantity : 1, "Qty");
       qty.type = "number";
@@ -209,12 +229,12 @@
         if (i >= 0) rows.splice(i, 1);
         row.remove();
       });
-      [field("Description", desc), field("Qty", qty), field("Unit $", unit), field("Amount $", amount)].forEach(function (n) {
+      [field("Kind", kind), field("Description", desc), field("Qty", qty), field("Unit $", unit), field("Amount $", amount)].forEach(function (n) {
         row.appendChild(n);
       });
       row.appendChild(del);
       linesWrap.appendChild(row);
-      const entry = { desc: desc, qty: qty, unit: unit, amount: amount };
+      const entry = { kind: kind, desc: desc, qty: qty, unit: unit, amount: amount };
       rows.push(entry);
     }
 
@@ -235,7 +255,7 @@
       try {
         const payload = rows.map(function (r) {
           return {
-            kind: "service",
+            kind: r.kind.value,
             description: r.desc.value,
             quantity: Number(r.qty.value) || 1,
             unit_cents: Math.round((Number(r.unit.value) || 0) * 100),
@@ -306,15 +326,28 @@
         } catch (err) {
           site = {};
         }
-        // Derive the platform host from where this admin page is actually
-        // being served (window.location.host), not a literal — admin.html
-        // is only ever reached on the platform host (see platformPaths.ts),
-        // so this is exactly appHostname(env.APP_URL) as the server itself
-        // would compute it, and unlike a hardcoded "quilthosting.com" it is
-        // also correct in local dev (localhost:8787), where APP_URL is
-        // http://localhost:8787.
-        const host = site.custom_domain ? site.custom_domain.replace(/^www\./, "") : tenantSlug + "." + window.location.host;
-        const url = "https://" + host + "/quote/" + res.token;
+        // Prefer the server-computed public_base_url (added for this fix):
+        // it's built the same way send-estimate's own confirmation email
+        // builds this exact URL (tenantPublicBaseUrl in tenantHost.ts —
+        // custom domain > platform subdomain > APP_URL), so it's correct
+        // regardless of which host this admin page happens to be served
+        // from. window.location.host is NOT a safe stand-in for "the
+        // platform host": admin.html is reserved to the platform host by
+        // siteGate's path allowlist, but siteGate's JWT-bearer bypass
+        // (see siteGate.ts) lets an authenticated request through on ANY
+        // host, including a launched tenant's own — and index.ts's static
+        // asset fallback serves public/ files by path only, with no
+        // Host-header check of its own. An older version of this comment
+        // claimed admin.html was only ever reached on the platform host;
+        // that was false, and the fallback below (kept only for an older
+        // API response that hasn't been redeployed yet) is why this no
+        // longer assumes it.
+        const url = site.public_base_url
+          ? site.public_base_url.replace(/\/$/, "") + "/quote/" + res.token
+          : "https://" +
+            (site.custom_domain ? site.custom_domain.replace(/^www\./, "") : tenantSlug + "." + window.location.host) +
+            "/quote/" +
+            res.token;
         actionsStatus.textContent = "New link (previous one no longer works): " + url;
       } catch (err) {
         actionsStatus.textContent = err.message;

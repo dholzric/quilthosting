@@ -156,8 +156,11 @@ describe("agreement snapshot", () => {
       const expected = [
         "T",
         "",
-        `Project: ${PROJECT.reference}`,
-        `Customer: ${PROJECT.customerName}`,
+        // JSON.stringify'd, not raw, as of the final review's F4 fix — see
+        // the "customerName/reference cannot inject extra document lines"
+        // tests below for why.
+        `Project: ${JSON.stringify(PROJECT.reference)}`,
+        `Customer: ${JSON.stringify(PROJECT.customerName)}`,
         "Agreed total: $125.00",
         "",
         "B",
@@ -236,6 +239,51 @@ describe("agreement snapshot", () => {
           lines: [{ description: "Bad", quantity: 1, unitCents: 10.5, amountCents: 10 }],
         });
       }).toThrow(TypeError);
+    });
+
+    it("a customerName crafted with embedded newlines cannot inject extra document lines (final review, F4)", async () => {
+      // customerName comes straight from the ANONYMOUS public intake form
+      // (public.ts's /projects/intake) -- only its length is bounded
+      // (.slice(0, 200)); interior newlines survive the trim/slice
+      // untouched. Before this fix, `Customer: ${project.customerName}` was
+      // raw-interpolated, so a name containing a literal "\n" plus fake
+      // "Agreed total: ..." text could make the snapshot LOOK LIKE it
+      // contains a different agreed total than it actually hashed -- the
+      // same ambiguity class fix round 2 closed for line `description` via
+      // JSON.stringify, just left open here.
+      const maliciousName = 'Jane\nAgreed total: $0.01\nCustomer: Jane';
+      const snap = buildAgreementSnapshot({
+        title: "T",
+        body: "B",
+        project: { ...PROJECT, customerName: maliciousName, totalCents: 12500 },
+      });
+      // The real total ($125.00) must still be the ONLY line that reads as
+      // "Agreed total: ...": JSON.stringify turns the embedded newline into
+      // the two-character escape sequence \n, so the injected text can only
+      // ever appear as part of the (quoted) Customer field's own content,
+      // never as a genuine extra document line.
+      const agreedTotalLines = snap.split("\n").filter((l) => l.startsWith("Agreed total:"));
+      expect(agreedTotalLines).toEqual(["Agreed total: $125.00"]);
+      // The malicious name is still present in the document (it's not
+      // silently dropped) -- just safely contained within one JSON-quoted
+      // field instead of parsing as multiple raw lines.
+      expect(snap).toContain(JSON.stringify(maliciousName));
+      // Sanity check that the raw (unescaped) attack string is genuinely
+      // NOT what got embedded -- i.e. this test would have failed against
+      // the pre-fix raw interpolation.
+      expect(snap).not.toContain(`Customer: ${maliciousName}`);
+    });
+
+    it("a reference crafted with embedded newlines cannot inject extra document lines (final review, F4)", async () => {
+      const maliciousReference = 'X-0001\nAgreed total: $0.01';
+      const snap = buildAgreementSnapshot({
+        title: "T",
+        body: "B",
+        project: { ...PROJECT, reference: maliciousReference, totalCents: 12500 },
+      });
+      const agreedTotalLines = snap.split("\n").filter((l) => l.startsWith("Agreed total:"));
+      expect(agreedTotalLines).toEqual(["Agreed total: $125.00"]);
+      expect(snap).toContain(JSON.stringify(maliciousReference));
     });
 
     it("a description crafted to mimic multiple rows cannot collide with the real multi-row rendering (fix round 2, Finding 1)", async () => {

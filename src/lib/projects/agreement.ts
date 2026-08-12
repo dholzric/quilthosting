@@ -58,8 +58,24 @@ export function buildAgreementSnapshot(args: {
   const parts = [
     title,
     "",
-    `Project: ${project.reference}`,
-    `Customer: ${project.customerName}`,
+    // JSON.stringify, not raw interpolation -- fix round 2 closed this
+    // exact ambiguity class for line `description` (see below) because it
+    // is shop-authored free text, but left `reference` and `customerName`
+    // raw. `customerName` comes straight from the ANONYMOUS public intake
+    // form (public.ts's /projects/intake), where only length is bounded
+    // (.slice(0, 200)) -- interior newlines survive the trim/slice
+    // untouched. A customer-supplied name containing literal "\n" plus
+    // fake "Project: ..." / "Agreed total: ..." text could inject lines
+    // that read as document content into the exact artifact whose purpose
+    // is proving what was agreed (the hashed snapshot, the signed-copy
+    // page, and the confirmation email all render this verbatim). Applying
+    // the same treatment to `reference` too, even though it's
+    // server-generated and not attacker-controlled today, keeps both
+    // fields on the same footing as `description` and removes any future
+    // dependency on reference's generation logic staying newline-free
+    // forever (final review, F4).
+    `Project: ${JSON.stringify(project.reference)}`,
+    `Customer: ${JSON.stringify(project.customerName)}`,
     `Agreed total: ${money(project.totalCents)}`,
   ];
   if (lines !== undefined) {

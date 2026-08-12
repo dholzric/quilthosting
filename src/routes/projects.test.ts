@@ -18,6 +18,18 @@ function harness(
     // `INSERT ... ON CONFLICT(tenant_id, email) DO UPDATE ... RETURNING id`
     // does when a row already exists.
     existingMemberId?: string;
+    // `SELECT COUNT(*) FROM project_lines` fixture for send-estimate's F3
+    // guard. Defaults to 1 (non-zero) so every existing send-estimate test
+    // that doesn't care about line counts keeps passing unmodified; tests
+    // that DO care about F3 set this explicitly.
+    lineCount?: number;
+    // Test-only hook for the sixth/seventh check-then-act race (final
+    // review, F1): when true, the guarded status UPDATE that PATCH and
+    // send-estimate build via runGuardedStatusUpdate reports
+    // meta.changes = 0, simulating a concurrent write that moved the
+    // project's status between this request's read and its write — the
+    // same shape site.test.ts's makeDb already exercises for signQuote.
+    simulateStatusRace?: boolean;
   } = {}
 ) {
   const writes: { sql: string; binds: unknown[] }[] = [];
@@ -32,6 +44,7 @@ function harness(
         bind(...binds: unknown[]) {
           return {
             async first() {
+              if (sql.includes("FROM project_lines")) return { cnt: opts.lineCount ?? 1 };
               if (sql.includes("FROM projects")) return opts.project ?? null;
               if (sql.includes("INSERT INTO members")) {
                 // Real behavior: ON CONFLICT returns the EXISTING row's id;
@@ -52,13 +65,24 @@ function harness(
             },
             async run() {
               writes.push({ sql, binds });
-              return { success: true };
+              // Every guarded status write (PATCH, send-estimate) goes
+              // through buildGuardedStatusUpdate/runGuardedStatusUpdate,
+              // which always produces SQL starting exactly this way (see
+              // statusWrite.ts). Real D1 reports meta.changes = 0 when the
+              // WHERE clause's bound `status = ?` no longer matches the
+              // live row -- opts.simulateStatusRace reproduces that for the
+              // one statement shape this guard actually applies to, so a
+              // race test isn't accidentally starving some OTHER write in
+              // the same request of its normal "1 row changed" result.
+              const isGuardedStatusUpdate = sql.startsWith("UPDATE projects SET status = ?");
+              const changes = opts.simulateStatusRace && isGuardedStatusUpdate ? 0 : 1;
+              return { success: true, meta: { changes } };
             },
           };
         },
         async first() { return null; },
         async all() { return { results: [] }; },
-        async run() { writes.push({ sql, binds: [] }); return { success: true }; },
+        async run() { writes.push({ sql, binds: [] }); return { success: true, meta: { changes: 1 } }; },
       };
     },
     // PUT /:projectId/lines rewrites project_lines + the projects totals row
@@ -283,10 +307,12 @@ describe("projects admin API", () => {
     );
     expect(clearRes.status).toBe(200);
     const clearUpdate = writes[writes.length - 1];
-    // bind order: status, estimate_notes, due_date, customer_name,
-    // customer_email, customer_phone, status(for completed_at), now, now, id, tenant_id
-    expect(clearUpdate.binds[2]).toBeNull();
-    expect(clearUpdate.binds[5]).toBeNull();
+    // bind order (statusWrite.ts's buildGuardedStatusUpdate): toStatus,
+    // updated_at, [extraSet binds: estimate_notes, due_date, customer_name,
+    // customer_email, customer_phone, status(for completed_at), completed_at
+    // value], id, tenant_id, fromStatus.
+    expect(clearUpdate.binds[3]).toBeNull();
+    expect(clearUpdate.binds[6]).toBeNull();
 
     // Omitting the keys entirely leaves the existing values untouched.
     const keepRes = await app.request(
@@ -300,8 +326,51 @@ describe("projects admin API", () => {
     );
     expect(keepRes.status).toBe(200);
     const keepUpdate = writes[writes.length - 1];
-    expect(keepUpdate.binds[2]).toBe("2026-09-01");
-    expect(keepUpdate.binds[5]).toBe("555-0100");
+    expect(keepUpdate.binds[3]).toBe("2026-09-01");
+    expect(keepUpdate.binds[6]).toBe("555-0100");
+  });
+
+  it("F1: a status change landing between the read and the write is reported as 409, not silently overwritten", async () => {
+    // The sixth check-then-act race (final review, F1): PATCH read
+    // project.status, called assertTransition against it, and then wrote
+    // `status = coalesce(?, status) ... WHERE id = ? AND tenant_id = ?`
+    // with no status predicate at all -- a concurrent write (e.g. the
+    // customer's own sign batch) landing in that window used to be
+    // silently clobbered. simulateStatusRace reproduces "the row moved
+    // since we read it" the same way the real guarded UPDATE's
+    // meta.changes = 0 would.
+    const { app, env } = harness({
+      project: { id: "p1", tenant_id: TENANT_ID, status: "signed", reference: "X-0001" },
+      simulateStatusRace: true,
+    });
+    const res = await app.request(
+      "/p1",
+      { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "in_progress" }) },
+      env
+    );
+    expect(res.status).toBe(409);
+    expect((await res.json<{ error: string }>()).error).toMatch(/status changed/i);
+  });
+
+  it("F2: a syntactically valid body that omits `lines` is rejected with 400, not treated as clear-all", async () => {
+    // final review, F2: `(body.lines || []).slice(...)` treated a body like
+    // `{}` (valid JSON, no `lines` key) exactly like `{ lines: [] }` --
+    // silently wiping every existing line and zeroing both totals with a
+    // 200 response. This route has no status guard, so it could zero a
+    // SIGNED project's lines. `{ lines: [] }` (tested elsewhere) must still
+    // succeed; only a MISSING/non-array `lines` must be rejected.
+    const { app, env, writes } = harness({
+      project: { id: "p1", tenant_id: TENANT_ID, status: "estimated", reference: "X-0001" },
+    });
+    const res = await app.request(
+      "/p1/lines",
+      { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) },
+      env
+    );
+    expect(res.status).toBe(400);
+    expect(writes.some((w) => w.sql.includes("project_lines") || w.sql.includes("UPDATE projects SET subtotal_cents"))).toBe(
+      false
+    );
   });
 
   describe("POST /:projectId/send-estimate", () => {
@@ -341,11 +410,17 @@ describe("projects admin API", () => {
         status: "active",
       });
 
-      const projectUpdate = writes.find((w) => w.sql.includes("UPDATE projects SET status = 'estimated'"));
+      // Guarded via statusWrite.ts's shared helper (final review, F1): the
+      // status literal is no longer inlined, so match on the SQL shape the
+      // helper always produces instead of a literal "status = 'estimated'".
+      const projectUpdate = writes.find((w) => w.sql.startsWith("UPDATE projects SET status = ?"));
       expect(projectUpdate).toBeDefined();
-      // member_id bound onto the project update must be the SAME id the
-      // event payload references — the candidate id the upsert echoed back.
-      expect(projectUpdate!.binds[0]).toBe(payload.member_id);
+      // bind order: toStatus, updated_at, [extraSet: member_id,
+      // access_token_hash, token_expires_at, estimated_at], id, tenant_id,
+      // fromStatus. member_id bound onto the project update must be the
+      // SAME id the event payload references — the candidate id the
+      // upsert echoed back.
+      expect(projectUpdate!.binds[2]).toBe(payload.member_id);
     });
 
     it("matches an existing member via ON CONFLICT and does NOT fire member.created", async () => {
@@ -365,11 +440,11 @@ describe("projects admin API", () => {
 
       expect(writes.some((w) => w.sql.includes("INSERT INTO webhook_outbox"))).toBe(false);
 
-      const projectUpdate = writes.find((w) => w.sql.includes("UPDATE projects SET status = 'estimated'"));
+      const projectUpdate = writes.find((w) => w.sql.startsWith("UPDATE projects SET status = ?"));
       expect(projectUpdate).toBeDefined();
       // Must reuse the EXISTING member's id, not the candidate id the route
       // generated and discarded when the upsert reported a conflict.
-      expect(projectUpdate!.binds[0]).toBe("existing-member-99");
+      expect(projectUpdate!.binds[2]).toBe("existing-member-99");
     });
 
     it("targets the member upsert's ON CONFLICT at (tenant_id, email), matching idx_members_tenant_email", async () => {
@@ -404,6 +479,70 @@ describe("projects admin API", () => {
       const res = await app.request("/p1/send-estimate", { method: "POST" }, env);
       expect(res.status).toBe(409);
       expect(writes.length).toBe(0);
+    });
+
+    it("F1: a status change landing between the read and the write is reported as 409, not silently reverted", async () => {
+      // The seventh check-then-act race (final review, F1): send-estimate
+      // read project.status, called assertTransition, and then wrote
+      // `status = 'estimated' ... WHERE id = ? AND tenant_id = ?` with no
+      // status predicate. A customer signing in that window used to get
+      // silently reverted back to 'estimated' with a rotated token — a real
+      // signature left attached to a project that can never legally
+      // transition again, since 'estimated -> in_progress' is illegal.
+      const { app, env } = harness({
+        project: {
+          id: "p1",
+          tenant_id: TENANT_ID,
+          status: "estimated",
+          reference: "X-0001",
+          customer_email: "a@example.com",
+          customer_name: "A",
+        },
+        simulateStatusRace: true,
+      });
+      const res = await app.request("/p1/send-estimate", { method: "POST" }, env);
+      expect(res.status).toBe(409);
+      expect((await res.json<{ error: string }>()).error).toMatch(/status changed/i);
+    });
+
+    it("F3: refuses to send an estimate with zero line items", async () => {
+      // final review, F3: a suppressed ballpark stores zero line rows and
+      // total_cents = 0. Without this guard, send-estimate would hand the
+      // customer a fully signable agreement whose frozen, hashed text reads
+      // "Agreed total: $0.00" — for a project the admin queue itself labels
+      // "No ballpark yet."
+      const { app, env, writes } = harness({
+        project: {
+          id: "p1",
+          tenant_id: TENANT_ID,
+          status: "submitted",
+          reference: "X-0001",
+          customer_email: "a@example.com",
+          customer_name: "A",
+        },
+        lineCount: 0,
+      });
+      const res = await app.request("/p1/send-estimate", { method: "POST" }, env);
+      expect(res.status).toBe(409);
+      expect((await res.json<{ error: string }>()).error).toMatch(/line item/i);
+      // No side effect (member upsert, outbox event, status write) ran.
+      expect(writes.length).toBe(0);
+    });
+
+    it("F3: sends normally when at least one line item exists", async () => {
+      const { app, env } = harness({
+        project: {
+          id: "p1",
+          tenant_id: TENANT_ID,
+          status: "submitted",
+          reference: "X-0001",
+          customer_email: "a@example.com",
+          customer_name: "A",
+        },
+        lineCount: 1,
+      });
+      const res = await app.request("/p1/send-estimate", { method: "POST" }, env);
+      expect(res.status).toBe(200);
     });
   });
 });
