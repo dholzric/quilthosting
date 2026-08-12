@@ -53,8 +53,14 @@ function harness(
                 projectInsertAttempts++;
                 const failCount = opts.failInsertsBeforeSuccess ?? 0;
                 if (projectInsertAttempts <= failCount) {
+                  // Verbatim text observed from the real D1 Worker binding
+                  // (not the wrangler CLI, which formats differently) for a
+                  // genuine UNIQUE(tenant_id, reference) collision — see the
+                  // comment above the regex this is asserting against in
+                  // public.ts, and task-7-report.md's review-round-2
+                  // addendum for how it was captured.
                   throw new Error(
-                    "D1_ERROR: UNIQUE constraint failed: projects.reference: SQLITE_CONSTRAINT"
+                    "D1_ERROR: UNIQUE constraint failed: projects.tenant_id, projects.reference: SQLITE_CONSTRAINT (extended: SQLITE_CONSTRAINT_UNIQUE)"
                   );
                 }
               }

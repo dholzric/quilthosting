@@ -275,17 +275,82 @@ projectRoutes.post("/:projectId/send-estimate", async (c) => {
     return c.json({ error: (err as Error).message }, 409);
   }
 
-  let member = await first<{ id: string }>(
-    c.env.DB.prepare(`SELECT id FROM members WHERE tenant_id = ? AND lower(email) = lower(?)`)
-      .bind(tenant.id, project.customer_email)
-  );
-  if (!member) {
-    const memberId = generateId();
-    await c.env.DB.prepare(
+  // Find-or-create must be a single atomic statement, not a check-then-act
+  // SELECT-then-INSERT: two concurrent send-estimate calls for different
+  // projects sharing one customer email under this tenant could otherwise
+  // both miss the SELECT and both INSERT, and the loser would hit
+  // idx_members_tenant_email as an unhandled exception — the same shape of
+  // race the reference counter had (see the intake handler in public.ts).
+  // ON CONFLICT(tenant_id, email) matches that unique index's column list
+  // exactly (verified against `CREATE UNIQUE INDEX idx_members_tenant_email
+  // ON members(tenant_id, email)` in migrations/0001_initial.sql — SQLite
+  // matches an ON CONFLICT target by column list, not index name).
+  //
+  // Normalized to lowercase here the same way /join and the intake handler
+  // do: the index is case-SENSITIVE (SQLite's default TEXT collation), so
+  // matching on the exact stored casing is what makes ON CONFLICT actually
+  // catch an existing customer instead of silently inserting a
+  // case-variant duplicate row beside them. This also preserves the
+  // case-insensitive-in-effect matching the previous `lower(email) =
+  // lower(?)` SELECT provided.
+  const customerEmail = project.customer_email.trim().toLowerCase();
+  const candidateMemberId = generateId();
+  const memberRow = await first<{ id: string }>(
+    c.env.DB.prepare(
       `INSERT INTO members (id, tenant_id, email, first_name, status, joined_at)
-       VALUES (?, ?, ?, ?, 'active', datetime('now'))`
-    ).bind(memberId, tenant.id, project.customer_email, project.customer_name).run();
-    member = { id: memberId };
+       VALUES (?, ?, ?, ?, 'active', datetime('now'))
+       ON CONFLICT(tenant_id, email) DO UPDATE SET email = email
+       RETURNING id`
+    ).bind(candidateMemberId, tenant.id, customerEmail, project.customer_name)
+  );
+  const memberId = memberRow?.id ?? candidateMemberId;
+  // SQLite's RETURNING gives no "was this an insert or a no-op update" flag.
+  // The returned id equaling the UUID we just generated IS that signal: the
+  // ON CONFLICT branch always returns some PRE-EXISTING row's id, which
+  // cannot coincide with a freshly generated UUID (the same collision-proof
+  // assumption every id in this codebase already relies on).
+  const wasNewMember = memberId === candidateMemberId;
+
+  if (wasNewMember) {
+    // Fire the same event every other member-creation path fires (/join,
+    // /forms/:slug) so a customer created here is not invisible to every
+    // webhook/Zapier consumer the platform has. Same event name, same
+    // payload shape (schema-validated by prepareEvent), same
+    // scheduleDispatch call as /join. NOT wrapped in the same single
+    // db.batch() as the member row above, unlike /join: /join already
+    // knows pre-write, from its own prior plain SELECT, that it is on the
+    // "creating a new member" branch, so it can decide up front to include
+    // the event statement in that batch. Here the ON CONFLICT upsert is
+    // what makes the member write itself race-free, and it only reveals
+    // new-vs-existing AFTER running — by which point the write has already
+    // committed. Firing unconditionally regardless of wasNewMember was
+    // rejected: it would emit a false member.created every time an
+    // existing customer gets a second project estimated, which is worse
+    // than the gap it would close.
+    const { prepareEvent, scheduleDispatch } = await import("../lib/webhookOutbox");
+    const ev = prepareEvent(c.env, tenant.id, "member.created", {
+      source: "admin",
+      member_id: memberId,
+      email: customerEmail,
+      first_name: project.customer_name,
+      last_name: null,
+      status: "active",
+    });
+    if (!ev) {
+      console.error("send-estimate: member.created payload failed schema validation", { memberId });
+    } else {
+      try {
+        await ev.stmt.run();
+        await scheduleDispatch(c.env, c.executionCtx, ev.id);
+      } catch (e) {
+        // The member row is already committed at this point (find-or-create
+        // ran and returned above) — matches the documented risk of
+        // webhookOutbox's non-atomic fallback path: log and continue rather
+        // than fail the request, since send-estimate must still be able to
+        // send the estimate even if the outbox write hiccups.
+        console.error("send-estimate: member.created outbox write failed", e);
+      }
+    }
   }
 
   const token = mintAccessToken();
@@ -296,7 +361,7 @@ projectRoutes.post("/:projectId/send-estimate", async (c) => {
     `UPDATE projects SET status = 'estimated', member_id = ?, access_token_hash = ?,
        token_expires_at = ?, estimated_at = ?, updated_at = ?
      WHERE id = ? AND tenant_id = ?`
-  ).bind(member.id, tokenHash, expires, now, now, project.id, tenant.id).run();
+  ).bind(memberId, tokenHash, expires, now, now, project.id, tenant.id).run();
 
   const baseUrl = tenantPublicBaseUrl(c.env, tenant);
   await sendEmail(c.env, {

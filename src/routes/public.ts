@@ -228,7 +228,19 @@ publicRoutes.post("/:slug/projects/intake", async (c) => {
       // Only retry the specific failure this loop exists to recover from —
       // a reference collision. Any other insert failure is a real error and
       // must surface, not be silently retried away.
-      if (!/UNIQUE constraint failed.*\breference\b/i.test(msg)) {
+      //
+      // Matched against the REAL D1 runtime error text, not a guess: a
+      // genuine UNIQUE(tenant_id, reference) collision, provoked against
+      // local D1 through the actual Worker (not the wrangler CLI, which
+      // formats errors differently), throws exactly:
+      //   D1_ERROR: UNIQUE constraint failed: projects.tenant_id,
+      //   projects.reference: SQLITE_CONSTRAINT (extended:
+      //   SQLITE_CONSTRAINT_UNIQUE)
+      // Anchored on the extended result code (SQLITE_CONSTRAINT_UNIQUE) —
+      // a stable SQLite constant — plus the column name, rather than on the
+      // surrounding sentence wording, which is D1/Workers-runtime-owned and
+      // not something this codebase controls.
+      if (!(/SQLITE_CONSTRAINT_UNIQUE/i.test(msg) && /\breference\b/i.test(msg))) {
         throw err;
       }
     }

@@ -8,7 +8,18 @@ import type { Env, Tenant, TenantVariables } from "../types";
 
 const TENANT_ID = "tenant-1";
 
-function harness(opts: { project?: Record<string, unknown>; role?: string } = {}) {
+function harness(
+  opts: {
+    project?: Record<string, unknown>;
+    role?: string;
+    // Simulates an ALREADY-EXISTING members row for this tenant+email: the
+    // fake ON CONFLICT branch returns this id instead of echoing back the
+    // candidate id the route generated, exactly like the real
+    // `INSERT ... ON CONFLICT(tenant_id, email) DO UPDATE ... RETURNING id`
+    // does when a row already exists.
+    existingMemberId?: string;
+  } = {}
+) {
   const writes: { sql: string; binds: unknown[] }[] = [];
   // Every statement the routes prepare, in order. The tenant-scoping test
   // below asserts against this rather than trusting the routes.
@@ -22,6 +33,13 @@ function harness(opts: { project?: Record<string, unknown>; role?: string } = {}
           return {
             async first() {
               if (sql.includes("FROM projects")) return opts.project ?? null;
+              if (sql.includes("INSERT INTO members")) {
+                // Real behavior: ON CONFLICT returns the EXISTING row's id;
+                // no conflict returns the freshly-inserted row's id, which
+                // is exactly the candidate id bound as the first parameter.
+                if (opts.existingMemberId) return { id: opts.existingMemberId };
+                return { id: binds[0] };
+              }
               return null;
             },
             async all() {
@@ -284,5 +302,108 @@ describe("projects admin API", () => {
     const keepUpdate = writes[writes.length - 1];
     expect(keepUpdate.binds[2]).toBe("2026-09-01");
     expect(keepUpdate.binds[5]).toBe("555-0100");
+  });
+
+  describe("POST /:projectId/send-estimate", () => {
+    // Review round 2, Findings 2 & 3: the member find-or-create must be a
+    // single atomic ON CONFLICT(tenant_id, email) upsert (not a racy
+    // SELECT-then-INSERT), and must fire member.created — but ONLY when a
+    // member row was genuinely created, not on every call.
+
+    it("creates a new member via the atomic upsert and fires member.created", async () => {
+      const { app, env, writes } = harness({
+        project: {
+          id: "p1",
+          tenant_id: TENANT_ID,
+          status: "submitted",
+          reference: "X-0001",
+          customer_email: "new@example.com",
+          customer_name: "New Customer",
+        },
+        // No existingMemberId: the fake ON CONFLICT branch echoes back the
+        // candidate id, simulating a genuine first-time insert.
+      });
+      const res = await app.request("/p1/send-estimate", { method: "POST" }, env);
+      expect(res.status).toBe(200);
+
+      // The member upsert itself runs via .first() (it's a RETURNING
+      // statement, not a plain .run()), so it won't appear in `writes` —
+      // asserted separately below via `prepared`.
+      const outboxWrite = writes.find((w) => w.sql.includes("INSERT INTO webhook_outbox"));
+      expect(outboxWrite).toBeDefined();
+      expect(outboxWrite!.binds[2]).toBe("member.created");
+      const payload = JSON.parse(outboxWrite!.binds[4] as string);
+      expect(payload).toMatchObject({
+        source: "admin",
+        email: "new@example.com",
+        first_name: "New Customer",
+        last_name: null,
+        status: "active",
+      });
+
+      const projectUpdate = writes.find((w) => w.sql.includes("UPDATE projects SET status = 'estimated'"));
+      expect(projectUpdate).toBeDefined();
+      // member_id bound onto the project update must be the SAME id the
+      // event payload references — the candidate id the upsert echoed back.
+      expect(projectUpdate!.binds[0]).toBe(payload.member_id);
+    });
+
+    it("matches an existing member via ON CONFLICT and does NOT fire member.created", async () => {
+      const { app, env, writes } = harness({
+        project: {
+          id: "p1",
+          tenant_id: TENANT_ID,
+          status: "submitted",
+          reference: "X-0001",
+          customer_email: "returning@example.com",
+          customer_name: "Returning Customer",
+        },
+        existingMemberId: "existing-member-99",
+      });
+      const res = await app.request("/p1/send-estimate", { method: "POST" }, env);
+      expect(res.status).toBe(200);
+
+      expect(writes.some((w) => w.sql.includes("INSERT INTO webhook_outbox"))).toBe(false);
+
+      const projectUpdate = writes.find((w) => w.sql.includes("UPDATE projects SET status = 'estimated'"));
+      expect(projectUpdate).toBeDefined();
+      // Must reuse the EXISTING member's id, not the candidate id the route
+      // generated and discarded when the upsert reported a conflict.
+      expect(projectUpdate!.binds[0]).toBe("existing-member-99");
+    });
+
+    it("targets the member upsert's ON CONFLICT at (tenant_id, email), matching idx_members_tenant_email", async () => {
+      const { app, env, prepared } = harness({
+        project: {
+          id: "p1",
+          tenant_id: TENANT_ID,
+          status: "submitted",
+          reference: "X-0001",
+          customer_email: "a@example.com",
+          customer_name: "A",
+        },
+      });
+      await app.request("/p1/send-estimate", { method: "POST" }, env);
+      const memberStatements = prepared.filter((sql) => sql.includes("INSERT INTO members"));
+      expect(memberStatements.length).toBe(1);
+      expect(memberStatements[0]).toMatch(/ON CONFLICT\(tenant_id,\s*email\)/i);
+      expect(memberStatements[0]).toMatch(/RETURNING\s+id/i);
+    });
+
+    it("rejects an illegal transition before touching the member table", async () => {
+      const { app, env, writes } = harness({
+        project: {
+          id: "p1",
+          tenant_id: TENANT_ID,
+          status: "completed",
+          reference: "X-0001",
+          customer_email: "a@example.com",
+          customer_name: "A",
+        },
+      });
+      const res = await app.request("/p1/send-estimate", { method: "POST" }, env);
+      expect(res.status).toBe(409);
+      expect(writes.length).toBe(0);
+    });
   });
 });
