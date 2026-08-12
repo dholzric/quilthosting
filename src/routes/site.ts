@@ -30,6 +30,24 @@ type PageRow = {
   updated_at: string;
 };
 
+/** Shared by the GET quote render and the POST sign handler, so both build
+ * the agreement title/body from tenant.settings_json the exact same way --
+ * that identical construction is what makes the render-time hash and the
+ * sign-time hash comparable at all. */
+function readAgreementFields(tenant: Tenant): { title: string; body: string } {
+  let settings: Record<string, unknown> = {};
+  try {
+    settings = JSON.parse(tenant.settings_json || "{}");
+  } catch {
+    settings = {};
+  }
+  const longarm = (settings.longarm || {}) as { agreementTitle?: string; agreementBody?: string };
+  return {
+    title: longarm.agreementTitle || "Service Agreement",
+    body: longarm.agreementBody || "",
+  };
+}
+
 async function loadNav(env: Env, tenant: Tenant) {
   let settings: Record<string, unknown> = {};
   try {
@@ -224,9 +242,38 @@ export async function serveBusinessSite(
       ).bind(project.id, tenant.id)
     );
 
-    const html = signature
-      ? renderSignedCopy({ tenant, project, lines, signature, baseUrl })
-      : renderQuotePage({ tenant, project, lines, baseUrl });
+    let html: string;
+    if (signature) {
+      html = renderSignedCopy({ tenant, project, lines, signature, baseUrl });
+    } else {
+      // Hash the EXACT snapshot being rendered below, using the same
+      // buildAgreementSnapshot() call signQuote uses to rebuild it at POST
+      // time. The hash is round-tripped through a hidden form field so the
+      // POST can prove (see signQuote) that the text about to be signed
+      // matches what was on screen when the customer clicked -- not
+      // whatever happens to be live in settings by the time the request
+      // arrives.
+      const { title: agreementTitle, body: agreementBody } = readAgreementFields(tenant);
+      const snapshot = buildAgreementSnapshot({
+        title: agreementTitle,
+        body: agreementBody,
+        project: {
+          reference: project.reference,
+          customerName: project.customer_name,
+          totalCents: project.total_cents,
+        },
+      });
+      const agreementSha256 = await sha256Hex(snapshot);
+      html = renderQuotePage({
+        tenant,
+        project,
+        lines,
+        baseUrl,
+        agreementTitle,
+        agreementBody,
+        agreementSha256,
+      });
+    }
 
     return new Response(html, {
       headers: {
@@ -350,8 +397,8 @@ async function signQuote(
   }
 
   const body = await c.req
-    .json<{ signer_name?: string; consent?: boolean }>()
-    .catch(() => ({}) as { signer_name?: string; consent?: boolean });
+    .json<{ signer_name?: string; consent?: boolean; agreement_sha256?: string }>()
+    .catch(() => ({}) as { signer_name?: string; consent?: boolean; agreement_sha256?: string });
   const signerName = String(body.signer_name || "").trim().slice(0, 200);
   if (!signerName) return c.json({ error: "Type your full name to sign" }, 400);
   if (body.consent !== true) return c.json({ error: "You must agree to the terms" }, 400);
@@ -362,30 +409,18 @@ async function signQuote(
     return c.json({ error: (err as Error).message }, 409);
   }
 
-  let settings: Record<string, unknown> = {};
-  try {
-    settings = JSON.parse(tenant.settings_json || "{}");
-  } catch {
-    settings = {};
-  }
-  const longarm = (settings.longarm || {}) as {
-    agreementTitle?: string;
-    agreementBody?: string;
-  };
-  const agreementTitle = longarm.agreementTitle || "Service Agreement";
+  const { title: agreementTitle, body: agreementBody } = readAgreementFields(tenant);
 
-  // Built from whatever is live in tenant settings right now, not from
-  // whatever the GET a moment ago happened to render -- the signature has to
-  // attest to what the customer is actually agreeing to at the instant they
-  // click Sign. If the shop edited the agreement text between page load and
-  // this POST, the stored snapshot reflects the edit, not the stale render;
-  // that is a real (reported, not silently patched) gap between what the
-  // customer visually read and what gets hashed, inherent to a page that
-  // re-reads live settings on every request rather than pinning a version at
-  // render time. See task-10-report.md.
+  // Rebuilt from whatever is live in tenant settings right now -- the same
+  // way the GET handler built it moments ago to render the page this POST
+  // is a response to. Those two builds are only guaranteed to match if
+  // nothing changed settings.longarm in between, which is exactly what the
+  // hash comparison below verifies before anything is persisted: the
+  // signature must attest to the text that was actually on screen, not to
+  // whatever happens to be live in settings by the time the request lands.
   const snapshot = buildAgreementSnapshot({
     title: agreementTitle,
-    body: longarm.agreementBody || "",
+    body: agreementBody,
     project: {
       reference: project.reference,
       customerName: project.customer_name,
@@ -393,6 +428,27 @@ async function signQuote(
     },
   });
   const hash = await sha256Hex(snapshot);
+
+  // Fail closed, same discipline as the price gate: a missing or malformed
+  // submitted hash is treated as a mismatch, never as "no opinion, sign
+  // whatever is live". This is what turns "the shop edited the agreement
+  // between page load and click" from a silent, undetectable gap into a
+  // rejected request the customer is told to reload and re-review. It
+  // proves the text hashed is the text that was rendered to the browser --
+  // it does not, and cannot, prove the human actually read it before
+  // clicking Sign; that is not a claim any server-side check can make.
+  const submittedHash =
+    typeof body.agreement_sha256 === "string" ? body.agreement_sha256.trim() : "";
+  if (!submittedHash || submittedHash !== hash) {
+    return c.json(
+      {
+        error:
+          "This agreement has been updated since you loaded this page. Please reload and review it before signing.",
+      },
+      409
+    );
+  }
+
   const now = new Date().toISOString();
 
   const inserted = await first<{ id: string }>(
@@ -442,6 +498,12 @@ async function signQuote(
     html: `<p>Thank you. Your agreement for ${escapeHtml(project.reference)} is signed.</p>`,
   }).catch(() => undefined);
 
+  let settings: Record<string, unknown> = {};
+  try {
+    settings = JSON.parse(tenant.settings_json || "{}");
+  } catch {
+    settings = {};
+  }
   const ownerEmail = (settings.business as { email?: string } | undefined)?.email;
   if (ownerEmail) {
     await sendEmail(c.env, {

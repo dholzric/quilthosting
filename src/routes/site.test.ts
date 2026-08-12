@@ -196,6 +196,27 @@ function harness(tenant: Tenant, state: State) {
   return { app, env };
 }
 
+/**
+ * Pulls the agreement_sha256 hidden-field value straight out of the
+ * rendered quote page HTML -- exactly what a real browser's sign form would
+ * submit back. Deliberately does NOT recompute the hash independently in
+ * the test (e.g. by re-calling buildAgreementSnapshot here): the whole
+ * point of the coordinator's finding is that the value posted back must be
+ * what was actually rendered, so the test fixture reads it the same way the
+ * client does.
+ */
+async function getRenderedAgreementHash(
+  app: Hono<{ Bindings: Env }>,
+  env: Env,
+  rawToken: string
+): Promise<string> {
+  const res = await app.request(`http://stitchstudioquilting.test/quote/${rawToken}`, {}, env);
+  const html = await res.text();
+  const m = html.match(/name="agreement_sha256" value="([0-9a-f]+)"/);
+  if (!m) throw new Error("agreement_sha256 hidden field not found in rendered quote page");
+  return m[1];
+}
+
 describe("GET /quote/:token — unknown vs. expired tokens are indistinguishable", () => {
   it("an unknown token returns 404 with the invalid-link page", async () => {
     const tenant = makeTenant();
@@ -263,6 +284,9 @@ describe("GET /quote/:token — valid token", () => {
     const body = await res.text();
     expect(body).toContain("Sign agreement");
     expect(body).toContain("Edge to edge quilting");
+    // The hidden field the sign form posts back so signQuote can verify the
+    // customer is signing the text that was actually rendered.
+    expect(body).toMatch(/name="agreement_sha256" value="[0-9a-f]{64}"/);
   });
 
   it("renders the signed copy (not the sign form) once a signature exists", async () => {
@@ -364,7 +388,8 @@ describe("POST /quote/:token/sign — idempotency and the fourth check-then-act 
     const tenant = makeTenant();
     const state = makeState(project);
     const { app, env } = harness(tenant, state);
-    const body = JSON.stringify({ signer_name: "Jane Customer", consent: true });
+    const agreement_sha256 = await getRenderedAgreementHash(app, env, rawToken);
+    const body = JSON.stringify({ signer_name: "Jane Customer", consent: true, agreement_sha256 });
 
     const first = await app.request(
       `http://stitchstudioquilting.test/quote/${rawToken}/sign`,
@@ -395,7 +420,8 @@ describe("POST /quote/:token/sign — idempotency and the fourth check-then-act 
     const tenant = makeTenant();
     const state = makeState(project);
     const { app, env } = harness(tenant, state);
-    const body = JSON.stringify({ signer_name: "Jane Customer", consent: true });
+    const agreement_sha256 = await getRenderedAgreementHash(app, env, rawToken);
+    const body = JSON.stringify({ signer_name: "Jane Customer", consent: true, agreement_sha256 });
     const post = () =>
       app.request(
         `http://stitchstudioquilting.test/quote/${rawToken}/sign`,
@@ -426,12 +452,13 @@ describe("POST /quote/:token/sign — idempotency and the fourth check-then-act 
     const tenant = makeTenant();
     const state = makeState(project);
     const { app, env } = harness(tenant, state);
+    const agreement_sha256 = await getRenderedAgreementHash(app, env, rawToken);
     const res = await app.request(
       `http://stitchstudioquilting.test/quote/${rawToken}/sign`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ signer_name: "Jane Customer", consent: true }),
+        body: JSON.stringify({ signer_name: "Jane Customer", consent: true, agreement_sha256 }),
       },
       env
     );
@@ -439,10 +466,114 @@ describe("POST /quote/:token/sign — idempotency and the fourth check-then-act 
     const row = state.signatures.get(project.id);
     expect(row).toBeTruthy();
     // Recomputed from the row's OWN stored agreement_text -- not from a
-    // second, independently-built snapshot string -- so this actually pins
-    // the relationship the report calls out: agreement_sha256 IS the hash of
-    // agreement_text as persisted, not merely "computed the same way once".
+    // second, independently-built snapshot string, and not from the value
+    // this test happened to submit -- so this actually pins the
+    // relationship: agreement_sha256 IS the hash of agreement_text as
+    // persisted, read back from the (fake) database, not merely "computed
+    // the same way once".
     expect(await sha256Hex(row!.agreement_text)).toBe(row!.agreement_sha256);
+  });
+});
+
+describe("POST /quote/:token/sign — the customer can only sign the text they actually saw", () => {
+  it("happy path: signs when the submitted hash matches the rendered snapshot", async () => {
+    const rawToken = mintAccessToken();
+    const tokenHash = await hashToken(rawToken);
+    const project = makeProject({ access_token_hash: tokenHash });
+    const tenant = makeTenant();
+    const state = makeState(project);
+    const { app, env } = harness(tenant, state);
+    const agreement_sha256 = await getRenderedAgreementHash(app, env, rawToken);
+
+    const res = await app.request(
+      `http://stitchstudioquilting.test/quote/${rawToken}/sign`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ signer_name: "Jane Customer", consent: true, agreement_sha256 }),
+      },
+      env
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
+    expect(state.signatures.size).toBe(1);
+  });
+
+  it("a STALE hash (the shop edited the agreement after the page was rendered) is rejected with 409 and writes no row", async () => {
+    const rawToken = mintAccessToken();
+    const tokenHash = await hashToken(rawToken);
+    const project = makeProject({ access_token_hash: tokenHash });
+    const tenant = makeTenant();
+    const state = makeState(project);
+    const { app, env } = harness(tenant, state);
+    // The hash of what was actually rendered a moment ago -- but the value
+    // sent below is deliberately a DIFFERENT (well-formed, but wrong) hash,
+    // simulating a client that loaded the page before an edit and is now
+    // posting a hash that no longer matches live settings.
+    const staleHash = "0".repeat(64);
+    expect(staleHash).not.toBe(await getRenderedAgreementHash(app, env, rawToken));
+
+    const res = await app.request(
+      `http://stitchstudioquilting.test/quote/${rawToken}/sign`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ signer_name: "Jane Customer", consent: true, agreement_sha256: staleHash }),
+      },
+      env
+    );
+    expect(res.status).toBe(409);
+    const json = (await res.json()) as { error?: string };
+    expect(json.error).toMatch(/reload/i);
+    // The authoritative assertion: no row was written, not merely "some
+    // error status came back".
+    expect(state.signatures.size).toBe(0);
+    // And the project status must not have moved either.
+    expect(state.projects.get(project.id)!.status).toBe("estimated");
+  });
+
+  it("a MISSING agreement_sha256 field is rejected with 409 (fail closed), and writes no row", async () => {
+    const rawToken = mintAccessToken();
+    const tokenHash = await hashToken(rawToken);
+    const project = makeProject({ access_token_hash: tokenHash });
+    const tenant = makeTenant();
+    const state = makeState(project);
+    const { app, env } = harness(tenant, state);
+
+    const res = await app.request(
+      `http://stitchstudioquilting.test/quote/${rawToken}/sign`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // No agreement_sha256 at all -- must NOT be treated as "no opinion,
+        // sign whatever is live".
+        body: JSON.stringify({ signer_name: "Jane Customer", consent: true }),
+      },
+      env
+    );
+    expect(res.status).toBe(409);
+    expect(state.signatures.size).toBe(0);
+  });
+
+  it("a non-string agreement_sha256 (malformed payload) is also rejected, not coerced", async () => {
+    const rawToken = mintAccessToken();
+    const tokenHash = await hashToken(rawToken);
+    const project = makeProject({ access_token_hash: tokenHash });
+    const tenant = makeTenant();
+    const state = makeState(project);
+    const { app, env } = harness(tenant, state);
+
+    const res = await app.request(
+      `http://stitchstudioquilting.test/quote/${rawToken}/sign`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ signer_name: "Jane Customer", consent: true, agreement_sha256: 12345 }),
+      },
+      env
+    );
+    expect(res.status).toBe(409);
+    expect(state.signatures.size).toBe(0);
   });
 });
 
@@ -455,13 +586,14 @@ describe("POST /quote/:token/sign — customer-supplied signer_name never reache
     const state = makeState(project);
     const { app, env } = harness(tenant, state);
     const evilName = '<script>alert(1)</script>';
+    const agreement_sha256 = await getRenderedAgreementHash(app, env, rawToken);
 
     const signRes = await app.request(
       `http://stitchstudioquilting.test/quote/${rawToken}/sign`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ signer_name: evilName, consent: true }),
+        body: JSON.stringify({ signer_name: evilName, consent: true, agreement_sha256 }),
       },
       env
     );

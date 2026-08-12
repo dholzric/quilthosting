@@ -42,14 +42,6 @@ function linesTable(lines: ProjectLine[], totalCents: number): string {
 <tfoot><tr><th colspan="2">Total</th><th>${escapeHtml(formatMoney(totalCents))}</th></tr></tfoot></table>`;
 }
 
-function parseSettings(settingsJson: string | null | undefined): Record<string, unknown> {
-  try {
-    return JSON.parse(settingsJson || "{}") as Record<string, unknown>;
-  } catch {
-    return {};
-  }
-}
-
 export function renderInvalidLink(tenant: Tenant): string {
   // Deliberately identical for an unknown token and an expired one -- see
   // src/routes/site.ts's route branch. Distinguishing the two here would
@@ -67,11 +59,23 @@ export function renderQuotePage(args: {
   project: Project;
   lines: ProjectLine[];
   baseUrl: string;
+  // The title/body actually rendered below, and the SHA-256 of the exact
+  // buildAgreementSnapshot() string built from them -- computed by the
+  // caller (src/routes/site.ts) using the SAME function and the SAME inputs
+  // signQuote will use to rebuild the snapshot at POST time. Round-tripped
+  // through a hidden field so the POST can prove the text it is about to
+  // hash and sign is the text that was actually on screen when the customer
+  // clicked -- not merely "whatever is live in settings right now", which
+  // could have changed underneath them between page load and click.
+  //
+  // This proves the text HASHED is the text RENDERED. It does not, and
+  // cannot, prove the human actually read it -- that is a claim no
+  // client-side mechanism can make, and this code does not pretend to.
+  agreementTitle: string;
+  agreementBody: string;
+  agreementSha256: string;
 }): string {
-  const { tenant, project, lines } = args;
-  const settings = parseSettings(tenant.settings_json);
-  const longarm = (settings.longarm || {}) as { agreementTitle?: string; agreementBody?: string };
-  const title = longarm.agreementTitle || "Service Agreement";
+  const { tenant, project, lines, agreementTitle, agreementBody, agreementSha256 } = args;
 
   return shell(
     tenant,
@@ -81,9 +85,10 @@ export function renderQuotePage(args: {
 <p>Prepared for ${escapeHtml(project.customer_name)}</p>
 ${linesTable(lines, project.total_cents)}
 ${project.estimate_notes ? `<p class="qh-quote-notes">${escapeHtml(project.estimate_notes)}</p>` : ""}
-<section class="qh-agreement"><h2>${escapeHtml(title)}</h2>
-<pre class="qh-agreement-body">${escapeHtml(longarm.agreementBody || "")}</pre></section>
+<section class="qh-agreement"><h2>${escapeHtml(agreementTitle)}</h2>
+<pre class="qh-agreement-body">${escapeHtml(agreementBody)}</pre></section>
 <form id="qh-sign" class="qh-no-print">
+  <input type="hidden" name="agreement_sha256" value="${escapeHtml(agreementSha256)}">
   <label>Type your full name to sign
     <input name="signer_name" required maxlength="200" autocomplete="name">
   </label>
@@ -100,7 +105,11 @@ ${project.estimate_notes ? `<p class="qh-quote-notes">${escapeHtml(project.estim
     var btn=f.querySelector('button'); btn.disabled=true;
     fetch(location.pathname+'/sign',{method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({signer_name:f.signer_name.value,consent:f.consent.checked})
+      body:JSON.stringify({
+        signer_name:f.signer_name.value,
+        consent:f.consent.checked,
+        agreement_sha256:f.agreement_sha256.value
+      })
     }).then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});})
       .then(function(res){
         if(!res.ok){btn.disabled=false;s.textContent=res.j.error||'Something went wrong.';return;}
