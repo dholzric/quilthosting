@@ -326,7 +326,14 @@ publicRoutes.post("/:slug/projects/:projectRef/photos", async (c) => {
     return c.json({ error: `At most ${MAX_FILES} photos` }, 400);
   }
 
-  const fileIds: string[] = [];
+  // Pass 1: validate every file — count cap (above), per-file size cap, and
+  // magic-byte sniff — before writing anything. A batch that fails partway
+  // through must not leave earlier files in the same batch permanently
+  // orphaned in R2/D1 (nothing links them to a project until after this
+  // whole handler succeeds, and nothing ever sweeps them). Holds up to
+  // MAX_FILES (5) buffers of up to MAX_BYTES (10MB) each in memory at once
+  // — see task-8-report.md for why that ceiling was judged acceptable.
+  const validated: Array<{ file: File; buf: Uint8Array; contentType: string }> = [];
   for (const file of files) {
     if (file.size > MAX_BYTES) {
       return c.json({ error: "Each photo must be under 10MB" }, 400);
@@ -336,15 +343,36 @@ publicRoutes.post("/:slug/projects/:projectRef/photos", async (c) => {
     if (!contentType) {
       return c.json({ error: "Photos must be PNG, JPEG, GIF, WebP or AVIF" }, 400);
     }
+    validated.push({ file, buf, contentType });
+  }
+
+  // Pass 2: every file passed validation — now write. If the D1 insert for
+  // a file fails after its R2 object is already written, best-effort delete
+  // that one object rather than leave it dangling; do not attempt to unwind
+  // files already committed earlier in this same pass (see task-8-report.md
+  // for the residue that leaves open).
+  const fileIds: string[] = [];
+  for (const { file, buf, contentType } of validated) {
     const fileId = generateId();
     const key = `${tenant.id}/${fileId}/${file.name.replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 100)}`;
     await c.env.FILES.put(key, buf);
-    await c.env.DB.prepare(
-      `INSERT INTO files (id, tenant_id, r2_key, filename, content_type, size, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`
-    )
-      .bind(fileId, tenant.id, key, file.name.slice(0, 200), contentType, buf.byteLength)
-      .run();
+    try {
+      await c.env.DB.prepare(
+        `INSERT INTO files (id, tenant_id, r2_key, filename, content_type, size, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`
+      )
+        .bind(fileId, tenant.id, key, file.name.slice(0, 200), contentType, buf.byteLength)
+        .run();
+    } catch (err) {
+      // Best-effort cleanup of the object we just orphaned. Wrapped so a
+      // delete failure can never mask the original D1 error below.
+      try {
+        await c.env.FILES.delete(key);
+      } catch (cleanupErr) {
+        console.error("intake photos: R2 cleanup failed after D1 insert error", cleanupErr);
+      }
+      throw err;
+    }
     fileIds.push(fileId);
   }
 
