@@ -111,12 +111,14 @@
     // server-side caps.
     var MAX_PHOTOS = 5;
     var MAX_PHOTO_BYTES = 10 * 1024 * 1024;
-    form.appendChild(el("label", "", "Photos (optional)"));
+    var photoLabel = el("label");
     var photoInput = document.createElement("input");
     photoInput.type = "file";
     photoInput.multiple = true;
     photoInput.accept = "image/png,image/jpeg,image/gif,image/webp,image/avif";
-    form.appendChild(photoInput);
+    photoLabel.appendChild(photoInput);
+    photoLabel.appendChild(document.createTextNode(" Photos (optional)"));
+    form.appendChild(photoLabel);
     var photoHint = el("p", "muted",
       "Up to " + MAX_PHOTOS + " photos, 10MB each." +
       (projectType === "tshirt_quilt" ? " A photo of the shirts really helps." : ""));
