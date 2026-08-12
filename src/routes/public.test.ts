@@ -295,10 +295,23 @@ describe("POST /public/:slug/projects/:projectRef/photos", () => {
       // 1-indexed: which call to "INSERT INTO files" should throw, to
       // exercise the R2-write-succeeds/D1-insert-fails compensation path.
       failFilesInsertOnCall?: number;
+      // 1-indexed, counting BOTH the pre-check read and every retry-loop
+      // read as "SELECT intake_json" calls: after this call returns its
+      // value to the route, flip the stored row to a DIFFERENT value —
+      // simulating another request's write landing in the gap between the
+      // route's read and its own guarded UPDATE. Used to prove the
+      // optimistic-concurrency guard actually causes a retry rather than a
+      // silent overwrite.
+      mutateIntakeAfterSelectCall?: number;
+      // Like the above, but keeps racing on every retry-loop read (call 2
+      // and onward) so every attempt's guard mismatches — exhausts
+      // MAX_LINK_ATTEMPTS to exercise the loud-failure path.
+      exhaustIntakeRetries?: boolean;
     } = {}
   ) {
     const dbWrites: { sql: string; binds: unknown[] }[] = [];
     let filesInsertCalls = 0;
+    let intakeSelectCalls = 0;
     const tenant = {
       id: TENANT_ID,
       slug: "stitchstudio",
@@ -321,7 +334,16 @@ describe("POST /public/:slug/projects/:projectRef/photos", () => {
                   return project;
                 }
                 if (sql.includes("SELECT intake_json FROM projects")) {
-                  return { intake_json: currentIntakeJson };
+                  intakeSelectCalls++;
+                  const valueToReturn = currentIntakeJson;
+                  if (opts.exhaustIntakeRetries && intakeSelectCalls >= 2) {
+                    currentIntakeJson = JSON.stringify({
+                      photoFileIds: [`racer-${intakeSelectCalls}`],
+                    });
+                  } else if (intakeSelectCalls === opts.mutateIntakeAfterSelectCall) {
+                    currentIntakeJson = JSON.stringify({ photoFileIds: ["concurrent-file-id"] });
+                  }
+                  return { intake_json: valueToReturn };
                 }
                 return null;
               },
@@ -332,11 +354,20 @@ describe("POST /public/:slug/projects/:projectRef/photos", () => {
                     throw new Error("D1_ERROR: simulated insert failure");
                   }
                 }
-                dbWrites.push({ sql, binds });
                 if (sql.includes("UPDATE projects SET intake_json")) {
-                  currentIntakeJson = binds[0] as string;
+                  // Real WHERE ... AND intake_json = ? semantics: only
+                  // "applies" (changes > 0) if the guard (last bind) still
+                  // matches the currently stored value.
+                  const guardJson = binds[binds.length - 1] as string;
+                  if (guardJson === currentIntakeJson) {
+                    currentIntakeJson = binds[0] as string;
+                    dbWrites.push({ sql, binds });
+                    return { success: true, meta: { changes: 1, changed_db: true } };
+                  }
+                  return { success: true, meta: { changes: 0, changed_db: false } };
                 }
-                return { success: true };
+                dbWrites.push({ sql, binds });
+                return { success: true, meta: { changes: 1, changed_db: true } };
               },
               async all() {
                 return { results: [] };
@@ -517,33 +548,96 @@ describe("POST /public/:slug/projects/:projectRef/photos", () => {
     expect(r2Puts[0].key).not.toContain("etc/passwd");
   });
 
-  it("caps intake_json.photoFileIds at MAX_FILES when photos already exist on the project", async () => {
+  // Finding 2 (coordinator fix round 1): a batch that would push
+  // existing + incoming past MAX_FILES is rejected up front, before any
+  // R2/D1 write — not silently capped after the fact. The old behavior
+  // ([...existing, ...fileIds].slice(0, MAX_FILES)) dropped some of THIS
+  // request's just-committed ids from intake_json while still returning
+  // them all in file_ids as if linked; that's exactly what this closes.
+  it("accepts a second batch that exactly fills the project up to MAX_FILES", async () => {
     const { app, env, getIntakeJson } = photoHarness();
-    // First upload: 3 photos.
     const first = await postPhotos(
       app,
       env,
-      Array.from({ length: 3 }, (_, i) => ({
-        name: `p${i}.png`,
-        type: "image/png",
-        bytes: PNG_BYTES,
-      }))
+      Array.from({ length: 3 }, (_, i) => ({ name: `p${i}.png`, type: "image/png", bytes: PNG_BYTES }))
     );
     expect(first.status).toBe(200);
     expect(JSON.parse(getIntakeJson()).photoFileIds.length).toBe(3);
 
-    // Second upload: 3 more, for a total of 6 — must be capped at 5.
     const second = await postPhotos(
       app,
       env,
-      Array.from({ length: 3 }, (_, i) => ({
-        name: `q${i}.png`,
-        type: "image/png",
-        bytes: PNG_BYTES,
-      }))
+      Array.from({ length: 2 }, (_, i) => ({ name: `q${i}.png`, type: "image/png", bytes: PNG_BYTES }))
     );
     expect(second.status).toBe(200);
     expect(JSON.parse(getIntakeJson()).photoFileIds.length).toBe(5);
+  });
+
+  it("rejects a batch that would push the project over MAX_FILES up front, writing nothing and dropping no ids", async () => {
+    const { app, env, getIntakeJson, r2Puts, dbWrites } = photoHarness();
+    const first = await postPhotos(
+      app,
+      env,
+      Array.from({ length: 3 }, (_, i) => ({ name: `p${i}.png`, type: "image/png", bytes: PNG_BYTES }))
+    );
+    expect(first.status).toBe(200);
+    const r2PutsAfterFirst = r2Puts.length;
+    const filesInsertsAfterFirst = dbWrites.filter((w) => w.sql.includes("INSERT INTO files")).length;
+
+    // 3 existing + 3 incoming = 6 > MAX_FILES (5) — must be rejected
+    // entirely, not silently truncated to 5.
+    const second = await postPhotos(
+      app,
+      env,
+      Array.from({ length: 3 }, (_, i) => ({ name: `q${i}.png`, type: "image/png", bytes: PNG_BYTES }))
+    );
+    expect(second.status).toBe(400);
+    // Nothing NEW was written by the rejected second request.
+    expect(r2Puts.length).toBe(r2PutsAfterFirst);
+    expect(dbWrites.filter((w) => w.sql.includes("INSERT INTO files")).length).toBe(
+      filesInsertsAfterFirst
+    );
+    // The 3 photos from the first, successful upload are untouched.
+    expect(JSON.parse(getIntakeJson()).photoFileIds.length).toBe(3);
+  });
+
+  // Finding 1 (coordinator fix round 1): the intake_json read-modify-write
+  // is optimistic-concurrency guarded (WHERE intake_json = <value just
+  // read>), so an overlapping write can't silently clobber it. This test
+  // simulates the actual race: the fake D1 mutates the stored row AFTER
+  // the route's first retry-loop read returns, standing in for another
+  // request's write landing in the gap before this request's own UPDATE
+  // executes. The guard must miss, the loop must retry, and the SECOND
+  // read (which now sees the concurrent write) must be what the final
+  // UPDATE is based on — so the end state has BOTH ids, neither silently
+  // discarded.
+  it("retries the intake_json link when a concurrent write races it, merging both sides instead of one discarding the other", async () => {
+    const { app, env, getIntakeJson } = photoHarness({
+      // Call 1 is the pre-check read; call 2 is the retry loop's first
+      // (raced) read.
+      mutateIntakeAfterSelectCall: 2,
+    });
+    const res = await postPhotos(app, env, [{ name: "a.png", type: "image/png", bytes: PNG_BYTES }]);
+    expect(res.status).toBe(200);
+    const body = await res.json<{ ok: boolean; file_ids: string[] }>();
+    const finalIds = JSON.parse(getIntakeJson()).photoFileIds as string[];
+    expect(finalIds).toContain("concurrent-file-id");
+    expect(finalIds).toEqual(expect.arrayContaining(body.file_ids));
+    expect(finalIds.length).toBe(2);
+  });
+
+  it("fails loudly (never ok:true) when the intake_json link loses every retry to sustained concurrent writes, and never silently links this request's photo", async () => {
+    const { app, env, r2Puts, getIntakeJson } = photoHarness({ exhaustIntakeRetries: true });
+    const res = await postPhotos(app, env, [{ name: "a.png", type: "image/png", bytes: PNG_BYTES }]);
+    expect(res.status).toBe(500);
+    const body = await res.json<{ error: string }>();
+    expect(body.error).toBeTruthy();
+    // The photo itself was still committed to R2/files (documented
+    // residue) — but its id must never have made it into intake_json,
+    // since the response told the caller this failed.
+    expect(r2Puts.length).toBe(1);
+    const fileId = r2Puts[0].key.split("/")[1];
+    expect(getIntakeJson()).not.toContain(fileId);
   });
 
   // FINDING A: a batch where a later file fails validation must not leave
