@@ -46,18 +46,24 @@ describe("agreement snapshot", () => {
     expect(snap).toContain(CONSENT_TEXT);
   });
 
-  it("changes its hash when consent text changes", async () => {
-    const a = buildAgreementSnapshot({
+  it("proves hash covers the consent section (not the body)", async () => {
+    const snap = buildAgreementSnapshot({
       title: "T",
       body: "B",
       project: PROJECT,
     });
-    const b = buildAgreementSnapshot({
+    // Same snapshot but with consent section stripped (removes trailing blank + CONSENT_TEXT)
+    const snapWithoutConsent = snap.slice(0, snap.lastIndexOf("\n\n"));
+    expect(await sha256Hex(snap)).not.toBe(await sha256Hex(snapWithoutConsent));
+  });
+
+  it("snapshot ends with the consent text", () => {
+    const snap = buildAgreementSnapshot({
       title: "T",
-      body: "B with different consent ending.",
+      body: "B",
       project: PROJECT,
     });
-    expect(await sha256Hex(a)).not.toBe(await sha256Hex(b));
+    expect(snap.endsWith(CONSENT_TEXT)).toBe(true);
   });
 
   it("formats zero cents as $0.00", () => {
@@ -85,5 +91,54 @@ describe("agreement snapshot", () => {
       project: { ...PROJECT, totalCents: -500 },
     });
     expect(snap).toContain("-$5.00");
+  });
+
+  it("throws TypeError when totalCents is NaN", () => {
+    expect(() => {
+      buildAgreementSnapshot({
+        title: "T",
+        body: "B",
+        project: { ...PROJECT, totalCents: NaN },
+      });
+    }).toThrow(TypeError);
+  });
+
+  it("throws TypeError when totalCents is Infinity", () => {
+    expect(() => {
+      buildAgreementSnapshot({
+        title: "T",
+        body: "B",
+        project: { ...PROJECT, totalCents: Infinity },
+      });
+    }).toThrow(TypeError);
+  });
+
+  it("throws TypeError when totalCents is fractional", () => {
+    expect(() => {
+      buildAgreementSnapshot({
+        title: "T",
+        body: "B",
+        project: { ...PROJECT, totalCents: 100.5 },
+      });
+    }).toThrow(TypeError);
+  });
+
+  it("handles -0 correctly", () => {
+    const snap = buildAgreementSnapshot({
+      title: "T",
+      body: "B",
+      project: { ...PROJECT, totalCents: -0 },
+    });
+    expect(snap).toContain("$0.00");
+  });
+
+  it("handles Number.MAX_SAFE_INTEGER correctly", () => {
+    const snap = buildAgreementSnapshot({
+      title: "T",
+      body: "B",
+      project: { ...PROJECT, totalCents: Number.MAX_SAFE_INTEGER },
+    });
+    // MAX_SAFE_INTEGER is 9007199254740991 cents = $90071992547409.91
+    expect(snap).toContain("$90071992547409.91");
   });
 });
