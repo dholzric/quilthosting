@@ -346,11 +346,39 @@ publicRoutes.post("/:slug/projects/:projectRef/photos", async (c) => {
     validated.push({ file, buf, contentType });
   }
 
-  // Pass 2: every file passed validation — now write. If the D1 insert for
-  // a file fails after its R2 object is already written, best-effort delete
-  // that one object rather than leave it dangling; do not attempt to unwind
-  // files already committed earlier in this same pass (see task-8-report.md
-  // for the residue that leaves open).
+  function readPhotoFileIds(intakeJson: string | null | undefined): string[] {
+    try {
+      const parsed = JSON.parse(intakeJson || "{}");
+      return Array.isArray(parsed.photoFileIds) ? parsed.photoFileIds : [];
+    } catch {
+      return [];
+    }
+  }
+
+  // Reject up front, before anything is written, when this project doesn't
+  // have room for this many more photos. The alternative — slicing the
+  // merged array down to MAX_FILES after writing — silently drops some of
+  // THIS request's just-committed ids while still telling the caller they
+  // were all linked. Rejecting first means a caller who's over the cap
+  // learns before any R2/D1 write happens, and file_ids in the response is
+  // always exactly what's linked.
+  const preCheckRow = await first<{ intake_json: string }>(
+    c.env.DB.prepare(`SELECT intake_json FROM projects WHERE id = ? AND tenant_id = ?`)
+      .bind(project.id, tenant.id)
+  );
+  if (readPhotoFileIds(preCheckRow?.intake_json).length + validated.length > MAX_FILES) {
+    return c.json(
+      { error: `This project can have at most ${MAX_FILES} photos attached in total` },
+      400
+    );
+  }
+
+  // Pass 2: every file passed validation and there's room for all of
+  // them — now write. If the D1 insert for a file fails after its R2
+  // object is already written, best-effort delete that one object rather
+  // than leave it dangling; do not attempt to unwind files already
+  // committed earlier in this same pass (see task-8-report.md for the
+  // residue that leaves open).
   const fileIds: string[] = [];
   for (const { file, buf, contentType } of validated) {
     const fileId = generateId();
@@ -379,17 +407,68 @@ publicRoutes.post("/:slug/projects/:projectRef/photos", async (c) => {
   // Bind the photos to the project by appending to intake_json rather than
   // adding a table: they are intake data, and intake_json is where
   // type-varying intake data lives.
-  const row = await first<{ intake_json: string }>(
-    c.env.DB.prepare(`SELECT intake_json FROM projects WHERE id = ? AND tenant_id = ?`)
-      .bind(project.id, tenant.id)
-  );
-  let intake: Record<string, unknown> = {};
-  try { intake = JSON.parse(row?.intake_json || "{}"); } catch { intake = {}; }
-  const existing = Array.isArray(intake.photoFileIds) ? intake.photoFileIds : [];
-  intake.photoFileIds = [...existing, ...fileIds].slice(0, MAX_FILES);
-  await c.env.DB.prepare(
-    `UPDATE projects SET intake_json = ?, updated_at = ? WHERE id = ? AND tenant_id = ?`
-  ).bind(JSON.stringify(intake), new Date().toISOString(), project.id, tenant.id).run();
+  //
+  // Read-modify-write, so it's raced by any other concurrent write to the
+  // same project's intake_json (another overlapping upload, a client
+  // retry racing the original request). Closed with optimistic
+  // concurrency: the UPDATE's WHERE clause pins the exact intake_json
+  // string this attempt read, so it only lands if nothing changed
+  // underneath it — the same shape as the reference-counter fix in
+  // /projects/intake. Verified against a real D1 Worker binding (not just
+  // the wrangler CLI, whose `d1 execute` output doesn't surface
+  // meta.changes at all) via a temporary debug route + `wrangler dev
+  // --local`: a matching guard returned meta.changes:1 / changed_db:true;
+  // a stale guard on the same row returned meta.changes:0 /
+  // changed_db:false. That's the field this checks below.
+  const MAX_LINK_ATTEMPTS = 3;
+  let linked = false;
+  for (let attempt = 0; attempt < MAX_LINK_ATTEMPTS && !linked; attempt++) {
+    const row = await first<{ intake_json: string }>(
+      c.env.DB.prepare(`SELECT intake_json FROM projects WHERE id = ? AND tenant_id = ?`)
+        .bind(project.id, tenant.id)
+    );
+    const beforeJson = row?.intake_json ?? "{}";
+    const existing = readPhotoFileIds(beforeJson);
+    if (existing.length + fileIds.length > MAX_FILES) {
+      // A concurrent upload used up the remaining capacity between the
+      // pre-check above and this attempt. Nothing in this handler ever
+      // removes ids, so capacity only shrinks from here — retrying again
+      // will not help. Fall through to the loud failure below rather than
+      // silently dropping any of fileIds (which the response promises are
+      // linked) or exceeding MAX_FILES.
+      break;
+    }
+    let intake: Record<string, unknown> = {};
+    try { intake = JSON.parse(beforeJson || "{}"); } catch { intake = {}; }
+    intake.photoFileIds = [...existing, ...fileIds];
+    const result = await c.env.DB.prepare(
+      `UPDATE projects SET intake_json = ?, updated_at = ?
+       WHERE id = ? AND tenant_id = ? AND intake_json = ?`
+    )
+      .bind(JSON.stringify(intake), new Date().toISOString(), project.id, tenant.id, beforeJson)
+      .run();
+    if (result.meta.changes > 0) {
+      linked = true;
+    }
+  }
+
+  if (!linked) {
+    // The photos themselves are already safely committed to R2 + files
+    // (see the residue note above and in task-8-report.md) but this
+    // request could not safely record them against the project without
+    // risking a silent lost update or exceeding MAX_FILES. Fail loudly —
+    // returning ok:true here would be exactly the silent-drop failure
+    // this fix exists to close.
+    console.error("intake photos: could not link file ids to project after retries", {
+      tenantId: tenant.id,
+      projectId: project.id,
+      fileIds,
+    });
+    return c.json(
+      { error: "Could not save these photos to the project. Please try again." },
+      500
+    );
+  }
 
   return c.json({ ok: true, file_ids: fileIds });
 });
