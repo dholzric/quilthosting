@@ -70,8 +70,20 @@ export function buildAgreementSnapshot(args: {
       lines.forEach((l, i) => {
         assertIntCents(l.unitCents, `lines[${i}].unitCents`);
         assertIntCents(l.amountCents, `lines[${i}].amountCents`);
+        // JSON.stringify, not the raw string: `description` is shop-authored
+        // free text (PUT /lines only bounds its length, never its content),
+        // and without escaping, a description containing embedded "\n"
+        // characters plus fake numbered-row text can reproduce the EXACT
+        // byte rendering of several separate, differently-priced lines --
+        // a hash collision between two genuinely different itemisations
+        // (fix round 2, Finding 1). JSON.stringify escapes any literal
+        // newline to the two-character sequence \n and any embedded quote,
+        // so a raw newline byte can only ever appear here as a genuine row
+        // separator, never as part of a row's own content -- making each
+        // row's span unambiguous. This also makes the field unambiguous for
+        // a human reading the stored artefact years later.
         parts.push(
-          `${i + 1}. ${l.description} (qty ${l.quantity}, unit_cents ${l.unitCents}, amount_cents ${l.amountCents})`
+          `${i + 1}. ${JSON.stringify(l.description)} (qty ${l.quantity}, unit_cents ${l.unitCents}, amount_cents ${l.amountCents})`
         );
       });
     }

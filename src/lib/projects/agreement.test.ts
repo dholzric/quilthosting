@@ -145,11 +145,27 @@ describe("agreement snapshot", () => {
   });
 
   describe("lines (Task 10 fix round 1, Important #1)", () => {
-    it("omitting lines entirely produces the exact same snapshot as before -- backward compatible", () => {
-      const withLines = buildAgreementSnapshot({ title: "T", body: "B", project: PROJECT });
-      const withoutLinesArg = buildAgreementSnapshot({ title: "T", body: "B", project: PROJECT });
-      expect(withLines).toBe(withoutLinesArg);
-      expect(withLines).not.toContain("Line items:");
+    it("omitting lines entirely produces the exact pre-lines-feature snapshot -- backward compatible", () => {
+      // Fix round 2, Finding 2: the previous version of this test built
+      // BOTH sides from the identical call (neither passed `lines`), so it
+      // asserted a === a and proved nothing beyond the not.toContain check.
+      // This compares against a hardcoded expected string built independently
+      // of buildAgreementSnapshot, so a change to the no-lines code path
+      // would actually be caught here.
+      const snap = buildAgreementSnapshot({ title: "T", body: "B", project: PROJECT });
+      const expected = [
+        "T",
+        "",
+        `Project: ${PROJECT.reference}`,
+        `Customer: ${PROJECT.customerName}`,
+        "Agreed total: $125.00",
+        "",
+        "B",
+        "",
+        CONSENT_TEXT,
+      ].join("\n");
+      expect(snap).toBe(expected);
+      expect(snap).not.toContain("Line items:");
     });
 
     it("an empty lines array is distinguishable from omitted lines -- states '(none)' explicitly", () => {
@@ -220,6 +236,49 @@ describe("agreement snapshot", () => {
           lines: [{ description: "Bad", quantity: 1, unitCents: 10.5, amountCents: 10 }],
         });
       }).toThrow(TypeError);
+    });
+
+    it("a description crafted to mimic multiple rows cannot collide with the real multi-row rendering (fix round 2, Finding 1)", async () => {
+      // State A: ONE line whose description embeds literal newlines plus
+      // fake "2. ..." / "3. ..." row text -- reachable through the real API
+      // (PUT /lines only bounds description to 300 chars, never its
+      // content). Reproduced from the coordinator's concrete example: with
+      // the PRE-FIX raw (unescaped) template, this line's rendering was
+      // byte-identical to State B's three separate rows below.
+      const stateA = buildAgreementSnapshot({
+        title: "T",
+        body: "B",
+        project: PROJECT,
+        lines: [
+          {
+            description:
+              "Custom quilting (qty 1, unit_cents 5000, amount_cents 5000)\n" +
+              "2. Introductory discount (qty 1, unit_cents -5000, amount_cents -5000)\n" +
+              "3. Rush handling",
+            quantity: 1,
+            unitCents: 2000,
+            amountCents: 2000,
+          },
+        ],
+      });
+
+      // State B: THREE real lines with the same total ($20.00 net: 5000 -
+      // 5000 + 2000). Genuinely different data from State A.
+      const stateB = buildAgreementSnapshot({
+        title: "T",
+        body: "B",
+        project: PROJECT,
+        lines: [
+          { description: "Custom quilting", quantity: 1, unitCents: 5000, amountCents: 5000 },
+          { description: "Introductory discount", quantity: 1, unitCents: -5000, amountCents: -5000 },
+          { description: "Rush handling", quantity: 1, unitCents: 2000, amountCents: 2000 },
+        ],
+      });
+
+      // The snapshots themselves must differ (not just survive hashing) --
+      // and, the property that actually matters, so must their hashes.
+      expect(stateA).not.toBe(stateB);
+      expect(await sha256Hex(stateA)).not.toBe(await sha256Hex(stateB));
     });
   });
 });

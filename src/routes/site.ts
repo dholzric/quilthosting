@@ -237,21 +237,26 @@ export async function serveBusinessSite(
       ).bind(tokenHash, tenant.id)
     );
 
-    // Looked up BEFORE the expiry gate below, and only when a project was
-    // found. A signed project's customer must always be able to retrieve
-    // their own copy of what they agreed to -- the one thing this whole
-    // table exists to answer -- independent of the access token's normal
-    // 90-day TTL (Task 9's resend-link window). Without this reorder, the
-    // token going stale after a signature already exists would 404 the
-    // customer out of their own signed record forever (Task 10 fix round 1,
-    // Important #3).
-    const signature = project
-      ? await first<AgreementSignature>(
-          c.env.DB.prepare(
-            `SELECT * FROM agreement_signatures WHERE project_id = ? AND tenant_id = ?`
-          ).bind(project.id, tenant.id)
-        )
-      : null;
+    // Looked up BEFORE the expiry gate below. A signed project's customer
+    // must always be able to retrieve their own copy of what they agreed to
+    // -- the one thing this whole table exists to answer -- independent of
+    // the access token's normal 90-day TTL (Task 9's resend-link window).
+    // Without this reorder, the token going stale after a signature already
+    // exists would 404 the customer out of their own signed record forever
+    // (Task 10 fix round 1, Important #3).
+    //
+    // Issued UNCONDITIONALLY -- binding "" when there is no project -- not
+    // guarded behind `if (project)`. Guarding it made an unknown token cost
+    // one round trip and an expired-unsigned token cost two, even though
+    // both return byte-identical responses: a timing oracle for "this token
+    // existed once" that fix round 1 introduced by accident (fix round 2,
+    // Finding 3). No project has id "", so this is a real query that always
+    // finds nothing when `project` is null, rather than a conditional skip.
+    const signature = await first<AgreementSignature>(
+      c.env.DB.prepare(
+        `SELECT * FROM agreement_signatures WHERE project_id = ? AND tenant_id = ?`
+      ).bind(project?.id ?? "", tenant.id)
+    );
 
     const expired =
       !!project?.token_expires_at &&
