@@ -8,8 +8,11 @@ export const CONSENT_TEXT =
   "I have read this agreement and I agree to be bound by it.";
 
 function money(cents: number): string {
+  if (!Number.isFinite(cents) || !Number.isInteger(cents)) {
+    throw new TypeError(`money() requires a finite integer; got ${cents}`);
+  }
   const sign = cents < 0 ? "-" : "";
-  const abs = Math.abs(Math.round(cents));
+  const abs = Math.abs(cents);
   return `${sign}$${Math.floor(abs / 100)}.${String(abs % 100).padStart(2, "0")}`;
 }
 
@@ -32,5 +35,7 @@ export function buildAgreementSnapshot(args: {
     `Agreed total: ${money(project.totalCents)}`,
     "",
     body,
+    "",
+    CONSENT_TEXT,
   ].join("\n");
 }
