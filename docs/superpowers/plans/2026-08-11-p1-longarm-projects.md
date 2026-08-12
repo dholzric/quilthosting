@@ -2932,19 +2932,29 @@ All 12 tasks complete across 37 commits. Final state: `tsc --noEmit` clean, **39
 **120 `test:business-site` assertions** (up from 93), all five pre-existing guild regression scripts
 passing. Version `0.50.1-preview`.
 
-### Gap in this plan — P1 does NOT yet deliver client requirement 4
+### Gap in this plan — CLOSED 2026-08-12, after the merge
 
-**A customer cannot upload a photo.** The upload endpoint is complete and hardened (Task 8), the admin
-gallery renders `intake.photoFileIds` (Task 11), and both unit and E2E tests exist — but the
-`project_intake` block collects no file input and nothing calls the endpoint, so `photoFileIds` can
-never be non-empty in production.
+**A customer could not upload a photo.** The upload endpoint was complete and hardened (Task 8), the
+admin gallery rendered `intake.photoFileIds` (Task 11), and both unit and E2E tests existed — but the
+`project_intake` block collected no file input and nothing called the endpoint, so `photoFileIds`
+could never be non-empty in production.
+
+**Closed on `main` at `9c3382b`** (plus an a11y follow-up): the intake form now offers a file input for
+every project type, validates against the server's exact bounds (5 files, 10MB each) before sending,
+snapshots the `File[]` at submit, and uploads after intake returns the reference — the only moment the
+project is at the `submitted` status the endpoint requires. Reviewed clean, with all four upload-failure
+paths verified to keep telling the customer their request **was** received, since by then the shop
+already has the job and a customer who thinks otherwise will re-submit and create a duplicate.
+
+Historical note on how it was missed, kept because the lesson generalises:
 
 The spec decided this explicitly (§8: *"Yes, with hard limits — a T-shirt quilt cannot be quoted
 without seeing the shirts"*). **This plan lost it**: it assigned the endpoint to Task 8 and the viewer
 to Task 11 and never assigned the upload UI to any task. Twelve briefs and eleven per-task reviews did
 not catch it because each was scoped to one task; only the whole-branch review could see it.
 
-**Do not report P1 as delivering requirement 4 (custom/T-shirt quilts) until the upload UI ships.**
+With the upload UI shipped, **P1 now delivers client requirement 4 (custom/T-shirt quilts)** — subject
+to the standing caveat that every rate figure is still a placeholder.
 
 ### Deviations from the spec worth knowing
 
