@@ -40,6 +40,7 @@ import { outboundWebhookRoutes } from "./routes/outboundWebhooks";
 import { qboRoutes } from "./routes/qbo";
 import { platformRoutes } from "./routes/platform";
 import { domainRoutes } from "./routes/domain";
+import { projectRoutes } from "./routes/projects";
 import { runAutomationJob } from "./lib/automations";
 import { processQueuedBlasts } from "./lib/blastSend";
 import { generateId } from "./lib/utils/id";
@@ -368,6 +369,7 @@ tenantApp.route("/webhooks", outboundWebhookRoutes);
 tenantApp.route("/qbo", qboRoutes);
 tenantApp.route("/domain", domainRoutes);
 tenantApp.route("/galleries", galleryRoutes);
+tenantApp.route("/projects", projectRoutes);
 app.route("/api/tenants/:tenantId", tenantApp);
 
 app.route("/public", publicRoutes);
