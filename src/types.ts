@@ -130,3 +130,54 @@ export interface Event {
 export type TenantVariables = {
   tenant: Tenant;
 };
+
+export interface Project {
+  id: string;
+  tenant_id: string;
+  project_type: string;
+  status: string;
+  reference: string;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string | null;
+  member_id: string | null;
+  intake_json: string;
+  estimate_notes: string | null;
+  subtotal_cents: number;
+  total_cents: number;
+  due_date: string | null;
+  access_token_hash: string;
+  token_expires_at: string | null;
+  estimated_at: string | null;
+  signed_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectLine {
+  id: string;
+  project_id: string;
+  kind: string;
+  description: string;
+  quantity: number;
+  unit_cents: number;
+  amount_cents: number;
+  sort_order: number;
+}
+
+export interface AgreementSignature {
+  id: string;
+  tenant_id: string;
+  project_id: string;
+  signer_name: string;
+  signer_email: string;
+  consent_text: string;
+  agreement_title: string;
+  agreement_text: string;
+  agreement_sha256: string;
+  signing_token_hash: string;
+  signer_ip: string | null;
+  signer_user_agent: string | null;
+  signed_at: string;
+}
