@@ -2923,3 +2923,81 @@ git push origin p0-business-tenant
 ## Deferred, named so nobody implements them early
 
 Quilting-design galleries and the design picker (P1b). Class admin, calendar, registration (P2). Product images and storefront (P3). PayPal/Venmo, direct charges, deposits, and converting a signed project into an invoice (P4). Blog migration, videos, newsletter, 301 map (P5).
+
+---
+
+## Outcome and follow-ups (recorded 2026-08-12, after the whole-branch review)
+
+All 12 tasks complete across 37 commits. Final state: `tsc --noEmit` clean, **394 vitest tests**,
+**120 `test:business-site` assertions** (up from 93), all five pre-existing guild regression scripts
+passing. Version `0.50.1-preview`.
+
+### Gap in this plan — P1 does NOT yet deliver client requirement 4
+
+**A customer cannot upload a photo.** The upload endpoint is complete and hardened (Task 8), the admin
+gallery renders `intake.photoFileIds` (Task 11), and both unit and E2E tests exist — but the
+`project_intake` block collects no file input and nothing calls the endpoint, so `photoFileIds` can
+never be non-empty in production.
+
+The spec decided this explicitly (§8: *"Yes, with hard limits — a T-shirt quilt cannot be quoted
+without seeing the shirts"*). **This plan lost it**: it assigned the endpoint to Task 8 and the viewer
+to Task 11 and never assigned the upload UI to any task. Twelve briefs and eleven per-task reviews did
+not catch it because each was scoped to one task; only the whole-branch review could see it.
+
+**Do not report P1 as delivering requirement 4 (custom/T-shirt quilts) until the upload UI ships.**
+
+### Deviations from the spec worth knowing
+
+- The quote page does **not** render through the P0 renderer as §2 specifies. It is a private shell
+  carrying theme variables and `qh-site.css`, but no nav, logo, business name, or footer — so the page
+  a paying customer lands on does not look like the rest of the shop's site.
+- Intake photos are served to the admin via `/api/tenants/:id/files/:id/download`, not through
+  `/img/:fileId` as §8 reasoned. The route used is auth-gated (arguably safer) but is one of the
+  routes lacking the content-type allowlist noted below.
+- Intake validation returns one shared message rather than per-field errors.
+- The gate matrix grew for `/public/<slug>/projects/intake` and `/quote/<token>` but not for
+  `/public/<slug>/projects/:ref/photos`, the other unauthenticated write. It does pass via rule 4.
+
+### Pre-existing issues this work surfaced and deliberately did NOT fix
+
+None is made materially worse by P1 — but P1 opens the first path by which anonymous internet content
+enters the `files` table, so the first two shift from "staff-authored content is under-protected" to
+"third-party content is under-protected". The magic-byte allowlist (Task 5) is what prevents that from
+being an actual escalation.
+
+1. **Sibling file routes lack `nosniff` and a content-type allowlist.** `portal.ts` (guild logo, member
+   photo), `public.ts` (`:slug/photo/:photoId`), and `galleries.ts` all echo `files.content_type` with
+   neither guard. Only `/img/:fileId` in `site.ts` is hardened. One header each.
+2. **`GET /api/portal/:slug/files` lists every tenant file to any authenticated member**, not just
+   staff. Latent today for business tenants (P0 hides `/portal`, customers have no login) — but it
+   means one customer's quilt photos become readable by the whole membership the day portal access is
+   enabled. **Must be closed before any business tenant gets portal access.**
+3. **Authenticated callers get raw `public/` files on a launched tenant's host** for unmatched paths,
+   because `serveBusinessSite` falls through to `c.notFound()` → `ASSETS.fetch()`, which ignores Host.
+   Reproduced on a pre-existing control file. P1 correctly registered `/qh-projects.js` in
+   `PLATFORM_EXACT_PATHS`, closing the unauthenticated case.
+4. **`contact_form`'s hydration has no `.catch()`** — a network failure leaves its submit button
+   permanently disabled with no message, the same defect fixed for `project_intake`.
+
+### What this branch does not verify
+
+- **`public/qh-site.js` and `public/qh-projects.js` have zero automated coverage** (~620 lines of the
+  customer- and owner-facing surface). Every defect found in them was caught by reading, not testing.
+  The inline signing script in `quote.ts` has never executed in a browser.
+- **No browser session was run.** Task 11's runtime verification was curl against the API — real
+  evidence for the API contract, none for the DOM.
+- **Concurrency fixes were verified against local single-node D1**, which cannot reproduce production
+  interleaving. Every race fix is pinned by a fake-D1 harness simulating one interleaving chosen by
+  the test author — which is precisely how the sixth and seventh races survived until the final review.
+- **Every rate figure is invented.** Design open questions 1 and 2 (Linda's real rate card, her existing
+  agreement text) remain open. The arithmetic is correct; the numbers are placeholders.
+
+### Recurring defect classes, for whoever plans P2
+
+- **Check-then-act against D1**, which has no cross-statement transactions. Seven were found: the
+  reference counter, the member upsert, `intake_json` linking, the signature INSERT, and the three
+  status writes. Prefer atomic `ON CONFLICT ... RETURNING` or a guarded `WHERE ... AND col = ?` plus a
+  `meta.changes` check — `src/lib/projects/statusWrite.ts` is the house pattern now.
+- **Tests that assert nothing.** Four shipped and were caught: `expect(true).toBe(true)`, `a === a`, a
+  header check passing on two `null`s, and a batch test that passed against the pre-batch code. Every
+  new assertion in this plan was mutation-checked; keep doing that.
