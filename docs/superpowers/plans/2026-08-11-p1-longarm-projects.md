@@ -631,12 +631,12 @@ git commit -m "feat(projects): estimate pricing with integer-cent rates and expl
 ## Task 3: Status machine, tokens, references
 
 **Files:**
-- Create: `src/lib/projects/status.ts`, `src/lib/projects/token.ts`, `src/lib/projects/reference.ts`
+- Create: `src/lib/projects/hash.ts`, `src/lib/projects/status.ts`, `src/lib/projects/token.ts`, `src/lib/projects/reference.ts`
 - Test: `src/lib/projects/status.test.ts`, `src/lib/projects/token.test.ts`
 
 **Interfaces:**
 - Consumes: `ProjectStatus` from `./types`.
-- Produces: `canTransition(from: ProjectStatus, to: ProjectStatus): boolean`; `assertTransition(from: ProjectStatus, to: ProjectStatus): void` (throws `Error` with message `Illegal transition: <from> -> <to>`); `mintAccessToken(): string`; `hashToken(token: string): Promise<string>` (lowercase hex SHA-256); `buildReference(prefix: string | undefined, tenantSlug: string, n: number): string`.
+- Produces: `sha256Hex(text: string): Promise<string>` from `./hash` — **the single SHA-256 implementation in this feature**; Task 4's `agreement.ts` imports it rather than writing its own. `canTransition(from: ProjectStatus, to: ProjectStatus): boolean`; `assertTransition(from: ProjectStatus, to: ProjectStatus): void` (throws `Error` with message `Illegal transition: <from> -> <to>`); `mintAccessToken(): string`; `hashToken(token: string): Promise<string>` (an alias of `sha256Hex`, kept for call-site readability); `buildReference(prefix: string | undefined, tenantSlug: string, n: number): string`.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -766,6 +766,27 @@ export function assertTransition(from: ProjectStatus, to: ProjectStatus): void {
 }
 ```
 
+Create `src/lib/projects/hash.ts` — the one and only SHA-256 in this feature:
+
+```ts
+// The single SHA-256 implementation for P1. Both the access-token hash and
+// the agreement fingerprint use it. They were briefly specced as separate
+// byte-identical copies on the theory that hashing a secret and hashing a
+// document might one day diverge; that was speculative, and duplicated
+// crypto is a poor thing to speculate with.
+
+/** UTF-8 text to lowercase hex SHA-256. */
+export async function sha256Hex(text: string): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(text)
+  );
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+```
+
 Create `src/lib/projects/token.ts`:
 
 ```ts
@@ -773,6 +794,8 @@ Create `src/lib/projects/token.ts`:
 // only its SHA-256 — so a database disclosure exposes no customer's quote.
 // The consequence is intended: "resend link" mints a fresh token and
 // invalidates the previous one, because the old one cannot be recovered.
+
+import { sha256Hex } from "./hash";
 
 const TOKEN_BYTES = 32;
 
@@ -788,15 +811,8 @@ export function mintAccessToken(): string {
   return base64Url(bytes);
 }
 
-export async function hashToken(token: string): Promise<string> {
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(token)
-  );
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
+/** Alias of sha256Hex — kept so token call sites read as what they mean. */
+export const hashToken = sha256Hex;
 ```
 
 Create `src/lib/projects/reference.ts`:
@@ -849,8 +865,8 @@ git commit -m "feat(projects): status machine, hashed access tokens, reference c
 - Test: `src/lib/projects/agreement.test.ts`
 
 **Interfaces:**
-- Consumes: `hashToken` is NOT reused here; this module has its own `sha256Hex` because it hashes documents, not secrets, and the two should be free to diverge.
-- Produces: `sha256Hex(text: string): Promise<string>`; `buildAgreementSnapshot(args: { title: string; body: string; project: { reference: string; customerName: string; totalCents: number } }): string`; `CONSENT_TEXT: string`.
+- Consumes: `sha256Hex` from `./hash` (Task 3). Do **not** write a second SHA-256 here — importing the shared one is the point.
+- Produces: `buildAgreementSnapshot(args: { title: string; body: string; project: { reference: string; customerName: string; totalCents: number } }): string`; `CONSENT_TEXT: string`. Consumers of `sha256Hex` import it from `../projects/hash`, not from this module.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -858,17 +874,12 @@ Create `src/lib/projects/agreement.test.ts`:
 
 ```ts
 import { describe, it, expect } from "vitest";
-import { sha256Hex, buildAgreementSnapshot, CONSENT_TEXT } from "./agreement";
+import { sha256Hex } from "./hash";
+import { buildAgreementSnapshot, CONSENT_TEXT } from "./agreement";
 
 const PROJECT = { reference: "SSQ-0042", customerName: "Jane Quilter", totalCents: 12500 };
 
 describe("agreement snapshot", () => {
-  it("hashes to lowercase hex SHA-256", async () => {
-    expect(await sha256Hex("abc")).toBe(
-      "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
-    );
-  });
-
   it("embeds the reference, the customer, and the agreed total", () => {
     const snap = buildAgreementSnapshot({
       title: "Service Agreement",
@@ -919,16 +930,6 @@ Expected: FAIL — unresolved import `./agreement`.
 
 export const CONSENT_TEXT =
   "I have read this agreement and I agree to be bound by it.";
-
-export async function sha256Hex(text: string): Promise<string> {
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(text)
-  );
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
 
 function money(cents: number): string {
   const sign = cents < 0 ? "-" : "";
@@ -1153,8 +1154,12 @@ const TENANT_ID = "tenant-1";
 
 function harness(opts: { project?: Record<string, unknown>; role?: string } = {}) {
   const writes: { sql: string; binds: unknown[] }[] = [];
+  // Every statement the routes prepare, in order. The tenant-scoping test
+  // below asserts against this rather than trusting the routes.
+  const prepared: string[] = [];
   const db = {
     prepare(sql: string) {
+      prepared.push(sql);
       return {
         bind(...binds: unknown[]) {
           return {
@@ -1184,7 +1189,7 @@ function harness(opts: { project?: Record<string, unknown>; role?: string } = {}
     await next();
   });
   app.route("/", projectRoutes);
-  return { app, writes, env: { DB: db } as unknown as Env };
+  return { app, writes, prepared, env: { DB: db } as unknown as Env };
 }
 
 describe("projects admin API", () => {
@@ -1220,12 +1225,22 @@ describe("projects admin API", () => {
     expect(writes.some((w) => w.sql.includes("UPDATE projects"))).toBe(true);
   });
 
-  it("scopes every project read to the tenant", async () => {
-    const { app, env } = harness({ project: { id: "p1", tenant_id: TENANT_ID, status: "submitted" } });
+  it("scopes EVERY statement touching projects to the tenant", async () => {
+    // The Global Constraints require `WHERE tenant_id = ?` on every query;
+    // this asserts it against the SQL the routes actually prepare, rather
+    // than trusting that they do. `prepared` is populated by the harness
+    // above — see the `prepare(sql)` hook, which records each statement.
+    const { app, env, prepared } = harness({
+      project: { id: "p1", tenant_id: TENANT_ID, status: "submitted", reference: "X-0001" },
+    });
     await app.request("/p1", {}, env);
-    // The guard that matters: no query may omit tenant_id.
-    // Asserted by inspecting the SQL the route prepares.
-    expect(true).toBe(true);
+    await app.request("/", {}, env);
+
+    const projectStatements = prepared.filter((sql) => /\bprojects\b/.test(sql));
+    expect(projectStatements.length).toBeGreaterThan(0);
+    for (const sql of projectStatements) {
+      expect(sql).toMatch(/tenant_id\s*=\s*\?/);
+    }
   });
 
   it("recomputes totals from the saved lines rather than trusting the client", async () => {
