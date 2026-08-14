@@ -43,5 +43,54 @@ a{color:var(--color-primary)}
 .qh-site-footer{background:var(--color-card);border-top:1px solid var(--color-accent-bright);
   margin-top:3rem;font-size:.9rem;color:var(--color-text-muted)}
 .qh-platform-credit a{color:var(--color-primary)}
+/* ---- Forms -------------------------------------------------------------
+   These blocks are built with DOM APIs in qh-site.js and carried no styling
+   at all, so every field fell back to the browser default of roughly 20
+   characters -- long placeholders ("Quilt width (inches)") were visibly
+   truncated, and checkbox labels ran together inline.
+
+   font-size:16px on controls is deliberate and load-bearing on mobile: iOS
+   Safari zooms the viewport when a focused input is smaller than 16px, which
+   leaves the customer zoomed in and scrolled sideways mid-form. */
+.qh-block-project-intake form,.qh-block-contact-form form{
+  display:flex;flex-direction:column;gap:.8rem;max-width:34rem}
+.qh-block-project-intake form h3,.qh-block-contact-form form h3{margin:0}
+.qh-block-project-intake input,.qh-block-project-intake select,
+.qh-block-project-intake textarea,.qh-block-contact-form input,
+.qh-block-contact-form textarea{
+  width:100%;max-width:100%;font-family:inherit;font-size:16px;
+  padding:.65rem .75rem;min-height:44px;
+  border:1px solid var(--color-accent-bright);border-radius:8px;
+  background:#fff;color:var(--color-text-base)}
+.qh-block-project-intake textarea,.qh-block-contact-form textarea{min-height:6rem}
+.qh-block-project-intake input:focus-visible,.qh-block-project-intake select:focus-visible,
+.qh-block-contact-form input:focus-visible,.qh-block-contact-form textarea:focus-visible{
+  outline:2px solid var(--color-primary);outline-offset:1px}
+/* Labels stack their control underneath by default; a checkbox sits beside
+   its text instead, on its own row with a finger-sized target. */
+.qh-block-project-intake label{display:flex;flex-direction:column;
+  align-items:flex-start;gap:.35rem}
+.qh-block-project-intake label:has(input[type="checkbox"]){
+  flex-direction:row;align-items:center;gap:.6rem;min-height:44px}
+.qh-block-project-intake label input[type="checkbox"]{
+  width:1.2rem;height:1.2rem;min-height:0;flex:0 0 auto;margin:0;accent-color:var(--color-primary)}
+.qh-block-project-intake button,.qh-block-contact-form button{
+  font-family:inherit;font-size:1rem;min-height:44px;cursor:pointer;border:0;align-self:flex-start}
+.qh-block-project-intake button[disabled],.qh-block-contact-form button[disabled]{opacity:.6;cursor:progress}
+
+/* ---- Mobile safety ----------------------------------------------------- */
+img,video{max-width:100%;height:auto}
+.qh-block-text,.qh-site-main{overflow-wrap:anywhere}
+/* Wide content must scroll inside itself rather than pushing the page
+   sideways -- the quote page's line-item table is the one that does this. */
+.qh-quote-lines{width:100%;border-collapse:collapse}
+.qh-quote-main table,.qh-block-text table{display:block;overflow-x:auto;max-width:100%}
+.qh-agreement-body{white-space:pre-wrap;overflow-wrap:anywhere}
+
 @media (max-width:640px){.qh-site-header-inner{flex-direction:column;align-items:flex-start}
-  .qh-site-logo{height:38px;max-width:70vw}}
+  .qh-site-logo{height:38px;max-width:70vw}
+  .qh-site-header-inner,.qh-site-footer-inner{padding:.85rem 1rem}
+  .qh-site-main{padding:1.25rem 1rem 3rem}
+  .qh-block-hero{padding:2rem 1.25rem;border-radius:12px;margin-bottom:1.5rem}
+  .qh-site-nav{gap:.75rem 1rem}
+  .qh-block-project-intake button,.qh-block-contact-form button{align-self:stretch;text-align:center}}

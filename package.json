@@ -1,6 +1,6 @@
 {
   "name": "quilthosting",
-  "version": "0.52.1-preview",
+  "version": "0.53.0-preview",
   "private": true,
   "type": "module",
   "scripts": {
