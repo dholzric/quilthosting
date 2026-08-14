@@ -10,6 +10,9 @@ a{color:var(--color-primary)}
   display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}
 .qh-site-brand{display:flex;align-items:center;gap:.75rem;font-family:var(--font-display);
   font-size:1.3rem;font-weight:600;text-decoration:none;color:var(--color-text-base)}
+/* Logo is sized by height so a wide wordmark keeps its aspect ratio. max-width
+   stops an extreme banner from crowding out the nav on narrow screens. */
+.qh-site-logo{height:44px;width:auto;max-width:280px;object-fit:contain;display:block}
 .qh-site-nav{display:flex;gap:1rem;flex-wrap:wrap}
 .qh-site-nav a{text-decoration:none;font-size:.95rem}
 .qh-site-main{max-width:1080px;margin:0 auto;padding:2rem 1.5rem 4rem}
@@ -40,4 +43,5 @@ a{color:var(--color-primary)}
 .qh-site-footer{background:var(--color-card);border-top:1px solid var(--color-accent-bright);
   margin-top:3rem;font-size:.9rem;color:var(--color-text-muted)}
 .qh-platform-credit a{color:var(--color-primary)}
-@media (max-width:640px){.qh-site-header-inner{flex-direction:column;align-items:flex-start}}
+@media (max-width:640px){.qh-site-header-inner{flex-direction:column;align-items:flex-start}
+  .qh-site-logo{height:38px;max-width:70vw}}

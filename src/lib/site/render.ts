@@ -96,7 +96,14 @@ ${jsonLd}
 <header class="qh-site-header">
   <div class="qh-site-header-inner">
     <a class="qh-site-brand" href="/">${
-      logoUrl ? `<img src="${esc(logoUrl)}" alt="" width="48" height="48">` : ""
+      // Sized by HEIGHT only, with width left to the intrinsic aspect ratio.
+      // A fixed 48x48 square squashed and shrank every wordmark logo -- and a
+      // wordmark is what most shops upload. The explicit height attribute
+      // still gives the browser something to reserve, so this does not
+      // reintroduce layout shift. Width is capped in CSS, not here.
+      logoUrl
+        ? `<img class="qh-site-logo" src="${esc(logoUrl)}" alt="" height="44">`
+        : ""
     }<span>${esc(siteName)}</span></a>
     <nav class="qh-site-nav">${navHtml}</nav>
   </div>
