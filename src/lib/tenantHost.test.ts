@@ -8,7 +8,13 @@
 // apex resolves to null") were tautologies stipulating the mock's return
 // value, not verifying tenantHost.ts actually behaves that way.
 import { describe, it, expect, vi } from "vitest";
-import { normalizeHost, stripWww, appHostname, getTenantByHost } from "./tenantHost";
+import {
+  normalizeHost,
+  stripWww,
+  appHostname,
+  getTenantByHost,
+  ensurePlatformSubdomain,
+} from "./tenantHost";
 import type { Tenant } from "../types";
 
 describe("normalizeHost", () => {
@@ -215,5 +221,49 @@ describe("getTenantByHost — tenant hosts DO reach the database", () => {
     const result = await getTenantByHost(db, "www.quilthosting.com", APP_URL);
     expect(result).toBeNull();
     expect(db.prepare).not.toHaveBeenCalled();
+  });
+});
+
+describe("ensurePlatformSubdomain uses zone DNS, not a Workers custom domain", () => {
+  // Regression guard for a production incident on 2026-08-13: the subdomain was
+  // attached via the Workers domains API, and the next `wrangler deploy`
+  // reconciled custom domains against wrangler.toml and deleted it -- taking the
+  // DNS record with it. Runtime-created tenant subdomains can never appear in
+  // that file, so this must never go back to the workers/domains endpoint.
+  function fetchSpy(urls: string[]) {
+    return async (url: string | URL, init?: RequestInit) => {
+      urls.push(`${init?.method || "GET"} ${String(url)}`);
+      return new Response(
+        JSON.stringify({ success: true, result: String(url).includes("dns_records") && (init?.method || "GET") === "GET" ? [] : { id: "rec1" } }),
+        { headers: { "Content-Type": "application/json" } }
+      );
+    };
+  }
+
+  it("creates a proxied zone DNS record and never calls workers/domains", async () => {
+    const urls: string[] = [];
+    const original = globalThis.fetch;
+    globalThis.fetch = fetchSpy(urls) as unknown as typeof fetch;
+    try {
+      const res = await ensurePlatformSubdomain(
+        { CLOUDFLARE_API_TOKEN: "t", APP_URL: "https://quilthosting.com" } as never,
+        "stitchstudio"
+      );
+      expect(res.ok).toBe(true);
+      expect(res.hostname).toBe("stitchstudio.quilthosting.com");
+    } finally {
+      globalThis.fetch = original;
+    }
+    expect(urls.some((u) => u.includes("/dns_records"))).toBe(true);
+    expect(urls.some((u) => u.includes("workers/domains"))).toBe(false);
+  });
+
+  it("reports a clear error rather than throwing when no token is configured", async () => {
+    const res = await ensurePlatformSubdomain(
+      { APP_URL: "https://quilthosting.com" } as never,
+      "stitchstudio"
+    );
+    expect(res.ok).toBe(false);
+    expect(res.error).toContain("CLOUDFLARE_API_TOKEN");
   });
 });

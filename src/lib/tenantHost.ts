@@ -201,14 +201,95 @@ export async function detachWorkerHostname(
 }
 
 /**
- * Ensure the free platform subdomain {slug}.{appHost} is attached to the Worker.
+ * Ensure a plain proxied DNS record exists for a hostname in our own zone.
+ *
+ * WHY NOT A WORKERS CUSTOM DOMAIN: `wrangler deploy` reconciles Workers custom
+ * domains against the `[[routes]]` declared in wrangler.toml and DELETES any it
+ * does not find there -- removing the DNS record with them. Since tenant
+ * subdomains are created at runtime they can never appear in that file, so
+ * every deploy silently took down every tenant's subdomain. Observed in
+ * production on 2026-08-13: a subdomain attached via the Workers domains API
+ * vanished after the next two unrelated deploys.
+ *
+ * A plain DNS record is not part of that reconciliation, and routing still
+ * works because wrangler.toml already declares a zone-wide route (the
+ * wildcard `pattern` with `zone_name = "quilthosting.com"`) covering every
+ * hostname in the zone. AAAA to the 100:: discard prefix is the conventional
+ * placeholder for a proxied-only record -- Cloudflare answers with its own
+ * edge addresses and the origin address is never used.
+ */
+export async function ensureZoneDnsRecord(
+  env: Env,
+  hostname: string
+): Promise<CfDomainResult> {
+  const token = env.CLOUDFLARE_API_TOKEN;
+  if (!token) {
+    return { ok: false, hostname, error: "CLOUDFLARE_API_TOKEN not configured on Worker" };
+  }
+  const zoneId = saasZoneId(env);
+  const host = normalizeHost(hostname);
+  try {
+    const listRes = await fetch(
+      `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records?name=${encodeURIComponent(host)}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const list = (await listRes.json()) as {
+      success?: boolean;
+      result?: { id: string; name: string }[];
+    };
+    const existing = (list.result || []).find(
+      (r) => r.name.toLowerCase() === host.toLowerCase()
+    );
+    if (existing) return { ok: true, hostname: host, id: existing.id };
+
+    const res = await fetch(
+      `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "AAAA",
+          name: host,
+          content: "100::",
+          proxied: true,
+          ttl: 1,
+          comment: "Tenant subdomain (plain DNS so deploys cannot remove it)",
+        }),
+      }
+    );
+    const data = (await res.json()) as {
+      success: boolean;
+      result?: { id: string };
+      errors?: { message: string }[];
+    };
+    if (!data.success) {
+      return {
+        ok: false,
+        hostname: host,
+        error: data.errors?.map((e) => e.message).join("; ") || `HTTP ${res.status}`,
+      };
+    }
+    return { ok: true, hostname: host, id: data.result?.id };
+  } catch (e) {
+    return {
+      ok: false,
+      hostname: host,
+      error: e instanceof Error ? e.message : "CF API error",
+    };
+  }
+}
+
+/**
+ * Ensure the free platform subdomain {slug}.{appHost} resolves to the Worker.
+ * Uses a plain zone DNS record, NOT a Workers custom domain -- see
+ * ensureZoneDnsRecord for why that distinction is load-bearing.
  */
 export async function ensurePlatformSubdomain(
   env: Env,
   slug: string
 ): Promise<CfDomainResult> {
   const host = `${slug}.${appHostname(env.APP_URL)}`;
-  return attachWorkerHostname(env, host);
+  return ensureZoneDnsRecord(env, host);
 }
 
 /** CNAME target guilds point at (Cloudflare for SaaS). */
