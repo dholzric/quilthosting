@@ -55,6 +55,7 @@ export const PLATFORM_PATH_PREFIXES: readonly string[] = [
   "/portal",
   "/docs",
   "/embed",
+  "/sites",
   "/api/",
   "/t/",
   "/public/",
