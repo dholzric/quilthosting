@@ -141,44 +141,86 @@ eventRoutes.get("/:eventId", async (c) => {
   return c.json(event);
 });
 
+/**
+ * PATCH /api/tenants/:tenantId/events/:eventId
+ *
+ * Omitted-vs-cleared (same model as pages.ts): a key that is absent from the
+ * body is left alone; an explicit null (or "" for the text fields) clears
+ * it. Required columns (title, start_at) can be changed but never cleared.
+ */
 eventRoutes.patch("/:eventId", async (c) => {
   const tenant = c.get("tenant");
   const eventId = c.req.param("eventId");
-  const body = await c.req.json();
+  let body: Record<string, unknown>;
+  try {
+    const raw: unknown = await c.req.json();
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      return c.json({ error: "Request body must be a JSON object" }, 400);
+    }
+    body = raw as Record<string, unknown>;
+  } catch {
+    return c.json({ error: "Request body must be valid JSON" }, 400);
+  }
   const existing = await first<Event>(
     c.env.DB.prepare("SELECT * FROM events WHERE id = ? AND tenant_id = ?").bind(eventId, tenant.id)
   );
   if (!existing) return c.json({ error: "Not found" }, 404);
   const now = new Date().toISOString();
 
-  let settingsJson: string | null = null;
+  const sets: string[] = [];
+  const binds: unknown[] = [];
+  const set = (col: string, value: unknown) => {
+    sets.push(`${col} = ?`);
+    binds.push(value);
+  };
+  const isBlank = (v: unknown) => v === null || (typeof v === "string" && v.trim() === "");
+
+  // Required text: update only when a non-blank value is given.
+  for (const col of ["title", "start_at"] as const) {
+    if (body[col] === undefined) continue;
+    if (isBlank(body[col])) return c.json({ error: `${col} cannot be empty` }, 400);
+    set(col, String(body[col]));
+  }
+  // Optional text: null / "" clears.
+  for (const col of ["description", "location", "end_at"] as const) {
+    if (body[col] === undefined) continue;
+    set(col, isBlank(body[col]) ? null : String(body[col]));
+  }
+  // Optional integer: null / "" clears (unlimited capacity).
+  if (body.capacity !== undefined) {
+    if (isBlank(body.capacity)) set("capacity", null);
+    else {
+      const n = Number(body.capacity);
+      if (!Number.isInteger(n) || n < 0) return c.json({ error: "capacity must be a non-negative integer" }, 400);
+      set("capacity", n);
+    }
+  }
+  // Prices: required integers, never cleared (null is ignored).
+  for (const col of ["member_price_cents", "non_member_price_cents"] as const) {
+    if (body[col] === undefined || body[col] === null) continue;
+    const n = Number(body[col]);
+    if (!Number.isInteger(n) || n < 0) return c.json({ error: `${col} must be a non-negative integer` }, 400);
+    set(col, n);
+  }
+  // Flags.
+  for (const col of ["registration_open", "is_public", "waitlist_enabled"] as const) {
+    if (body[col] === undefined || body[col] === null) continue;
+    set(col, body[col] ? 1 : 0);
+  }
   if (body.questions !== undefined) {
     const current = parseEventSettings(existing.settings_json);
     current.questions = normalizeQuestions(body.questions);
-    settingsJson = JSON.stringify(current);
+    set("settings_json", JSON.stringify(current));
   }
 
-  await c.env.DB.prepare(
-    `UPDATE events SET
-       title = coalesce(?, title), description = coalesce(?, description),
-       location = coalesce(?, location), start_at = coalesce(?, start_at),
-       end_at = coalesce(?, end_at), capacity = coalesce(?, capacity),
-       member_price_cents = coalesce(?, member_price_cents),
-       non_member_price_cents = coalesce(?, non_member_price_cents),
-       registration_open = coalesce(?, registration_open),
-       settings_json = coalesce(?, settings_json),
-       updated_at = ?
-     WHERE id = ? AND tenant_id = ?`
-  )
-    .bind(
-      body.title ?? null, body.description ?? null, body.location ?? null,
-      body.start_at ?? null, body.end_at ?? null, body.capacity ?? null,
-      body.member_price_cents ?? null, body.non_member_price_cents ?? null,
-      body.registration_open !== undefined ? (body.registration_open ? 1 : 0) : null,
-      settingsJson,
-      now, eventId, tenant.id
+  if (sets.length) {
+    set("updated_at", now);
+    await c.env.DB.prepare(
+      `UPDATE events SET ${sets.join(", ")} WHERE id = ? AND tenant_id = ?`
     )
-    .run();
+      .bind(...binds, eventId, tenant.id)
+      .run();
+  }
   const updated = await first<Event>(
     c.env.DB.prepare("SELECT * FROM events WHERE id = ?").bind(eventId)
   );
