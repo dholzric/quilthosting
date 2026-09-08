@@ -5,6 +5,7 @@
 import type { Tenant } from "../types";
 import { first } from "./db";
 import { SAMPLE_MARKER } from "./starterSite";
+import { isBusiness } from "./tenantType";
 
 export type DomainStatus = "pending" | "active" | "failed" | "skipped";
 
@@ -51,10 +52,19 @@ export function parseOnboardingJson(raw: string | null | undefined): { dismissed
   }
 }
 
-function hasLogo(settingsJson: string | null | undefined): boolean {
+/**
+ * The guild settings screen stores the logo at settings.profile.logo_file_id
+ * (routes/files.ts); the business site builder stores it at
+ * settings.assets.logo_file_id (qh-site-builder.js / routes/site.ts). Either
+ * counts.
+ */
+export function hasLogo(settingsJson: string | null | undefined): boolean {
   try {
-    const s = JSON.parse(settingsJson || "{}") as { profile?: { logo_file_id?: unknown } };
-    return !!(s.profile && s.profile.logo_file_id);
+    const s = JSON.parse(settingsJson || "{}") as {
+      profile?: { logo_file_id?: unknown } | null;
+      assets?: { logo_file_id?: unknown } | null;
+    };
+    return !!(s.profile?.logo_file_id || s.assets?.logo_file_id);
   } catch {
     return false;
   }
@@ -108,6 +118,8 @@ export async function computeOnboarding(
   const paymentsDone = stripeConnected || allFree;
   const domainStatus = normalizeDomainStatus(tenant.domain_status);
   const domainDone = !!tenant.custom_domain || domainStatus === "active";
+  // Copy is tenant-type aware: a longarm studio is not a "guild".
+  const org = isBusiness(tenant) ? "business" : "guild";
 
   const steps: OnboardingStep[] = [
     {
@@ -134,7 +146,7 @@ export async function computeOnboarding(
     },
     {
       key: "logo",
-      label: "Upload your guild logo",
+      label: "Upload your logo",
       done: hasLogo(tenant.settings_json),
       href: "#settings",
       hint: "Shown in the header of your public site and on emails.",
@@ -154,7 +166,7 @@ export async function computeOnboarding(
       done: paymentsDone,
       href: "#settings",
       hint: stripeConnected
-        ? "Stripe is connected; dues and event fees pay out to your guild."
+        ? `Stripe is connected; dues and event fees pay out to your ${org}.`
         : allFree
           ? "All your levels are free, so payments are not needed yet. Connect Stripe when you add a paid level."
           : hasLevel
@@ -176,7 +188,7 @@ export async function computeOnboarding(
       done: teamCount >= 2,
       href: "#settings",
       hint: teamCount >= 2
-        ? `${teamCount} people can sign in to manage this guild.`
+        ? `${teamCount} people can sign in to manage this ${org}.`
         : "Give your treasurer or membership chair their own login so you are not the only admin.",
       optional: true,
     },

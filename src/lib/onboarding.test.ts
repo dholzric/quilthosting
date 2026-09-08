@@ -4,7 +4,7 @@
 // guild, one with a paid level but no Stripe, an all-free guild, a finished
 // one, and the dismissed flag.
 import { describe, it, expect } from "vitest";
-import { computeOnboarding, type OnboardingTenant } from "./onboarding";
+import { computeOnboarding, hasLogo, type OnboardingTenant } from "./onboarding";
 import { SAMPLE_MARKER } from "./starterSite";
 
 type Counts = {
@@ -148,6 +148,33 @@ describe("computeOnboarding", () => {
     expect(s.team_invited.done).toBe(true);
     expect(s.domain.done).toBe(true);
     expect(s.domain.hint).toContain("live");
+  });
+
+  it("business tenants: the logo the site builder stores under settings.assets counts, and copy never says guild", async () => {
+    const { db } = fakeDb({ pages: 3, levels: 1, paidLevels: 0, team: 3 });
+    const state = await computeOnboarding(
+      db,
+      tenant({
+        tenant_type: "business",
+        stripe_account_id: "acct_1",
+        settings_json: JSON.stringify({ assets: { logo_file_id: "f-biz" } }),
+      })
+    );
+    const s = byKey(state);
+    expect(s.logo.done).toBe(true);
+    for (const st of state.steps) {
+      expect(`${st.label} ${st.hint}`.toLowerCase(), st.key).not.toContain("guild");
+    }
+  });
+
+  it("hasLogo accepts either storage shape and tolerates junk", () => {
+    expect(hasLogo(JSON.stringify({ profile: { logo_file_id: "f1" } }))).toBe(true);
+    expect(hasLogo(JSON.stringify({ assets: { logo_file_id: "f2" } }))).toBe(true);
+    expect(hasLogo(JSON.stringify({ profile: { logo_file_id: "" }, assets: {} }))).toBe(false);
+    expect(hasLogo(JSON.stringify({ profile: null }))).toBe(false);
+    expect(hasLogo("{}")).toBe(false);
+    expect(hasLogo(null)).toBe(false);
+    expect(hasLogo("{not json")).toBe(false);
   });
 
   it("custom domain counts as domain done regardless of subdomain status", async () => {
