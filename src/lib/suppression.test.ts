@@ -7,6 +7,7 @@ import {
   isSuppressed,
   suppress,
   optOutMember,
+  clearUnsubscribe,
   unsubscribeToken,
   verifyUnsubscribeToken,
   unsubscribeUrl,
@@ -36,6 +37,14 @@ function fakeDb(state: { supp: SuppRow[]; optOut: Record<string, string | null> 
           return { success: true, meta: { changes: 1 } };
         }
         return { success: true, meta: { changes: 0 } };
+      }
+      if (sql.includes("DELETE FROM email_suppressions")) {
+        const [tenantId, email] = binds as [string, string];
+        const before = state.supp.length;
+        state.supp = state.supp.filter(
+          (r) => !(r.tenant_id === tenantId && r.email === email && r.reason === "unsubscribe")
+        );
+        return { success: true, meta: { changes: before - state.supp.length } };
       }
       throw new Error(`unexpected run: ${sql}`);
     },
@@ -146,6 +155,35 @@ describe("suppress / optOutMember", () => {
     expect((await optOutMember(db, "t1", "M@example.test")).changes).toBe(1);
     expect((await optOutMember(db, "t1", "m@example.test")).changes).toBe(0);
     expect(state.optOut["t1:m@example.test"]).toBeTruthy();
+  });
+});
+
+describe("clearUnsubscribe", () => {
+  it("removes only this tenant's reason='unsubscribe' rows for the address; bounce/complaint/manual and other tenants stay", async () => {
+    const state = {
+      supp: [
+        { tenant_id: "t1", email: "a@example.test", scope: "marketing", reason: "unsubscribe" },
+        { tenant_id: "t1", email: "a@example.test", scope: "all", reason: "bounce" },
+        { tenant_id: "t1", email: "a@example.test", scope: "marketing", reason: "complaint" },
+        { tenant_id: "t1", email: "a@example.test", scope: "marketing", reason: "manual" },
+        { tenant_id: "t2", email: "a@example.test", scope: "marketing", reason: "unsubscribe" },
+        { tenant_id: null, email: "a@example.test", scope: "marketing", reason: "unsubscribe" },
+      ] as SuppRow[],
+      optOut: {},
+    };
+    const db = fakeDb(state);
+    expect(await clearUnsubscribe(db, "t1", "  A@Example.test ")).toEqual({ changes: 1 });
+    expect(state.supp.map((r) => `${r.tenant_id}:${r.reason}`)).toEqual([
+      "t1:bounce",
+      "t1:complaint",
+      "t1:manual",
+      "t2:unsubscribe",
+      "null:unsubscribe",
+    ]);
+    // Idempotent, and never runs without a tenant or a usable address.
+    expect(await clearUnsubscribe(db, "t1", "a@example.test")).toEqual({ changes: 0 });
+    expect(await clearUnsubscribe(db, "", "a@example.test")).toEqual({ changes: 0 });
+    expect(await clearUnsubscribe(db, "t1", "   ")).toEqual({ changes: 0 });
   });
 });
 

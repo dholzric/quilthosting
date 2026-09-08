@@ -122,6 +122,29 @@ export async function optOutMember(
   return { changes: res.meta?.changes ?? 0 };
 }
 
+/**
+ * A member re-subscribing from the portal: remove this tenant's
+ * reason='unsubscribe' rows for the address so marketing mail flows again.
+ * Bounce / complaint (and admin 'manual') rows are deliberately left alone —
+ * only the provider or an admin may lift those.
+ */
+export async function clearUnsubscribe(
+  db: D1Database,
+  tenantId: string,
+  email: string
+): Promise<{ changes: number }> {
+  const addr = normalizeEmail(email);
+  if (!addr || !tenantId) return { changes: 0 };
+  const res = await db
+    .prepare(
+      `DELETE FROM email_suppressions
+       WHERE tenant_id = ? AND email = ? AND reason = 'unsubscribe'`
+    )
+    .bind(tenantId, addr)
+    .run();
+  return { changes: res.meta?.changes ?? 0 };
+}
+
 /* ------------------------------------------------------------------ */
 /* Unsubscribe tokens                                                  */
 /* ------------------------------------------------------------------ */

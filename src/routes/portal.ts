@@ -7,7 +7,7 @@ import { createCheckoutSession } from "../lib/stripe";
 import { activateMembership, portalUrl } from "../lib/memberships";
 import { assertCanActivateMember } from "../lib/plans";
 import { renderReceiptHtml } from "../lib/receipts";
-import { optOutMember } from "../lib/suppression";
+import { optOutMember, clearUnsubscribe } from "../lib/suppression";
 
 export const portalRoutes = new Hono<{ Bindings: Env }>();
 
@@ -1111,6 +1111,16 @@ portalRoutes.put("/:slug/preferences", async (c) => {
     )
       .bind(new Date().toISOString(), ctx.tenant.id, ctx.member.id)
       .run();
+    // The one-click unsubscribe link also wrote a suppression row for this
+    // guild; without lifting it, isSuppressed() keeps blocking marketing mail
+    // and the member's re-subscribe silently does nothing. Bounce/complaint
+    // rows are never touched here.
+    try {
+      await clearUnsubscribe(c.env.DB, ctx.tenant.id, ctx.member.email);
+    } catch (e) {
+      // Pre-migration schema (no email_suppressions table): opt-in flag is set.
+      console.warn("clearUnsubscribe failed", e);
+    }
   }
   return c.json({ email_opt_out: body.email_opt_out });
 });

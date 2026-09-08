@@ -190,7 +190,13 @@ describe("GET /api/portal/:slug/files/:fileId — download", () => {
 
 type PrefMember = { id: string; tenant_id: string; email: string; status: string; email_opt_out_at: string | null; updated_at: string };
 
-function prefsDb(member: PrefMember, pages: { slug: string; deleted_at: string | null; published: number }[] = []) {
+type SuppRow = { tenant_id: string | null; email: string; reason: string };
+
+function prefsDb(
+  member: PrefMember,
+  pages: { slug: string; deleted_at: string | null; published: number }[] = [],
+  suppressions: SuppRow[] = []
+) {
   const tenant = { id: TENANT_ID, slug: "stitchstudio", status: "active" };
   const statements: { sql: string; binds: unknown[] }[] = [];
   const db = {
@@ -230,6 +236,19 @@ function prefsDb(member: PrefMember, pages: { slug: string; deleted_at: string |
                 const [, tenantId, id] = binds as string[];
                 if (tenantId === TENANT_ID && id === member.id) member.email_opt_out_at = null;
                 return { success: true, meta: { changes: 1 } };
+              }
+              // suppression.ts clearUnsubscribe: DELETE FROM email_suppressions WHERE tenant_id = ? AND email = ? AND reason = 'unsubscribe'
+              if (sql.includes("DELETE FROM email_suppressions")) {
+                const [tenantId, email] = binds as string[];
+                const onlyUnsub = sql.includes("reason = 'unsubscribe'");
+                const before = suppressions.length;
+                for (let i = suppressions.length - 1; i >= 0; i--) {
+                  const r = suppressions[i];
+                  if (r.tenant_id === tenantId && r.email === email && (!onlyUnsub || r.reason === "unsubscribe")) {
+                    suppressions.splice(i, 1);
+                  }
+                }
+                return { success: true, meta: { changes: before - suppressions.length } };
               }
               return { success: true, meta: { changes: 0 } };
             },
@@ -277,6 +296,43 @@ describe("GET/PUT /api/portal/:slug/preferences — email opt-out round trip", (
 
     res = await portalRoutes.request("/stitchstudio/preferences", { headers }, env);
     expect(await res.json()).toEqual({ email_opt_out: false });
+  });
+
+  it("opting back in also lifts this guild's 'unsubscribe' suppression row, and nothing else", async () => {
+    const m = member("2026-01-01T00:00:00.000Z");
+    const supp: SuppRow[] = [
+      { tenant_id: TENANT_ID, email: MEMBER_EMAIL, reason: "unsubscribe" },
+      { tenant_id: TENANT_ID, email: MEMBER_EMAIL, reason: "bounce" },
+      { tenant_id: TENANT_ID, email: MEMBER_EMAIL, reason: "complaint" },
+      { tenant_id: "other-tenant", email: MEMBER_EMAIL, reason: "unsubscribe" },
+      { tenant_id: null, email: MEMBER_EMAIL, reason: "unsubscribe" },
+    ];
+    const { db, statements } = prefsDb(m, [], supp);
+    const headers = { ...(await authHeader()), "Content-Type": "application/json" };
+    const res = await portalRoutes.request(
+      "/stitchstudio/preferences",
+      { method: "PUT", headers, body: JSON.stringify({ email_opt_out: false }) },
+      prefsEnv(db)
+    );
+    expect(res.status).toBe(200);
+    expect(m.email_opt_out_at).toBeNull();
+    expect(supp.map((r) => `${r.tenant_id}:${r.reason}`)).toEqual([
+      `${TENANT_ID}:bounce`,
+      `${TENANT_ID}:complaint`,
+      "other-tenant:unsubscribe",
+      "null:unsubscribe",
+    ]);
+    const del = statements.find((s) => s.sql.includes("DELETE FROM email_suppressions"))!;
+    expect(del.binds).toEqual([TENANT_ID, MEMBER_EMAIL]);
+
+    // Opting OUT never deletes suppression rows.
+    statements.length = 0;
+    await portalRoutes.request(
+      "/stitchstudio/preferences",
+      { method: "PUT", headers, body: JSON.stringify({ email_opt_out: true }) },
+      prefsEnv(db)
+    );
+    expect(statements.some((s) => s.sql.includes("DELETE FROM email_suppressions"))).toBe(false);
   });
 
   it("opting out is idempotent (a second opt-out keeps the original timestamp)", async () => {
