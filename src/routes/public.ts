@@ -544,15 +544,24 @@ function tenantSummary(tenant: Tenant) {
   return { name: tenant.name, slug: tenant.slug };
 }
 
-async function levelsPayload(env: Env, tenant: Tenant) {
-  const levels = await all<MembershipLevel>(
-    env.DB.prepare(
+// Statement builders are exported so src/lib/site/data.ts can batch the
+// exact same SQL for the server-rendered site (one D1 round trip per page)
+// without duplicating the query text here.
+
+/** Public membership levels: active, public, in display order. */
+export function levelsStatement(db: D1Database, tenantId: string): D1PreparedStatement {
+  return db
+    .prepare(
       `SELECT id, name, description, price_cents, duration_months, benefits_json, sort_order
        FROM membership_levels
        WHERE tenant_id = ? AND status = 'active' AND is_public = 1
        ORDER BY sort_order, name`
-    ).bind(tenant.id)
-  );
+    )
+    .bind(tenantId);
+}
+
+async function levelsPayload(env: Env, tenant: Tenant) {
+  const levels = await all<MembershipLevel>(levelsStatement(env.DB, tenant.id));
   return { tenant: tenantSummary(tenant), levels };
 }
 
@@ -563,12 +572,19 @@ publicRoutes.get("/:slug/levels", async (c) => {
   return c.json(await levelsPayload(c.env, tenant));
 });
 
-/** ?month=YYYY-MM returns that whole month (calendar views); default is "next 50 upcoming". */
-async function eventsPayload(env: Env, tenant: Tenant, month?: string) {
-  let events: Event[];
-  if (month && /^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
-    events = await all<Event>(
-      env.DB.prepare(
+/**
+ * Public events. `month` (YYYY-MM, already validated by the caller) returns
+ * that whole month for calendar views; otherwise the next `limit` upcoming
+ * public events ordered by start.
+ */
+export function eventsStatement(
+  db: D1Database,
+  tenantId: string,
+  opts: { month?: string; limit?: number } = {}
+): D1PreparedStatement {
+  if (opts.month) {
+    return db
+      .prepare(
         `SELECT id, title, description, location, start_at, end_at,
                 member_price_cents, non_member_price_cents, capacity, registration_open,
                 settings_json
@@ -577,21 +593,26 @@ async function eventsPayload(env: Env, tenant: Tenant, month?: string) {
            AND substr(start_at, 1, 7) = ?
          ORDER BY start_at ASC
          LIMIT 200`
-      ).bind(tenant.id, month)
-    );
-  } else {
-    events = await all<Event>(
-      env.DB.prepare(
-        `SELECT id, title, description, location, start_at, end_at,
-                member_price_cents, non_member_price_cents, capacity, registration_open,
-                settings_json
-         FROM events
-         WHERE tenant_id = ? AND is_public = 1 AND start_at >= datetime('now')
-         ORDER BY start_at ASC
-         LIMIT 50`
-      ).bind(tenant.id)
-    );
+      )
+      .bind(tenantId, opts.month);
   }
+  return db
+    .prepare(
+      `SELECT id, title, description, location, start_at, end_at,
+              member_price_cents, non_member_price_cents, capacity, registration_open,
+              settings_json
+       FROM events
+       WHERE tenant_id = ? AND is_public = 1 AND start_at >= datetime('now')
+       ORDER BY start_at ASC
+       LIMIT ?`
+    )
+    .bind(tenantId, opts.limit ?? 50);
+}
+
+/** ?month=YYYY-MM returns that whole month (calendar views); default is "next 50 upcoming". */
+async function eventsPayload(env: Env, tenant: Tenant, month?: string) {
+  const validMonth = month && /^\d{4}-(0[1-9]|1[0-2])$/.test(month) ? month : undefined;
+  const events = await all<Event>(eventsStatement(env.DB, tenant.id, { month: validMonth }));
 
   return {
     tenant: tenantSummary(tenant),
@@ -1375,6 +1396,18 @@ publicRoutes.post("/:slug/donate", async (c) => {
 /**
  * GET /public/:slug/products — active store items
  */
+/** Public store items: active and in stock (or untracked inventory). */
+export function productsStatement(db: D1Database, tenantId: string): D1PreparedStatement {
+  return db
+    .prepare(
+      `SELECT id, name, description, price_cents, inventory FROM products
+       WHERE tenant_id = ? AND is_active = 1
+         AND (inventory IS NULL OR inventory > 0)
+       ORDER BY sort_order, name`
+    )
+    .bind(tenantId);
+}
+
 async function productsPayload(env: Env, tenant: Tenant) {
   try {
     const rows = await all<{
@@ -1383,14 +1416,7 @@ async function productsPayload(env: Env, tenant: Tenant) {
       description: string | null;
       price_cents: number;
       inventory: number | null;
-    }>(
-      env.DB.prepare(
-        `SELECT id, name, description, price_cents, inventory FROM products
-         WHERE tenant_id = ? AND is_active = 1
-           AND (inventory IS NULL OR inventory > 0)
-         ORDER BY sort_order, name`
-      ).bind(tenant.id)
-    );
+    }>(productsStatement(env.DB, tenant.id));
     return { tenant: tenantSummary(tenant), products: rows };
   } catch {
     return { tenant: tenantSummary(tenant), products: [] };
@@ -1893,6 +1919,20 @@ publicRoutes.get("/:slug/site", async (c) => {
   return c.json(await sitePayload(c.env, tenant));
 });
 
+/** Public blog posts (pages with page_type=blog_post), newest first. */
+export function blogStatement(db: D1Database, tenantId: string, limit = 50): D1PreparedStatement {
+  return db
+    .prepare(
+      `SELECT slug, title, content_json, blocks_json, updated_at, created_at
+       FROM pages
+       WHERE tenant_id = ? AND published = 1 AND is_members_only = 0
+         AND deleted_at IS NULL
+         AND coalesce(page_type, 'page') = 'blog_post'
+       ORDER BY created_at DESC LIMIT ?`
+    )
+    .bind(tenantId, limit);
+}
+
 /** Blog posts (public pages with page_type=blog_post) */
 async function blogPayload(env: Env, tenant: Tenant) {
   try {
@@ -1903,16 +1943,7 @@ async function blogPayload(env: Env, tenant: Tenant) {
       blocks_json: string | null;
       updated_at: string;
       created_at: string;
-    }>(
-      env.DB.prepare(
-        `SELECT slug, title, content_json, blocks_json, updated_at, created_at
-         FROM pages
-         WHERE tenant_id = ? AND published = 1 AND is_members_only = 0
-           AND deleted_at IS NULL
-           AND coalesce(page_type, 'page') = 'blog_post'
-         ORDER BY created_at DESC LIMIT 50`
-      ).bind(tenant.id)
-    );
+    }>(blogStatement(env.DB, tenant.id));
     return {
       posts: posts.map((p) => ({
         slug: p.slug,
@@ -2393,6 +2424,40 @@ publicRoutes.post("/:slug/events/:eventId/volunteer", async (c) => {
 // Photo galleries (public)
 // ---------------------------------------------------------------------------
 
+/** Public galleries with photo count and cover, in display order. */
+export function galleriesStatement(db: D1Database, tenantId: string): D1PreparedStatement {
+  return db
+    .prepare(
+      `SELECT g.id, g.slug, g.title, g.description,
+              (SELECT COUNT(*) FROM gallery_photos p WHERE p.gallery_id = g.id) photo_count,
+              (SELECT p.id FROM gallery_photos p WHERE p.gallery_id = g.id ORDER BY p.sort_order LIMIT 1) cover_photo_id
+       FROM galleries g
+       WHERE g.tenant_id = ? AND g.published = 1 AND g.is_members_only = 0
+       ORDER BY g.sort_order, g.created_at DESC`
+    )
+    .bind(tenantId);
+}
+
+/** One public gallery by slug. */
+export function galleryStatement(db: D1Database, tenantId: string, gallerySlug: string): D1PreparedStatement {
+  return db
+    .prepare(
+      `SELECT id, slug, title, description FROM galleries
+       WHERE tenant_id = ? AND slug = ? AND published = 1 AND is_members_only = 0`
+    )
+    .bind(tenantId, gallerySlug);
+}
+
+/** Photos of one gallery (by gallery id), in display order. */
+export function galleryPhotosStatement(db: D1Database, tenantId: string, galleryId: string): D1PreparedStatement {
+  return db
+    .prepare(
+      `SELECT id, caption, credit FROM gallery_photos
+       WHERE tenant_id = ? AND gallery_id = ? ORDER BY sort_order, created_at`
+    )
+    .bind(tenantId, galleryId);
+}
+
 publicRoutes.get("/:slug/galleries", async (c) => {
   const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
   if (!tenant) return c.json({ error: "Guild not found" }, 404);
@@ -2403,16 +2468,7 @@ publicRoutes.get("/:slug/galleries", async (c) => {
     description: string | null;
     photo_count: number;
     cover_photo_id: string | null;
-  }>(
-    c.env.DB.prepare(
-      `SELECT g.id, g.slug, g.title, g.description,
-              (SELECT COUNT(*) FROM gallery_photos p WHERE p.gallery_id = g.id) photo_count,
-              (SELECT p.id FROM gallery_photos p WHERE p.gallery_id = g.id ORDER BY p.sort_order LIMIT 1) cover_photo_id
-       FROM galleries g
-       WHERE g.tenant_id = ? AND g.published = 1 AND g.is_members_only = 0
-       ORDER BY g.sort_order, g.created_at DESC`
-    ).bind(tenant.id)
-  );
+  }>(galleriesStatement(c.env.DB, tenant.id));
   return c.json({ tenant: { name: tenant.name, slug: tenant.slug }, galleries: rows });
 });
 
@@ -2424,18 +2480,10 @@ publicRoutes.get("/:slug/galleries/:gallerySlug", async (c) => {
     slug: string;
     title: string;
     description: string | null;
-  }>(
-    c.env.DB.prepare(
-      `SELECT id, slug, title, description FROM galleries
-       WHERE tenant_id = ? AND slug = ? AND published = 1 AND is_members_only = 0`
-    ).bind(tenant.id, c.req.param("gallerySlug"))
-  );
+  }>(galleryStatement(c.env.DB, tenant.id, c.req.param("gallerySlug")));
   if (!gallery) return c.json({ error: "Gallery not found" }, 404);
   const photos = await all<{ id: string; caption: string | null; credit: string | null }>(
-    c.env.DB.prepare(
-      `SELECT id, caption, credit FROM gallery_photos
-       WHERE tenant_id = ? AND gallery_id = ? ORDER BY sort_order, created_at`
-    ).bind(tenant.id, gallery.id)
+    galleryPhotosStatement(c.env.DB, tenant.id, gallery.id)
   );
   return c.json({ tenant: { name: tenant.name, slug: tenant.slug }, gallery, photos });
 });
