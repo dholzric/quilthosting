@@ -529,3 +529,17 @@ form.qh-form{display:flex;flex-direction:column;gap:.8rem;max-width:34rem}
   .qh-header,.qh-s{position:static}
   body.qh-site{background:#fff;color:#000}
 }
+
+/* ---- Islands: toast + cart bar (qh-site.js) ---------------------------- */
+.qh-flash{position:fixed;left:50%;bottom:1.25rem;transform:translateX(-50%);z-index:60;
+  max-width:min(92vw,36rem);padding:.75rem 1rem;border-radius:var(--qh-radius,.5rem);
+  background:var(--qh-dark,#000);color:var(--qh-on-dark,#fff);box-shadow:var(--qh-shadow,0 8px 24px rgb(0 0 0/.18));
+  font-size:.95rem;line-height:1.4}
+.qh-flash--err{background:var(--qh-accent,#000);color:var(--qh-on-accent,#fff)}
+.qh-cart-bar{position:sticky;bottom:0;z-index:50;display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;
+  justify-content:space-between;padding:.75rem 1rem;background:var(--qh-surface,#fff);
+  border-top:1px solid var(--qh-border,#000);box-shadow:0 -6px 20px rgb(0 0 0/.06)}
+.qh-cart-bar__items{display:flex;flex-wrap:wrap;gap:.5rem 1rem;font-size:.9rem;color:var(--qh-ink-muted,#000)}
+.qh-cart-bar__total{font-weight:600;color:var(--qh-ink,#000)}
+@media (prefers-reduced-motion:no-preference){.qh-flash{animation:qh-flash-in .25s ease-out}
+  @keyframes qh-flash-in{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}}
