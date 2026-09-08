@@ -262,9 +262,12 @@ paymentRoutes.post("/:paymentId/refund", async (c) => {
     status: string;
     stripe_payment_intent_id: string | null;
     amount_cents: number;
+    type: string;
+    member_id: string | null;
+    related_id: string | null;
   }>(
     c.env.DB.prepare(
-      "SELECT id, status, stripe_payment_intent_id, amount_cents FROM payments WHERE id = ? AND tenant_id = ?"
+      "SELECT id, status, stripe_payment_intent_id, amount_cents, type, member_id, related_id FROM payments WHERE id = ? AND tenant_id = ?"
     ).bind(paymentId, tenant.id)
   );
   if (!payment) return c.json({ error: "Payment not found" }, 404);
@@ -281,12 +284,88 @@ paymentRoutes.post("/:paymentId/refund", async (c) => {
   } catch (e: any) {
     return c.json({ error: e.message || "Stripe refund failed" }, 502);
   }
+  const now = new Date().toISOString();
   await c.env.DB.prepare(
     "UPDATE payments SET status = 'refunded', updated_at = ? WHERE id = ?"
   )
-    .bind(new Date().toISOString(), paymentId)
+    .bind(now, paymentId)
     .run();
-  return c.json({ ok: true, refunded_cents: payment.amount_cents });
+
+  // Undo what the payment bought. A refunded dues payment cancels the
+  // membership it activated (and lapses the member when nothing else keeps
+  // them active); a refunded event fee cancels the registration, which
+  // releases the seat. Each is best-effort after the Stripe refund and the
+  // status flip, which are the parts that must not be lost.
+  const reversed: { membership_id?: string; member_lapsed?: boolean; registration_id?: string } = {};
+  try {
+    if (payment.type === "dues" && payment.related_id) {
+      // related_id is the membership id for offline dues and the LEVEL id for
+      // Stripe dues (checkout metadata), so try both shapes.
+      let membership = await first<{ id: string; member_id: string }>(
+        c.env.DB.prepare(
+          "SELECT id, member_id FROM memberships WHERE id = ? AND tenant_id = ?"
+        ).bind(payment.related_id, tenant.id)
+      );
+      if (!membership && payment.member_id) {
+        membership = await first<{ id: string; member_id: string }>(
+          c.env.DB.prepare(
+            `SELECT id, member_id FROM memberships
+             WHERE tenant_id = ? AND member_id = ? AND level_id = ? AND status = 'active'
+             ORDER BY created_at DESC LIMIT 1`
+          ).bind(tenant.id, payment.member_id, payment.related_id)
+        );
+      }
+      if (membership) {
+        await c.env.DB.prepare(
+          `UPDATE memberships SET status = 'cancelled', updated_at = ?
+           WHERE id = ? AND tenant_id = ? AND status <> 'cancelled'`
+        )
+          .bind(now, membership.id, tenant.id)
+          .run();
+        reversed.membership_id = membership.id;
+        const other = await first<{ id: string }>(
+          c.env.DB.prepare(
+            `SELECT id FROM memberships
+             WHERE tenant_id = ? AND member_id = ? AND status = 'active' AND id <> ? LIMIT 1`
+          ).bind(tenant.id, membership.member_id, membership.id)
+        );
+        if (!other) {
+          await c.env.DB.prepare(
+            `UPDATE members SET status = 'lapsed', updated_at = ?
+             WHERE id = ? AND tenant_id = ? AND status = 'active'`
+          )
+            .bind(now, membership.member_id, tenant.id)
+            .run();
+          reversed.member_lapsed = true;
+        }
+      } else {
+        console.warn("refund: dues payment has no resolvable membership", {
+          paymentId,
+          relatedId: payment.related_id,
+        });
+      }
+    } else if (payment.type === "event" && payment.related_id) {
+      const res = await c.env.DB.prepare(
+        `UPDATE event_registrations SET status = 'cancelled', updated_at = ?
+         WHERE id = ? AND tenant_id = ? AND status <> 'cancelled'`
+      )
+        .bind(now, payment.related_id, tenant.id)
+        .run();
+      if (res.meta?.changes) reversed.registration_id = payment.related_id;
+      else {
+        console.warn("refund: event payment has no open registration", {
+          paymentId,
+          relatedId: payment.related_id,
+        });
+      }
+    } else if (payment.type === "dues" || payment.type === "event") {
+      console.warn("refund: payment has no related_id; nothing to reverse", { paymentId, type: payment.type });
+    }
+  } catch (e) {
+    console.error("refund: could not reverse the purchase", { paymentId, error: String(e) });
+  }
+
+  return c.json({ ok: true, refunded_cents: payment.amount_cents, reversed });
 });
 
 
