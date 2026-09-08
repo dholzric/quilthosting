@@ -126,10 +126,35 @@ export type PageInsert = {
   updated_at: string;
 };
 
+/**
+ * Kit imagery of kind "pattern" is generated art, not a file. Rewrite every
+ * reference to it as `pattern:<id>` (the kit's default pattern, or log-cabin
+ * when the kit has none) so the renderer draws a tile instead of a broken
+ * image. Photo imagery keeps its id (uploaded as a file at apply time).
+ */
+export function resolveKitImagery(sections: Section[], kit: Kit): Section[] {
+  const patternIds = new Set(kit.imagery.filter((im) => im.kind === "pattern").map((im) => im.id));
+  if (!patternIds.size) return sections;
+  const pid = kit.defaults.pattern?.id && kit.defaults.pattern.id !== "none" ? kit.defaults.pattern.id : "log-cabin";
+  const ref = `pattern:${pid}`;
+  const fix = (v: unknown): unknown => {
+    if (Array.isArray(v)) return v.map(fix);
+    if (v && typeof v === "object") {
+      const out: Record<string, unknown> = {};
+      for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+        out[k] = k === "imageId" && typeof val === "string" && patternIds.has(val) ? ref : fix(val);
+      }
+      return out;
+    }
+    return v;
+  };
+  return fix(sections) as Section[];
+}
+
 export function kitPageRows(kit: Kit, tenant: KitTenant, now: string): PageInsert[] {
   const vars: KitVars = { guildName: tenant.name, city: tenant.city, meetingInfo: tenant.meetingInfo };
   return kit.pages.map((page, i) => {
-    const sections = substitutePlaceholders(page.sections, vars);
+    const sections = resolveKitImagery(substitutePlaceholders(page.sections, vars), kit);
     const fallback = blocksToHtml(sectionsToLegacyBlocks(sections));
     return {
       tenant_id: tenant.id,

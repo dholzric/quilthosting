@@ -46,6 +46,8 @@ export const DEFAULT_STYLE: SectionStyle = Object.freeze({
 /** Matches the id shape used by files.id and section ids alike. */
 const ID_RE = /^[a-z0-9_-]{1,40}$/;
 const FILE_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+// Kits reference generated quilt-block art as "pattern:<id>" (see kits/apply.ts).
+const IMAGE_REF_RE = new RegExp("^(?:pattern:(?:nine-patch|flying-geese|log-cabin|churn-dash|bear-paw)|" + /^[A-Za-z0-9_-]{1,64}$/.source + ")$");
 
 const styleSchema = z
   .object({
@@ -54,7 +56,7 @@ const styleSchema = z
     spacing: z.enum(["tight", "normal", "airy"]).default(DEFAULT_STYLE.spacing),
     align: z.enum(["left", "center"]).default(DEFAULT_STYLE.align),
     media: z.enum(["left", "right", "top"]).default(DEFAULT_STYLE.media),
-    imageId: z.string().regex(FILE_ID_RE).optional(),
+    imageId: z.string().regex(IMAGE_REF_RE).optional(),
     imageFocal: z.tuple([z.number().min(0).max(1), z.number().min(0).max(1)]).optional(),
   })
   .strip();
@@ -219,7 +221,7 @@ const richTextSchema = z.object({
 });
 
 const mediaItemSchema = z.object({
-  imageId: z.string().regex(FILE_ID_RE).optional(),
+  imageId: z.string().regex(IMAGE_REF_RE).optional(),
   url: optText(2000),
   alt: short(200).default(""),
   caption: optText(300),
@@ -274,7 +276,7 @@ const gallerySchema = z.object({
   items: z
     .array(
       z.object({
-        imageId: z.string().regex(FILE_ID_RE).optional(),
+        imageId: z.string().regex(IMAGE_REF_RE).optional(),
         url: optText(2000),
         alt: optText(200),
         caption: optText(300),

@@ -26,12 +26,15 @@
   --_tint:var(--qh-tint,var(--color-accent-bright,rgb(0 0 0/.05)));
   --_display:var(--qh-font-display,var(--font-display,Georgia,"Times New Roman",serif));
   --_body:var(--qh-font-body,var(--font-sans,system-ui,-apple-system,"Segoe UI",sans-serif));
-  --_fs1:var(--qh-fs-1,clamp(2.4rem,6vw,3.6rem));
-  --_fs2:var(--qh-fs-2,clamp(2rem,4.5vw,2.8rem));
-  --_fs3:var(--qh-fs-3,clamp(1.6rem,3.2vw,2.1rem));
-  --_fs4:var(--qh-fs-4,1.4rem);
-  --_fs5:var(--qh-fs-5,1.15rem);
-  --_fs6:var(--qh-fs-6,1rem);
+  /* buildDesignVars emits --qh-fs-1 (1rem, smallest) … --qh-fs-6 (largest);
+     the local _fs scale is display-first, so the mapping is reversed and the
+     two biggest steps are capped by viewport width for phones. */
+  --_fs1:min(var(--qh-fs-6,3.6rem),9.5vw);
+  --_fs2:min(var(--qh-fs-5,2.8rem),7.5vw);
+  --_fs3:min(var(--qh-fs-4,2.1rem),6vw);
+  --_fs4:var(--qh-fs-3,1.4rem);
+  --_fs5:var(--qh-fs-2,1.15rem);
+  --_fs6:var(--qh-fs-1,1rem);
   --_radius:var(--qh-radius,10px);
   --_shadow:var(--qh-shadow,none);
   --_section-y:var(--qh-section-y,4rem);
@@ -543,3 +546,11 @@ form.qh-form{display:flex;flex-direction:column;gap:.8rem;max-width:34rem}
 .qh-cart-bar__total{font-weight:600;color:var(--qh-ink,#000)}
 @media (prefers-reduced-motion:no-preference){.qh-flash{animation:qh-flash-in .25s ease-out}
   @keyframes qh-flash-in{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}}
+
+/* ---- Pattern art in a media slot (kits use imageId "pattern:<id>") ------ */
+.qh-media--pattern{aspect-ratio:4/3;width:100%;border-radius:var(--qh-radius,.5rem);
+  background-color:var(--qh-tint,#fff);background-size:96px 96px;background-repeat:repeat;
+  box-shadow:var(--qh-shadow,none);border:6px solid var(--qh-surface,#fff)}
+.qh-feature h3 a,.qh-feature__title a{text-decoration:none;color:inherit}
+.qh-feature h3 a:hover,.qh-feature__title a:hover{text-decoration:underline;text-underline-offset:.15em}
+

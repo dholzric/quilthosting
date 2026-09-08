@@ -565,3 +565,19 @@ describe("imgUrl", () => {
     expect(html).toContain("/public/hcqg/img/file_9");
   });
 });
+
+
+describe("pattern media references (kits)", () => {
+  it("renders a split hero with imageId 'pattern:log-cabin' as pattern art, not an <img>", async () => {
+    const { renderSection } = await import("./render");
+    const { fixtureContext } = await import("./fixtures");
+    const html = renderSection(
+      { type: "hero", variant: "split", title: "Welcome", id: "h", style: { bg: "pattern", width: "normal", spacing: "normal", align: "left", media: "right", imageId: "pattern:log-cabin" } } as never,
+      fixtureContext()
+    );
+    expect(html).toContain("qh-media--pattern");
+    expect(html).toContain("data:image/svg+xml");
+    expect(html).not.toContain("<img");
+    expect(html).not.toContain("/img/pattern:");
+  });
+});

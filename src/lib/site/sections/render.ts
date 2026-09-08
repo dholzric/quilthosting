@@ -27,7 +27,7 @@ import { sanitizeHtml, sanitizeUrl } from "../../sanitize";
 import { formatMoney } from "../../utils/money";
 import { deriveRoles, isDarkDesign } from "../design/tokens";
 import type { Roles, SiteDesign } from "../design/tokens";
-import { patternDataUri } from "../design/patterns";
+import { patternDataUri, PATTERN_IDS } from "../design/patterns";
 import type { PatternId } from "../design/patterns";
 import type { SiteData, SiteEvent, SiteLevel, SitePost, SiteProduct } from "../data.types";
 import { DEFAULT_STYLE } from "./schema";
@@ -105,8 +105,29 @@ function img(src: string, alt: string, opts: ImgOpts = {}): string {
   return parts.join("") + ">";
 }
 
+/**
+ * Kits reference generated quilt-block art as `imageId: "pattern:<id>"`
+ * (see kits/apply.ts). Those never resolve to a file; they render as a tile
+ * of pattern art in the tenant's own colors.
+ */
+export function isPatternRef(imageId: string | undefined): boolean {
+  return typeof imageId === "string" && imageId.startsWith("pattern:");
+}
+function patternRefUri(imageId: string, ctx: RenderContext): string {
+  const raw = imageId.slice("pattern:".length);
+  const id = (PATTERN_IDS as readonly string[]).includes(raw) && raw !== "none"
+    ? (raw as PatternId)
+    : ctx.design.pattern.id !== "none" ? ctx.design.pattern.id : "nine-patch";
+  const r = deriveRoles(ctx.design.palette.input, isDarkDesign(ctx.design));
+  return patternDataUri(id, { a: r.primary, b: r.dark, c: r.accent });
+}
+function patternMedia(imageId: string, ctx: RenderContext, extra = ""): string {
+  return `<div class="qh-media qh-media--pattern${extra}" role="img" aria-label="" style="background-image:${patternRefUri(imageId, ctx)}"></div>`;
+}
+
 /** Resolve a media item to a URL: `imageId` via ctx.imgUrl, else a sanitized legacy `url`. */
 function mediaSrc(item: { imageId?: string; url?: string }, ctx: RenderContext, w: number): string | null {
+  if (isPatternRef(item.imageId)) return null;
   if (item.imageId) return ctx.imgUrl(item.imageId, w);
   if (item.url) return sanitizeUrl(item.url, "image");
   return null;
@@ -213,7 +234,7 @@ function wrap(s: Section, inner: string, opts: WrapOpts = {}): string {
   const isHero = s.type === "hero";
   const wantsImage = st.bg === "image" || (isHero && s.variant === "image");
   const wantsPattern = st.bg === "pattern" || (isHero && s.variant === "pattern");
-  if (opts.ctx && wantsImage && st.imageId) {
+  if (opts.ctx && wantsImage && st.imageId && !isPatternRef(st.imageId)) {
     decls.push(`--qh-s-image:${cssUrl(opts.ctx.imgUrl(st.imageId, 1600))}`);
     const [fx, fy] = st.imageFocal ?? [0.5, 0.5];
     decls.push(`--qh-s-focal:${pct(fx)} ${pct(fy)}`);
@@ -263,12 +284,16 @@ function renderHero(s: Sec<"hero">, ctx: RenderContext, opts: Opts): string {
   }
 
   const parts: string[] = [];
-  if (s.variant === "image" && st.imageId) {
+  if (s.variant === "image" && st.imageId && !isPatternRef(st.imageId)) {
     parts.push(img(ctx.imgUrl(st.imageId, 1600), "", { cls: "qh-hero__media", eager: opts.eagerHero }));
   }
   parts.push(`<div class="qh-hero__body">${body.join("")}</div>`);
   if (s.variant === "split" && st.imageId) {
-    parts.push(`<div class="qh-media qh-hero__media">${img(ctx.imgUrl(st.imageId, 1200), "", { eager: opts.eagerHero })}</div>`);
+    parts.push(
+      isPatternRef(st.imageId)
+        ? patternMedia(st.imageId, ctx, " qh-hero__media")
+        : `<div class="qh-media qh-hero__media">${img(ctx.imgUrl(st.imageId, 1200), "", { eager: opts.eagerHero })}</div>`
+    );
   }
   return wrap(s, parts.join(""), { extraClass: `qh-hero qh-hero--${s.variant}`, ctx });
 }
@@ -280,7 +305,9 @@ function renderRichText(s: Sec<"rich_text">, ctx: RenderContext): string {
   if (s.variant === "with_image" && st.imageId) {
     // The section itself is the grid, so the heading lives inside the body cell.
     const body = `<div class="qh-rich__body">${heading(s.heading)}${html}</div>`;
-    const media = `<div class="qh-media">${img(ctx.imgUrl(st.imageId, 1200), "")}</div>`;
+    const media = isPatternRef(st.imageId)
+      ? patternMedia(st.imageId, ctx)
+      : `<div class="qh-media">${img(ctx.imgUrl(st.imageId, 1200), "")}</div>`;
     return wrap(s, body + media, { extraClass: cls, ctx });
   }
   return wrap(s, `${heading(s.heading)}<div class="qh-rich__body">${html}</div>`, { extraClass: cls, ctx });
@@ -620,4 +647,26 @@ export function renderSections(sections: Section[], ctx: RenderContext): string 
     out.push(renderOne(s, ctx, { eagerHero }));
   }
   return out.join("\n");
+}
+
+/**
+ * Render a stack with no dynamic data: the admin editor's canvas/preview
+ * (`POST /pages/preview`) and the `content_json` html snapshot pages.ts
+ * writes for section documents. Data-driven sections (events, levels,
+ * store, blog, gallery-from-gallery) render their empty states. Image ids
+ * resolve on the platform host (`/public/:slug/img/:id`), matching
+ * `serveSite`'s platform-host `imgUrl`.
+ */
+export function renderSectionsStandalone(
+  sections: Section[],
+  opts: { slug: string; baseUrl: string; design: SiteDesign }
+): string {
+  const ctx: RenderContext = {
+    slug: opts.slug,
+    baseUrl: opts.baseUrl,
+    design: opts.design,
+    data: {},
+    imgUrl: (id) => `/public/${encodeURIComponent(opts.slug)}/img/${encodeURIComponent(id)}`,
+  };
+  return renderSections(sections, ctx);
 }

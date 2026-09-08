@@ -216,3 +216,16 @@ describe("registry", () => {
     expect(kitById("heritage")?.pages.length).toBe(8);
   });
 });
+
+
+describe("resolveKitImagery", () => {
+  it("rewrites pattern imagery ids to pattern:<id> for the Heritage kit", async () => {
+    const { kitPageRows } = await import("./apply");
+    const { kitById } = await import("./index");
+    const kit = kitById("heritage")!;
+    const rows = kitPageRows(kit, { id: "t1", name: "Test Guild" }, "2026-09-08T00:00:00.000Z");
+    const home = rows.find((r) => r.slug === "home")!;
+    expect(home.blocks_json).toContain('"imageId":"pattern:');
+    expect(home.blocks_json).not.toContain('"imageId":"hero-log-cabin"');
+  });
+});
