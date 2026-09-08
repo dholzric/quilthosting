@@ -1,7 +1,13 @@
 import type { Env } from "../types";
 import { all, first } from "./db";
 import { generateId } from "./utils/id";
-import { sendEmail, renewalReminderEmail, winBackEmail } from "./email";
+import {
+  sendEmail,
+  renewalReminderEmail,
+  winBackEmail,
+  autoRenewNoticeEmail,
+} from "./email";
+import { portalUrl } from "./memberships";
 import { formatMoney } from "./utils/money";
 
 type MembershipRow = {
@@ -13,6 +19,8 @@ type MembershipRow = {
   status: string;
   auto_renew: number;
   amount_paid_cents: number | null;
+  stripe_subscription_id: string | null;
+  renewal_type: string;
   email: string;
   first_name: string | null;
   level_name: string;
@@ -23,6 +31,21 @@ type MembershipRow = {
 };
 
 const REMINDER_DAYS = [30, 14, 7, 1] as const;
+
+/** Auto-renew members get one lighter heads-up instead of the manual series. */
+const AUTO_RENEW_NOTICE_DAY = 7;
+
+/**
+ * A membership Stripe will charge on its own: the level is auto-renew AND a
+ * subscription is attached. Manual levels, and auto levels paid by check or
+ * activated by an admin (no subscription), still get the "renew now" series.
+ */
+export function isAutoRenewing(row: {
+  renewal_type: string | null | undefined;
+  stripe_subscription_id: string | null | undefined;
+}): boolean {
+  return row.renewal_type === "auto" && !!(row.stripe_subscription_id || "").trim();
+}
 
 export async function runRenewalJob(env: Env): Promise<{
   reminders_sent: number;
@@ -50,9 +73,9 @@ export async function runRenewalJob(env: Env): Promise<{
       const rows = await all<MembershipRow>(
         env.DB.prepare(
           `SELECT m.id, m.tenant_id, m.member_id, m.level_id, m.end_date, m.status,
-                  m.auto_renew, m.amount_paid_cents,
+                  m.auto_renew, m.amount_paid_cents, m.stripe_subscription_id,
                   mem.email, mem.first_name,
-                  l.name as level_name, l.price_cents, l.duration_months,
+                  l.name as level_name, l.price_cents, l.duration_months, l.renewal_type,
                   t.name as tenant_name, t.slug as tenant_slug
            FROM memberships m
            JOIN members mem ON mem.id = m.member_id
@@ -66,31 +89,50 @@ export async function runRenewalJob(env: Env): Promise<{
       );
 
       for (const row of rows) {
+        // Stripe charges these members itself: no "renew now" series, just a
+        // single heads-up a week out.
+        const autoRenewing = isAutoRenewing(row);
+        if (autoRenewing && days !== AUTO_RENEW_NOTICE_DAY) continue;
+        const template = autoRenewing ? `autorenew_${days}d` : `renewal_${days}d`;
+
         const already = await first(
           env.DB.prepare(
             `SELECT id FROM email_logs
              WHERE tenant_id = ? AND member_id = ?
                AND template = ?
                AND date(created_at) = date(?)`
-          ).bind(row.tenant_id, row.member_id, `renewal_${days}d`, today)
+          ).bind(row.tenant_id, row.member_id, template, today)
         );
         if (already) continue;
 
         const renewUrl = `${env.APP_URL.replace(/\/$/, "")}/portal?slug=${encodeURIComponent(row.tenant_slug)}&renew=1`;
-        const { subject, html } = renewalReminderEmail({
-          guildName: row.tenant_name,
-          firstName: row.first_name ?? undefined,
-          daysLeft: days,
-          renewUrl,
-          amountFormatted: formatMoney(row.price_cents),
-        });
+        const { subject, html } = autoRenewing
+          ? autoRenewNoticeEmail({
+              guildName: row.tenant_name,
+              firstName: row.first_name ?? undefined,
+              renewDate: new Date(row.end_date).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+                timeZone: "UTC",
+              }),
+              amountFormatted: formatMoney(row.price_cents),
+              portalUrl: portalUrl(env.APP_URL, row.tenant_slug),
+            })
+          : renewalReminderEmail({
+              guildName: row.tenant_name,
+              firstName: row.first_name ?? undefined,
+              daysLeft: days,
+              renewUrl,
+              amountFormatted: formatMoney(row.price_cents),
+            });
 
         const sendResult = await sendEmail(env, {
           to: row.email,
           subject,
           html,
           tags: [
-            { name: "template", value: `renewal_${days}d` },
+            { name: "template", value: template },
             { name: "tenant", value: row.tenant_slug },
           ],
         });
@@ -105,7 +147,7 @@ export async function runRenewalJob(env: Env): Promise<{
               row.tenant_id,
               row.member_id,
               row.email,
-              `renewal_${days}d`,
+              template,
               sendResult.id || null,
               sendResult.success ? "sent" : "failed",
               new Date().toISOString()
