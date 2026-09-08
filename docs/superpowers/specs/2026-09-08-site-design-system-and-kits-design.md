@@ -1,6 +1,6 @@
 # Design: professional-grade tenant websites — design system, sections, and site kits
 
-**Date:** 2026-09-08 · **Status:** proposed, awaiting owner approval · **Author:** Claude (with competitor research and screenshots of current sites)
+**Date:** 2026-09-08 · **Status:** approved 2026-09-08 with expanded scope (owner: "more color choices and more designs; Codex and GLM can create some") · **Author:** Claude (with competitor research and screenshots of current sites)
 
 ## 1. What is wrong today
 
@@ -66,7 +66,11 @@ footer:    { variant: "simple" | "columns" | "meeting" }
 pattern:   { id: "none" | "nine-patch" | "flying-geese" | "log-cabin" | "churn-dash" | "bear-paw", opacity }
 ```
 
-Role colors are derived from the four inputs (tints/shades in OKLCH) and checked for contrast; the admin never sees "primaryBright". `buildRootVars()` emits CSS variables; `qh-site.css` is rewritten against roles, type scale, and rhythm. Existing 13-token themes migrate through `themeMigrate.ts` (brand = primary, brandAlt = secondary, accent = gold, neutral from bg/text).
+Role colors are derived from the four inputs (tints/shades in OKLCH) and checked for contrast; the admin never sees "primaryBright".
+
+**Palette library.** The Design panel offers a curated library of at least 24 named palettes (`src/lib/site/palettes.ts`), grouped by family: Heritage (madder, indigo, wheat, walnut), Modern (indigo/mustard, charcoal/coral, slate/lime), Naturals (sage, clay, linen, moss), Jewel (garnet, sapphire, emerald, amethyst), Soft (blush, sky, lavender, butter), Seasonal (harvest, winter, spring, summer), Dark (charcoal/gold, ink/rose, forest/cream). Each is a 4-color input with a preview swatch and the derived roles. Two more ways in: custom (four pickers with live contrast feedback) and **From your logo** (client-side dominant-color extraction from the uploaded logo, offered as three candidate palettes). Any palette works with any kit; kits only choose a default.
+
+**Type pairs.** At least 10 curated pairs with a sample line each: Fraunces/Inter, Cormorant Garamond/Source Sans 3, Playfair Display/Lato, DM Serif Display/DM Sans, Lora/Karla, Libre Baskerville/Nunito Sans, Manrope/Manrope, Space Grotesk/Work Sans, Bitter/Open Sans, Newsreader/IBM Plex Sans, plus a system pair for speed. `buildRootVars()` emits CSS variables; `qh-site.css` is rewritten against roles, type scale, and rhythm. Existing 13-token themes migrate through `themeMigrate.ts` (brand = primary, brandAlt = secondary, accent = gold, neutral from bg/text).
 
 ### 4.3 Sections (`src/lib/site/sections/`)
 
@@ -107,18 +111,26 @@ Membership, events (index/detail/calendar), galleries, blog, members-only and th
 
 A kit is data (`src/lib/site/kits/*.ts`): theme, header/footer, pages with section stacks and sample copy, nav, and sample imagery ids. Kits separate **look** (theme + section variants + header/footer) from **content** (page text, images), so "Change design" swaps the look and keeps every word.
 
-Launch set:
+**Kits are an authoring format, not hand-written code.** `src/lib/site/kits/schema.ts` (zod) defines a kit as JSON: `{ id, name, audience: "guild"|"business"|"both", character (one line), defaults: { palette, typePair, shape, rhythm, header, footer, pattern }, pages: [{ slug, title, nav, sections: [...section JSON with sample copy...] }], menu, imagery: [{ id, kind: "pattern"|"photo", ... }], previewSeed }`. Tooling: `npm run kits:validate` (schema, every section type/variant exists, every referenced image exists, copy contains no lorem, contrast passes), `npm run kits:preview` (renders every page of every kit with the real renderer at desktop and phone widths via Playwright into `docs/kit-gallery/`), and a **kit gallery** in the admin (Website → Design → Browse designs) with live previews. `docs/KIT-AUTHORING.md` is the brief we hand to Codex, GLM, or a human designer: the schema, the section catalogue with every variant and field, the palette and type-pair ids, the copy rules (real guild vocabulary, no lorem, no superlatives), and the acceptance checks. Contributed kits land as a JSON file plus gallery screenshots; the validator is the gate.
+
+Launch set (twelve; more as contributions land):
 
 | Kit | Audience | Character | Pages |
 |---|---|---|---|
 | Heritage | traditional guilds | warm paper, serif display, log-cabin pattern band, generous spacing | Home, About & History, Membership, Meetings & Events, Community Projects, Newsletter, Gallery, Contact |
-| Modern Guild | modern quilt guilds | bold sans, high-contrast brand band, geometric flying-geese pattern, tight rhythm | Home, About, Join, Events, Show & Tell, Bees & BOM, Contact |
+| Modern Guild | modern quilt guilds | bold sans, high-contrast brand band, flying-geese geometry, tight rhythm | Home, About, Join, Events, Show & Tell, Bees & BOM, Contact |
 | Show & Festival | show-centric guilds | photo-led hero, event spotlight first, sponsors strip, countdown | Home, The Show (enter/vendors/volunteer), About, Membership, Events, Gallery, Sponsors, Contact |
+| Art Quilt | art quilt groups, fiber collectives | gallery-led, dark ground, large imagery, minimal chrome | Home, Exhibitions, Members' Work, About, Join, Contact |
+| Community Threads | service-minded guilds | projects-led (charity quilts, NICU, veterans), impact numbers, volunteer calls | Home, Our Projects, Get Involved, Membership, Events, Gallery, Contact |
+| Applique & Bloom | traditional and appliqué guilds | soft florals, rounded shapes, light pastel palette | Home, About, Membership, Programs, Gallery, Newsletter, Contact |
+| Prairie | rural and regional guilds | landscape photo hero, earthy naturals, big friendly type | Home, Meetings, Join, Events, Bees, Library, Contact |
+| Minimal | guilds that want it quiet | white space, one accent, editorial type, no cards | Home, About, Join, Calendar, Contact |
 | One-Pager | small guilds | single home page with anchored sections and a compact sticky nav | Home (anchors), plus system pages |
 | Longarm Studio | long-arm quilters | photo hero, services with pricing, portfolio, quote intake, testimonials | Home, Services & Pricing, Portfolio, About, Request a Quote, FAQ |
-| Quilt Shop / Teacher | shops, retreat leaders | hours & location, classes (events), gallery, newsletter | Home, Classes, Services, About, Visit, Contact |
+| Quilt Shop | shops, classes | hours & location, classes (events), new arrivals, newsletter | Home, Classes, Services, About, Visit, Contact |
+| Pattern Designer / Teacher | designers, retreat leaders | portfolio and shop teaser, workshop calendar, press quotes | Home, Patterns, Workshops, About, Press, Contact |
 
-Kit picker appears in guild creation (replacing the fixed starter site) and under Website → Design → "Change design". The onboarding checklist gains "Add your first photo" and "Pick your colors".
+Kit picker appears in guild creation (replacing the fixed starter site) and under Website → Design → "Browse designs". The onboarding checklist gains "Add your first photo" and "Pick your colors".
 
 ### 4.7 Navigation
 
@@ -153,15 +165,15 @@ Kit picker appears in guild creation (replacing the fixed starter site) and unde
 
 ## 7. Phases
 
-1. **Foundation (renderer + tokens):** unified SSR for guilds behind the flag, token model + derivation + migration, rewritten `qh-site.css`, header/footer variants, mobile nav, islands for join/register/cart/calendar/lightbox, system page templates. Existing content renders at least as well as today.
-2. **Sections + imagery:** section library with variants and style props, upload pipeline with variants and focal point, pattern art, section thumbnails, Style tab in the editor.
-3. **Kits + design panel:** six kits, kit picker in creation and Change design, Design panel, onboarding steps, "Try the new design" migration for existing guilds.
-4. **Polish + gate:** inline editing, SEO/social cards, performance budget verification, usability test with real officers, remove `guild.html`.
+1. **Foundation (renderer, tokens, formats):** unified SSR for guilds behind the flag; token model with palette library, type pairs, derivation and migration; rewritten `qh-site.css`; header/footer variants; mobile nav; islands for join, register, cart, calendar, lightbox; system page templates; **section schema and kit schema frozen**; `kits:validate`, `kits:preview`, and `docs/KIT-AUTHORING.md`, so kit authoring by Codex, GLM, or humans can start while phase 2 is underway. Existing content renders at least as well as today.
+2. **Sections + imagery:** section library with variants and style props, upload pipeline with variants and focal point, pattern art, section thumbnails, Style tab in the editor, palette-from-logo.
+3. **Kits + Design panel:** the twelve launch kits (the first three authored in-house as the reference; the rest may come through the authoring pipeline), kit gallery with live previews, Design panel, onboarding steps, "Try the new design" migration for existing guilds.
+4. **Polish + gate:** inline editing, SEO and social cards, performance budgets verified, usability test with real officers, removal of `guild.html`.
 
-Each phase is one implementation plan and one deploy; phases 1 and 2 can run partly in parallel (renderer vs. section library) with the section schema agreed first.
+Each phase is one implementation plan and one deploy; phases 1 and 2 overlap (renderer versus section library) once the section schema is frozen at the start of phase 1.
 
-## 8. Open decisions for the owner
+## 8. Decisions
 
-- Kit set and names above (six at launch). Fewer is fine; Heritage, Modern Guild, and Longarm Studio are the minimum.
-- Sample imagery: pattern art plus the owner's own quilt photography from the QuiltMap library, or licensed stock. This design assumes pattern art + a small set of QuiltMap-owned photos.
-- One-pager as a kit (recommended) versus a per-site toggle.
+- Owner asked for more ambition on 2026-09-08: at least twelve kits and a palette library of 24+ palettes, with Codex and GLM invited to author kits through the authoring pipeline. Adopted above.
+- Sample imagery: pattern art plus QuiltMap-owned quilt photography; no licensed stock.
+- One-pager ships as a kit.
