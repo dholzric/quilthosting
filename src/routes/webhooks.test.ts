@@ -17,7 +17,7 @@ vi.mock("../lib/stripe", () => ({
 // Templates are the real ones; only the provider call is stubbed so tests
 // can count notices without RESEND_API_KEY.
 const email = vi.hoisted(() => ({
-  sendEmail: vi.fn(async () => ({ id: "msg_1", success: true })),
+  sendEmail: vi.fn(async (_env: unknown, _params: unknown) => ({ id: "msg_1", success: true })),
 }));
 vi.mock("../lib/email", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../lib/email")>()),
