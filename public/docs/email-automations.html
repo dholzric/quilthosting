@@ -20,73 +20,148 @@
     <div class="docs-layout">
       <aside class="docs-side">
         <h3>On this page</h3>
-        <a href="#blasts">Blasts</a>
-        <a href="#merge">Merge fields</a>
-        <a href="#track">Open &amp; click tracking</a>
-        <a href="#auto">Welcome automations</a>
-        <a href="#system">System emails</a>
+        <a href="#audiences">Audiences</a>
+        <a href="#compose">Composing</a>
+        <a href="#merge">Merge tags</a>
+        <a href="#schedule">Scheduling</a>
+        <a href="#delivery">Delivery and statuses</a>
+        <a href="#retry">Partial and Retry failed</a>
+        <a href="#unsubscribe">Unsubscribe</a>
+        <a href="#suppression">Bounces and complaints</a>
+        <a href="#system">Emails QuiltHosting sends for you</a>
+        <a href="#automations">Automations</a>
+        <a href="#sms">SMS</a>
+        <h3>Guides</h3>
+        <a href="/docs/getting-started.html">Getting started</a>
+        <a href="/docs/website-builder.html">Website builder</a>
+        <a href="/docs/members-and-levels.html">Members &amp; levels</a>
+        <a href="/docs/events.html">Events</a>
+        <a href="/docs/billing-payments.html">Billing &amp; payments</a>
+        <a href="/docs/email-automations.html" class="active">Email &amp; automations</a>
+        <a href="/docs/roles-and-team.html">Roles &amp; team</a>
+        <a href="/docs/member-portal.html">Member portal</a>
+        <a href="/docs/store-and-donations.html">Store &amp; donations</a>
+        <a href="/docs/forms.html">Forms</a>
+        <a href="/docs/domains.html">Domains</a>
+        <a href="/docs/business-sites.html">Business sites</a>
+        <a href="/docs/security-privacy.html">Security &amp; privacy</a>
+        <a href="/docs/troubleshooting.html">Troubleshooting</a>
+        <a href="/docs/features.html">Feature reference</a>
+        <a href="/docs/api.html">API &amp; Zapier</a>
       </aside>
       <main class="docs-main">
         <h1>Email &amp; automations</h1>
-        <p class="lede">Newsletters, segments, tracking, and multi-step welcome series.</p>
+        <p class="lede">Newsletters and announcements to your members, scheduled sends, delivery tracking, unsubscribe handling, welcome sequences, and optional text messages.</p>
 
-        <h2 id="blasts">Blasts</h2>
-        <p>Admin → <strong>Email</strong>.</p>
-        <ul>
-          <li>Segment by status, membership level, or member group</li>
-          <li>Layouts: plain, newsletter, announcement</li>
-          <li>Schedule send for later (daily job delivers due blasts)</li>
-          <li>Delivery log with open counts</li>
-        </ul>
-
-        <h2 id="merge">Merge fields</h2>
-        <p>Use in subject or body:</p>
-        <pre>{{first_name}}  {{last_name}}  {{email}}
-{{guild_name}}  {{level_name}}  {{end_date}}</pre>
-        <p>Also accepts single-brace form <code>{first_name}</code>. Unknown fields become empty (first name falls back to “there”).</p>
-
-        <h2 id="track">Open &amp; click tracking</h2>
-        <ul>
-          <li><strong>Opens:</strong> 1×1 pixel on blasts → updates <code>email_logs</code></li>
-          <li><strong>Clicks:</strong> <code>http(s)</code> links rewritten through <code>/t/c/:logId?u=…</code></li>
-        </ul>
-        <p>Tracking paths are exempt from the site password gate so mail clients can load them.</p>
-
-        <h2 id="auto">Welcome automations</h2>
-        <p>Admin → <strong>Automations</strong>. Create a sequence triggered on <code>member_activated</code> with steps:</p>
-        <pre>[
-  {
-    "delay_days": 0,
-    "subject": "Welcome to {{guild_name}}!",
-    "body_html": "&lt;p&gt;Hi {{first_name}}, …&lt;/p&gt;"
-  },
-  {
-    "delay_days": 3,
-    "subject": "Getting started",
-    "body_html": "&lt;p&gt;Renewals, events, portal…&lt;/p&gt;"
-  }
-]</pre>
-        <p>The daily cron enrolls new actives and sends due steps. Pause or delete sequences anytime.</p>
-
-        <h2 id="system">Built-in system emails</h2>
+        <h2 id="audiences">Audiences</h2>
+        <p>Admin → <strong>Email</strong>. The <strong>Send to</strong> dropdown offers:</p>
         <table>
-          <thead><tr><th>Trigger</th><th>Email</th></tr></thead>
+          <thead><tr><th>Audience</th><th>Who is included</th></tr></thead>
           <tbody>
-            <tr><td>Membership activated</td><td>Welcome</td></tr>
-            <tr><td>Renewal window</td><td>Reminders 30/14/7/1 days</td></tr>
-            <tr><td>Lapsed ~7 days</td><td>Win-back</td></tr>
-            <tr><td>Event registration</td><td>Confirmation (+ ticket)</td></tr>
-            <tr><td>Event approaching</td><td>7-day and 1-day reminders</td></tr>
-            <tr><td>Waitlist promote</td><td>You’re in</td></tr>
-            <tr><td>Donation</td><td>Receipt</td></tr>
-            <tr><td>Magic link</td><td>Portal sign-in</td></tr>
+            <tr><td>Active</td><td>Members with status Active</td></tr>
+            <tr><td>Pending</td><td>Members with status Pending</td></tr>
+            <tr><td>Lapsed</td><td>Members with status Lapsed</td></tr>
+            <tr><td>Everyone (except cancelled)</td><td>All members other than Cancelled</td></tr>
+            <tr><td>A membership level</td><td>Members with a current active membership at that level</td></tr>
+            <tr><td>A group</td><td>Members in that group (except cancelled)</td></tr>
           </tbody>
         </table>
-        <p>From address defaults to QuiltHosting via Resend; reply-to can use guild contact where configured.</p>
+        <p>Under the dropdown the screen shows the recipient count and how many people are <strong>opted out</strong> and therefore not included — anyone who unsubscribed, turned newsletters off in the portal, or whose address is blocked after a bounce or spam complaint. There is no ad-hoc list of typed-in addresses; create a group instead. Groups are created and managed on this screen.</p>
+
+        <h2 id="compose">Composing</h2>
+        <ul>
+          <li><strong>Subject</strong>, <strong>Send to</strong>, <strong>Layout</strong> (Plain, Newsletter or Announcement), a <strong>Quick start</strong> template (monthly newsletter, event invitation, renewal nudge, welcome note), the <strong>Message</strong>, and an optional <strong>Schedule</strong> time.</li>
+          <li>The message is plain text; each line becomes a paragraph. Tick <strong>Message is raw HTML</strong> if you paste HTML from another tool. There is no rich-text editor and no test send; <strong>View</strong> on a sent email shows what went out.</li>
+          <li>Emails come from the QuiltHosting sending address with your guild's name in the layout. Replies do not reach your guild — put your contact email in the message when you want answers.</li>
+        </ul>
+
+        <h2 id="merge">Merge tags</h2>
+        <p>Type these in the subject or message and they are replaced for each recipient:</p>
+        <table>
+          <thead><tr><th>Tag</th><th>Becomes</th></tr></thead>
+          <tbody>
+            <tr><td><code>{{first_name}}</code></td><td>The member's first name, or "there" if it is blank</td></tr>
+            <tr><td><code>{{last_name}}</code></td><td>Last name</td></tr>
+            <tr><td><code>{{email}}</code></td><td>Their email address</td></tr>
+            <tr><td><code>{{guild_name}}</code></td><td>Your guild's name</td></tr>
+            <tr><td><code>{{level_name}}</code></td><td>Their membership level — filled in only when the audience is a membership level</td></tr>
+            <tr><td><code>{{end_date}}</code></td><td>Their renewal date, like "December 31, 2026" — only for a level audience</td></tr>
+            <tr><td><code>{{unsubscribe_url}}</code></td><td>The recipient's personal unsubscribe link</td></tr>
+          </tbody>
+        </table>
+        <p>Tags are not case-sensitive and single braces work too. Unknown tags become empty. If you do not place <code>{{unsubscribe_url}}</code> yourself, an unsubscribe line is added at the bottom of every newsletter automatically.</p>
+
+        <h2 id="schedule">Scheduling</h2>
+        <p>Set a <strong>Schedule</strong> date and time to send later. The time is read in your browser's time zone. A scheduler runs every minute, so a scheduled send starts within about a minute of its time. Scheduled emails show in the list with a <strong>Cancel</strong> button until they start.</p>
+        <p>Sends to 75 or fewer people go out immediately while you wait. Larger sends are queued and worked through in the background at roughly 200 emails a minute, with the count updating in the list.</p>
+
+        <h2 id="delivery">Delivery and statuses</h2>
+        <p>Each newsletter shows sent ÷ recipients, plus <em>failed</em> and <em>skipped</em> counts (skipped means the address was opted out or blocked at the moment of sending). The Recent emails table lists individual messages with their <strong>delivery status</strong>:</p>
+        <table>
+          <thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td>accepted</td><td>Handed to the email provider</td></tr>
+            <tr><td>delivered</td><td>The recipient's mail server accepted it</td></tr>
+            <tr><td>delayed</td><td>The provider is retrying delivery</td></tr>
+            <tr><td>bounced</td><td>The address rejected it permanently (see below)</td></tr>
+            <tr><td>complained</td><td>The recipient marked it as spam</td></tr>
+            <tr><td>failed</td><td>Could not be sent after three attempts</td></tr>
+          </tbody>
+        </table>
+        <p>Opens are counted with a tracking image and shown in the table; clicks are tracked through QuiltHosting links but are not yet shown in the admin. Delivered, delayed, bounced and complained statuses depend on delivery notices from the email provider being switched on for the platform.</p>
+
+        <h2 id="retry">Partial and Retry failed</h2>
+        <p>A queued send finishes as <strong>sent</strong> when every recipient was accepted, or <strong>partial</strong> when at least one recipient still failed after three tries. A partial send shows a <strong>Retry failed</strong> button, which re-sends only to the recipients that failed and updates the counts. If the email provider is down for a whole batch, nothing is recorded and the same recipients are tried again a minute later, so nobody gets two copies.</p>
+
+        <h2 id="unsubscribe">Unsubscribe</h2>
+        <ul>
+          <li>Every newsletter and automation email carries an unsubscribe link and the headers that let Gmail, Apple Mail and others show a one-click <strong>Unsubscribe</strong> button.</li>
+          <li>Clicking the link opens a confirmation page; the person is only unsubscribed when they confirm (or when their mail client uses one-click). Old links keep working; they do not expire.</li>
+          <li>Unsubscribing turns off newsletters and automations for that person in your guild. Receipts, sign-in links, renewal reminders and event emails are still sent.</li>
+          <li>Members can turn newsletters back on with the <strong>Send me newsletters and announcements</strong> switch on their portal Profile. Note: a member who used the unsubscribe <em>link</em> stays excluded from newsletters even after re-ticking that switch; contact QuiltHosting support to clear it.</li>
+        </ul>
+
+        <h2 id="suppression">Bounces and complaints</h2>
+        <ul>
+          <li>A <strong>hard bounce</strong> (the address does not exist or refuses mail) blocks all email to that address across QuiltHosting, including sign-in links and receipts.</li>
+          <li>A <strong>spam complaint</strong> stops newsletters and automations from your guild to that person, but transactional emails continue.</li>
+          <li>These blocks are automatic; there is no admin screen to view or clear them. Contact support if an address was blocked in error.</li>
+          <li>A CSV import never removes an opt-out: if a person unsubscribed and is later removed and imported again, they stay unsubscribed.</li>
+        </ul>
+
+        <h2 id="system">Emails QuiltHosting sends for you</h2>
+        <p>These go out automatically and are not affected by newsletter opt-outs:</p>
+        <table>
+          <thead><tr><th>When</th><th>Email</th></tr></thead>
+          <tbody>
+            <tr><td>Member asks to sign in</td><td>Sign-in link (valid 15 minutes, works once)</td></tr>
+            <tr><td>Membership activated online</td><td>Welcome to your guild</td></tr>
+            <tr><td>30, 14, 7 and 1 day before renewal</td><td>Renewal reminder with a portal link</td></tr>
+            <tr><td>Event registration confirmed</td><td>Confirmation with ticket code</td></tr>
+            <tr><td>7 days and 1 day before an event</td><td>Event reminder to registered attendees</td></tr>
+            <tr><td>Waitlisted person promoted</td><td>"You're in!"</td></tr>
+            <tr><td>Store order or donation paid</td><td>Receipt</td></tr>
+            <tr><td>Officer added to the team</td><td>"You've been added to …"</td></tr>
+            <tr><td>Business site: quote request, estimate, signed agreement</td><td>See <a href="/docs/business-sites.html">Business sites</a></td></tr>
+          </tbody>
+        </table>
+        <p>One automatic email <em>does</em> respect opt-outs: the "we miss you" note sent 7 days after a member lapses. Dues recorded by hand, auto-renew charges and invoices send no email.</p>
+
+        <h2 id="automations">Automations</h2>
+        <p>Admin → <strong>Automations</strong>. An automation is a sequence of emails sent after a member's membership is <strong>activated</strong> (by joining online, renewing, or paying dues through checkout). That is the only trigger available.</p>
+        <ul>
+          <li>Each step has a delay in days (0–365), a subject and an HTML body; up to 12 steps. Steps are entered as a small list in the editor, with an example to copy.</li>
+          <li>Steps are sent by the daily job at 08:00 UTC, so a "day 0" step arrives the next morning rather than instantly.</li>
+          <li>Automation emails respect opt-outs and carry an unsubscribe link. Merge tags: <code>{{first_name}}</code>, <code>{{last_name}}</code>, <code>{{email}}</code>, <code>{{guild_name}}</code>.</li>
+          <li><strong>Pause</strong> stops the sequence and cancels members part-way through; <strong>Activate</strong> starts it again for new activations. A member is not enrolled twice.</li>
+        </ul>
+
+        <h2 id="sms">SMS (optional)</h2>
+        <p>Admin → <strong>SMS</strong>. Enter your own Twilio account SID, auth token and sending number; they are stored in your guild's settings. Then send a one-off text (up to 1,600 characters) to a member with a phone number, and see a log of sent and failed messages. There is no SMS newsletter, no automatic text reminders, and no opt-in tracking — make sure you have permission to text people. Without Twilio details, messages are only logged as "queued" and are never sent.</p>
 
         <div class="docs-footer">
-          <a href="/docs/billing-payments.html">← Billing</a>
-          <a href="/docs/api.html">API →</a>
+          <a href="/docs/billing-payments.html">← Billing &amp; payments</a>
+          <a href="/docs/roles-and-team.html">Roles &amp; team →</a>
         </div>
       </main>
     </div>

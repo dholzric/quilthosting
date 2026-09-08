@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Website builder — QuiltHosting Docs</title>
+  <link rel="stylesheet" href="/qh.css" />
+  <link rel="stylesheet" href="/docs/docs.css" />
+</head>
+<body class="has-fleet-footer">
+  <div class="docs-wrap">
+    <header class="docs-top">
+      <a class="logo" href="/docs/"><span class="t">✦</span> QuiltHosting Docs</a>
+      <nav>
+        <a href="/docs/">All docs</a>
+        <a href="/admin">Admin</a>
+      </nav>
+    </header>
+    <div class="docs-layout">
+      <aside class="docs-side">
+        <h3>On this page</h3>
+        <a href="#pages">Pages and Trash</a>
+        <a href="#create">Creating a page</a>
+        <a href="#sections">Sections</a>
+        <a href="#richtext">Rich text</a>
+        <a href="#images">Images</a>
+        <a href="#actions">Section actions</a>
+        <a href="#settings">Page settings</a>
+        <a href="#autosave">Autosave</a>
+        <a href="#preview">Preview</a>
+        <a href="#publish">Publish and drafts</a>
+        <a href="#history">History</a>
+        <a href="#conflicts">Two people editing</a>
+        <a href="#trash">Trash</a>
+        <a href="#menu">Site menu</a>
+        <a href="#look">Look &amp; feel</a>
+        <a href="#redirects">Changing an address</a>
+        <a href="#embeds">Embeds</a>
+        <a href="#roles">Who can edit</a>
+        <h3>Guides</h3>
+        <a href="/docs/getting-started.html">Getting started</a>
+        <a href="/docs/website-builder.html" class="active">Website builder</a>
+        <a href="/docs/members-and-levels.html">Members &amp; levels</a>
+        <a href="/docs/events.html">Events</a>
+        <a href="/docs/billing-payments.html">Billing &amp; payments</a>
+        <a href="/docs/email-automations.html">Email &amp; automations</a>
+        <a href="/docs/roles-and-team.html">Roles &amp; team</a>
+        <a href="/docs/member-portal.html">Member portal</a>
+        <a href="/docs/store-and-donations.html">Store &amp; donations</a>
+        <a href="/docs/forms.html">Forms</a>
+        <a href="/docs/domains.html">Domains</a>
+        <a href="/docs/business-sites.html">Business sites</a>
+        <a href="/docs/security-privacy.html">Security &amp; privacy</a>
+        <a href="/docs/troubleshooting.html">Troubleshooting</a>
+        <a href="/docs/features.html">Feature reference</a>
+        <a href="/docs/api.html">API &amp; Zapier</a>
+      </aside>
+      <main class="docs-main">
+        <h1>Website builder</h1>
+        <p class="lede">Admin → <strong>Website</strong>. Build pages from sections, see them exactly as visitors will, and publish when you are ready. Nothing goes live until you click Publish.</p>
+
+        <h2 id="pages">Pages and Trash</h2>
+        <p>The Website screen opens on the <strong>Pages</strong> list. Each row shows the page title, its address, whether it is published, and an <strong>Unpublished changes</strong> badge when you have saved edits that visitors cannot see yet. A second tab, <strong>Trash</strong>, holds pages you have removed; nothing is deleted for good until you say so (see <a href="#trash">Trash</a>).</p>
+        <p>A new guild starts with five published pages: <strong>Home</strong>, <strong>About</strong>, <strong>Why Join</strong>, <strong>Meetings</strong> and <strong>Contact</strong>. Their text begins with "Sample text — replace me:" so you can find what still needs writing; the setup checklist on the dashboard also notices when sample text is still on the site.</p>
+        <p>Blog posts are separate: Admin → <strong>Blog</strong> takes a title, a body and a published switch, and posts appear under Blog on your guild page rather than in the site menu. Blog uses a simple HTML body box, not the section editor.</p>
+
+        <h2 id="create">Creating a page</h2>
+        <ol>
+          <li>Click <strong>New page</strong>. The editor opens with an empty page.</li>
+          <li>Type a <strong>title</strong> in the top bar. The page address is suggested from the title until you change it yourself.</li>
+          <li>Add sections from the palette on the left — click a section type to add it at the end, or drag it to where you want it.</li>
+          <li>Click a section to edit it. Its fields appear in the panel on the right.</li>
+          <li>Your work saves itself as a draft (see <a href="#autosave">Autosave</a>). Click <strong>Publish</strong> when visitors should see it.</li>
+        </ol>
+        <p>A page must have a title before it can be saved or published.</p>
+
+        <h2 id="sections">Sections</h2>
+        <p>The palette is grouped into Content, Media, Membership and Layout. Guild sites and business sites see slightly different palettes. A page can hold up to 80 sections.</p>
+
+        <h3>Content</h3>
+        <table>
+          <thead><tr><th>Section</th><th>Fields</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Hero</strong></td><td>Small line above the title (up to 80 characters), title (160), subtitle (300), optional background image, optional button label (60) and link.</td></tr>
+            <tr><td><strong>Heading</strong></td><td>Text (up to 200 characters) and size: large, medium or small.</td></tr>
+            <tr><td><strong>Text</strong></td><td>Rich text — paragraphs, bold, italic, links, lists and headings (up to 20,000 characters). See <a href="#richtext">Rich text</a>.</td></tr>
+            <tr><td><strong>FAQ</strong></td><td>Up to 30 question-and-answer pairs. Question up to 300 characters, answer up to 2,000.</td></tr>
+            <tr><td><strong>Button</strong></td><td>Label (up to 80 characters; defaults to "Learn more"), link, and style: primary or secondary.</td></tr>
+            <tr><td><strong>Service cards</strong> <em>(business)</em></td><td>Up to 12 cards, each with a short icon or emoji, title (120) and description (600).</td></tr>
+            <tr><td><strong>Testimonials</strong> <em>(business)</em></td><td>Up to 20 quotes (up to 800 characters each) with an optional author name.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Media</h3>
+        <table>
+          <thead><tr><th>Section</th><th>Fields</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Image</strong></td><td>The picture (upload or choose from your library), a description for screen readers (alt text, up to 200 characters) and an optional caption (300).</td></tr>
+            <tr><td><strong>Photo gallery</strong></td><td>Up to 40 photos, each with alt text and an optional caption.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Membership and lists</h3>
+        <table>
+          <thead><tr><th>Section</th><th>Fields</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Join call-to-action</strong> <em>(guild)</em></td><td>Title (up to 120 characters; defaults to "Become a member") and a short message (500). Links visitors to your membership levels.</td></tr>
+            <tr><td><strong>Upcoming events</strong></td><td>How many to show, 1–20 (default 5). Fills itself from your published events.</td></tr>
+            <tr><td><strong>Store products</strong></td><td>How many to show, 1–20 (default 6). Fills itself from your active products.</td></tr>
+            <tr><td><strong>Contact form</strong> <em>(business)</em></td><td>Which form receives the messages (defaults to "contact") and the button label (defaults to "Send"). See <a href="/docs/forms.html">Forms</a>.</td></tr>
+            <tr><td><strong>Quote request</strong> <em>(business)</em></td><td>Project type (longarm quilting, custom quilt, or T-shirt quilt), heading (defaults to "Request a quote") and button label (defaults to "Get my estimate"). See <a href="/docs/business-sites.html">Business sites</a>.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Layout</h3>
+        <table>
+          <thead><tr><th>Section</th><th>Fields</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Divider</strong></td><td>A horizontal rule. No fields.</td></tr>
+            <tr><td><strong>Spacer</strong></td><td>Height in pixels, 8–120 (default 24).</td></tr>
+            <tr><td><strong>Embed / custom code</strong></td><td>Pasted HTML, up to 50,000 characters. See <a href="#embeds">Embeds</a> for what is allowed.</td></tr>
+          </tbody>
+        </table>
+        <div class="callout">The <strong>Upcoming events</strong>, <strong>Store products</strong>, <strong>Contact form</strong> and <strong>Quote request</strong> sections are placeholders on the editing canvas. To see them filled in, switch to <a href="#preview">Preview</a>.</div>
+
+        <h2 id="richtext">Rich text</h2>
+        <p>The Text section has a small toolbar: <strong>Bold</strong> (Ctrl+B), <strong>Italic</strong> (Ctrl+I), <strong>Link</strong> (Ctrl+K), bulleted list, numbered list, <strong>Heading</strong>, <strong>Sub-heading</strong>, <strong>Paragraph</strong>, and <strong>Remove formatting</strong>. Adding a link opens a small address row; press Enter to apply or Escape to cancel.</p>
+        <p>Pasting from Word or Google Docs is tidied automatically: paragraphs, bold, italic, links, lists, headings and quotes are kept; fonts, colours and other clutter are dropped.</p>
+        <p>For safety, everything you type or paste is cleaned again when it is saved and again when it is shown. Scripts, styles, forms and event handlers are always removed; links can only use http, https, mailto, tel or sms addresses; images can only use http or https. Links that open in a new tab are marked so the new page cannot control yours.</p>
+
+        <h2 id="images">Images</h2>
+        <ul>
+          <li><strong>Upload image</strong> accepts PNG, JPEG, GIF or WebP. Each upload counts against a 25 MB per-file limit.</li>
+          <li><strong>Choose from library</strong> shows images you have already uploaded to this guild (the 200 most recent files).</li>
+          <li><strong>Remove</strong> clears the picture from the section.</li>
+          <li>Fill in the <strong>description for screen readers</strong> (alt text). The editor reminds you when it is empty.</li>
+        </ul>
+        <p>Images are served with strict type checks: only PNG, JPEG, GIF, WebP and AVIF are ever shown on the site. If a file is not one of those, the site shows nothing for it. Photos load lazily so long pages stay fast.</p>
+
+        <h2 id="actions">Section actions</h2>
+        <p>Each section on the canvas has a small toolbar: <strong>Move up</strong>, <strong>Move down</strong>, <strong>Duplicate</strong>, <strong>Hide</strong> and <strong>Delete</strong>. You can also drag a section to reorder it. Hiding keeps a copy: a <strong>Bring back hidden section</strong> button appears so you can restore it later.</p>
+        <p><strong>Undo</strong> and <strong>Redo</strong> buttons sit above the canvas and remember the last 100 changes. Edits to the same field within a second and a half are grouped as one step.</p>
+        <table>
+          <thead><tr><th>Keys</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td>Ctrl+S (Cmd+S on Mac)</td><td>Save the draft now</td></tr>
+            <tr><td>Ctrl+Z / Ctrl+Y or Ctrl+Shift+Z</td><td>Undo / redo (when you are not typing in a field)</td></tr>
+            <tr><td>Enter or Space on a section</td><td>Select it and jump to its settings</td></tr>
+            <tr><td>Delete or Backspace on a section</td><td>Delete it</td></tr>
+            <tr><td>Alt+↑ / Alt+↓</td><td>Move the selected section</td></tr>
+            <tr><td>Ctrl+K in a Text section</td><td>Add a link; Escape leaves the text box</td></tr>
+          </tbody>
+        </table>
+        <p>If you try to leave the page with unsaved changes, the browser asks you to confirm.</p>
+
+        <h2 id="settings">Page settings</h2>
+        <p>Open <strong>Page settings — address, menu, search engines</strong> in the right-hand panel.</p>
+        <ul>
+          <li><strong>Page address.</strong> Lowercase letters, numbers and hyphens only; anything else becomes a hyphen. The panel shows the full address visitors will use. On a guild site that is <code>/g/your-guild/the-address</code>; on a business site it is <code>/the-address</code>. The address <code>home</code> is your home page.</li>
+          <li><strong>Reserved addresses.</strong> These are used by the platform and cannot be page addresses: <code>membership</code>, <code>join</code>, <code>join-renew</code>, <code>events</code>, <code>calendar</code>, <code>galleries</code>, <code>photos</code>, <code>admin</code>, <code>portal</code>, <code>docs</code>, <code>embed</code>, <code>sites</code>, <code>api</code>, <code>t</code>, <code>public</code>, <code>g</code>, <code>guild</code>, <code>auth</code>, <code>assets</code>, <code>site-access</code>, <code>privacy</code>, <code>terms</code>. Two pages cannot share an address.</li>
+          <li><strong>Show in menu</strong> and an optional <strong>Menu label</strong> (up to 60 characters; defaults to the title).</li>
+          <li><strong>Members only</strong> <em>(guild sites)</em>. The page disappears from the public site and appears under <strong>Guild Info</strong> in the member portal for signed-in members.</li>
+          <li><strong>Hide from search engines.</strong> Adds a no-index instruction and leaves the page out of the sitemap.</li>
+          <li><strong>Search title</strong> (up to 70 characters) and <strong>Search description</strong> (up to 200). Both default to the page title.</li>
+        </ul>
+
+        <h2 id="autosave">Autosave and the status pill</h2>
+        <p>About a second and a half after you stop typing, the editor saves your work as a <strong>draft</strong>. The pill in the top bar tells you where things stand:</p>
+        <table>
+          <thead><tr><th>Pill</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Saved</strong></td><td>Your draft is stored.</td></tr>
+            <tr><td><strong>Saving…</strong></td><td>A save is in progress.</td></tr>
+            <tr><td><strong>Unsaved changes</strong></td><td>You edited something and the next save has not run yet.</td></tr>
+            <tr><td><strong>Add a title to save</strong></td><td>The page needs a title first.</td></tr>
+            <tr><td><strong>Save failed — retry</strong></td><td>The save did not reach the server. Nothing is lost on your screen; click the pill or press Ctrl+S to try again.</td></tr>
+            <tr><td><strong>Out of date</strong></td><td>Someone else changed this page. See <a href="#conflicts">Two people editing</a>.</td></tr>
+            <tr><td><strong>Read-only</strong></td><td>Your role can look but not change pages.</td></tr>
+          </tbody>
+        </table>
+        <p>If a save is refused because of a specific field, the message appears next to that field.</p>
+
+        <h2 id="preview">Preview</h2>
+        <p>The top bar has <strong>Edit</strong> and <strong>Preview</strong> tabs. Preview shows your draft rendered exactly like the live site, using the same renderer that serves visitors — including the events, store and form sections that are placeholders on the canvas. Buttons above the preview switch between <strong>Desktop</strong> (full width), <strong>Tablet</strong> (768 pixels) and <strong>Mobile</strong> (390 pixels).</p>
+        <p>Even the editing canvas is fed by the live renderer: shortly after each change, the server renders your sections and the canvas shows the result, so what you see while editing matches what the site will show.</p>
+
+        <h2 id="publish">Publish and drafts</h2>
+        <ul>
+          <li><strong>Publish</strong> makes the current draft the live page. The button reads <strong>Published ✓</strong> once the live page and your draft are the same.</li>
+          <li>Until you publish, visitors keep seeing the previous published version. The page list shows <strong>Unpublished changes</strong> while a draft is waiting.</li>
+          <li><strong>Discard draft</strong> throws away the draft and shows the published version again. You click it twice to confirm.</li>
+          <li><strong>Unpublish</strong> takes the page off the site without deleting it. You click it twice to confirm.</li>
+        </ul>
+        <p>Publishing also records a snapshot of the previous live version in History.</p>
+
+        <h2 id="history">History and restore</h2>
+        <p><strong>History</strong> lists up to the last 50 versions of a page: each publish, each restore, and a safety snapshot taken just before a restore. Each entry shows when it was made, by whom, and how many sections it had.</p>
+        <p><strong>Restore</strong> loads a version into your <strong>draft</strong>. Nothing changes on the live site until you preview it and click Publish. A version from before the section editor existed is restored as a single custom-code section rather than as an empty page.</p>
+
+        <h2 id="conflicts">When two people edit the same page</h2>
+        <p>Every save carries the version number you started from. If another officer saved the page in the meantime, your save is refused and a banner appears: <strong>"Someone else changed this page — reload to see their version. Your unsaved edits here will be replaced."</strong> The pill reads <strong>Out of date</strong> and autosave pauses. Click <strong>Reload</strong> to load their version; copy anything you want to keep first, because your unsaved edits on this screen are replaced. The same protection applies to Publish, Discard, and Restore.</p>
+
+        <h2 id="trash">Trash, restore and permanent delete</h2>
+        <ul>
+          <li><strong>Move to trash</strong> (click twice to confirm) takes the page off the site immediately. Its address stops working.</li>
+          <li>A trashed page keeps its address reserved. If you want to reuse that address for a new page, restore-and-rename the old one or delete it forever.</li>
+          <li><strong>Restore</strong> brings a page back from the Trash tab. It comes back <strong>unpublished</strong> — open it and click Publish to make it live again.</li>
+          <li><strong>Delete forever</strong> (click twice to confirm) removes the page, its history, and any redirects that pointed to it.</li>
+        </ul>
+
+        <h2 id="menu">Site menu</h2>
+        <p>The menu editor lets you decide what appears in your site's navigation. Each row is either a <strong>Page</strong> (pick from your pages; the label fills in automatically) or a <strong>Web link</strong> (a full address starting with https://). Rows can be moved up and down or removed. Up to 20 items. Rows with no label or no destination are dropped when you save, and the editor warns you when a chosen page is not published yet.</p>
+        <ul>
+          <li><strong>Guild sites:</strong> Home, Membership and Events always appear first, then pages marked "Show in menu", then your custom items.</li>
+          <li><strong>Business sites:</strong> a custom menu replaces the automatic one. Leave it empty to list published pages automatically.</li>
+        </ul>
+
+        <h2 id="look">Look &amp; feel (guild) and Appearance (business)</h2>
+        <p><strong>Guild sites</strong> have a <strong>Look &amp; feel</strong> card: a main colour (eight swatches or your own), a style (Classic, Modern or Warm) and a font (System, Serif or Rounded). A sample updates as you choose.</p>
+        <p><strong>Business sites</strong> have an <strong>Appearance</strong> screen with four presets — <strong>Berry</strong> (the default), <strong>Ocean</strong>, <strong>Forest</strong> and <strong>Charcoal</strong> — heading and body fonts chosen from ten families, and an <strong>Advanced</strong> section to fine-tune every colour (main, secondary, accent, highlight, page and card backgrounds, text, muted text and the browser bar colour). A <strong>contrast hint</strong> compares your text colour with the page background: it needs a ratio of at least 4.5 to 1 to be easy to read, and the hint tells you the ratio you have. There is also a switch for the "Powered by QuiltHosting" line in the footer.</p>
+
+        <h2 id="redirects">What happens when a page address changes</h2>
+        <p>When you publish a page under a new address, the old address is remembered and forwarded to the new one, so links in old newsletters keep working. Forwarding is one hop: if you rename a page twice, both old addresses lead straight to the current one.</p>
+        <ul>
+          <li>On a business site, a subdomain or a custom domain, the old address answers with a permanent redirect (301), which search engines understand.</li>
+          <li>On a guild page under <code>/g/your-guild/…</code>, the old address opens and the browser's address bar is corrected on the spot. Search engines are not told about the move.</li>
+        </ul>
+        <p>Trashing a page does not create a redirect. Deleting a page forever removes any redirects that pointed to it.</p>
+
+        <h2 id="embeds">Embeds and custom code</h2>
+        <p>The <strong>Embed / custom code</strong> section is for pasting an embed snippet. It accepts the same HTML as a Text section plus embedded frames from these places only, over https:</p>
+        <ul>
+          <li>YouTube (<code>www.youtube.com/embed/…</code> and <code>www.youtube-nocookie.com/embed/…</code>)</li>
+          <li>Vimeo (<code>player.vimeo.com/video/…</code>)</li>
+          <li>Google Maps (<code>www.google.com/maps/embed…</code>)</li>
+        </ul>
+        <p>Frames from any other site are removed. <strong>Scripts and styles are always removed</strong>, so a snippet that relies on a script tag (many calendar and social widgets do) will not work. Google Calendar embeds are not on the allowed list.</p>
+
+        <h2 id="roles">Who can edit</h2>
+        <p>Owners and admins can create, edit, publish and delete pages and change the menu and theme. Membership chairs, events chairs and viewers can open the builder, look around and use Preview, but their changes are not saved; the pill reads <strong>Read-only</strong>. The full matrix is in <a href="/docs/roles-and-team.html">Roles &amp; team</a>.</p>
+
+        <div class="docs-footer">
+          <a href="/docs/getting-started.html">← Getting started</a>
+          <a href="/docs/store-and-donations.html">Store &amp; donations →</a>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

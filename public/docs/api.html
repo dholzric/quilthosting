@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex, nofollow" />
-  <title>Public API &amp; Zapier — QuiltHosting Docs</title>
+  <title>API &amp; Zapier — QuiltHosting Docs</title>
   <link rel="stylesheet" href="/qh.css" />
   <link rel="stylesheet" href="/docs/docs.css" />
 </head>
@@ -14,159 +14,178 @@
       <a class="logo" href="/docs/"><span class="t">✦</span> QuiltHosting Docs</a>
       <nav>
         <a href="/docs/">All docs</a>
-        <a href="/admin">Admin → API</a>
+        <a href="/admin">Admin</a>
       </nav>
     </header>
     <div class="docs-layout">
       <aside class="docs-side">
         <h3>On this page</h3>
+        <a href="#keys">API keys and scopes</a>
         <a href="#auth">Authentication</a>
-        <a href="#endpoints">Endpoints</a>
-        <a href="#examples">Examples</a>
-        <a href="#import">Bulk member import</a>
-        <a href="#zapier">Zapier / Make</a>
-        <a href="#limits">Limits &amp; notes</a>
+        <a href="#read">Read endpoints</a>
+        <a href="#write">Write endpoints</a>
+        <a href="#idempotency">Idempotency-Key</a>
+        <a href="#hooks">REST hooks</a>
+        <a href="#webhooks">Outbound webhooks</a>
+        <a href="#zapier">Zapier and Make</a>
+        <a href="#errors">Error codes</a>
+        <a href="#limits">Limits</a>
+        <h3>Guides</h3>
+        <a href="/docs/getting-started.html">Getting started</a>
+        <a href="/docs/website-builder.html">Website builder</a>
+        <a href="/docs/members-and-levels.html">Members &amp; levels</a>
+        <a href="/docs/events.html">Events</a>
+        <a href="/docs/billing-payments.html">Billing &amp; payments</a>
+        <a href="/docs/email-automations.html">Email &amp; automations</a>
+        <a href="/docs/roles-and-team.html">Roles &amp; team</a>
+        <a href="/docs/member-portal.html">Member portal</a>
+        <a href="/docs/store-and-donations.html">Store &amp; donations</a>
+        <a href="/docs/forms.html">Forms</a>
+        <a href="/docs/domains.html">Domains</a>
+        <a href="/docs/business-sites.html">Business sites</a>
+        <a href="/docs/security-privacy.html">Security &amp; privacy</a>
+        <a href="/docs/troubleshooting.html">Troubleshooting</a>
+        <a href="/docs/features.html">Feature reference</a>
+        <a href="/docs/api.html" class="active">API &amp; Zapier</a>
       </aside>
       <main class="docs-main">
-        <h1>Public API (v1)</h1>
-        <p class="lede">
-          REST API for integrations. Create keys under Admin → <strong>API</strong>
-          (shown once at creation).
-        </p>
+        <h1>Public API &amp; Zapier</h1>
+        <p class="lede">A REST API for reading your guild's data and creating members, plus signed outbound webhooks that fire on member, payment, registration and form events. Base URL <code>https://quilthosting.com/api/v1</code>.</p>
+
+        <h2 id="keys">API keys and scopes</h2>
+        <p>Admin → <strong>API</strong> (owners and admins). Create a key, tick the scopes it needs, and copy it — it is shown once. Keys look like <code>qh_…</code>; only a hash is stored. Revoke a key from the same screen; the last-used time is recorded.</p>
+        <table>
+          <thead><tr><th>Scope</th><th>Grants</th></tr></thead>
+          <tbody>
+            <tr><td><code>read</code></td><td>Always granted. All GET endpoints.</td></tr>
+            <tr><td><code>members:write</code></td><td><code>POST /members</code>, <code>PATCH /members/:id</code></td></tr>
+            <tr><td><code>hooks:write</code></td><td><code>POST /hooks</code>, <code>DELETE /hooks/:id</code></td></tr>
+          </tbody>
+        </table>
+        <p>A trigger-only Zap needs <code>hooks:write</code> (Zapier subscribes and unsubscribes when the Zap is switched on and off) but not <code>members:write</code>. Keys created before v0.27 may carry a legacy <code>write</code> scope that grants both.</p>
 
         <h2 id="auth">Authentication</h2>
-        <pre>Authorization: Bearer qh_…your_secret_key…</pre>
-        <p>Optional (less secure): <code>?api_key=qh_…</code></p>
-        <p>API routes are exempt from the site access password; the API key is the only gate.</p>
-        <div class="callout warn">Never commit keys to git or paste them in public Zaps. Revoke compromised keys in Admin → API.</div>
+        <pre>Authorization: Bearer qh_…your_key…</pre>
+        <p>Or, less securely, <code>?api_key=qh_…</code>. API routes are exempt from the private-preview site password; the key is the only gate. An inactive guild returns 403.</p>
+        <div class="callout warn">Never commit keys to git or paste them into shared Zaps. Revoke a leaked key immediately.</div>
 
-        <h2 id="endpoints">Endpoints</h2>
-        <p>Base: <code>https://quilthosting.com/api/v1</code></p>
+        <h2 id="read">Read endpoints</h2>
         <table>
-          <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+          <thead><tr><th>Method</th><th>Path</th><th>Returns</th></tr></thead>
           <tbody>
-            <tr><td>GET</td><td><code>/me</code></td><td>Tenant id, name, slug, plan; key scopes</td></tr>
-            <tr><td>GET</td><td><code>/members?status=active</code></td><td>Members (max 500)</td></tr>
-            <tr><td>GET</td><td><code>/events</code></td><td>Events list</td></tr>
-            <tr><td>GET</td><td><code>/payments</code></td><td>Payments (max 200)</td></tr>
+            <tr><td>GET</td><td><code>/me</code></td><td>Tenant id, name, slug, plan, and the key's <code>scopes</code></td></tr>
+            <tr><td>GET</td><td><code>/members?status=&amp;limit=&amp;offset=&amp;page=</code></td><td>Paginated: <code>{members, total, limit, offset, page, total_pages, has_more}</code>. Default 100 per page, max 500.</td></tr>
+            <tr><td>GET</td><td><code>/events</code></td><td>Up to 200 events (no pagination)</td></tr>
+            <tr><td>GET</td><td><code>/payments</code></td><td>Up to 200 payments (no pagination)</td></tr>
             <tr><td>GET</td><td><code>/levels</code></td><td>Active membership levels</td></tr>
+            <tr><td>GET</td><td><code>/hooks</code></td><td>Up to 100 hook subscriptions (secrets never returned)</td></tr>
           </tbody>
         </table>
-
-        <h3>Member object (fields)</h3>
-        <pre>id, email, first_name, last_name, phone, status, joined_at, created_at</pre>
-
-        <h2 id="examples">Examples</h2>
-        <pre>curl -s https://quilthosting.com/api/v1/me \
-  -H "Authorization: Bearer qh_…"
-
-curl -s "https://quilthosting.com/api/v1/members?status=active" \
-  -H "Authorization: Bearer qh_…" | jq '.members[0:3]'
-
-curl -s https://quilthosting.com/api/v1/payments \
+        <pre>curl -s "https://quilthosting.com/api/v1/members?status=active&amp;limit=200" \
   -H "Authorization: Bearer qh_…"</pre>
+        <p>Member object fields: <code>id, email, first_name, last_name, phone, status, joined_at, created_at</code>.</p>
 
-        <h2 id="import">Bulk member import</h2>
-        <p><code>POST /api/tenants/:tenantId/members/import</code> powers the CSV importer in Admin → Members → Import.</p>
-        <div class="callout warn">This is a <strong>tenant-admin route</strong> authenticated with the admin's JWT session, not an <code>/api/v1</code> endpoint — <strong>API keys cannot call it.</strong> It is documented here because it's the primary bulk-write path for members.</div>
-        <p>Send <code>dry_run: true</code> to run every check and get the full reconciliation <strong>without writing anything</strong> — no members, no memberships, no custom-field definitions.</p>
+        <h2 id="write">Write endpoints</h2>
+        <h3><code>POST /members</code> — <code>members:write</code></h3>
+        <pre>curl -s -X POST https://quilthosting.com/api/v1/members \
+  -H "Authorization: Bearer qh_…" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: zap-01H8XYZ" \
+  -d '{"email":"member@example.com","first_name":"Ada","status":"pending"}'</pre>
+        <p>Body: <code>email</code> (required), <code>first_name</code>, <code>last_name</code>, <code>phone</code>, <code>status</code> (<code>pending</code> | <code>active</code> | <code>lapsed</code> | <code>cancelled</code>; default <code>pending</code>). Returns <code>201 {"member": {…}}</code>. Creating with <code>active</code> uses a slot against the free plan's 30-active-member limit (402 <code>plan_limit</code> when full). A duplicate email returns 409 <code>duplicate_email</code> with the existing <code>member_id</code>.</p>
+        <h3><code>PATCH /members/:memberId</code> — <code>members:write</code></h3>
+        <p>Body: any of <code>first_name</code>, <code>last_name</code>, <code>phone</code>, <code>status</code>. <strong>Email cannot be changed here</strong> — a mistyped Zap would silently split a member's history in two. Change email in the admin.</p>
 
-        <h3>Refusals</h3>
-        <table>
-          <thead><tr><th>Condition</th><th>Response</th></tr></thead>
-          <tbody>
-            <tr><td>Both <code>rows</code> and <code>raw_rows</code> present</td><td><code>400 ambiguous_payload</code></td></tr>
-            <tr><td><code>raw_rows</code> without <code>header</code></td><td><code>400 missing_header</code></td></tr>
-            <tr><td>More than 5000 rows</td><td><code>400</code> — split larger files</td></tr>
-            <tr><td>Two or more columns mapped to the same custom-field key</td><td><code>400 duplicate_custom_key</code>, with a <code>duplicates</code> array of <code>{ key, headers, indices }</code></td></tr>
-          </tbody>
-        </table>
-        <p><code>duplicate_custom_key</code> is a <strong>real-import-only</strong> refusal, raised before anything is written — the second column would otherwise silently overwrite the first. A dry run with the same mapping does not 400; it reports the same problem as a <code>duplicate_custom_key</code> warning instead.</p>
-
-        <h3>Real import response</h3>
-        <pre>{
-  "ok": true,
-  "batch_id": "…",
-  "status": "partial",
-  "created": 80, "updated": 35, "skipped": 5,
-  "memberships_assigned": 58,
-  "membership_failures": 2,
-  "level_not_found": 0,
-  "plan_limited": 0,
-  "custom_fields_created": [{ "key": "guild_number", "label": "Guild #" }],
-  "skipped_rows": [{ "row": 12, "reason": "missing or invalid email" }],
-  "errors": [{ "row_number": 41, "kind": "membership_failed", "reason": "…", "email": "…" }],
-  "warnings": [{ "code": "level_not_found", "message": "…", "count": 3, "sample_rows": [4, 9, 17] }],
-  "error_kind_labels": { "membership_failed": "membership(s) failed to assign" }
-}</pre>
-        <p>Upsert is keyed on lowercased <code>email</code>; a row whose email already exists on the guild updates that member instead of creating a duplicate.</p>
-
-        <h3>status</h3>
-        <table>
-          <thead><tr><th>Value</th><th>Meaning</th></tr></thead>
-          <tbody>
-            <tr><td><code>running</code></td><td>The batch row was inserted and has not been closed. Usually an import is executing — but a batch whose <code>started_at</code> is not recent is a leftover from a run that could not close its own record. There are <strong>two</strong> ways that happens: the Worker isolate was terminated first (CPU/wall-clock limit, eviction), <em>or</em> the closing write itself failed — the <code>failed</code> UPDATE in the catch is best-effort, wrapped in its own try/catch, and only logs if it fails. Nothing sweeps these either way. Only <code>total_rows</code> is written at insert time; every other counter is written solely by the closing update, so a stuck batch still reads <code>0</code> no matter how many rows were actually written.</td></tr>
-            <tr><td><code>completed</code></td><td>Nothing was lost.</td></tr>
-            <tr><td><code>partial</code></td><td><strong>Data was not fully imported.</strong> Review the batch's <code>errors</code> <em>and</em> <code>warnings</code>.</td></tr>
-            <tr><td><code>failed</code></td><td>The run threw. The batch is closed as failed with whatever counts were known and the request returns a 500. Rows already written by an earlier chunk stay written.</td></tr>
-          </tbody>
-        </table>
-        <p><code>completed</code> requires <strong>all</strong> of: zero skipped rows, zero membership failures, zero plan-limited rows, zero level-not-found rows, and no lossy warning fired. Anything else is <code>partial</code>.</p>
-
-        <h3>errors vs warnings — not the same thing</h3>
-        <p><code>errors</code> is <strong>per row</strong> (which row, what kind, why). <code>warnings</code> is <strong>column-level and whole-file</strong>: <code>unmapped_column</code> and <code>duplicate_target</code> describe a <em>column</em>, not a row, so they never produce a row-level error.</p>
-        <div class="callout warn">A batch can legitimately be <code>partial</code> with an <strong>empty <code>errors</code> array and a non-empty <code>warnings</code> array</strong> — e.g. a CSV with one ignored column that carries data in every row loses a whole column, but no individual row failed. A client that renders only <code>errors</code> shows an unexplained "partial". <strong>Render both.</strong></div>
-        <div class="callout warn">The converse also holds: a <code>completed</code> batch can carry <strong>non-empty <code>errors</code> and <code>warnings</code></strong>. Two codes are informational rather than lossy — <code>joined_at_ignored_on_update</code> and <code>level_without_end_date</code> — and neither forces <code>partial</code>. <code>level_without_end_date</code> is the important one: a file that names a membership level but has no renewal/expiry column at all (the commonest Wild Apricot roster shape) makes QuiltHosting <em>choose</em> each renewal date — one full term of the level's duration counted from today. Nothing in the file is lost, but a date was picked on the guild's behalf and the per-row error names exactly which. <strong>Render <code>errors</code> and <code>warnings</code> on the <code>completed</code> path too.</strong></div>
-
-                <div class="callout"><strong><code>lossy_warning_codes</code></strong> is returned alongside <code>errors</code> and <code>error_kind_labels</code> by the import route and the per-batch errors route: the serialized <code>LOSSY_WARNING_CODES</code> set. Use it to tell an informational warning from a lossy one. Do <strong>not</strong> approximate with <code>warnings.length === 0</code> — <code>level_without_end_date</code> fires on every Level-column file, so that approximation misclassifies the commonest roster shape.</div>
-        <div class="callout"><strong>How a chosen renewal date is picked.</strong> <code>computeMembershipEnd()</code> uses the level's <code>duration_months</code> counted from <code>max(startDate, now)</code> — today, unless the row's start date is in the future, so a deliberately post-dated term keeps its full length. It never shortens an existing membership: the import compares against the member's current active membership and keeps that <code>end_date</code> when it is later, or <code>NULL</code> (open-ended). An explicit parseable date in the file always wins, except that a date naming the same calendar day as the stored one keeps the stored instant (<code>export.csv</code> truncates to <code>YYYY-MM-DD</code>, so a round trip would otherwise re-parse as UTC midnight). An <em>unreadable</em> date falls through to the same chosen-date path and gets the same per-row <code>errors</code> entry, but is aggregated under <code>unparseable_date</code> rather than <code>level_without_end_date</code>, so the two warning counts stay disjoint. When the level and the resolved end date both match what the member already holds, the import writes nothing at all — no expire, no insert. When something did change, <code>auto_renew</code> and <code>stripe_subscription_id</code> are carried onto the new membership; <code>amount_paid_cents</code> only when the term is unchanged.</div>
-<h3>Partial caused only by the plan cap</h3>
-        <p><code>plan_limited &gt; 0</code> counts toward <code>partial</code>, so <strong>a free-plan guild importing 40 people who are not yet active always gets <code>status: "partial"</code></strong> even when their file is perfect. Held rows are <strong>not made active</strong>: new members come in as <code>pending</code>, existing members are either set to <code>pending</code> or keep the status they already had. The admin UI detects this case (every entry in <code>errors</code> has <code>kind: "plan_limited"</code> and <code>warnings</code> is empty) and phrases it as a completion, not a problem; the "Recent imports" card still shows the <code>partial</code> badge, because the batch-list columns can't distinguish the case reliably.</p>
-        <div class="callout"><strong>Re-importing already-active members is free.</strong> Only rows that would make someone <em>newly</em> active consume a slot, so a guild sitting at its 30-active limit that re-imports its own unchanged roster comes back with <code>plan_limited: 0</code> — it is asking the plan for nothing. (<code>plan_limited: 0</code> is not by itself <code>completed</code>: any other lossy code in the same file still forces <code>partial</code>, and even a <code>completed</code> batch can carry informational <code>level_without_end_date</code> rows.) The trigger is the number of new actives, not the size of the file. The dry run's <code>plan_limit_will_hold</code> estimate applies the same rule, so preview and import agree <em>given the same file, the same mapping, and the same active-member count</em>. That last condition is not under the preview's control: <code>activeSlotsLeft</code> is recomputed from a live count of active members on every request, so a signup, a lapse from the nightly renewal cron, or another admin's import landing in between moves the number. The estimate is a snapshot taken at preview time, not a promise.</div>
-
-        <h3>Import history</h3>
-        <p>Both routes sit behind the same auth as the import itself and filter by guild.</p>
-        <table>
-          <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
-          <tbody>
-            <tr><td>GET</td><td><code>/api/tenants/:tenantId/members/import/batches</code></td><td>The 50 most recent batches, newest first. Each carries the counters, <code>actor_user_id</code> / <code>actor_email</code>, and a parsed <code>warnings</code> array. No paging parameter.</td></tr>
-            <tr><td>GET</td><td><code>/api/tenants/:tenantId/members/import/batches/:batchId/errors</code></td><td>The full, <strong>uncapped</strong> per-row list for one batch, ordered by row number, plus the same <code>warnings</code> array and <code>error_kind_labels</code>. A batch id belonging to another guild returns <code>404</code>, indistinguishable from one that doesn't exist.</td></tr>
-          </tbody>
-        </table>
-        <p><code>actor_email</code> is a snapshot taken at import time, not a live lookup, so it stays accurate if the account's email later changes or the user is deleted. Both actor fields are <code>null</code> on batches created before the column existed. <code>custom_fields_created</code> is a <strong>count</strong> on a batch row, but an array of <code>{ key, label }</code> in the import response.</p>
-
-        <h3>What import does not do</h3>
+        <h2 id="idempotency">Idempotency-Key</h2>
+        <p>Accepted on <code>POST /members</code> and <code>PATCH /members/:id</code> only. Strongly recommended on create: Zapier and Make retry on timeout, and without a key a retried create hits the duplicate-email guard and reports failure for a member that was in fact created.</p>
         <ul>
-          <li><strong>No rollback.</strong> Nothing captures a before-state, so a partial or failed batch cannot be undone. <code>batch_id</code> identifies what happened; it is not an undo handle.</li>
-          <li><strong>Import is not one transaction.</strong> Member writes execute as batched statements in chunks of 50, memberships are assigned afterwards per row, and error rows are written after that. A throw part-way leaves earlier chunks written.</li>
-          <li><strong>No resume</strong> for a failed batch, and <strong>no delta re-import</strong> — nothing computes what is still missing.</li>
+          <li>Same key, same body → the original response is replayed (kept for about 24 hours, worst case about 48).</li>
+          <li>Same key, different body (or a different <code>memberId</code>) → 422 <code>idempotency_key_reuse</code>.</li>
+          <li>Same key while the first request is still running → 409 <code>idempotency_in_progress</code> with <code>Retry-After: 2</code>. Wait and retry; this is not an error.</li>
+          <li>402 and 5xx responses are not cached, so a retry after the condition clears runs for real.</li>
+          <li>The key is scoped per operation, so reusing one id for a create and a later update of the same member is safe.</li>
         </ul>
-        <p>The supported recovery is to <strong>fix the CSV and import it again</strong>, which converges because upsert keys on lowercased email. It converges on member records; it does not roll anything back.</p>
-        <div class="callout warn"><strong>Re-import is not monotonic.</strong> Membership activation expires the member's existing active memberships <em>before</em> inserting the new one, with no transaction around the pair. If the insert then fails, the expiry is not undone — so re-importing a row that failed to assign a membership to a member who currently <em>has</em> an active membership can leave them with <strong>no</strong> active membership, strictly worse than before. <code>membership_failed</code> is the one error kind where "just re-run the file" is bad advice: diagnose the failure first. Every other kind is safe to re-import.</div>
-        <p>Known gap: creating custom fields during an import is a read-modify-write of the guild's settings with no compare-and-swap, so a settings edit committed in that narrow window can be overwritten. The definitions are written before any member row and are not undone if the import later fails. Import never renames, reorders or removes an existing definition.</p>
-        <p>Full contract, including every warning code and which ones force <code>partial</code>: <code>docs/api.md</code> in the repo.</p>
+        <p>This is a 60-second concurrency guard, not an end-to-end exactly-once guarantee; details in the repo's <code>docs/api.md</code>.</p>
 
-        <h2 id="zapier">Zapier / Make</h2>
+        <h2 id="hooks">REST hooks</h2>
+        <h3><code>POST /hooks</code> — <code>hooks:write</code></h3>
+        <pre>curl -s -X POST https://quilthosting.com/api/v1/hooks \
+  -H "Authorization: Bearer qh_…" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://hooks.zapier.com/…","events":["member.created"]}'</pre>
+        <p>Returns <code>201 {"hook": {"id","url","events","secret"}}</code> — the <code>secret</code> is shown once. URLs must be https and not point at private networks or QuiltHosting itself. Unknown event names are rejected with 400 <code>unknown_event</code>, never silently dropped. Omitting <code>events</code> subscribes to everything (<code>*</code>). Limit 25 hooks per guild (429 <code>hook_limit</code>).</p>
+        <h3><code>DELETE /hooks/:hookId</code> — <code>hooks:write</code></h3>
+        <p>Returns <code>200 {"deleted": true}</code>.</p>
+
+        <h2 id="webhooks">Outbound webhooks</h2>
+        <p>Hooks (and endpoints added under Admin → <strong>Zapier</strong>) receive a POST for each event:</p>
+        <table>
+          <thead><tr><th>Event</th><th>When</th></tr></thead>
+          <tbody>
+            <tr><td><code>member.created</code></td><td>A member record is created (admin, join form, or API — not CSV import)</td></tr>
+            <tr><td><code>member.activated</code></td><td>A member becomes active</td></tr>
+            <tr><td><code>member.updated</code></td><td>A member's details or status change (carries <code>previous_status</code> and <code>status</code>)</td></tr>
+            <tr><td><code>membership.activated</code></td><td>A membership becomes active, with level details</td></tr>
+            <tr><td><code>payment.succeeded</code></td><td>A checkout completes</td></tr>
+            <tr><td><code>event.registration</code></td><td>Someone takes an event seat (free, waitlist or paid)</td></tr>
+            <tr><td><code>form.response</code></td><td>A public form is submitted</td></tr>
+          </tbody>
+        </table>
+        <pre>{
+  "id": "delivery-uuid",
+  "schema_version": 1,
+  "event": "member.activated",
+  "created_at": "2026-09-08T12:00:00.000Z",
+  "tenant_id": "…",
+  "data": { "source": "join_form", "member_id": "…", "email": "…", "level_id": "…" }
+}</pre>
+        <p>Headers: <code>X-QH-Event</code>, <code>X-QH-Delivery</code> (<code>{outbox-id}:{endpoint-id}</code>, constant across retries of the same delivery), <code>X-QH-Timestamp</code> (unix seconds), <code>X-QH-Schema-Version</code>, and <code>X-QH-Signature</code> = HMAC-SHA256 hex of <code>{timestamp}.{raw body}</code> using the hook secret. Verify the signature, reject timestamps older than five minutes, and <strong>dedupe on <code>id</code></strong> — delivery is at-least-once.</p>
+        <p>A 2xx response counts as delivered. Anything else is retried up to 6 attempts with jittered backoff (roughly 2.5–5 min, 12–25 min, 1–2 h, then 5–10 h), after which the event is marked dead. An endpoint that fails 20 times in a row is switched off; Admin → Zapier shows an <em>auto-disabled</em> badge with a <strong>Re-enable</strong> button, a <strong>Recent deliveries</strong> list with status, attempts and last error, and <strong>Replay</strong> for failed or dead events. <strong>Test</strong> sends a <code>test.ping</code> directly (it does not carry <code>X-QH-Delivery</code>).</p>
+
+        <h2 id="zapier">Zapier and Make</h2>
         <ol>
-          <li>Admin → API → create a key with <code>read</code> scope.</li>
-          <li>In Zapier: <strong>Webhooks by Zapier</strong> → GET, or <strong>Code by Zapier</strong> with <code>fetch</code>.</li>
-          <li>Schedule a poll on <code>/members</code> or <code>/payments</code> (e.g. every 15 minutes).</li>
-          <li>Filter for new rows by <code>created_at</code> or store last-seen ids in Zapier Storage.</li>
-          <li>Map fields into Google Sheets, Mailchimp, QuickBooks Online, etc.</li>
+          <li>Admin → <strong>API</strong> → create a key with the scopes you need and copy it.</li>
+          <li>In Zapier, create a Zap with <strong>Webhooks by Zapier → Catch Hook</strong> and copy its URL.</li>
+          <li>Either paste the URL under Admin → <strong>Zapier → Add endpoint</strong> (choose events, save the signing secret shown once, click <strong>Test</strong>), or subscribe it with <code>POST /hooks</code>.</li>
+          <li>For actions, use <strong>Webhooks by Zapier → Custom Request</strong> against <code>POST /members</code> with an <code>Idempotency-Key</code> such as the Zap's task id.</li>
         </ol>
-        <p>There is no official Zapier app listing yet — custom webhooks cover most guild needs.</p>
+        <p>There is also a native Zapier app (private, not listed in the Zapier directory) with <em>New Member</em> and <em>New Event Registration</em> triggers and a <em>Create Member</em> action. Polling <code>/members</code> or <code>/payments</code> on a schedule and filtering by <code>created_at</code> also works.</p>
 
-        <h2 id="limits">Limits &amp; notes</h2>
+        <h2 id="errors">Error codes</h2>
+        <p>Errors are <code>{"error": "message", "code": "…"}</code>.</p>
+        <table>
+          <thead><tr><th>Code</th><th>Status</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td>(none)</td><td>401</td><td>Missing or invalid API key</td></tr>
+            <tr><td><code>missing_field</code></td><td>400</td><td>A required field was absent</td></tr>
+            <tr><td><code>invalid_status</code></td><td>400</td><td>Status not in the allowed list (<code>valid</code> array included)</td></tr>
+            <tr><td><code>no_fields</code></td><td>400</td><td>PATCH body had nothing to change</td></tr>
+            <tr><td><code>unknown_event</code></td><td>400</td><td>Event name not in the catalog (<code>valid</code> array included)</td></tr>
+            <tr><td><code>invalid_hook_url</code></td><td>400</td><td>Not https, or a blocked host</td></tr>
+            <tr><td><code>plan_limit</code></td><td>402</td><td>Free plan active-member limit reached</td></tr>
+            <tr><td><code>insufficient_scope</code></td><td>403</td><td>Key lacks the required scope (<code>required</code> included)</td></tr>
+            <tr><td><code>not_found</code></td><td>404</td><td>No such member or hook in this guild</td></tr>
+            <tr><td><code>duplicate_email</code></td><td>409</td><td>A member already uses that email (<code>member_id</code> included)</td></tr>
+            <tr><td><code>idempotency_in_progress</code></td><td>409</td><td>Same key still executing; retry after <code>Retry-After</code></td></tr>
+            <tr><td><code>idempotency_key_reuse</code></td><td>422</td><td>Key reused with a different body</td></tr>
+            <tr><td><code>hook_limit</code></td><td>429</td><td>25 hooks per guild reached</td></tr>
+            <tr><td><code>event_prepare_failed</code></td><td>500</td><td>The webhook event could not be prepared; nothing was written</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="limits">Limits and notes</h2>
         <ul>
-          <li>Read-focused today; write endpoints may expand later</li>
-          <li>Keys can be revoked; last-used timestamp is recorded</li>
-          <li>Member portal and admin UIs use JWT auth — not the public API key</li>
-          <li>Repo markdown: <code>docs/api.md</code></li>
+          <li>No per-key rate limit is enforced today. Be a good citizen; poll no more often than every few minutes.</li>
+          <li><code>/events</code> and <code>/payments</code> return at most 200 rows; <code>/members</code> is paginated (offset-based, offsets capped at 100,000).</li>
+          <li>Versioning is by URL path (<code>/api/v1</code>); webhook payloads carry their own <code>schema_version</code>.</li>
+          <li>CSV imports do not fire <code>member.created</code>; poll <code>/members</code> after an import.</li>
+          <li>The admin and portal use their own sign-in sessions, not API keys. The CSV importer is an admin route, not part of the API.</li>
+          <li>Full contract for developers: <code>docs/api.md</code> and <code>docs/zapier-webhooks.md</code> in the repository.</li>
         </ul>
 
         <div class="docs-footer">
-          <a href="/docs/email-automations.html">← Email</a>
-          <a href="/docs/features.html">Feature reference →</a>
+          <a href="/docs/features.html">← Feature reference</a>
+          <a href="/docs/">All docs →</a>
         </div>
       </main>
     </div>

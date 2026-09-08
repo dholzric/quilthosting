@@ -21,70 +21,113 @@
       <aside class="docs-side">
         <h3>On this page</h3>
         <a href="#two">Two money flows</a>
-        <a href="#connect">Stripe Connect</a>
-        <a href="#platform">Platform plan</a>
-        <a href="#dues">Dues &amp; auto-renew</a>
+        <a href="#plans">Free, trial and Guild plan</a>
+        <a href="#connect">Stripe Connect payouts</a>
+        <a href="#success">When a payment succeeds</a>
+        <a href="#autorenew">Auto-renew</a>
         <a href="#refunds">Refunds</a>
-        <a href="#receipts">Receipts &amp; QBO</a>
+        <a href="#receipts">Receipts</a>
         <a href="#invoices">Invoices</a>
+        <a href="#exports">Payments list and exports</a>
+        <a href="#reports">Treasurer reports</a>
+        <a href="#qbo">QuickBooks</a>
+        <h3>Guides</h3>
+        <a href="/docs/getting-started.html">Getting started</a>
+        <a href="/docs/website-builder.html">Website builder</a>
+        <a href="/docs/members-and-levels.html">Members &amp; levels</a>
+        <a href="/docs/events.html">Events</a>
+        <a href="/docs/billing-payments.html" class="active">Billing &amp; payments</a>
+        <a href="/docs/email-automations.html">Email &amp; automations</a>
+        <a href="/docs/roles-and-team.html">Roles &amp; team</a>
+        <a href="/docs/member-portal.html">Member portal</a>
+        <a href="/docs/store-and-donations.html">Store &amp; donations</a>
+        <a href="/docs/forms.html">Forms</a>
+        <a href="/docs/domains.html">Domains</a>
+        <a href="/docs/business-sites.html">Business sites</a>
+        <a href="/docs/security-privacy.html">Security &amp; privacy</a>
+        <a href="/docs/troubleshooting.html">Troubleshooting</a>
+        <a href="/docs/features.html">Feature reference</a>
+        <a href="/docs/api.html">API &amp; Zapier</a>
       </aside>
       <main class="docs-main">
         <h1>Billing &amp; payments</h1>
-        <p class="lede">How guild dues, platform fees, refunds, and invoices work.</p>
+        <p class="lede">What QuiltHosting costs, how your guild's dues and ticket money reach your bank, and what happens behind the scenes when someone pays.</p>
 
         <h2 id="two">Two money flows</h2>
         <table>
-          <thead><tr><th>Flow</th><th>Who pays</th><th>Where money goes</th></tr></thead>
+          <thead><tr><th>Flow</th><th>Who pays</th><th>Where the money goes</th></tr></thead>
           <tbody>
-            <tr>
-              <td><strong>Member payments</strong></td>
-              <td>Members (dues, events, store, donations)</td>
-              <td>Guild’s connected Stripe account (destination charges)</td>
-            </tr>
-            <tr>
-              <td><strong>Platform billing</strong></td>
-              <td>Guild → QuiltHosting</td>
-              <td>QuiltHosting (Guild plan $24/mo after trial)</td>
-            </tr>
+            <tr><td><strong>Member payments</strong></td><td>Members and visitors: dues, event tickets, store orders, donations</td><td>Your guild's connected Stripe account</td></tr>
+            <tr><td><strong>Platform plan</strong></td><td>Your guild, to QuiltHosting</td><td>QuiltHosting (Guild plan, $24 per month)</td></tr>
           </tbody>
         </table>
 
-        <h2 id="connect">Stripe Connect</h2>
-        <p>Admin → Settings → Billing &amp; payouts → complete Express onboarding. Required for real payouts to the guild bank. Optional platform application fee (basis points) may apply if configured by QuiltHosting.</p>
-
-        <h2 id="platform">Platform plan (QuiltHosting fee)</h2>
+        <h2 id="plans">Free, trial and Guild plan</h2>
+        <table>
+          <thead><tr><th>Plan</th><th>Active members</th><th>Cost</th></tr></thead>
+          <tbody>
+            <tr><td>Starter (free)</td><td>Up to 30</td><td>$0</td></tr>
+            <tr><td>Guild trial</td><td>Unlimited for 30 days from the day the guild is created</td><td>$0, no card needed</td></tr>
+            <tr><td>Guild</td><td>Unlimited</td><td>$24 per month</td></tr>
+          </tbody>
+        </table>
         <ul>
-          <li><strong>Free:</strong> ≤ 30 active members</li>
-          <li><strong>Trial:</strong> 30 days of Guild features</li>
-          <li><strong>Guild:</strong> $24/month unlimited actives — upgrade Checkout from billing card</li>
+          <li>Only <strong>active</strong> members count. Pending, lapsed and cancelled members, event attendees and contacts do not.</li>
+          <li>The member count is the only thing the plan changes. Every feature is available on every plan.</li>
+          <li>When the trial ends without a subscription, the guild returns to the 30-active-member limit. Nothing is deleted and nobody is made inactive; you simply cannot make more people active until you upgrade or some members lapse.</li>
+          <li>Businesses (see <a href="/docs/business-sites.html">Business sites</a>) have customers rather than members and have no member limit.</li>
         </ul>
-        <p>Manage or cancel platform subscription via <strong>Stripe Customer Portal</strong> from the same billing card.</p>
+        <p><strong>Upgrade:</strong> Admin → <strong>Settings → Billing &amp; payouts</strong> → Upgrade. An owner or admin completes a Stripe Checkout for the monthly subscription, paid by the guild's card to QuiltHosting. After upgrading, <strong>Manage subscription</strong> opens Stripe's customer portal where you can change the card or cancel; access continues to the end of the paid month.</p>
 
-        <h2 id="dues">Dues &amp; auto-renew</h2>
-        <ul>
-          <li>Levels with <code>renewal_type: auto</code> create Stripe subscriptions at checkout</li>
-          <li><code>invoice.paid</code> webhooks extend membership end dates</li>
-          <li>Portal: renew, cancel auto-renew, update card</li>
-          <li>Daily job: renewal reminders at 30 / 14 / 7 / 1 days; auto-lapse expired; win-back at 7 days lapsed</li>
-        </ul>
-        <div class="callout warn">Test auto-renew thoroughly in Stripe test mode before relying on it for a live guild. See internal checklist <code>docs/auto-renew-e2e.md</code> in the repo.</div>
+        <h2 id="connect">Stripe Connect payouts</h2>
+        <p>Settings → Billing &amp; payouts → <strong>Connect bank account</strong> starts Stripe Express onboarding for the guild (an owner or admin does this). Stripe collects the guild's details and bank account; QuiltHosting never sees them. The card shows where you are: <em>Not connected</em>, <em>Onboarding started — finish setup in Stripe</em>, <em>Onboarding submitted — awaiting Stripe verification</em>, or <em>Ready — payouts enabled</em>. Once ready, <strong>Open Stripe Express dashboard</strong> shows balances and payouts.</p>
+        <p>Once connected, every member payment is sent straight to the guild's Stripe account. QuiltHosting takes no platform fee by default; if one is ever configured it will be shown in the product and the Terms. Stripe's own card-processing fees still apply.</p>
+        <div class="callout warn">Until Connect is complete, card payments still work but land on QuiltHosting's platform Stripe account. That is for testing during the private preview only — connect your bank before collecting real dues.</div>
+
+        <h2 id="success">When a payment succeeds</h2>
+        <p>Stripe tells QuiltHosting when a checkout completes. QuiltHosting then records the payment and applies it: starting or renewing the membership, confirming the event seat, marking the store order paid, or logging the donation. Payments, event registrations, store orders and donations all appear in Admin → <strong>Payments</strong>.</p>
+        <p><strong>A payment is never applied twice.</strong> Every notice from Stripe carries an identifier that is written down the moment it arrives; a repeat notice is ignored. The payment itself is stored against Stripe's own payment reference, which cannot be stored twice. Applying the payment is a separate, all-or-nothing step that is stamped as done: if anything fails midway, nothing is saved and Stripe retries, and the retry applies it exactly once. Two officers refreshing the page, or Stripe re-sending a notice, cannot double a membership or double-book a seat.</p>
+
+        <h2 id="autorenew">Auto-renew</h2>
+        <p>A level set to <strong>Auto</strong> renewal starts a Stripe subscription at the first payment (yearly for terms of 12 months or more, otherwise monthly). Stripe keeps the card. Each time the subscription renews, the membership end date is extended by one term and the member is kept active; no email is sent for that renewal. Members can see the card on file, update it, or stop auto-renew from the portal; stopping keeps the membership active until its end date.</p>
+        <p>If a renewal charge fails, QuiltHosting does not send anything; the normal reminder emails go out before the end date, and the member lapses the day after it if nothing is paid.</p>
 
         <h2 id="refunds">Refunds</h2>
-        <p>Admin → Payments → refund. One-click in-app refunds (a known Wild Apricot gap). Refunds go through Stripe to the original payment method when possible.</p>
+        <p>Admin → <strong>Payments</strong> → <strong>Refund</strong> on a succeeded card payment. Refunds are for the <strong>full amount</strong>, go back to the original card through Stripe, and mark the payment as refunded. Only payments made by card through QuiltHosting can be refunded here; dues recorded by hand cannot. Owners, admins and membership chairs can refund.</p>
+        <div class="callout">A refund changes only the payment record. It does not lapse the membership, free the event seat, or put store stock back. Do those yourself if they apply.</div>
 
-        <h2 id="receipts">Receipts &amp; QuickBooks</h2>
+        <h2 id="receipts">Receipts</h2>
         <ul>
-          <li>Members: printable receipts from portal invoices list</li>
-          <li>Donation receipt emails on successful donations</li>
-          <li>Admin: CSV exports; <strong>QuickBooks Desktop IIF</strong> via payments export</li>
+          <li><strong>Store orders and donations</strong> get a receipt email automatically.</li>
+          <li><strong>Dues</strong> paid online get a welcome email; <strong>event tickets</strong> get a confirmation email with the ticket code.</li>
+          <li>Any payment can be opened as a printable receipt from Admin → Payments (<strong>Print / Save as PDF</strong>), and members can open receipts for their own payments from the portal's Invoices tab. Portal receipt links are valid for 10 minutes.</li>
         </ul>
 
-        <h2 id="invoices">Numbered invoices</h2>
-        <p>Admin → Invoices for multi-line bills (booth fees, sponsorships, etc.). Sequential numbers per guild. Print to PDF from the browser. Statuses: draft, sent, paid.</p>
+        <h2 id="invoices">Invoices</h2>
+        <p>Admin → <strong>Invoices</strong> is for bills outside the normal flows — vendor booth fees, sponsorships, workshop supplies. An invoice has a member (optional), one or more lines (description, quantity, unit price in cents), an optional tax amount, a due date and notes. Numbers run <code>INV-2026-00001</code>, <code>INV-2026-00002</code> and so on per guild.</p>
+        <ul>
+          <li>Statuses: <strong>draft</strong>, <strong>sent</strong> and <strong>paid</strong>. "Create &amp; issue" marks the invoice issued; it does <strong>not</strong> email anyone. Print it (<strong>Print / Save PDF</strong>) and send it yourself.</li>
+          <li>There is no online payment link for invoices. When the money arrives, click <strong>Mark paid</strong>.</li>
+          <li>Paid invoices cannot be deleted. No reminders are sent for overdue invoices.</li>
+        </ul>
+
+        <h2 id="exports">Payments list and exports</h2>
+        <p>Admin → <strong>Payments</strong> lists every payment, newest first, 50 per page, with type, description, amount, status and member. There are no filters on the list.</p>
+        <ul>
+          <li><strong>Export CSV</strong>: all payments, all statuses — date, type, description, amount, currency, status, member email, member name, Stripe reference.</li>
+          <li><strong>Export IIF</strong> for QuickBooks Desktop: succeeded payments only, as bank deposits to <em>Undeposited Funds</em> with income posted to <em>Income:Membership</em> for every payment type.</li>
+        </ul>
+        <p>Exports are available to owners, admins and membership chairs.</p>
+
+        <h2 id="reports">Treasurer reports</h2>
+        <p>Admin → <strong>Reports</strong>. Pick a year for the <strong>annual report</strong>: revenue by category (dues, events, store, donations, with refunds netted off), membership movement and event attendance. Below it, <strong>Member statement / donation receipt</strong> produces a printable year-end statement of one member's payments, which doubles as their donation receipt for tax purposes.</p>
+
+        <h2 id="qbo">QuickBooks Online</h2>
+        <p>Settings → <strong>QuickBooks</strong> → Connect signs in to Intuit and links one QuickBooks company. You can then download the last 90 days of succeeded payments as a journal file, or <strong>Push last 20 to QBO</strong>, which creates sales receipts in QuickBooks. Only payments are synced, one way, from QuiltHosting to QuickBooks; invoices, members and products are not. Disconnect at any time. This is available only when QuiltHosting has been configured with QuickBooks credentials; otherwise the card says so.</p>
 
         <div class="docs-footer">
-          <a href="/docs/website-store.html">← Website &amp; store</a>
-          <a href="/docs/email-automations.html">Email →</a>
+          <a href="/docs/events.html">← Events</a>
+          <a href="/docs/email-automations.html">Email &amp; automations →</a>
         </div>
       </main>
     </div>

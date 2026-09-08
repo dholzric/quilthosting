@@ -6,11 +6,16 @@
 
 | Method | Path | Scope | Description |
 |--------|------|-------|-------------|
-| GET | `/me` | read | Tenant id, name, slug, plan |
-| GET | `/members?status=&page=&limit=` | read | Members (paginated; max 500/page) |
-| GET | `/events` | read | Events |
-| GET | `/payments` | read | Payments |
+| GET | `/me` | read | Tenant id, name, slug, plan, and the key's `scopes` |
+| GET | `/members?status=&page=&limit=&offset=` | read | Members (paginated; default 100, max 500/page; offset capped at 100,000) |
+| GET | `/events` | read | Events — hard `LIMIT 200`, no pagination |
+| GET | `/payments` | read | Payments — hard `LIMIT 200`, no pagination |
 | GET | `/levels` | read | Active membership levels |
+| GET | `/hooks` | read | Hook subscriptions — `LIMIT 100`, secrets never returned |
+| POST | `/members` | members:write | Create a member (see below) |
+| PATCH | `/members/:memberId` | members:write | Update a member (see below) |
+| POST | `/hooks` | hooks:write | Subscribe a REST hook |
+| DELETE | `/hooks/:hookId` | hooks:write | Remove a hook |
 
 ## Authentication
 
@@ -47,7 +52,14 @@ A trigger-only Zap still needs `hooks:write`, because Zapier subscribes and
 unsubscribes a hook when the Zap is turned on and off. It does **not** need
 `members:write` — the split exists so a trigger cannot mutate your data.
 
-Keys minted before v0.27.0 carry a legacy `write` scope that grants both.
+Keys minted before v0.27.0 carry a legacy `write` scope that grants both; the
+admin UI can still mint it today (`src/routes/apiKeys.ts`).
+
+Note: `read` is never checked as a scope — every valid, unrevoked key can call
+the GET endpoints regardless of its scope list (`src/routes/v1.ts` applies
+`requireApiKey` only on reads). There is **no per-key rate limit** on
+`/api/v1`; the only 429 is `hook_limit`. Versioning is by URL path only —
+there is no API version header.
 
 Calling a write endpoint without the scope returns:
 
@@ -670,7 +682,11 @@ Unknown event names are rejected, not filtered. Limit: 25 hooks per guild.
 
 | Code | Status | Meaning |
 |---|---|---|
+| (bare message) | 401 | Missing, invalid or revoked API key |
+| (bare message) | 403 | `Tenant inactive` — the guild is archived |
+| (bare message) | 503 | `API keys not available` — table missing (pre-0010 database) |
 | `missing_field` | 400 | A required field was absent |
+| `no_fields` | 400 | PATCH body contained nothing to change |
 | `invalid_status` | 400 | Status not in the allowed list |
 | `unknown_event` | 400 | Event name is not in the catalog |
 | `invalid_hook_url` | 400 | Not https, or a blocked host |
@@ -679,7 +695,9 @@ Unknown event names are rejected, not filtered. Limit: 25 hooks per guild.
 | `duplicate_email` | 409 | A member already uses that email |
 | `idempotency_key_reuse` | 422 | Key reused with a different body |
 | `plan_limit` | 402 | Free plan active-member limit reached |
+| `idempotency_in_progress` | 409 | Same key still executing; `Retry-After: 2` |
 | `hook_limit` | 429 | 25-hook-per-guild limit reached |
+| `event_prepare_failed` | 500 | Webhook event could not be prepared; nothing was written |
 
 ## Zapier / Make
 

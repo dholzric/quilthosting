@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Troubleshooting — QuiltHosting Docs</title>
+  <link rel="stylesheet" href="/qh.css" />
+  <link rel="stylesheet" href="/docs/docs.css" />
+</head>
+<body class="has-fleet-footer">
+  <div class="docs-wrap">
+    <header class="docs-top">
+      <a class="logo" href="/docs/"><span class="t">✦</span> QuiltHosting Docs</a>
+      <nav>
+        <a href="/docs/">All docs</a>
+        <a href="/admin">Admin</a>
+      </nav>
+    </header>
+    <div class="docs-layout">
+      <aside class="docs-side">
+        <h3>On this page</h3>
+        <a href="#signin">Signing in</a>
+        <a href="#website">Website builder</a>
+        <a href="#events">Events</a>
+        <a href="#members">Members and email</a>
+        <a href="#domain">Domains</a>
+        <a href="#images">Images and files</a>
+        <a href="#preview">Private preview password</a>
+        <h3>Guides</h3>
+        <a href="/docs/getting-started.html">Getting started</a>
+        <a href="/docs/website-builder.html">Website builder</a>
+        <a href="/docs/members-and-levels.html">Members &amp; levels</a>
+        <a href="/docs/events.html">Events</a>
+        <a href="/docs/billing-payments.html">Billing &amp; payments</a>
+        <a href="/docs/email-automations.html">Email &amp; automations</a>
+        <a href="/docs/roles-and-team.html">Roles &amp; team</a>
+        <a href="/docs/member-portal.html">Member portal</a>
+        <a href="/docs/store-and-donations.html">Store &amp; donations</a>
+        <a href="/docs/forms.html">Forms</a>
+        <a href="/docs/domains.html">Domains</a>
+        <a href="/docs/business-sites.html">Business sites</a>
+        <a href="/docs/security-privacy.html">Security &amp; privacy</a>
+        <a href="/docs/troubleshooting.html" class="active">Troubleshooting</a>
+        <a href="/docs/features.html">Feature reference</a>
+        <a href="/docs/api.html">API &amp; Zapier</a>
+      </aside>
+      <main class="docs-main">
+        <h1>Troubleshooting</h1>
+        <p class="lede">The messages you are most likely to see, what they mean, and what to do.</p>
+
+        <h2 id="signin">Signing in</h2>
+        <h3>"Your session expired. Please sign in again."</h3>
+        <p>Sign-ins last 7 days on one browser. Sign in again; nothing on the server was lost. If you were in the middle of editing a page, the website builder keeps your draft as of its last autosave.</p>
+        <h3>"This sign-in link has expired or was already used"</h3>
+        <p>Portal links work once and for 15 minutes. Go back to the portal and request a new one. Do not forward a link to someone else — it would sign them in as you. Some email security tools open links automatically before you do; if links are always "already used" the moment you click them, ask your email provider, or sign in with Google instead.</p>
+        <h3>"We couldn't send email right now. Please try again in a few minutes."</h3>
+        <p>The email service refused the message, so no link was sent and nothing was created. Wait a few minutes and try again. If it keeps happening, contact <a href="mailto:hello@quilthosting.com">hello@quilthosting.com</a>.</p>
+        <h3>"Too many requests. Please try again later."</h3>
+        <p>Link requests are limited to 10 per 10 minutes from one connection. Check your spam folder for the links already sent, then wait.</p>
+        <h3>"Password sign-in is disabled. Use Google sign-in."</h3>
+        <p>Officers sign in with Google only. Use the Google account whose email is on the team.</p>
+        <h3>A member says the portal shows the wrong guild, or "Which guild are you a member of?"</h3>
+        <p>The portal remembers the last guild used on that device. Use <strong>Switch guild</strong>, or open the link with your guild's address: <code>/portal?slug=your-address</code>.</p>
+
+        <h2 id="website">Website builder</h2>
+        <h3>"Someone else changed this page — reload to see their version."</h3>
+        <p>Another officer saved the same page after you opened it. Copy anything you want to keep, click <strong>Reload</strong>, and make your change again. Your edits since your last save on this screen are replaced by theirs.</p>
+        <h3>"Save failed — retry"</h3>
+        <p>The save did not reach the server (usually a dropped connection). Your work is still on screen; click the pill or press Ctrl+S.</p>
+        <h3>"… is a reserved path and cannot be used as a page slug"</h3>
+        <p>The address you chose is used by the platform. Pick another; the reserved list is in <a href="/docs/website-builder.html#settings">Page settings</a>.</p>
+        <h3>"A page with that slug already exists"</h3>
+        <p>Another page has that address — possibly one in the <strong>Trash</strong>, which keeps its address until it is restored and renamed or deleted forever.</p>
+        <h3>Visitors do not see my change</h3>
+        <p>Drafts are private until you click <strong>Publish</strong>. The Pages list shows "Unpublished changes" for pages with a waiting draft. A restored page from the Trash also comes back unpublished.</p>
+        <h3>My embed disappeared</h3>
+        <p>Only YouTube, Vimeo and Google Maps frames are kept, and scripts are always removed. Widgets that need a script tag will not work.</p>
+
+        <h2 id="events">Events</h2>
+        <h3>"Event is full"</h3>
+        <p>Every seat is taken, counting people part-way through checkout (seats are held for 30 minutes, released within about 10 minutes after that). Raise the capacity, or wait for holds to clear. The waitlist can only be switched on when the event is created.</p>
+        <h3>"Registration is closed"</h3>
+        <p>An officer clicked <strong>Close reg</strong>. Click <strong>Open reg</strong> on the event.</p>
+        <h3>"Already registered for this event"</h3>
+        <p>That email already holds a seat, a waitlist place or an unfinished checkout. If they never paid, the checkout link is offered again; otherwise ask an officer to check the registrations list.</p>
+        <h3>Someone paid but is not in the list</h3>
+        <p>Give it a minute — Stripe notifies QuiltHosting shortly after payment, and the seat is confirmed then. If the payment appears under Payments but not under the event, contact support.</p>
+
+        <h2 id="members">Members and email</h2>
+        <h3>"Free plan is limited to 30 active members. Upgrade to the Guild plan for unlimited members."</h3>
+        <p>Your trial has ended and you are on the free plan. Upgrade under Settings → Billing &amp; payouts, or wait for members to lapse. Renewing someone who is already active does not need a slot.</p>
+        <h3>An import came back "partial"</h3>
+        <p>Something in the file did not fully come through. Open <strong>Recent imports</strong>, download the errors, fix those rows, and import again. See <a href="/docs/members-and-levels.html#partial">Partial imports</a>.</p>
+        <h3>Fewer recipients than members</h3>
+        <p>The count excludes people who unsubscribed, turned newsletters off in the portal, or whose address bounced. The screen shows how many were left out.</p>
+        <h3>A member is not getting any email at all</h3>
+        <p>Their address probably hard-bounced once, which blocks all mail to it. Check the address is right, then contact support to clear the block.</p>
+        <h3>A newsletter finished as "partial"</h3>
+        <p>At least one address failed three times. Click <strong>Retry failed</strong> to try only those again.</p>
+
+        <h2 id="domain">Domains</h2>
+        <h3>Badge says "subdomain failed"</h3>
+        <p>Click <strong>Retry</strong>. The reason is shown next to the badge. Your <code>/g/your-address</code> link keeps working meanwhile. If it fails again, contact support.</p>
+        <h3>Badge says "subdomain pending" or there is no badge</h3>
+        <p>Click <strong>Check again</strong>. Guilds created before the badge existed show nothing until you do.</p>
+        <h3>My custom domain shows "not provisioned" or the certificate is pending</h3>
+        <p>Check the DNS records in <a href="/docs/domains.html#custom">Domains</a>, wait for DNS to spread, then click <strong>Refresh SSL status</strong>.</p>
+
+        <h2 id="images">Images and files</h2>
+        <h3>An image on my page is blank, or "This image could not be loaded"</h3>
+        <p>Only PNG, JPEG, GIF, WebP and AVIF images are shown. Re-upload the picture in one of those formats and check the address in the section.</p>
+        <h3>"SVG logos are not supported" / "Logo must be a PNG, JPEG, GIF, or WebP image"</h3>
+        <p>Export the logo as PNG (transparent background works best) under 2 MB. Files are checked by their contents, so renaming a file does not help.</p>
+        <h3>"File too large"</h3>
+        <p>Documents are limited to 25 MB, gallery photos to 10 MB, member photos to 5 MB and logos to 2 MB.</p>
+
+        <h2 id="preview">The private preview password</h2>
+        <h3>A member opened their sign-in link on a phone and got a password screen</h3>
+        <p>During the private preview the whole site is behind a shared access password, and that phone has not entered it yet. After entering the password they land in the portal signed in. If they close the page instead, the link has already been used; they need to request a new one after entering the password.</p>
+        <h3>My WordPress embed shows a password page</h3>
+        <p>Embeds are behind the same preview password. They will show normally once QuiltHosting launches publicly.</p>
+        <h3>"Wrong password."</h3>
+        <p>Ask the officer who invited you for the current access password.</p>
+
+        <div class="docs-footer">
+          <a href="/docs/security-privacy.html">← Security &amp; privacy</a>
+          <a href="/docs/features.html">Feature reference →</a>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

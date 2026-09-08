@@ -20,79 +20,107 @@
     <div class="docs-layout">
       <aside class="docs-side">
         <h3>On this page</h3>
-        <a href="#checklist">Launch checklist</a>
+        <a href="#signin">Signing in</a>
         <a href="#create">Create your guild</a>
-        <a href="#levels">Membership levels</a>
-        <a href="#stripe">Connect Stripe</a>
-        <a href="#import">Import members</a>
-        <a href="#public">Public page</a>
-        <a href="#trial">Trial &amp; plan</a>
+        <a href="#starter">Your starter site</a>
+        <a href="#checklist">The setup checklist</a>
+        <a href="#url">Your public address</a>
+        <a href="#level">First membership level</a>
+        <a href="#payments">Connect payments</a>
+        <a href="#members">Add your members</a>
+        <a href="#officers">Invite officers</a>
+        <a href="#trial">Trial and plan</a>
         <h3>Guides</h3>
-        <a href="/docs/admin-guide.html">Admin guide</a>
-        <a href="/docs/billing-payments.html">Billing</a>
+        <a href="/docs/getting-started.html" class="active">Getting started</a>
+        <a href="/docs/website-builder.html">Website builder</a>
+        <a href="/docs/members-and-levels.html">Members &amp; levels</a>
+        <a href="/docs/events.html">Events</a>
+        <a href="/docs/billing-payments.html">Billing &amp; payments</a>
+        <a href="/docs/email-automations.html">Email &amp; automations</a>
+        <a href="/docs/roles-and-team.html">Roles &amp; team</a>
+        <a href="/docs/member-portal.html">Member portal</a>
+        <a href="/docs/store-and-donations.html">Store &amp; donations</a>
+        <a href="/docs/forms.html">Forms</a>
+        <a href="/docs/domains.html">Domains</a>
+        <a href="/docs/business-sites.html">Business sites</a>
+        <a href="/docs/security-privacy.html">Security &amp; privacy</a>
+        <a href="/docs/troubleshooting.html">Troubleshooting</a>
+        <a href="/docs/features.html">Feature reference</a>
+        <a href="/docs/api.html">API &amp; Zapier</a>
       </aside>
       <main class="docs-main">
         <h1>Getting started</h1>
-        <p class="lede">Set up a new guild in about an hour. Work through the checklist in order.</p>
+        <p class="lede">From nothing to a guild with a website, a membership level and a way to get paid, in about an hour.</p>
 
-        <h2 id="checklist">Launch checklist</h2>
-        <ol>
-          <li>Sign in at <a href="/admin">/admin</a> (Google sign-in in production).</li>
-          <li>Create your guild (name + URL slug).</li>
-          <li>Add at least one <strong>membership level</strong> with price and duration.</li>
-          <li>Connect <strong>Stripe Express</strong> so dues land in the guild bank.</li>
-          <li>Import or add members; send a welcome email when ready.</li>
-          <li>Upload your <strong>guild logo</strong> and fill public profile text.</li>
-          <li>Share your public link: <code>/g/your-slug</code>.</li>
-          <li>Create an event; test registration as a non-member.</li>
-          <li>Optional: store products, embeds for WordPress, API key for Zapier.</li>
-        </ol>
+        <h2 id="signin">Signing in</h2>
+        <ul>
+          <li><strong>Officers</strong> sign in at <a href="/admin">/admin</a> with <strong>Google</strong>. Use the Google account whose email you want on the guild's records; there is no password to set.</li>
+          <li><strong>Members</strong> never need the admin. They sign in to the <a href="/docs/member-portal.html">member portal</a> with a link emailed to them (valid 15 minutes, works once).</li>
+        </ul>
+        <p>While QuiltHosting is in private preview you will be asked for the shared access password first.</p>
 
         <h2 id="create">Create your guild</h2>
-        <p>After login, choose <strong>Create guild</strong>. Pick a short slug (letters, numbers, hyphens) — it becomes:</p>
-        <pre>https://quilthosting.com/g/your-slug
-https://quilthosting.com/portal?slug=your-slug</pre>
-        <p>New guilds start on a <strong>30-day Guild trial</strong> (unlimited active members) without a card.</p>
-
-        <h2 id="levels">Membership levels</h2>
-        <p>Admin → <strong>Levels</strong>. For each tier set:</p>
-        <ul>
-          <li><strong>Name</strong> — e.g. Individual, Family, Lifetime</li>
-          <li><strong>Price</strong> — in cents (2500 = $25.00). Zero = free activation.</li>
-          <li><strong>Duration</strong> — months until renewal</li>
-          <li><strong>Renewal</strong> — manual (member pays each year) or auto (Stripe subscription)</li>
-        </ul>
-        <div class="callout">Soft-archive levels instead of deleting if members ever held them — keeps history clean.</div>
-
-        <h2 id="stripe">Connect Stripe</h2>
-        <p>Admin → <strong>Settings → Billing &amp; payouts</strong> → Connect bank account. This uses Stripe Connect Express. Until Connect is complete, test payments may still work in sandbox, but guild bank deposits need a linked account.</p>
-        <p>See <a href="/docs/billing-payments.html">Billing &amp; payments</a> for platform Guild plan ($24/mo after trial) vs member dues.</p>
-
-        <h2 id="import">Import members</h2>
-        <p>Admin → <strong>Members → Import</strong>. CSV headers are Wild Apricot–compatible where possible. You can map level and expiry on import. Or add members one-by-one.</p>
-
-        <h2 id="public">Public page &amp; logo</h2>
-        <ul>
-          <li>Public join/events/store: <code>/g/your-slug</code></li>
-          <li>Logo + about text: Settings → Public profile</li>
-          <li>Pages, theme, nav: Admin → <strong>Website</strong></li>
-          <li>WordPress embeds: Settings → Embed widgets, or <a href="/docs/website-store.html">Website &amp; store</a></li>
-        </ul>
-
-        <h2 id="trial">Trial &amp; plan limits</h2>
+        <p>After signing in, choose <strong>Create guild</strong> and fill in:</p>
         <table>
-          <thead><tr><th>Plan</th><th>Active members</th><th>Platform fee</th></tr></thead>
+          <thead><tr><th>Field</th><th>Notes</th></tr></thead>
           <tbody>
-            <tr><td>Free</td><td>Up to 30</td><td>$0</td></tr>
-            <tr><td>Trial (30 days)</td><td>Unlimited</td><td>$0 during trial</td></tr>
-            <tr><td>Guild (starter)</td><td>Unlimited</td><td>$24/month</td></tr>
+            <tr><td>Guild name</td><td>Required. Shown everywhere.</td></tr>
+            <tr><td>Web address</td><td>Required. Lowercase letters, numbers and hyphens, at least two characters, unique across QuiltHosting. Anything else you type is dropped. <strong>It cannot be changed later</strong>, so choose carefully: it becomes <code>quilthosting.com/g/your-address</code> and <code>your-address.quilthosting.com</code>.</td></tr>
+            <tr><td>City / State</td><td>Optional, up to 120 characters. Used on your starter pages.</td></tr>
+            <tr><td>Meeting schedule</td><td>Optional, up to 300 characters, e.g. "Second Tuesday, 7 pm, Grace Church hall". Used on your starter pages.</td></tr>
           </tbody>
         </table>
-        <p>Pricing counts <strong>active members only</strong>, not every contact in the database.</p>
+        <p>You become the guild's <strong>Owner</strong>. The guild starts on a 30-day Guild trial (see <a href="#trial">Trial and plan</a>).</p>
+
+        <h2 id="starter">Your starter site</h2>
+        <p>Every new guild gets a working website with five published pages — <strong>Home</strong>, <strong>About</strong>, <strong>Why Join</strong>, <strong>Meetings</strong> and <strong>Contact</strong> — in the classic look with the QuiltHosting rust colour. Every paragraph starts with "Sample text — replace me:" so you can find what to rewrite. Home and Why Join include a "Become a member" call-to-action that points at your membership levels. Edit the pages in Admin → <strong>Website</strong>; see <a href="/docs/website-builder.html">Website builder</a>.</p>
+
+        <h2 id="checklist">The setup checklist</h2>
+        <p>The dashboard shows a card, <strong>Get your guild ready</strong>, with "n of m done". Nothing is ticked by hand: each step is recomputed from your real data every time you open the dashboard, so it can never be out of date.</p>
+        <table>
+          <thead><tr><th>Step</th><th>Counts as done when</th></tr></thead>
+          <tbody>
+            <tr><td>Starter website created</td><td>Your guild has at least one page (true from the start).</td></tr>
+            <tr><td>Replace the sample text on your pages</td><td>No page still contains "Sample text — replace me:".</td></tr>
+            <tr><td>Upload your guild logo</td><td>A logo has been uploaded under Settings → Public profile.</td></tr>
+            <tr><td>Add a membership level</td><td>At least one active level exists.</td></tr>
+            <tr><td>Connect Stripe for dues payouts</td><td>Stripe Connect has been started, <em>or</em> all your levels are free.</td></tr>
+            <tr><td>Add or import your first member</td><td>At least one member exists.</td></tr>
+            <tr><td>Invite another officer to help <em>(optional)</em></td><td>The team has two or more people.</td></tr>
+            <tr><td>Your web address <em>(optional)</em></td><td>Your free subdomain is live or a custom domain is set.</td></tr>
+          </tbody>
+        </table>
+        <p>Each undone step has a <strong>do this</strong> link. The guild is "ready for members" once it has a level and payments are sorted; the optional steps never block that. <strong>Dismiss checklist</strong> shrinks it to one line ("Setup checklist · View your site"); any officer can dismiss it and reopen it from the same place.</p>
+
+        <h2 id="url">Your public address</h2>
+        <p>Your site is at <code>quilthosting.com/g/your-address</code> from the first minute. QuiltHosting also sets up <code>your-address.quilthosting.com</code> in the background; the dashboard shows a badge (<em>subdomain live</em>, <em>pending</em>, <em>failed</em> or <em>not set up</em>) and a <strong>Check again</strong> (or <strong>Retry</strong>) button. Guilds created before this feature show no badge until you click Check again once. Later, you can point a domain you own at the site. Details: <a href="/docs/domains.html">Domains</a>.</p>
+
+        <h2 id="level">First membership level</h2>
+        <p>Admin → <strong>Levels</strong> → add a level: a name, a price in cents (2500 = $25.00; 0 = free), a duration in months (12 for a year), and whether it renews manually or automatically by card. Add one level now; you can add Family, Lifetime or Student later. Full detail: <a href="/docs/members-and-levels.html#levels">Members &amp; levels</a>.</p>
+
+        <h2 id="payments">Connect payments</h2>
+        <p>If any level, event or product costs money, go to Settings → <strong>Billing &amp; payouts</strong> → <strong>Connect bank account</strong>. Stripe walks the guild through a short form (legal name, tax ID or SSN of the responsible person, bank account). Until this is finished, card payments still work but land on QuiltHosting's platform account for testing only. See <a href="/docs/billing-payments.html#connect">Billing &amp; payments</a>.</p>
+
+        <h2 id="members">Add your members</h2>
+        <p>Members → <strong>Import CSV</strong> takes a spreadsheet export from Wild Apricot or anywhere else; column headings are matched for you and nothing is written until you confirm the preview. Or add members one at a time. Then share the portal link so they can sign in. Guide: <a href="/docs/members-and-levels.html#import">CSV import</a>.</p>
+
+        <h2 id="officers">Invite officers</h2>
+        <p>Admin → <strong>Team</strong> → enter an email and a role (Admin, Membership chair, Events chair, Viewer, or Owner). They are added immediately and emailed; they sign in with Google using that address. See <a href="/docs/roles-and-team.html">Roles &amp; team</a>.</p>
+
+        <h2 id="trial">Trial and plan</h2>
+        <table>
+          <thead><tr><th>Plan</th><th>Active members</th><th>Cost</th></tr></thead>
+          <tbody>
+            <tr><td>Guild trial (first 30 days)</td><td>Unlimited</td><td>$0, no card</td></tr>
+            <tr><td>Starter (free)</td><td>Up to 30</td><td>$0</td></tr>
+            <tr><td>Guild</td><td>Unlimited</td><td>$24 per month</td></tr>
+          </tbody>
+        </table>
+        <p>Only <strong>active</strong> members count. When the trial ends without a subscription, the free limit applies again; nobody is removed. Everything else works the same on every plan.</p>
 
         <div class="docs-footer">
           <a href="/docs/">← All docs</a>
-          <a href="/docs/admin-guide.html">Next: Admin guide →</a>
+          <a href="/docs/website-builder.html">Next: Website builder →</a>
         </div>
       </main>
     </div>

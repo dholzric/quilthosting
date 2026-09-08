@@ -19,73 +19,126 @@
     </header>
     <div class="docs-layout">
       <aside class="docs-side">
+        <h3>On this page</h3>
+        <a href="#membership">Membership</a>
+        <a href="#events">Events</a>
+        <a href="#comms">Communications</a>
+        <a href="#website">Website</a>
+        <a href="#commerce">Commerce</a>
+        <a href="#business">Business sites</a>
+        <a href="#integrations">Integrations and admin</a>
+        <a href="#not">Not included</a>
         <h3>Guides</h3>
         <a href="/docs/getting-started.html">Getting started</a>
-        <a href="/docs/admin-guide.html">Admin</a>
-        <a href="/docs/api.html">API</a>
+        <a href="/docs/website-builder.html">Website builder</a>
+        <a href="/docs/members-and-levels.html">Members &amp; levels</a>
+        <a href="/docs/events.html">Events</a>
+        <a href="/docs/billing-payments.html">Billing &amp; payments</a>
+        <a href="/docs/email-automations.html">Email &amp; automations</a>
+        <a href="/docs/roles-and-team.html">Roles &amp; team</a>
+        <a href="/docs/member-portal.html">Member portal</a>
+        <a href="/docs/store-and-donations.html">Store &amp; donations</a>
+        <a href="/docs/forms.html">Forms</a>
+        <a href="/docs/domains.html">Domains</a>
+        <a href="/docs/business-sites.html">Business sites</a>
+        <a href="/docs/security-privacy.html">Security &amp; privacy</a>
+        <a href="/docs/troubleshooting.html">Troubleshooting</a>
+        <a href="/docs/features.html" class="active">Feature reference</a>
+        <a href="/docs/api.html">API &amp; Zapier</a>
       </aside>
       <main class="docs-main">
         <h1>Feature reference</h1>
-        <p class="lede">Capability map for QuiltHosting v0.20+ (quilt-guild AMS).</p>
+        <p class="lede">What QuiltHosting does today (version 0.56, private preview), and what it deliberately does not do yet.</p>
 
-        <h2>Membership</h2>
+        <h2 id="membership">Membership</h2>
         <ul>
-          <li>Multi-level dues, manual/auto renewal, soft-archive levels</li>
-          <li>Member database with custom fields, notes, CSV import/export</li>
-          <li>Renewal reminders, auto-lapse, win-back</li>
-          <li>Plan free ≤30 / Guild $24 / 30-day trial</li>
+          <li>Membership levels with price, term in months, and manual or automatic (card-on-file) renewal; levels are archived, never deleted</li>
+          <li>Members with statuses pending / active / lapsed / cancelled, notes, custom fields (text or dropdown), groups, directory opt-out</li>
+          <li>Dues recorded by hand (cash, check, comp) with membership history</li>
+          <li>Renewal reminders 30/14/7/1 days out, automatic lapsing, a one-time win-back email</li>
+          <li>CSV import with Wild Apricot heading matching, preview before writing, per-row error reports; CSV export</li>
+          <li>Free plan up to 30 active members; 30-day Guild trial; Guild plan $24/month</li>
+          <li>Chapters: child guilds for multi-chapter organisations</li>
         </ul>
 
-        <h2>Events</h2>
+        <h2 id="events">Events</h2>
         <ul>
-          <li>Registration, dual pricing, capacity, waitlist + promote email</li>
-          <li>Custom questions, tickets, check-in, offline PWA queue</li>
+          <li>Public events with member and non-member pricing, capacity, waitlist (manual promotion), up to 20 text/dropdown questions</li>
+          <li>Seats held atomically during a 30-minute checkout; payments never applied twice</li>
+          <li>Repeating events (weekly, monthly by date, monthly by nth weekday; up to 60 occurrences)</li>
+          <li>Volunteer slots with public sign-up</li>
+          <li>Ticket codes, attendee list, check-in that works offline, CSV export</li>
+          <li>Per-event calendar files, a subscribable calendar feed, month calendar views, reminders 7 and 1 day before</li>
+          <li>Photo galleries (public; members-only flag reserved for later)</li>
         </ul>
 
-        <h2>Communications</h2>
+        <h2 id="comms">Communications</h2>
         <ul>
-          <li>Blasts: status/level/group segments, layouts, schedule</li>
-          <li>Merge fields, open + click tracking</li>
-          <li>Multi-step welcome automations</li>
-          <li>Optional SMS (Twilio)</li>
+          <li>Newsletters to status, level or group audiences with opted-out counts; three layouts; merge tags; scheduled sends that start within a minute</li>
+          <li>Per-recipient delivery status, open counts, partial-send retry</li>
+          <li>Unsubscribe links, one-click unsubscribe headers, bounce and complaint suppression, portal newsletter switch</li>
+          <li>Automations: email sequences triggered by membership activation, up to 12 steps</li>
+          <li>One-to-one SMS through your own Twilio account</li>
+          <li>Forms with six field types, conditional fields, and a contact-form page section</li>
         </ul>
 
-        <h2>Website &amp; content</h2>
+        <h2 id="website">Website</h2>
         <ul>
-          <li>Public <code>/g/:slug</code>, logo, theme, block pages, blog</li>
-          <li>Embeds for join / events / store</li>
-          <li>Documents library, members-only pages</li>
-          <li>Member forum</li>
+          <li>Starter site with five pages for every new guild</li>
+          <li>Section-based page builder: hero, heading, rich text, image, gallery, FAQ, button, join call-to-action, events list, store list, divider, spacer, embed; business sites add service cards, testimonials, contact form and quote request</li>
+          <li>Autosaved drafts, preview at desktop/tablet/mobile through the live renderer, publish, discard, 50-version history with restore-into-draft, conflict detection, trash</li>
+          <li>Page settings: address, menu, members-only, search title/description, hide from search engines; redirects when an address changes</li>
+          <li>Site menu editor; guild themes (colour, style, font); business appearance presets with contrast check</li>
+          <li>Blog posts on the guild site</li>
+          <li>Members-only pages and documents in the portal; member forum; member directory</li>
+          <li>Built-in address, free subdomain, custom domains with automatic certificates</li>
+          <li>Join, events and store widgets for WordPress and other sites</li>
         </ul>
 
-        <h2>Commerce</h2>
+        <h2 id="commerce">Commerce</h2>
         <ul>
-          <li>Store products, inventory, SKU, tax BPS, multi-SKU cart</li>
-          <li>Donations with receipt email</li>
-          <li>Numbered multi-line invoices</li>
-          <li>One-click refunds; QBO IIF export</li>
+          <li>Stripe Connect Express payouts to the guild's own bank; platform fee 0% by default</li>
+          <li>Store products with SKU, inventory and taxable flag; multi-item cart with a flat sales-tax rate; stock reserved during checkout</li>
+          <li>One-time donations ($1–$10,000) with receipts</li>
+          <li>Full refunds from the admin</li>
+          <li>Receipts (printable, and emailed for store and donations); numbered invoices with print-to-PDF and mark-paid</li>
+          <li>Treasurer reports: annual summary by year and a printable per-member statement / donation receipt</li>
+          <li>Payments CSV, QuickBooks Desktop IIF export, QuickBooks Online push</li>
         </ul>
 
-        <h2>Integrations &amp; ops</h2>
+        <h2 id="business">Business sites</h2>
         <ul>
-          <li>Stripe Connect destination charges + platform billing</li>
-          <li>Public API v1 + API keys (Zapier-ready)</li>
-          <li>Multi-chapter Council</li>
-          <li>Role-based team access; site gate for stealth launch</li>
-          <li><strong>Scale:</strong> paginated members/payments, queued email blasts, indexes for 50k+ members (see <code>docs/scaling.md</code>)</li>
+          <li>Server-rendered public site with appearance presets, business details and structured data</li>
+          <li>Quote-request form with ballpark pricing from your rate card and photo uploads</li>
+          <li>Project queue: submitted → estimated → signed → in progress → completed, with line items and a customer-signed agreement</li>
+          <li>Per-site launch switch that lifts the private-preview password for that site</li>
         </ul>
 
-        <h2>Not included (by design)</h2>
+        <h2 id="integrations">Integrations and admin</h2>
         <ul>
-          <li>Native iOS/Android apps (use PWA)</li>
-          <li>Job board</li>
-          <li>Full Wild Apricot drag-drop CMS parity</li>
-          <li>Zapier marketplace listing (REST works; listing later)</li>
+          <li>Five roles enforced on every request; read-only mode in the admin</li>
+          <li>Google sign-in for officers; one-time email links for members; 7-day sessions</li>
+          <li>Public API with scoped keys, member create/update with idempotency keys, and REST hooks</li>
+          <li>Outbound webhooks for Zapier and Make: seven events, signed payloads, retries, replay, auto-disable</li>
+          <li>Admin and portal usable on phones as web apps; offline event check-in</li>
+        </ul>
+
+        <h2 id="not">Not included (yet)</h2>
+        <ul>
+          <li>Bulk edits on the members list (use CSV import)</li>
+          <li>Family or household memberships; calendar-year or fixed-date renewals</li>
+          <li>Online payment of invoices, invoice emails or reminders; recurring donations; partial refunds</li>
+          <li>Product photos, sizes or variants; an orders screen; shipping addresses</li>
+          <li>Members-only or draft events; automatic waitlist promotion; event cancellation emails; QR-code check-in</li>
+          <li>A rich-text email editor, test sends, or a screen for blocked addresses; SMS newsletters</li>
+          <li>Automations triggered by anything other than membership activation</li>
+          <li>Configurable service types and payments for business projects</li>
+          <li>Native app-store apps (the admin and portal are web apps)</li>
         </ul>
 
         <div class="docs-footer">
           <a href="/docs/">← All docs</a>
-          <span>Version reference: product v0.20+</span>
+          <span>Product version 0.56.0-preview</span>
         </div>
       </main>
     </div>

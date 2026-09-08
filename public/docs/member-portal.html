@@ -14,68 +14,104 @@
       <a class="logo" href="/docs/"><span class="t">✦</span> QuiltHosting Docs</a>
       <nav>
         <a href="/docs/">All docs</a>
-        <a href="/portal">Open portal</a>
+        <a href="/portal">Portal</a>
       </nav>
     </header>
     <div class="docs-layout">
       <aside class="docs-side">
         <h3>On this page</h3>
-        <a href="#signin">Sign-in</a>
-        <a href="#tabs">Portal tabs</a>
-        <a href="#renew">Renew &amp; card</a>
-        <a href="#directory">Directory &amp; photo</a>
+        <a href="#signin">Signing in</a>
+        <a href="#tabs">What members see</a>
+        <a href="#renew">Renewing and cards</a>
+        <a href="#receipts">Receipts and documents</a>
+        <a href="#directory">Directory</a>
         <a href="#forum">Forum</a>
-        <a href="#share">Share the link</a>
+        <a href="#pages">Guild info pages</a>
+        <a href="#profile">Profile and email preferences</a>
+        <a href="#sessions">Sessions</a>
+        <a href="#share">Sharing the link</a>
+        <h3>Guides</h3>
+        <a href="/docs/getting-started.html">Getting started</a>
+        <a href="/docs/website-builder.html">Website builder</a>
+        <a href="/docs/members-and-levels.html">Members &amp; levels</a>
+        <a href="/docs/events.html">Events</a>
+        <a href="/docs/billing-payments.html">Billing &amp; payments</a>
+        <a href="/docs/email-automations.html">Email &amp; automations</a>
+        <a href="/docs/roles-and-team.html">Roles &amp; team</a>
+        <a href="/docs/member-portal.html" class="active">Member portal</a>
+        <a href="/docs/store-and-donations.html">Store &amp; donations</a>
+        <a href="/docs/forms.html">Forms</a>
+        <a href="/docs/domains.html">Domains</a>
+        <a href="/docs/business-sites.html">Business sites</a>
+        <a href="/docs/security-privacy.html">Security &amp; privacy</a>
+        <a href="/docs/troubleshooting.html">Troubleshooting</a>
+        <a href="/docs/features.html">Feature reference</a>
+        <a href="/docs/api.html">API &amp; Zapier</a>
       </aside>
       <main class="docs-main">
         <h1>Member portal</h1>
-        <p class="lede">Self-service for members: renewals, events, documents, directory, and more.</p>
+        <p class="lede">Where members renew, see events and receipts, find each other, and manage their own details — without a password.</p>
 
-        <h2 id="signin">Sign-in (passwordless)</h2>
-        <p>Members open <code>/portal?slug=your-guild</code> and enter email. QuiltHosting emails a magic link (or they can use Google if enabled). No guild-managed passwords.</p>
-        <div class="callout">Magic links expire. If a link fails, request a new one from the portal login screen.</div>
+        <h2 id="signin">Signing in</h2>
+        <p>Members open <code>quilthosting.com/portal?slug=your-guild</code> (or the Member portal link on your site), type their email, and click <strong>Email me a login link</strong>. The screen always says "Check your email for a login link", whether or not the address is known. The email contains a link that:</p>
+        <ul>
+          <li>is valid for <strong>15 minutes</strong>;</li>
+          <li>works <strong>once</strong> — a second click shows "This sign-in link has expired or was already used", with a link back to the portal to request another;</li>
+          <li>signs the member in for <strong>7 days</strong> on that browser.</li>
+        </ul>
+        <p>Members can also use <strong>Sign in with Google</strong> if their Google account uses the same email. A person who belongs to several guilds is shown a picker; if the portal does not know which guild, it asks for the guild's web address. Requests for links are limited to 10 per 10 minutes from one connection.</p>
+        <div class="callout">While QuiltHosting is in private preview, the whole site is behind an access password. A member who opens a sign-in link on a phone that has not entered that password is asked for it first, and then lands signed in. The link is used up before the password screen, so a member who gives up at that point needs a new link.</div>
 
-        <h2 id="tabs">Portal tabs</h2>
+        <h2 id="tabs">What members see</h2>
         <table>
-          <thead><tr><th>Tab</th><th>Use</th></tr></thead>
+          <thead><tr><th>Tab</th><th>Contents</th></tr></thead>
           <tbody>
-            <tr><td>Home</td><td>Membership status, quick renew, documents snapshot</td></tr>
-            <tr><td>Events</td><td>Upcoming events; register if allowed</td></tr>
-            <tr><td>Invoices</td><td>Payment history + printable receipts</td></tr>
-            <tr><td>Documents</td><td>Guild file library downloads</td></tr>
-            <tr><td>Directory</td><td>Fellow members (respecting opt-out + showcase)</td></tr>
-            <tr><td>Forum</td><td>Members-only topics and replies</td></tr>
-            <tr><td>Guild Info</td><td>Members-only content pages</td></tr>
-            <tr><td>Profile</td><td>Name, phone, bio, photo, directory visibility, custom fields</td></tr>
+            <tr><td>Home</td><td>Membership status, level and renewal date, and a <strong>Renew membership</strong> button. Someone who is signed in but not a member sees a link to the join page.</td></tr>
+            <tr><td>Events</td><td>Upcoming events with the member's price, a list and calendar view, Register buttons, and the member's own registrations with ticket codes.</td></tr>
+            <tr><td>Invoices</td><td>The member's last 50 payments, each with a printable receipt.</td></tr>
+            <tr><td>Documents</td><td>Files officers have shared, and past newsletters.</td></tr>
+            <tr><td>Directory</td><td>Other active members who have chosen to be listed.</td></tr>
+            <tr><td>Forum</td><td>Members-only topics and replies.</td></tr>
+            <tr><td>Guild Info</td><td>Your published pages, including members-only pages.</td></tr>
+            <tr><td>Profile</td><td>Name, phone, photo, bio, directory visibility, custom fields, newsletter preference, card on file.</td></tr>
           </tbody>
         </table>
 
-        <h2 id="renew">Renew, cancel auto-renew, update card</h2>
+        <h2 id="renew">Renewing, auto-renew and cards</h2>
         <ul>
-          <li><strong>Renew</strong> — starts Checkout (one-time or subscription depending on level)</li>
-          <li><strong>Cancel auto-renew</strong> — stops the Stripe subscription; membership stays active until end date</li>
-          <li><strong>Update payment card</strong> — opens Stripe Customer Portal for the card on file</li>
+          <li><strong>Renew membership</strong> uses the member's current level (or lets them pick one). A free level activates at once; a paid level opens Stripe Checkout — as a subscription when the level is set to auto-renew, otherwise as a one-off payment.</li>
+          <li>The Profile tab shows the card on file (brand, last four digits, expiry) when the member has an auto-renew subscription. <strong>Update payment card</strong> opens Stripe's secure page to change it.</li>
+          <li><strong>Stop automatic renewal</strong> cancels the subscription; the membership stays active until its end date.</li>
         </ul>
 
-        <h2 id="directory">Directory, bio &amp; photo</h2>
-        <p>On Profile, members can:</p>
-        <ul>
-          <li>Upload a photo (shown in the member directory)</li>
-          <li>Add bio, headline, and interests</li>
-          <li>Opt out of the directory entirely</li>
-        </ul>
-        <p>If the guild enables a <strong>public directory</strong>, opted-in members also appear on the public guild page.</p>
+        <h2 id="receipts">Receipts and documents</h2>
+        <p>Opening a receipt or downloading a document creates a private link that is valid for <strong>10 minutes</strong> and only for that one item, so a copied link cannot be used later or by someone else. Receipts open as a printable page with <strong>Print / Save as PDF</strong>. Documents are the files officers uploaded under Admin → Documents; members with a cancelled membership cannot download them.</p>
+
+        <h2 id="directory">Directory</h2>
+        <p>The directory lists <strong>active</strong> members who have <strong>Show me in the member directory</strong> ticked (it is ticked by default). It shows name, photo, member-since date, and the bio, headline and interests from their profile. Email addresses and phone numbers are never shown. Unticking the box removes the member and their photo entirely; there is no per-field control.</p>
 
         <h2 id="forum">Forum</h2>
-        <p>Any non-cancelled member can post topics and replies. Officers moderate (pin/delete) under Admin → Forum.</p>
+        <p>Any member who is not cancelled can start a topic (title up to 200 characters, body up to 10,000) and reply. Members cannot edit or delete their own posts. Officers moderate under Admin → <strong>Forum</strong>: pin, unpin or delete topics.</p>
 
-        <h2 id="share">Share the link</h2>
+        <h2 id="pages">Guild info pages</h2>
+        <p>Pages you publish in the website builder appear under Guild Info, including those marked <strong>Members only</strong> (labelled "(members only)"). Members-only pages never appear on the public site.</p>
+
+        <h2 id="profile">Profile and email preferences</h2>
+        <ul>
+          <li>Members can change their first and last name, phone, bio (up to 2,000 characters), headline, interests and website, upload a photo (up to 5 MB), and fill in your guild's custom fields. Email cannot be changed by the member; an officer changes it in the admin.</li>
+          <li><strong>Send me newsletters and announcements</strong> controls newsletters and automations from your guild. Receipts, renewal reminders, sign-in links and event confirmations are always sent.</li>
+        </ul>
+
+        <h2 id="sessions">Sessions</h2>
+        <p>A sign-in lasts 7 days on that browser. After that, or after <strong>Sign out</strong>, the member requests a new link. If a page shows "Your session expired. Please sign in again.", that is all that happened.</p>
+
+        <h2 id="share">Sharing the link</h2>
         <pre>https://quilthosting.com/portal?slug=your-slug</pre>
-        <p>Put this on newsletters, Facebook, and your website. Pair with the public join page <code>/g/your-slug</code> for new members.</p>
+        <p>Put it in newsletters and on your website. On your own subdomain or custom domain, <code>/portal</code> works too. Pair it with the public join page for people who are not members yet (see <a href="/docs/domains.html">Domains</a> for your site addresses).</p>
 
         <div class="docs-footer">
-          <a href="/docs/admin-guide.html">← Admin guide</a>
-          <a href="/docs/website-store.html">Website &amp; store →</a>
+          <a href="/docs/roles-and-team.html">← Roles &amp; team</a>
+          <a href="/docs/store-and-donations.html">Store &amp; donations →</a>
         </div>
       </main>
     </div>

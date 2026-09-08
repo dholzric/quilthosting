@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Events — QuiltHosting Docs</title>
+  <link rel="stylesheet" href="/qh.css" />
+  <link rel="stylesheet" href="/docs/docs.css" />
+</head>
+<body class="has-fleet-footer">
+  <div class="docs-wrap">
+    <header class="docs-top">
+      <a class="logo" href="/docs/"><span class="t">✦</span> QuiltHosting Docs</a>
+      <nav>
+        <a href="/docs/">All docs</a>
+        <a href="/admin">Admin</a>
+      </nav>
+    </header>
+    <div class="docs-layout">
+      <aside class="docs-side">
+        <h3>On this page</h3>
+        <a href="#create">Creating an event</a>
+        <a href="#pricing">Member and non-member pricing</a>
+        <a href="#register">How registration works</a>
+        <a href="#holds">Seats held during checkout</a>
+        <a href="#capacity">Capacity and waitlist</a>
+        <a href="#questions">Registration questions</a>
+        <a href="#recurrence">Repeating events</a>
+        <a href="#volunteers">Volunteers</a>
+        <a href="#checkin">Check-in</a>
+        <a href="#calendar">Calendar and reminders</a>
+        <a href="#manage">Editing, closing and deleting</a>
+        <a href="#galleries">Photo galleries</a>
+        <a href="#portal">Events in the portal</a>
+        <h3>Guides</h3>
+        <a href="/docs/getting-started.html">Getting started</a>
+        <a href="/docs/website-builder.html">Website builder</a>
+        <a href="/docs/members-and-levels.html">Members &amp; levels</a>
+        <a href="/docs/events.html" class="active">Events</a>
+        <a href="/docs/billing-payments.html">Billing &amp; payments</a>
+        <a href="/docs/email-automations.html">Email &amp; automations</a>
+        <a href="/docs/roles-and-team.html">Roles &amp; team</a>
+        <a href="/docs/member-portal.html">Member portal</a>
+        <a href="/docs/store-and-donations.html">Store &amp; donations</a>
+        <a href="/docs/forms.html">Forms</a>
+        <a href="/docs/domains.html">Domains</a>
+        <a href="/docs/business-sites.html">Business sites</a>
+        <a href="/docs/security-privacy.html">Security &amp; privacy</a>
+        <a href="/docs/troubleshooting.html">Troubleshooting</a>
+        <a href="/docs/features.html">Feature reference</a>
+        <a href="/docs/api.html">API &amp; Zapier</a>
+      </aside>
+      <main class="docs-main">
+        <h1>Events</h1>
+        <p class="lede">Meetings, workshops, retreats and shows: registration with member pricing, capacity and waitlists, questions, repeating events, volunteer slots, check-in, and calendar feeds.</p>
+
+        <h2 id="create">Creating an event</h2>
+        <p>Admin → <strong>Events</strong> → New event. Fill in:</p>
+        <table>
+          <thead><tr><th>Field</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>Title</td><td>Required.</td></tr>
+            <tr><td>Description, Location</td><td>Plain text.</td></tr>
+            <tr><td>Start, End</td><td>Start is required. Times are entered in your browser's time zone and shown to each visitor in theirs. Emails about the event show times in UTC.</td></tr>
+            <tr><td>Capacity</td><td>Leave blank for unlimited.</td></tr>
+            <tr><td>Member price, Non-member price</td><td>In cents (1500 is $15.00). 0 means free.</td></tr>
+            <tr><td>Enable waitlist when full</td><td>Fixed when the event is created; it cannot be changed afterwards.</td></tr>
+            <tr><td>Repeats</td><td>See <a href="#recurrence">Repeating events</a>.</td></tr>
+            <tr><td>Registration questions</td><td>See <a href="#questions">Registration questions</a>.</td></tr>
+          </tbody>
+        </table>
+        <p>Every event you create is public and appears on your site's Events page and calendar as soon as it is saved. There is no draft state, no event image, and no members-only event.</p>
+
+        <h2 id="pricing">Member and non-member pricing</h2>
+        <p>When someone registers, QuiltHosting looks up their email address. If it belongs to an <strong>active</strong> member of your guild, they pay the member price; otherwise the non-member price. Each registration records whether the member price was proven by a signed-in portal session or only claimed by typing a member's email, so you can check the registrations list if something looks off.</p>
+
+        <h2 id="register">How registration works</h2>
+        <ul>
+          <li>Registration needs an email address (and optionally a name). One seat per email address; registering twice returns "Already registered for this event".</li>
+          <li><strong>Free events</strong> register immediately. A confirmation email with a ticket code is sent.</li>
+          <li><strong>Paid events</strong> open Stripe Checkout. When the payment completes, the registration is confirmed and the confirmation email with the ticket code is sent. Money goes to your connected Stripe account (see <a href="/docs/billing-payments.html">Billing &amp; payments</a>).</li>
+          <li>A payment is never applied twice: if Stripe sends the same notice more than once, the second copy is ignored.</li>
+          <li>Registration can be closed at any time with the <strong>Close reg</strong> button; visitors then see "Registration is closed". There are no automatic open or close dates.</li>
+        </ul>
+
+        <h2 id="holds">Seats held during checkout</h2>
+        <p>Starting a paid registration takes a seat immediately and holds it for <strong>30 minutes</strong> — the same time the Stripe Checkout page stays open. If the buyer pays, the seat is theirs. If they leave, the seat is released: as soon as Stripe reports the checkout expired, or by a sweep that runs every minute and clears holds 10 minutes after they lapse. A buyer who comes back before the hold ends is sent to the same checkout page rather than taking a second seat.</p>
+        <p>In the rare case that a payment arrives after the hold was released and the seat was given to someone else, the payment is still honoured and the registration is confirmed. The event may then be one over capacity; it is up to you to sort that out.</p>
+
+        <h2 id="capacity">Capacity and waitlist</h2>
+        <ul>
+          <li>Seats are counted as confirmed registrations plus checkout holds still in their 30 minutes. The public page does not show how many seats are left; a visitor finds out when they try to register.</li>
+          <li>When the event is full and there is no waitlist, registration is refused with <strong>"Event is full"</strong>.</li>
+          <li>When the waitlist is on, the visitor is added to the waitlist ("Added to waitlist"). Waitlisted people receive no email at that point and no reminders. The waitlist has no limit.</li>
+          <li><strong>Promotion is manual.</strong> In the registrations list, click <strong>Promote</strong> next to a waitlisted person; they get an email, "You're in! Spot opened for …". Cancelling a registration does not promote anyone automatically, and promoting does not check capacity.</li>
+        </ul>
+
+        <h2 id="questions">Registration questions</h2>
+        <p>Up to 20 questions per event, each either <strong>Text</strong> or <strong>Dropdown</strong> (with a list of options), and optionally <strong>required</strong>. Answers are checked when someone registers ("Diet" is required, or Invalid option for "Size") and appear as extra columns in the registrations list and its CSV export. Each answer is kept to 500 characters.</p>
+
+        <h2 id="recurrence">Repeating events</h2>
+        <p>In the <strong>Repeats</strong> block choose <strong>weekly</strong>, <strong>monthly on the same date</strong>, or <strong>monthly on the nth weekday</strong> (first to fourth, or last); every 1–12 weeks or months; up to 60 occurrences. Each occurrence becomes its own event with its own registrations and capacity, and the end time keeps the same length as the first. Repeating can only be set when the event is created. Editing or deleting one occurrence does not touch the others.</p>
+
+        <h2 id="volunteers">Volunteers</h2>
+        <p>Open an event and scroll to <strong>Volunteers</strong>. Add a slot with a title, how many people are needed, and details. Slots cannot be edited afterwards; delete and re-add instead. Export the sign-ups as CSV.</p>
+        <p>On the public event page, visitors sign up for a slot with their name, email, optional phone and note. The page shows first names only. A full slot answers "That slot is already full", and the same email cannot take the same slot twice. No confirmation email is sent for volunteer sign-ups.</p>
+
+        <h2 id="checkin">Check-in</h2>
+        <p>Open the event's registrations list on the day. Each row shows name, email, status, ticket code (like <code>EV-A7K2M9</code>) and any question answers, with <strong>Check in</strong>, <strong>Cancel</strong>, <strong>Promote</strong> and <strong>Restore</strong> buttons. Check-in works offline: the list is cached on your phone and check-ins are queued until you are back online. There is no QR scanning; find the attendee in the list and tap Check in.</p>
+        <p><strong>Export CSV</strong> downloads name, email, status, ticket code, amount paid, registration time and question answers. Exports are available to owners, admins and membership chairs; an events chair can run the event but cannot download the CSV.</p>
+
+        <h2 id="calendar">Calendar, ICS and reminders</h2>
+        <ul>
+          <li>Each event has an <strong>Add to calendar</strong> (.ics) download and a Google Calendar link.</li>
+          <li>The events page has a <strong>Subscribe</strong> link — a calendar feed of your public events (from 90 days ago onward) that Google Calendar, Apple Calendar or Outlook can follow. Events without an end time are shown as two hours long.</li>
+          <li>The admin, the portal and the public site each include a month calendar view.</li>
+          <li>Registered attendees get a reminder email <strong>7 days</strong> and <strong>1 day</strong> before the start, sent by the daily job at 08:00 UTC.</li>
+        </ul>
+
+        <h2 id="manage">Editing, closing and deleting</h2>
+        <ul>
+          <li>You can edit the title, description, location, times, capacity, prices, questions and whether registration is open. A field cannot be blanked once it has a value, and a capped event cannot be made unlimited again.</li>
+          <li>Editing does not notify people who already registered, and changing the price does not charge or refund anyone.</li>
+          <li><strong>Cancel</strong> on a registration frees the seat. It does not refund the payment or email the person. Refund from <strong>Payments</strong> if needed.</li>
+          <li><strong>Delete event</strong> removes the event <strong>and all its registrations</strong>. No refunds are issued; refund each payment from Payments first if you need to. There is no "cancelled" state or cancellation email; tell attendees yourself.</li>
+        </ul>
+
+        <h2 id="galleries">Photo galleries</h2>
+        <p>Admin → <strong>Galleries</strong>. A gallery has a title, optional link to an event, a published switch and a members-only switch. Photos are uploaded one at a time, up to 10 MB each. Published public galleries appear on your site. Members-only galleries are not yet shown anywhere outside the admin. Events chairs can manage galleries.</p>
+
+        <h2 id="portal">Events in the member portal</h2>
+        <p>Signed-in members see upcoming events, their own price, and their registrations with ticket codes. Registering from the portal proves membership, so the member price is verified. Members cannot cancel their own registration; they should contact an officer. If an event has required questions, members should register from the public events page, which asks the questions.</p>
+
+        <div class="docs-footer">
+          <a href="/docs/members-and-levels.html">← Members &amp; levels</a>
+          <a href="/docs/billing-payments.html">Billing &amp; payments →</a>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

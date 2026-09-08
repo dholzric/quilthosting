@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Members &amp; levels — QuiltHosting Docs</title>
+  <link rel="stylesheet" href="/qh.css" />
+  <link rel="stylesheet" href="/docs/docs.css" />
+</head>
+<body class="has-fleet-footer">
+  <div class="docs-wrap">
+    <header class="docs-top">
+      <a class="logo" href="/docs/"><span class="t">✦</span> QuiltHosting Docs</a>
+      <nav>
+        <a href="/docs/">All docs</a>
+        <a href="/admin">Admin</a>
+      </nav>
+    </header>
+    <div class="docs-layout">
+      <aside class="docs-side">
+        <h3>On this page</h3>
+        <a href="#levels">Membership levels</a>
+        <a href="#list">Members list</a>
+        <a href="#statuses">Statuses</a>
+        <a href="#fields">Custom fields</a>
+        <a href="#groups">Groups</a>
+        <a href="#dues">Dues collected by hand</a>
+        <a href="#renewals">Renewals and lapsing</a>
+        <a href="#import">CSV import</a>
+        <a href="#wa">Wild Apricot columns</a>
+        <a href="#partial">Partial imports</a>
+        <a href="#export">Export</a>
+        <a href="#limit">Free plan limit</a>
+        <h3>Guides</h3>
+        <a href="/docs/getting-started.html">Getting started</a>
+        <a href="/docs/website-builder.html">Website builder</a>
+        <a href="/docs/members-and-levels.html" class="active">Members &amp; levels</a>
+        <a href="/docs/events.html">Events</a>
+        <a href="/docs/billing-payments.html">Billing &amp; payments</a>
+        <a href="/docs/email-automations.html">Email &amp; automations</a>
+        <a href="/docs/roles-and-team.html">Roles &amp; team</a>
+        <a href="/docs/member-portal.html">Member portal</a>
+        <a href="/docs/store-and-donations.html">Store &amp; donations</a>
+        <a href="/docs/forms.html">Forms</a>
+        <a href="/docs/domains.html">Domains</a>
+        <a href="/docs/business-sites.html">Business sites</a>
+        <a href="/docs/security-privacy.html">Security &amp; privacy</a>
+        <a href="/docs/troubleshooting.html">Troubleshooting</a>
+        <a href="/docs/features.html">Feature reference</a>
+        <a href="/docs/api.html">API &amp; Zapier</a>
+      </aside>
+      <main class="docs-main">
+        <h1>Members &amp; levels</h1>
+        <p class="lede">Membership levels, the members list, statuses, custom fields, groups, dues collected by hand, renewals, and moving your roster in from a spreadsheet or Wild Apricot.</p>
+
+        <h2 id="levels">Membership levels</h2>
+        <p>Admin → <strong>Levels</strong>. A level is a kind of membership — Individual, Family, Lifetime — with a price and a term.</p>
+        <table>
+          <thead><tr><th>Setting</th><th>What it means</th></tr></thead>
+          <tbody>
+            <tr><td>Name</td><td>Shown on the join page and in the portal.</td></tr>
+            <tr><td>Price</td><td>Entered in <strong>cents</strong>: 2500 is $25.00. A price of 0 activates the member immediately with no card.</td></tr>
+            <tr><td>Duration (months)</td><td>How long one term lasts, counted from the day the member joins or renews. Default 12.</td></tr>
+            <tr><td>Renewal</td><td><strong>Manual</strong>: the member pays again each term. <strong>Auto</strong>: the first payment starts a Stripe subscription that charges again each term (yearly when the duration is 12 months or more, otherwise monthly).</td></tr>
+          </tbody>
+        </table>
+        <ul>
+          <li>Terms always run from the join or renewal date. There is no calendar-year or fixed-date renewal.</li>
+          <li>There is no family or household bundle; each person is one member.</li>
+          <li>Levels cannot be deleted. <strong>Archive</strong> hides a level from the join page, the portal and imports, while every membership that used it keeps its history.</li>
+        </ul>
+        <div class="callout warn">The price box is in cents. Typing <code>35</code> makes a 35-cent level; type <code>3500</code> for $35.</div>
+
+        <h2 id="list">Members list</h2>
+        <p>Admin → <strong>Members</strong>. Search by name or email, filter by status (All, Active, Pending, Lapsed, Cancelled), and page through 50 at a time. The list is always sorted by last name, then first name. From here you can <strong>Add Member</strong>, <strong>Export CSV</strong> and <strong>Import CSV</strong>.</p>
+        <p>Opening a member shows their details, notes, custom fields, groups, membership history and payments. You can change their email (it must be unique within the guild), name, phone, status, notes, directory visibility and custom fields.</p>
+        <p>There are no bulk actions on the members list. To change many members at once, use a CSV import (below); to email many members, use audiences in <a href="/docs/email-automations.html">Email</a>.</p>
+
+        <h2 id="statuses">Statuses</h2>
+        <table>
+          <thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Pending</strong></td><td>Added or signed up but not yet paid or activated. New members start here.</td></tr>
+            <tr><td><strong>Active</strong></td><td>Has a current membership. Only active members count toward the free plan limit, appear in the directory, and get member pricing on events.</td></tr>
+            <tr><td><strong>Lapsed</strong></td><td>Their membership end date passed and they have not renewed. Set overnight by the daily job.</td></tr>
+            <tr><td><strong>Cancelled</strong></td><td>Removed from the guild. "Deleting" a member sets this status; the record and its history are kept.</td></tr>
+          </tbody>
+        </table>
+        <p>Setting a member to Pending or Lapsed by hand ends their current membership; setting them to Cancelled cancels it. The editor asks you to confirm. Moving a member back to Active by hand does <strong>not</strong> create a membership — use <strong>Assign / renew membership</strong> for that.</p>
+
+        <h2 id="fields">Custom fields</h2>
+        <p>Admin → <strong>Settings</strong> → Custom fields. Each field has a label, a type (<strong>text</strong> or <strong>dropdown</strong> with a comma-separated list of options) and a <strong>show on join form</strong> switch. Fields appear in the member editor, on the public join form when switched on, and on the member's Profile tab in the portal. Removing a field definition stops it being shown; values already stored on members are not erased.</p>
+
+        <h2 id="groups">Groups</h2>
+        <p>Groups are labels for sets of members — the board, a bee, a committee. Create and manage them on the <strong>Email</strong> screen, or tick groups in a member's editor. A group can be chosen as an email audience. Deleting a group removes the label; the members stay.</p>
+        <p><strong>Chapters</strong> are different: a chapter is a separate child guild with its own address, members and events, for multi-chapter organisations. Chapters cannot have chapters of their own, and are archived rather than deleted.</p>
+
+        <h2 id="dues">Dues collected by hand</h2>
+        <p>Open the member and use <strong>Assign / renew membership</strong>. Choose the level; the end date is pre-filled one full term from today, and you can type a different date. Optionally record the amount and how it was paid (cash, check, comp, card taken offline, other) and a note. When an amount is entered, a payment appears in Payments with an "Offline" description.</p>
+        <ul>
+          <li>The new term starts <strong>today</strong>, not at the end of the current one. If someone renews early, type the later end date yourself.</li>
+          <li>Any earlier active membership is closed when the new one is assigned.</li>
+          <li>No receipt or confirmation email is sent for dues recorded by hand.</li>
+        </ul>
+
+        <h2 id="renewals">Renewals and lapsing</h2>
+        <p>A daily job runs at 08:00 UTC (early morning in the US):</p>
+        <ul>
+          <li>Sends a renewal reminder <strong>30, 14, 7 and 1 day</strong> before a membership end date, with a link to renew in the portal. Reminders go to every active member with an end date, including those on auto-renew.</li>
+          <li>The day after the end date, marks the membership expired and the member <strong>Lapsed</strong> — there is no grace period. Memberships with no end date never lapse.</li>
+          <li>Sends a one-time "we miss you" email 7 days after a member lapses, unless they have opted out of newsletters.</li>
+        </ul>
+        <p>Auto-renew charges are made by Stripe. When a renewal payment succeeds, the end date is extended by one term and the member is made active again; no email is sent for that renewal. If a card fails, nothing changes in QuiltHosting until the end date passes and the member lapses normally; the member can update their card from the portal.</p>
+
+        <h2 id="import">CSV import</h2>
+        <p>Members → <strong>Import</strong> brings a list in from a CSV export (Wild Apricot or anything else). Up to 5,000 rows per file; split larger files.</p>
+        <ol>
+          <li><strong>Choose the file.</strong> Every column is read, including ones the importer does not recognise — nothing is silently dropped.</li>
+          <li><strong>Check the column table.</strong> Each column shows an example value and a dropdown for where it goes: a known field (email, first name, last name, phone, status, notes, level, end/expiry date, joined date), <strong>Import as custom field</strong>, or <strong>Do not import</strong>. Common headings are matched for you; confirm the guesses.</li>
+          <li><strong>Promote a column to a custom field</strong> for guild-specific data. It becomes a permanent custom field for every member.</li>
+          <li><strong>Read the preview.</strong> "What will happen" shows how many members will be created, updated and skipped, and anything worth checking. <strong>Nothing is written until you press Import</strong> — changing a mapping just re-checks the file.</li>
+          <li><strong>Press Import.</strong> You get a summary, and a <strong>Download problem rows</strong> button when rows need attention.</li>
+        </ol>
+        <p><strong>How rows are matched.</strong> By email address, ignoring case. A row whose email already belongs to a member <strong>updates</strong> that member; a new email creates one. Rows without a usable email, rows that repeat an email already in the file, and rows with the wrong number of columns are skipped and listed.</p>
+        <p><strong>What an update preserves.</strong> A blank cell never erases a name, phone or notes you already have. Custom-field values you entered by hand are kept unless the file supplies a new value for that field. The <strong>join date</strong> of an existing member is never changed by an import. A person who previously unsubscribed keeps that <strong>opt-out</strong>, even if they were removed and imported again. A member whose level and end date are unchanged keeps their auto-renew subscription untouched.</p>
+        <p><strong>Levels and status.</strong> The level column is matched by name to your active levels. Naming a level on a row is an instruction to give that person an active membership now — it overrides the status column. A status the importer cannot read is treated as active and reported. If the file names a level that does not exist, the person is imported without a membership and the row is listed.</p>
+        <p><strong>Renewal dates.</strong> A readable end/expiry date is used exactly as given. When the file names a level but has no readable date, QuiltHosting chooses one: one full term from today (or from the start date, if that is in the future). This never shortens a membership the member already holds — a later or open-ended date is kept. The chosen dates are listed per member in the problem-rows download so you can check them. A "Member Since" date sets the join date only; it never sets the renewal date.</p>
+
+        <h2 id="wa">Wild Apricot and other column headings</h2>
+        <p>Headings are matched ignoring case, spaces and punctuation. These are pre-matched:</p>
+        <table>
+          <thead><tr><th>Goes to</th><th>Headings recognised</th></tr></thead>
+          <tbody>
+            <tr><td>Email</td><td>Email, Email address, Mail</td></tr>
+            <tr><td>First name</td><td>First name, First</td></tr>
+            <tr><td>Last name</td><td>Last name, Last, Surname</td></tr>
+            <tr><td>Phone</td><td>Phone, Phone number, Mobile, Cell phone</td></tr>
+            <tr><td>Status</td><td>Status, Membership status</td></tr>
+            <tr><td>Notes</td><td>Notes, Note, Comments</td></tr>
+            <tr><td>Level</td><td>Level, Level name, Membership level, Membership type, Membership label</td></tr>
+            <tr><td>End date</td><td>End date, Expiry, Expiration, Expiration date, Renewal date, Renewal due, Membership expires</td></tr>
+            <tr><td>Joined</td><td>Joined, Joined at, Join date, Member since</td></tr>
+          </tbody>
+        </table>
+        <p>If two columns point at the same field, the first is used and the second is reported. Any other column can be imported as a custom field or ignored. A column that already matches one of your custom fields (by label) is matched to it automatically.</p>
+
+        <h2 id="partial">Partial imports — what they mean</h2>
+        <p>Every import is recorded in the <strong>Recent imports</strong> card on the Members page (the 50 most recent, with who ran it, the counts and a <strong>Download errors</strong> button). Each ends up as:</p>
+        <ul>
+          <li><strong>Complete</strong> — nothing was lost. It can still carry news, such as renewal dates that were chosen for you.</li>
+          <li><strong>Partial</strong> — something in your file did not come through in full. Your members were still imported; it is not a crash and not a rollback.</li>
+        </ul>
+        <p>An import is partial when rows were skipped, a membership could not be assigned, a level was not found, an ignored column had data, two columns pointed at the same field, a date or status could not be read (or a status was overridden by a level), or members were held at your plan's active-member limit.</p>
+        <p><strong>What to do:</strong> download the errors, fix those rows in your spreadsheet, and import the file again. Re-importing is the repair mechanism, because rows are matched by email and update in place. <strong>There is no undo</strong> — an import cannot be rolled back.</p>
+        <div class="callout warn"><strong>Read the errors before you re-run.</strong> When a row assigns a membership to someone who already has an active one, the existing membership is closed first and the new one written second. If the new one fails again, that member is left with no active membership. If your error list contains "membership failed" rows, work out why before re-running the file. Everything else is safe to re-import.</div>
+        <div class="callout ok"><strong>Your own export is safe to re-import.</strong> Members → Export writes the level and end date only for people who are currently active, so re-importing it does not resurrect pending, lapsed or cancelled members, and active members carry their real renewal date back in.</div>
+
+        <h2 id="export">Export</h2>
+        <p>Members → <strong>Export CSV</strong> downloads every member with these columns: email, first name, last name, phone, status, joined date, notes, level, end date. Level and end date are filled only for members with a current active membership. Exports are available to owners, admins and membership chairs.</p>
+
+        <h2 id="limit">The free plan limit</h2>
+        <p>On the free plan a guild can have <strong>30 active members</strong>. During the 30-day trial and on the Guild plan there is no limit. The limit only applies when someone is being made <strong>newly</strong> active — renewing or re-importing someone already active costs nothing. When the limit is reached, adding or activating a member fails with "Free plan is limited to 30 active members. Upgrade to the Guild plan for unlimited members." An import instead brings the extra people in as <strong>Pending</strong> and lists them as held; nothing in your file is wrong. See <a href="/docs/billing-payments.html">Billing &amp; payments</a>.</p>
+
+        <div class="docs-footer">
+          <a href="/docs/getting-started.html">← Getting started</a>
+          <a href="/docs/member-portal.html">Member portal →</a>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

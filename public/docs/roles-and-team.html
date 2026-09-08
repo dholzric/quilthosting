@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Roles &amp; team — QuiltHosting Docs</title>
+  <link rel="stylesheet" href="/qh.css" />
+  <link rel="stylesheet" href="/docs/docs.css" />
+</head>
+<body class="has-fleet-footer">
+  <div class="docs-wrap">
+    <header class="docs-top">
+      <a class="logo" href="/docs/"><span class="t">✦</span> QuiltHosting Docs</a>
+      <nav>
+        <a href="/docs/">All docs</a>
+        <a href="/admin">Admin</a>
+      </nav>
+    </header>
+    <div class="docs-layout">
+      <aside class="docs-side">
+        <h3>On this page</h3>
+        <a href="#roles">The five roles</a>
+        <a href="#matrix">What each role can do</a>
+        <a href="#adding">Adding an officer</a>
+        <a href="#changing">Changing roles and removing people</a>
+        <a href="#handover">Handing over ownership</a>
+        <a href="#readonly">What read-only looks like</a>
+        <h3>Guides</h3>
+        <a href="/docs/getting-started.html">Getting started</a>
+        <a href="/docs/website-builder.html">Website builder</a>
+        <a href="/docs/members-and-levels.html">Members &amp; levels</a>
+        <a href="/docs/events.html">Events</a>
+        <a href="/docs/billing-payments.html">Billing &amp; payments</a>
+        <a href="/docs/email-automations.html">Email &amp; automations</a>
+        <a href="/docs/roles-and-team.html" class="active">Roles &amp; team</a>
+        <a href="/docs/member-portal.html">Member portal</a>
+        <a href="/docs/store-and-donations.html">Store &amp; donations</a>
+        <a href="/docs/forms.html">Forms</a>
+        <a href="/docs/domains.html">Domains</a>
+        <a href="/docs/business-sites.html">Business sites</a>
+        <a href="/docs/security-privacy.html">Security &amp; privacy</a>
+        <a href="/docs/troubleshooting.html">Troubleshooting</a>
+        <a href="/docs/features.html">Feature reference</a>
+        <a href="/docs/api.html">API &amp; Zapier</a>
+      </aside>
+      <main class="docs-main">
+        <h1>Roles &amp; team</h1>
+        <p class="lede">Who can do what in the admin, how to add officers, and how to hand the guild to the next president.</p>
+
+        <h2 id="roles">The five roles</h2>
+        <table>
+          <thead><tr><th>Role</th><th>Intended for</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Owner</strong></td><td>The person ultimately responsible. Full access, plus the only role that can make or unmake other owners and cancel the platform subscription.</td></tr>
+            <tr><td><strong>Admin</strong></td><td>Officers who run the whole guild. Full access to everything except owner-only actions.</td></tr>
+            <tr><td><strong>Membership chair</strong></td><td>Members, levels, groups, dues, refunds, invoices, email and SMS, forms. Can view everything else.</td></tr>
+            <tr><td><strong>Events chair</strong></td><td>Events, galleries and forms. Can view most other areas.</td></tr>
+            <tr><td><strong>Viewer</strong></td><td>Looks but cannot change anything.</td></tr>
+          </tbody>
+        </table>
+        <p>Every request to the server is checked against this table, not just the buttons on screen. Roles belong to one guild; a person can hold different roles in different guilds.</p>
+
+        <h2 id="matrix">What each role can do</h2>
+        <p><strong>View</strong> means see the screen and its data; <strong>Change</strong> means add, edit or delete; <strong>Export</strong> means download CSV or other exports; <strong>—</strong> means the area is hidden entirely.</p>
+        <table>
+          <thead><tr><th>Area</th><th>Owner / Admin</th><th>Membership chair</th><th>Events chair</th><th>Viewer</th></tr></thead>
+          <tbody>
+            <tr><td>Membership levels</td><td>Change</td><td>Change</td><td>View</td><td>View</td></tr>
+            <tr><td>Members</td><td>Change, Export</td><td>Change, Export</td><td>View</td><td>View</td></tr>
+            <tr><td>Events</td><td>Change, Export</td><td>View, Export</td><td>Change (no export)</td><td>View</td></tr>
+            <tr><td>Dashboard and reports</td><td>View, Export</td><td>View, Export</td><td>View</td><td>View</td></tr>
+            <tr><td>Payments and refunds</td><td>Change, Export</td><td>Change, Export</td><td>View</td><td>View</td></tr>
+            <tr><td>Email</td><td>Change</td><td>Change</td><td>View</td><td>View</td></tr>
+            <tr><td>Groups</td><td>Change</td><td>Change</td><td>View</td><td>View</td></tr>
+            <tr><td>Team</td><td>Change</td><td>View</td><td>View</td><td>View</td></tr>
+            <tr><td>Website pages</td><td>Change</td><td>View, Preview</td><td>View, Preview</td><td>View, Preview</td></tr>
+            <tr><td>Documents / files</td><td>Change</td><td>View</td><td>View</td><td>View</td></tr>
+            <tr><td>Store products</td><td>Change</td><td>View</td><td>View</td><td>View</td></tr>
+            <tr><td>Forms</td><td>Change, Export</td><td>Change, Export</td><td>Change (no export)</td><td>View</td></tr>
+            <tr><td>Invoices</td><td>Change, Export</td><td>Change, Export</td><td>View</td><td>View</td></tr>
+            <tr><td>Automations</td><td>Change</td><td>View</td><td>View</td><td>View</td></tr>
+            <tr><td>Forum moderation</td><td>Change</td><td>View</td><td>View</td><td>View</td></tr>
+            <tr><td>SMS</td><td>Change</td><td>Change</td><td>View</td><td>View</td></tr>
+            <tr><td>Chapters</td><td>Change</td><td>View</td><td>View</td><td>View</td></tr>
+            <tr><td>Galleries</td><td>Change</td><td>View</td><td>Change</td><td>View</td></tr>
+            <tr><td>Projects (business sites)</td><td>Change</td><td>—</td><td>—</td><td>—</td></tr>
+            <tr><td>Billing &amp; payouts</td><td>Change</td><td>—</td><td>—</td><td>—</td></tr>
+            <tr><td>Custom domain</td><td>Change</td><td>—</td><td>—</td><td>—</td></tr>
+            <tr><td>API keys</td><td>Change</td><td>—</td><td>—</td><td>—</td></tr>
+            <tr><td>Zapier webhooks</td><td>Change</td><td>—</td><td>—</td><td>—</td></tr>
+            <tr><td>QuickBooks</td><td>Change</td><td>—</td><td>—</td><td>—</td></tr>
+            <tr><td>Stored credentials</td><td>Change</td><td>—</td><td>—</td><td>—</td></tr>
+          </tbody>
+        </table>
+        <p>Notes: exports (any CSV download, including event registrations) are for owners, admins and membership chairs only, so an events chair who runs check-in cannot download the attendee CSV. Cancelling the platform subscription is owner-only. Platform staff at QuiltHosting can act with owner-level access on any guild for support.</p>
+
+        <h2 id="adding">Adding an officer</h2>
+        <p>Admin → <strong>Team</strong> → enter their email and choose a role. They are added to the team <strong>immediately</strong> and receive an email, "You've been added to (guild) on QuiltHosting", telling them to sign in with Google using that address. There is no invitation to accept and nothing expires; if you typed the wrong address, remove that row. Owners and admins can add people; only an owner can grant the Owner role.</p>
+
+        <h2 id="changing">Changing roles and removing people</h2>
+        <ul>
+          <li>Owners and admins can change roles and remove people.</li>
+          <li>Only an owner can change an owner's role, promote someone to owner, or remove an owner.</li>
+          <li>The last owner cannot be removed ("Cannot remove the last owner").</li>
+          <li>Removing someone takes effect right away for new requests; a session they already have keeps working until it expires (up to 7 days). Remove departed officers promptly.</li>
+        </ul>
+
+        <h2 id="handover">Handing over ownership</h2>
+        <p>There is no separate "transfer ownership" button. When a new president takes over:</p>
+        <ol>
+          <li>The current owner adds the new person to the team (any role).</li>
+          <li>The current owner changes the new person's role to <strong>Owner</strong>. A guild can have more than one owner.</li>
+          <li>The outgoing owner is then removed, or changes their own role, by either owner.</li>
+        </ol>
+        <p>Do the same for Stripe: the Stripe Express account belongs to the guild, so update its contact details in the Stripe dashboard rather than creating a new one.</p>
+
+        <h2 id="readonly">What read-only looks like</h2>
+        <p>Screens a role cannot see at all are missing from the sidebar. Screens a role can view but not change show a banner, <strong>"Read-only for your role — you can view this screen but not change it."</strong>, and the buttons that would make changes are greyed out. In the website builder the status pill reads <strong>Read-only</strong>; you can still browse pages and use Preview. If a change is attempted anyway, the server refuses it.</p>
+
+        <div class="docs-footer">
+          <a href="/docs/email-automations.html">← Email &amp; automations</a>
+          <a href="/docs/member-portal.html">Member portal →</a>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

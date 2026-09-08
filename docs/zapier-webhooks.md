@@ -34,7 +34,7 @@ Headers:
 | Header | Meaning |
 |---|---|
 | `X-QH-Event` | Event name |
-| `X-QH-Delivery` | `{outbox-id}:{endpoint-id}` — unique per endpoint per attempt |
+| `X-QH-Delivery` | `{outbox-id}:{endpoint-id}` — identifies one (event, endpoint) delivery and is **constant across retries** of it; dedupe on the envelope `id` |
 | `X-QH-Timestamp` | Unix seconds, part of the signed material |
 | `X-QH-Schema-Version` | Matches `schema_version` in the body |
 | `X-QH-Signature` | HMAC-SHA256 hex of `{X-QH-Timestamp}.{raw body}` |
@@ -143,27 +143,18 @@ deleted, in the correction banner on
   event is lost. Every other path listed above (`member.created`,
   `member.updated` via API v1, `event.registration`, `form.response`) is
   atomic; this one admin route is the exception.
-- **The Stripe webhook path logs instead of failing when event-preparation
-  fails.** Stripe retries the *entire* webhook body on any non-2xx response,
-  and the payment side effects on that path are not safely re-runnable past
-  `paymentAlreadyRecorded`. So if writing an outbox row fails there, the
-  mutation is committed alone, a loud error is logged, and the request still
-  returns 200 rather than asking Stripe to redeliver a payment already
-  recorded. The event can be lost; the payment is not.
-- **`membership.activated` and `member.activated` are atomic with each other,
-  not with the activation.** On both the free-join path and the Stripe dues
-  path, `activateMembership()` runs and commits its own statements (expiring
-  prior actives, inserting the membership, flipping member status) first, and
-  only afterward are the two outbox rows written — batched together so a
-  subscriber never sees one event without the other, but neither event is in
-  the same transaction as the activation itself.
-- **The Stripe commit helper requires its mutation to be idempotent, and
-  nothing enforces that.** `commitStripeMutationWithEvent` falls back to
-  re-running the mutation alone if the batched write fails, and that fallback
-  can itself be interrupted. Every current caller passes a statement that is
-  safe to run twice (an INSERT on a pre-generated id, or a status-flag UPDATE
-  whose WHERE clause is a no-op once applied) — but a future caller passing a
-  non-idempotent statement (e.g. a bare decrement) could double-apply.
+- **The Stripe dues path is now atomic (v0.56).** `checkout.session.completed`
+  for dues runs the membership activation, the `membership.activated` and
+  `member.activated` outbox rows, and the `payments.fulfilled_at` stamp in one
+  `db.batch()` (`src/routes/webhooks.ts`). If that batch fails the handler
+  returns 500, the `stripe_events` row is marked `failed`, and Stripe
+  redelivers; the retry finds `fulfilled_at` still NULL and re-runs the batch
+  exactly once. (The older `commitStripeMutationWithEvent` helper no longer
+  exists.)
+- **The free-join path is still not atomic with its events.** On a $0 level,
+  `activateMembership()` commits its own statements first and the two outbox
+  rows are written afterward — batched together so a subscriber never sees
+  one without the other, but not in the same transaction as the activation.
 - **The hostname deny list does not resolve DNS.** `https` is required and
   loopback, private ranges, link-local/metadata addresses, and our own domains
   are refused by pattern match against the hostname — but a hostname that

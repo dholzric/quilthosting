@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Domains — QuiltHosting Docs</title>
+  <link rel="stylesheet" href="/qh.css" />
+  <link rel="stylesheet" href="/docs/docs.css" />
+</head>
+<body class="has-fleet-footer">
+  <div class="docs-wrap">
+    <header class="docs-top">
+      <a class="logo" href="/docs/"><span class="t">✦</span> QuiltHosting Docs</a>
+      <nav>
+        <a href="/docs/">All docs</a>
+        <a href="/admin">Admin</a>
+      </nav>
+    </header>
+    <div class="docs-layout">
+      <aside class="docs-side">
+        <h3>On this page</h3>
+        <a href="#three">Your three addresses</a>
+        <a href="#path">The built-in address</a>
+        <a href="#subdomain">Your free subdomain</a>
+        <a href="#custom">A domain you own</a>
+        <a href="#https">HTTPS</a>
+        <a href="#remove">Removing a custom domain</a>
+        <h3>Guides</h3>
+        <a href="/docs/getting-started.html">Getting started</a>
+        <a href="/docs/website-builder.html">Website builder</a>
+        <a href="/docs/members-and-levels.html">Members &amp; levels</a>
+        <a href="/docs/events.html">Events</a>
+        <a href="/docs/billing-payments.html">Billing &amp; payments</a>
+        <a href="/docs/email-automations.html">Email &amp; automations</a>
+        <a href="/docs/roles-and-team.html">Roles &amp; team</a>
+        <a href="/docs/member-portal.html">Member portal</a>
+        <a href="/docs/store-and-donations.html">Store &amp; donations</a>
+        <a href="/docs/forms.html">Forms</a>
+        <a href="/docs/domains.html" class="active">Domains</a>
+        <a href="/docs/business-sites.html">Business sites</a>
+        <a href="/docs/security-privacy.html">Security &amp; privacy</a>
+        <a href="/docs/troubleshooting.html">Troubleshooting</a>
+        <a href="/docs/features.html">Feature reference</a>
+        <a href="/docs/api.html">API &amp; Zapier</a>
+      </aside>
+      <main class="docs-main">
+        <h1>Domains</h1>
+        <p class="lede">Every guild has a built-in address and a free subdomain. When you are ready, point a domain you own at your site.</p>
+
+        <h2 id="three">Your three addresses</h2>
+        <table>
+          <thead><tr><th>Address</th><th>Example</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>Built-in</td><td><code>quilthosting.com/g/your-slug</code></td><td>Always works.</td></tr>
+            <tr><td>Free subdomain</td><td><code>your-slug.quilthosting.com</code></td><td>Set up automatically when the guild is created.</td></tr>
+            <tr><td>Custom domain</td><td><code>www.yourguild.org</code></td><td>Optional; you own the domain.</td></tr>
+          </tbody>
+        </table>
+        <p>All three show the same site, and <code>/portal</code> and <code>/admin</code> work on each of them. The dashboard shows which one is your current public address.</p>
+
+        <h2 id="path">The built-in address</h2>
+        <p>The slug is the web address you chose when creating the guild: lowercase letters, numbers and hyphens, at least two characters, unique across QuiltHosting. It cannot be changed afterwards. On your subdomain or custom domain the <code>/g/your-slug</code> part is not needed — <code>/g/…</code> links simply forward to the shorter form.</p>
+
+        <h2 id="subdomain">Your free subdomain</h2>
+        <p>When a guild is created, QuiltHosting sets up <code>your-slug.quilthosting.com</code> in the background. The dashboard shows a badge:</p>
+        <table>
+          <thead><tr><th>Badge</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><strong>subdomain live</strong></td><td>Working; this is your public address.</td></tr>
+            <tr><td><strong>subdomain pending</strong></td><td>Still being set up. Click <strong>Check again</strong>.</td></tr>
+            <tr><td><strong>subdomain failed</strong></td><td>Setup was refused; the reason is shown. Click <strong>Retry</strong>. If it keeps failing, contact support.</td></tr>
+            <tr><td><strong>subdomain not set up</strong></td><td>Setup was skipped. Click <strong>Check again</strong>.</td></tr>
+            <tr><td>no badge</td><td>Guilds created before this feature existed have no recorded status. Click <strong>Check again</strong> once to fill it in.</td></tr>
+          </tbody>
+        </table>
+        <p>Setup takes effect as soon as it succeeds; there is no waiting period. Owners and admins can use Check again and Retry. A slug of <code>www</code> or <code>api</code> cannot be used as a subdomain.</p>
+
+        <h2 id="custom">A domain you own</h2>
+        <p>Admin → <strong>Settings → Custom domain</strong> (owners and admins). Type your domain — <code>www.yourguild.org</code> or <code>yourguild.org</code>; either way both the bare domain and www are set up — and click <strong>Save domain</strong>. Then add these records at your domain registrar or DNS host:</p>
+        <table>
+          <thead><tr><th>Type</th><th>Name</th><th>Value</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>CNAME</td><td><code>www</code></td><td><code>customers.quilthosting.com</code></td><td>Recommended. Points www.yourguild.org at QuiltHosting.</td></tr>
+            <tr><td>CNAME or ALIAS</td><td><code>@</code></td><td><code>customers.quilthosting.com</code></td><td>The bare domain needs CNAME flattening (Cloudflare DNS) or an ALIAS/ANAME record at your DNS host. Or redirect the bare domain to www.</td></tr>
+          </tbody>
+        </table>
+        <ul>
+          <li>The card shows the status of each hostname and its certificate, for example <em>www: active / SSL active</em>. Use <strong>Refresh SSL status</strong> to check again after changing DNS. DNS changes can take a while to spread.</li>
+          <li>You cannot use <code>quilthosting.com</code> itself or another guild's subdomain, and a domain already used by another guild is refused.</li>
+          <li>Both www and the bare domain serve the site; QuiltHosting does not redirect one to the other.</li>
+          <li>Business sites set their domain on the <strong>Domain &amp; Launch</strong> screen instead, which shows the same records.</li>
+        </ul>
+
+        <h2 id="https">HTTPS</h2>
+        <p>Certificates are issued automatically for your subdomain and your custom domain (first 100 hostnames are free on the platform). Nothing to install. The site requires TLS 1.2 or newer.</p>
+
+        <h2 id="remove">Removing a custom domain</h2>
+        <p><strong>Clear custom domain</strong> removes the hostnames from QuiltHosting; your free subdomain keeps working ("Remove the custom domain? Free subdomain still works."). Remember to remove or repoint the DNS records at your registrar.</p>
+
+        <div class="docs-footer">
+          <a href="/docs/forms.html">← Forms</a>
+          <a href="/docs/business-sites.html">Business sites →</a>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>
