@@ -1720,10 +1720,10 @@
         <div id="add-level-form" class="card hidden">
           <div class="form-row">
             <div><label>Name</label><input id="l-name" placeholder="Individual" /></div>
-            <div><label>Price (cents)</label><input id="l-price" type="number" value="3500" /></div>
+            <div><label>Price ($)</label><input id="l-price" type="number" step="0.01" min="0" value="35.00" /></div>
           </div>
           <div class="form-row">
-            <div><label>Duration (months)</label><input id="l-duration" type="number" value="12" /></div>
+            <div><label>Duration (months)</label><input id="l-duration" type="number" min="1" max="120" value="12" /></div>
             <div><label>Renewal</label>
               <select id="l-renewal"><option value="manual">Manual</option><option value="auto">Auto</option></select>
             </div>
@@ -1736,10 +1736,10 @@
           <input type="hidden" id="el-id" />
           <div class="form-row">
             <div><label>Name</label><input id="el-name" /></div>
-            <div><label>Price (cents)</label><input id="el-price" type="number" /></div>
+            <div><label>Price ($)</label><input id="el-price" type="number" step="0.01" min="0" /></div>
           </div>
           <div class="form-row">
-            <div><label>Duration (months)</label><input id="el-duration" type="number" /></div>
+            <div><label>Duration (months)</label><input id="el-duration" type="number" min="1" max="120" /></div>
             <div><label>Renewal</label>
               <select id="el-renewal"><option value="manual">Manual</option><option value="auto">Auto</option></select>
             </div>
@@ -1769,12 +1769,17 @@
       `;
       window._levels = levels;
     }
+    // Level prices are entered in dollars and stored as integer cents.
+    function levelDollarsToCents(value) {
+      const n = Number(String(value ?? "").replace(/[$,\s]/g, ""));
+      return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) : 0;
+    }
     function editLevel(id) {
       const l = (window._levels || []).find((x) => x.id === id);
       if (!l) return;
       document.getElementById("el-id").value = l.id;
       document.getElementById("el-name").value = l.name;
-      document.getElementById("el-price").value = l.price_cents;
+      document.getElementById("el-price").value = ((l.price_cents || 0) / 100).toFixed(2);
       document.getElementById("el-duration").value = l.duration_months;
       document.getElementById("el-renewal").value = l.renewal_type;
       show(document.getElementById("edit-level-form"));
@@ -1785,7 +1790,7 @@
         method: "PATCH",
         body: JSON.stringify({
           name: document.getElementById("el-name").value,
-          price_cents: Number(document.getElementById("el-price").value),
+          price_cents: levelDollarsToCents(document.getElementById("el-price").value),
           duration_months: Number(document.getElementById("el-duration").value),
           renewal_type: document.getElementById("el-renewal").value,
         }),
@@ -1803,7 +1808,7 @@
         method: "POST",
         body: JSON.stringify({
           name: document.getElementById("l-name").value,
-          price_cents: Number(document.getElementById("l-price").value),
+          price_cents: levelDollarsToCents(document.getElementById("l-price").value),
           duration_months: Number(document.getElementById("l-duration").value),
           renewal_type: document.getElementById("l-renewal").value,
         }),
@@ -2719,6 +2724,7 @@
               `).join("")}
             </tbody>
           </table>
+          <p style="color:var(--muted);font-size:0.85rem;margin-top:0.75rem">Removing an officer revokes their role immediately. They lose access at their next sign-in or within 7 days, whichever comes first.</p>
         </div>
       `;
     }
@@ -2736,7 +2742,7 @@
       } catch (e) { out.textContent = e.message; }
     }
     async function removeTeam(userId, email) {
-      if (!confirm(`Remove ${email} from the team?`)) return;
+      if (!confirm(`Remove ${email} from the team? They lose access at their next sign-in or within 7 days.`)) return;
       await api(`/api/tenants/${tenantId}/team/${userId}`, { method: "DELETE" });
       navigate("team");
     }

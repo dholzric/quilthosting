@@ -1,4 +1,6 @@
 import { Hono } from "hono";
+import type { Context } from "hono";
+import { z } from "zod";
 import type { Env, MembershipLevel, TenantVariables } from "../types";
 import { generateId } from "../lib/utils/id";
 import { all, first } from "../lib/db";
@@ -7,6 +9,51 @@ export const levelRoutes = new Hono<{
   Bindings: Env;
   Variables: TenantVariables;
 }>();
+
+// price_cents is integer cents (the admin UI converts from dollars);
+// duration_months 1..120 (ten years) keeps computeMembershipEnd sane.
+const priceCentsSchema = z
+  .number({ invalid_type_error: "price_cents must be a whole number of cents" })
+  .int("price_cents must be a whole number of cents")
+  .min(0, "price_cents cannot be negative")
+  .max(100_000_000, "price_cents is too large");
+const durationSchema = z
+  .number({ invalid_type_error: "duration_months must be a whole number" })
+  .int("duration_months must be a whole number")
+  .min(1, "duration_months must be between 1 and 120")
+  .max(120, "duration_months must be between 1 and 120");
+const nameSchema = z.string().trim().min(1, "name is required").max(120);
+const descriptionSchema = z.string().max(2000).nullable();
+const renewalSchema = z.enum(["manual", "auto"]);
+
+const createLevelSchema = z.object({
+  name: nameSchema,
+  description: descriptionSchema.optional(),
+  price_cents: priceCentsSchema.optional(),
+  duration_months: durationSchema.optional(),
+  renewal_type: renewalSchema.optional(),
+  is_public: z.boolean().optional(),
+});
+const patchLevelSchema = createLevelSchema.partial();
+
+function validationError(c: Context, error: z.ZodError) {
+  const first = error.issues[0];
+  return c.json(
+    {
+      error: first ? `${first.path.join(".") || "body"}: ${first.message}` : "Invalid request body",
+      issues: error.issues.map((i) => ({ path: i.path.join("."), message: i.message })),
+    },
+    400
+  );
+}
+
+async function readJson(c: Context): Promise<unknown> {
+  try {
+    return await c.req.json();
+  } catch {
+    return null;
+  }
+}
 
 levelRoutes.get("/", async (c) => {
   const tenant = c.get("tenant");
@@ -20,17 +67,9 @@ levelRoutes.get("/", async (c) => {
 
 levelRoutes.post("/", async (c) => {
   const tenant = c.get("tenant");
-  const body = await c.req.json<{
-    name: string;
-    description?: string;
-    price_cents?: number;
-    duration_months?: number;
-    renewal_type?: "manual" | "auto";
-    is_public?: boolean;
-  }>();
-  if (!body.name) {
-    return c.json({ error: "name is required" }, 400);
-  }
+  const parsed = createLevelSchema.safeParse(await readJson(c));
+  if (!parsed.success) return validationError(c, parsed.error);
+  const body = parsed.data;
   const id = generateId();
   const now = new Date().toISOString();
   await c.env.DB.prepare(
@@ -72,7 +111,9 @@ levelRoutes.get("/:levelId", async (c) => {
 levelRoutes.patch("/:levelId", async (c) => {
   const tenant = c.get("tenant");
   const levelId = c.req.param("levelId");
-  const body = await c.req.json();
+  const parsed = patchLevelSchema.safeParse(await readJson(c));
+  if (!parsed.success) return validationError(c, parsed.error);
+  const body = parsed.data;
   const existing = await first<MembershipLevel>(
     c.env.DB.prepare(
       "SELECT * FROM membership_levels WHERE id = ? AND tenant_id = ?"
