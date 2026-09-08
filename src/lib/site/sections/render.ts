@@ -122,7 +122,7 @@ function patternRefUri(imageId: string, ctx: RenderContext): string {
   return patternDataUri(id, { a: r.primary, b: r.dark, c: r.accent });
 }
 function patternMedia(imageId: string, ctx: RenderContext, extra = ""): string {
-  return `<div class="qh-media qh-media--pattern${extra}" role="img" aria-label="" style="background-image:${patternRefUri(imageId, ctx)}"></div>`;
+  return `<div class="qh-media qh-media--pattern${extra}" role="img" aria-label="" style="${esc("background-image:" + patternRefUri(imageId, ctx))}"></div>`;
 }
 
 /** Resolve a media item to a URL: `imageId` via ctx.imgUrl, else a sanitized legacy `url`. */
