@@ -608,3 +608,28 @@ describe("path normalization — verifying the assumptions it depends on", () =>
     expect(res.status).toBe(401);
   });
 });
+
+describe("magic-link exchange page and hand-off fragment", () => {
+  it("EXEMPT: GET /auth/verify is reachable without the gate cookie", async () => {
+    const app = new Hono<{ Bindings: Env }>();
+    app.use("*", siteGate);
+    app.get("/auth/verify", (c) => c.text("exchange"));
+    const res = await app.request("https://quilthosting.com/auth/verify?token=x", {}, makeEnv());
+    expect(res.status).toBe(200);
+  });
+
+  it("gate form re-attaches the URL fragment to return_to", async () => {
+    const app = new Hono<{ Bindings: Env }>();
+    app.use("*", siteGate);
+    app.get("/portal", (c) => c.text("portal"));
+    const res = await app.request(
+      "https://quilthosting.com/portal?slug=x",
+      { headers: { Accept: "text/html" } },
+      makeEnv()
+    );
+    expect(res.status).toBe(401);
+    const html = await res.text();
+    expect(html).toContain('name="return_to" value="/portal?slug=x"');
+    expect(html).toContain("location.hash");
+  });
+});

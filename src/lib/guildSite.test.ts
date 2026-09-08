@@ -104,3 +104,38 @@ describe("guild.html — Join / Register buttons on dedicated routes", () => {
     }
   });
 });
+
+// Editor rewrite (2026-09-08): guild.html boots from one request and hosts
+// the admin editor preview. Pin the contract points the admin relies on.
+describe("guild.html — site-bootstrap and editor preview mode", () => {
+  it("load() tries GET /public/:slug/site-bootstrap first and keeps the seven-fetch fallback", () => {
+    const load = functionBody(GUILD_HTML, "load");
+    expect(load).toContain("/site-bootstrap");
+    expect(load).toContain("if (!booted) {");
+    expect(load).toContain("fetch(`${API}/public/${slug}/levels`)");
+    expect(load).toContain("pagesData.redirects");
+    expect(load).toContain("history.replaceState(");
+  });
+
+  it("applyRoute handles __preview only inside an iframe and never 404s it there", () => {
+    const route = functionBody(GUILD_HTML, "applyRoute");
+    expect(route).toContain('p === "__preview"');
+    expect(route).toContain("window.parent !== window");
+    expect(route).toContain("enterPreviewMode()");
+  });
+
+  it("preview mode announces readiness and only accepts same-origin qh:preview messages", () => {
+    const enter = functionBody(GUILD_HTML, "enterPreviewMode");
+    expect(enter).toContain('{ type: "qh:preview-ready" }');
+    expect(enter).toContain("e.origin !== location.origin");
+    expect(enter).toContain('e.data.type !== "qh:preview"');
+    expect(enter).toContain('m.name = "robots"');
+  });
+
+  it("CMS page images get loading=lazy after render", () => {
+    const route = functionBody(GUILD_HTML, "applyRoute");
+    expect(route).toContain('lazyImages($("page-body"))');
+    const lazy = functionBody(GUILD_HTML, "lazyImages");
+    expect(lazy).toContain("img:not([loading])");
+  });
+});

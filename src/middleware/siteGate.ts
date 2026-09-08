@@ -212,6 +212,15 @@ ${error ? `<p class="err">${error}</p>` : ""}
 <input type="hidden" name="return_to" value="${nextAttr}">
 <input type="password" name="password" placeholder="Access password" autofocus>
 <button type="submit">Enter</button>
+<script>
+// Sign-in hand-offs carry the session in the URL fragment (#ptoken=/#gtoken=).
+// The fragment never reaches the server, so re-attach it to return_to on
+// submit or the member lands on the portal signed out.
+document.querySelector("form").addEventListener("submit",function(){
+  var r=document.querySelector("input[name=return_to]");
+  if(location.hash&&r&&r.value.indexOf("#")<0)r.value+=location.hash;
+});
+</script>
 <div class="strip"><span style="background:#b5501f"></span><span style="background:#d9a441"></span><span style="background:#5f7d64"></span><span style="background:#5b7ea3"></span><span style="background:#8c5a74"></span></div>
 </form></body></html>`;
 }
@@ -265,6 +274,11 @@ export const siteGate = createMiddleware<{ Bindings: Env }>(
     // Auth endpoints must stay reachable so an app can obtain that token in
     // the first place (they expose no guild content and are rate limited).
     if (path.startsWith("/api/auth/")) return next();
+    // Magic-link exchange page: consumes a one-time emailed token and hands
+    // the session to /portal (which is still gated). It renders no guild
+    // content, so gating it only breaks sign-in from a device without the
+    // gate cookie (the member's phone).
+    if (path === "/auth/verify") return next();
     if (path.startsWith("/t/o/")) return next(); // open-tracking pixels
     if (path.startsWith("/u/")) return next(); // one-click unsubscribe (HMAC-token gated)
     if (path.startsWith("/t/c/")) return next(); // click-tracking redirects

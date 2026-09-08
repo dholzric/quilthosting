@@ -158,7 +158,44 @@
     // Never clone rendered cards -- cloneNode drops click listeners.
     let levelsList = [];
     let eventsList = [];
+    // Admin "Preview" mode: /g/<slug>/__preview inside the editor iframe.
+    let previewMode = false;
     const API = location.origin;
+
+    // Images inside CMS page HTML load lazily unless the author said otherwise.
+    function lazyImages(root) {
+      if (!root) return;
+      root.querySelectorAll("img:not([loading])").forEach((img) => img.setAttribute("loading", "lazy"));
+    }
+
+    // Preview handshake with the admin editor (same origin only). The parent
+    // posts { type: "qh:preview", page: { title, html, slug } } after we
+    // announce readiness; html is already rendered + sanitized server-side.
+    function renderPreviewPage(page) {
+      $("page-title").textContent = page.title || "";
+      $("page-body").innerHTML = page.html || "";
+      lazyImages($("page-body"));
+      document.title = (page.title || "Preview") + " — preview";
+      showView("view-page");
+    }
+    function enterPreviewMode() {
+      if (previewMode) return;
+      previewMode = true;
+      if (!document.querySelector('meta[name="robots"]')) {
+        const m = document.createElement("meta");
+        m.name = "robots";
+        m.content = "noindex";
+        document.head.appendChild(m);
+      }
+      window.addEventListener("message", (e) => {
+        if (e.origin !== location.origin || !e.data || e.data.type !== "qh:preview" || !e.data.page) return;
+        renderPreviewPage(e.data.page);
+      });
+      $("page-title").textContent = "Preview";
+      $("page-body").innerHTML = "<p class='muted'>Loading preview…</p>";
+      showView("view-page");
+      window.parent.postMessage({ type: "qh:preview-ready" }, location.origin);
+    }
     let signupAction = null;
 
     const $ = (id) => document.getElementById(id);
@@ -262,6 +299,11 @@
         setEventsMode(p === "calendar" ? "calendar" : "list");
         return;
       }
+      if (p === "__preview") {
+        if (window.parent !== window) enterPreviewMode();
+        else showView("view-notfound");
+        return;
+      }
       const page = pagesBySlug[p] || pagesBySlug[pageSlug];
       if (!page) {
         showView("view-notfound");
@@ -269,6 +311,7 @@
       }
       $("page-title").textContent = page.title || "";
       $("page-body").innerHTML = page.html || "";
+      lazyImages($("page-body"));
       document.title = (page.title || "Page") + " — " + (document.getElementById("guild-name")?.textContent || "Guild");
       showView("view-page");
     }
@@ -1001,21 +1044,47 @@
         $("nf-home").href = sitePath("");
         if (onCustomHost) $("platform-link").href = "https://quilthosting.com";
 
-        const [levelsRes, eventsRes, infoRes, productsRes, siteRes, blogRes, pagesRes] = await Promise.all([
-          fetch(`${API}/public/${slug}/levels`),
-          fetch(`${API}/public/${slug}/events`),
-          fetch(`${API}/public/${slug}/info`),
-          fetch(`${API}/public/${slug}/products`),
-          fetch(`${API}/public/${slug}/site`),
-          fetch(`${API}/public/${slug}/blog`),
-          fetch(`${API}/public/${slug}/pages`),
-        ]);
-        if (!levelsRes.ok) throw new Error("Guild not found");
-        const levelsData = await levelsRes.json();
-        const eventsData = await eventsRes.json();
-        const info = infoRes.ok ? await infoRes.json() : { tenant: levelsData.tenant, profile: {}, join_fields: [] };
-        const productsData = productsRes.ok ? await productsRes.json() : { products: [] };
-        const site = siteRes.ok ? await siteRes.json() : { theme: {}, nav: [], nav_pages: [], store: {} };
+        // One request boots the whole site (GET /public/:slug/site-bootstrap
+        // returns { levels, events, info, products, site, blog, pages } --
+        // each value exactly what the matching endpoint returns). Fall back
+        // to the individual endpoints if it is unavailable.
+        let levelsData, eventsData, info, productsData, site, blogData, pagesData;
+        let booted = false;
+        try {
+          const bootRes = await fetch(`${API}/public/${slug}/site-bootstrap`);
+          if (bootRes.ok) {
+            const boot = await bootRes.json();
+            if (boot && boot.levels && boot.levels.tenant) {
+              levelsData = boot.levels;
+              eventsData = boot.events || { events: [] };
+              info = boot.info || { tenant: levelsData.tenant, profile: {}, join_fields: [] };
+              productsData = boot.products || { products: [] };
+              site = boot.site || { theme: {}, nav: [], nav_pages: [], store: {} };
+              blogData = boot.blog || { posts: [] };
+              pagesData = boot.pages || { pages: [] };
+              booted = true;
+            }
+          }
+        } catch {}
+        if (!booted) {
+          const [levelsRes, eventsRes, infoRes, productsRes, siteRes, blogRes, pagesRes] = await Promise.all([
+            fetch(`${API}/public/${slug}/levels`),
+            fetch(`${API}/public/${slug}/events`),
+            fetch(`${API}/public/${slug}/info`),
+            fetch(`${API}/public/${slug}/products`),
+            fetch(`${API}/public/${slug}/site`),
+            fetch(`${API}/public/${slug}/blog`),
+            fetch(`${API}/public/${slug}/pages`),
+          ]);
+          if (!levelsRes.ok) throw new Error("Guild not found");
+          levelsData = await levelsRes.json();
+          eventsData = await eventsRes.json();
+          info = infoRes.ok ? await infoRes.json() : { tenant: levelsData.tenant, profile: {}, join_fields: [] };
+          productsData = productsRes.ok ? await productsRes.json() : { products: [] };
+          site = siteRes.ok ? await siteRes.json() : { theme: {}, nav: [], nav_pages: [], store: {} };
+          try { blogData = blogRes.ok ? await blogRes.json() : { posts: [] }; } catch { blogData = { posts: [] }; }
+          try { pagesData = pagesRes.ok ? await pagesRes.json() : { pages: [] }; } catch { pagesData = { pages: [] }; }
+        }
         siteCache = site;
         taxRateBps = Number(site.store?.tax_rate_bps) || 0;
         taxLabel = site.store?.tax_label || "Sales tax";
@@ -1024,14 +1093,17 @@
 
         // Index CMS pages
         pagesBySlug = {};
-        try {
-          const pagesData = pagesRes.ok ? await pagesRes.json() : { pages: [] };
-          for (const p of pagesData.pages || []) {
-            if (!p.slug) continue;
-            pagesBySlug[p.slug] = p;
-            pagesBySlug[String(p.slug).toLowerCase()] = p;
-          }
-        } catch {}
+        for (const p of (pagesData && pagesData.pages) || []) {
+          if (!p.slug) continue;
+          pagesBySlug[p.slug] = p;
+          pagesBySlug[String(p.slug).toLowerCase()] = p;
+        }
+        // Renamed pages: pages.redirects maps old slug -> new slug.
+        const redirects = (pagesData && pagesData.redirects) || {};
+        if (pageSlug && !pagesBySlug[pageSlug] && redirects[pageSlug]) {
+          pageSlug = String(redirects[pageSlug]);
+          history.replaceState(null, "", sitePath(pageSlug === "home" ? "" : pageSlug) + location.search + location.hash);
+        }
 
         renderNav(site);
         renderHero(info);
@@ -1063,13 +1135,14 @@
           if (homePage && homePage.html) {
             const card = el("div", "card page-prose");
             card.innerHTML = homePage.html;
+            lazyImages(card);
             hp.appendChild(card);
           }
         }
 
         // Blog only on home
         try {
-          const blog = blogRes.ok ? await blogRes.json() : { posts: [] };
+          const blog = blogData || { posts: [] };
           const bs = $("blog-section");
           bs.replaceChildren();
           if (blog.posts && blog.posts.length) {
@@ -1079,6 +1152,7 @@
               card.appendChild(el("h3", "", post.title));
               const body = el("div");
               body.innerHTML = post.html || "";
+              lazyImages(body);
               card.appendChild(body);
               bs.appendChild(card);
             }

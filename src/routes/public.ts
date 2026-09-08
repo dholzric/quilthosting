@@ -38,6 +38,7 @@ import { PROJECT_TYPES } from "../lib/projects/types";
 import type { ProjectType, LongarmRates } from "../lib/projects/types";
 import { sniffImageType } from "../lib/projects/imageSniff";
 import { ALLOWED_IMAGE_TYPES } from "./site";
+import { listRedirects } from "../lib/pageDrafts";
 
 export const publicRoutes = new Hono<{ Bindings: Env }>();
 
@@ -530,39 +531,44 @@ publicRoutes.get("/_host", async (c) => {
 });
 
 // GET /public/:slug/levels
-publicRoutes.get("/:slug/levels", async (c) => {
-  const slug = c.req.param("slug");
-  const tenant = await getTenantBySlug(c.env.DB, slug);
-  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+// ---------------------------------------------------------------------------
+// Guild site boot payloads.
+//
+// guild.html fetches /levels, /events, /info, /products, /site, /blog and
+// /pages in parallel at boot. Each of those handlers is a thin wrapper over
+// one of the *Payload functions below so that GET /:slug/site-bootstrap can
+// return all seven bodies in ONE response without duplicating any SQL.
+// ---------------------------------------------------------------------------
 
+function tenantSummary(tenant: Tenant) {
+  return { name: tenant.name, slug: tenant.slug };
+}
+
+async function levelsPayload(env: Env, tenant: Tenant) {
   const levels = await all<MembershipLevel>(
-    c.env.DB.prepare(
+    env.DB.prepare(
       `SELECT id, name, description, price_cents, duration_months, benefits_json, sort_order
        FROM membership_levels
        WHERE tenant_id = ? AND status = 'active' AND is_public = 1
        ORDER BY sort_order, name`
     ).bind(tenant.id)
   );
+  return { tenant: tenantSummary(tenant), levels };
+}
 
-  return c.json({
-    tenant: { name: tenant.name, slug: tenant.slug },
-    levels,
-  });
-});
-
-// GET /public/:slug/events
-publicRoutes.get("/:slug/events", async (c) => {
+publicRoutes.get("/:slug/levels", async (c) => {
   const slug = c.req.param("slug");
   const tenant = await getTenantBySlug(c.env.DB, slug);
   if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  return c.json(await levelsPayload(c.env, tenant));
+});
 
-  // ?month=YYYY-MM returns that whole month (for calendar views);
-  // default stays "next 50 upcoming".
-  const month = c.req.query("month");
+/** ?month=YYYY-MM returns that whole month (calendar views); default is "next 50 upcoming". */
+async function eventsPayload(env: Env, tenant: Tenant, month?: string) {
   let events: Event[];
   if (month && /^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
     events = await all<Event>(
-      c.env.DB.prepare(
+      env.DB.prepare(
         `SELECT id, title, description, location, start_at, end_at,
                 member_price_cents, non_member_price_cents, capacity, registration_open,
                 settings_json
@@ -575,7 +581,7 @@ publicRoutes.get("/:slug/events", async (c) => {
     );
   } else {
     events = await all<Event>(
-      c.env.DB.prepare(
+      env.DB.prepare(
         `SELECT id, title, description, location, start_at, end_at,
                 member_price_cents, non_member_price_cents, capacity, registration_open,
                 settings_json
@@ -587,13 +593,21 @@ publicRoutes.get("/:slug/events", async (c) => {
     );
   }
 
-  return c.json({
-    tenant: { name: tenant.name, slug: tenant.slug },
+  return {
+    tenant: tenantSummary(tenant),
     events: events.map((e) => ({
       ...e,
       questions: parseEventSettings(e.settings_json).questions || [],
     })),
-  });
+  };
+}
+
+// GET /public/:slug/events
+publicRoutes.get("/:slug/events", async (c) => {
+  const slug = c.req.param("slug");
+  const tenant = await getTenantBySlug(c.env.DB, slug);
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  return c.json(await eventsPayload(c.env, tenant, c.req.query("month")));
 });
 
 // GET /public/:slug/events/:eventId
@@ -1212,51 +1226,101 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
 });
 
 // GET /public/:slug/pages — published public pages (no members-only; not blog posts)
-publicRoutes.get("/:slug/pages", async (c) => {
-  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
-  if (!tenant) return c.json({ error: "Guild not found" }, 404);
-  const { contentFromPage } = await import("../lib/blocks");
-  try {
-    const rows = await all<{
+/**
+ * Published, public, non-trashed pages plus the slug-rename redirect map
+ * (`redirects: { from: to }`) so guild.html can send a stale /p/<old-slug>
+ * link to the page's new slug. No pre-migration fallback: every migration
+ * through 0025 is applied in production, so a failure here is a real error.
+ */
+async function pagesPayload(env: Env, tenant: Tenant) {
+  const [rows, redirects] = await Promise.all([
+    all<{
       slug: string;
       title: string;
       content_json: string;
       blocks_json?: string | null;
     }>(
-      c.env.DB.prepare(
+      env.DB.prepare(
         `SELECT slug, title, content_json, blocks_json FROM pages
          WHERE tenant_id = ? AND published = 1 AND is_members_only = 0
+           AND deleted_at IS NULL
            AND coalesce(page_type, 'page') = 'page'
          ORDER BY sort_order, title`
       ).bind(tenant.id)
-    );
-    return c.json({
-      tenant: { name: tenant.name, slug: tenant.slug },
-      pages: rows.map((p) => ({
-        slug: p.slug,
-        title: p.title,
-        html: contentFromPage(p).html,
-      })),
-    });
-  } catch {
-    const rows = await all<{ slug: string; title: string; content_json: string }>(
-      c.env.DB.prepare(
-        `SELECT slug, title, content_json FROM pages
-         WHERE tenant_id = ? AND published = 1 AND is_members_only = 0
-         ORDER BY sort_order, title`
-      ).bind(tenant.id)
-    );
-    return c.json({
-      tenant: { name: tenant.name, slug: tenant.slug },
-      pages: rows.map((p) => ({
-        slug: p.slug,
-        title: p.title,
-        // contentFromPage sanitizes legacy content_json.html and prefers
-        // blocks_json when present (same output as the SSR renderer).
-        html: contentFromPage(p as Parameters<typeof contentFromPage>[0]).html,
-      })),
-    });
-  }
+    ),
+    listRedirects(env.DB, tenant.id),
+  ]);
+  return {
+    tenant: tenantSummary(tenant),
+    pages: rows.map((p) => ({
+      slug: p.slug,
+      title: p.title,
+      // contentFromPage sanitizes legacy content_json.html and prefers
+      // blocks_json when present (same output as the SSR renderer).
+      html: contentFromPage(p).html,
+    })),
+    redirects,
+  };
+}
+
+publicRoutes.get("/:slug/pages", async (c) => {
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  return c.json(await pagesPayload(c.env, tenant));
+});
+
+/**
+ * GET /public/:slug/img/:fileId — a tenant's uploaded image, inline, for
+ * guild pages (the business site serves the same thing at /img/:fileId on
+ * its own host; see site.ts). Same allowlist + nosniff + immutable caching;
+ * files.tenant_id in the WHERE clause is what stops one guild's file id
+ * from reading another's.
+ */
+publicRoutes.get("/:slug/img/:fileId", async (c) => {
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Not found" }, 404);
+  const fileId = c.req.param("fileId");
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(fileId)) return c.json({ error: "Not found" }, 404);
+  const row = await first<{ r2_key: string; content_type: string | null }>(
+    c.env.DB.prepare(
+      `SELECT r2_key, content_type FROM files WHERE id = ? AND tenant_id = ?`
+    ).bind(fileId, tenant.id)
+  );
+  if (!row) return c.json({ error: "Not found" }, 404);
+  // Only real raster types: a stored text/html or image/svg+xml file must
+  // never execute on this origin.
+  const contentType = row.content_type || "";
+  if (!ALLOWED_IMAGE_TYPES.has(contentType)) return c.json({ error: "Not found" }, 404);
+  const obj = await c.env.FILES.get(row.r2_key);
+  if (!obj) return c.json({ error: "Not found" }, 404);
+  return new Response(obj.body, {
+    headers: {
+      "Content-Type": contentType,
+      "X-Content-Type-Options": "nosniff",
+      // File ids are immutable -- a replaced image gets a new id.
+      "Cache-Control": "public, max-age=31536000, immutable",
+    },
+  });
+});
+
+/**
+ * GET /public/:slug/site-bootstrap — everything guild.html fetches at boot,
+ * in one round trip. Each key is exactly the body the corresponding
+ * endpoint returns (same functions, same SQL).
+ */
+publicRoutes.get("/:slug/site-bootstrap", async (c) => {
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  const [levels, events, info, products, site, blog, pages] = await Promise.all([
+    levelsPayload(c.env, tenant),
+    eventsPayload(c.env, tenant),
+    infoPayload(tenant),
+    productsPayload(c.env, tenant),
+    sitePayload(c.env, tenant),
+    blogPayload(c.env, tenant),
+    pagesPayload(c.env, tenant),
+  ]);
+  return c.json({ levels, events, info, products, site, blog, pages });
 });
 
 /**
@@ -1311,9 +1375,7 @@ publicRoutes.post("/:slug/donate", async (c) => {
 /**
  * GET /public/:slug/products — active store items
  */
-publicRoutes.get("/:slug/products", async (c) => {
-  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
-  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+async function productsPayload(env: Env, tenant: Tenant) {
   try {
     const rows = await all<{
       id: string;
@@ -1322,20 +1384,23 @@ publicRoutes.get("/:slug/products", async (c) => {
       price_cents: number;
       inventory: number | null;
     }>(
-      c.env.DB.prepare(
+      env.DB.prepare(
         `SELECT id, name, description, price_cents, inventory FROM products
          WHERE tenant_id = ? AND is_active = 1
            AND (inventory IS NULL OR inventory > 0)
          ORDER BY sort_order, name`
       ).bind(tenant.id)
     );
-    return c.json({
-      tenant: { name: tenant.name, slug: tenant.slug },
-      products: rows,
-    });
+    return { tenant: tenantSummary(tenant), products: rows };
   } catch {
-    return c.json({ tenant: { name: tenant.name, slug: tenant.slug }, products: [] });
+    return { tenant: tenantSummary(tenant), products: [] };
   }
+}
+
+publicRoutes.get("/:slug/products", async (c) => {
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  return c.json(await productsPayload(c.env, tenant));
 });
 
 /**
@@ -1618,9 +1683,7 @@ publicRoutes.post("/:slug/products/:productId/buy", async (c) => {
  * GET /public/:slug/info — guild profile for the public page:
  * description, contact, links, join custom fields, logo.
  */
-publicRoutes.get("/:slug/info", async (c) => {
-  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
-  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+function infoPayload(tenant: Tenant) {
   let settings: any = {};
   try { settings = JSON.parse(tenant.settings_json || "{}"); } catch {}
   const profile = settings.profile || {};
@@ -1630,8 +1693,8 @@ publicRoutes.get("/:slug/info", async (c) => {
   const logoUrl = profile.logo_file_id
     ? `/public/${tenant.slug}/logo`
     : null;
-  return c.json({
-    tenant: { name: tenant.name, slug: tenant.slug },
+  return {
+    tenant: tenantSummary(tenant),
     profile: {
       description: profile.description || "",
       contact_email: profile.contact_email || "",
@@ -1645,7 +1708,13 @@ publicRoutes.get("/:slug/info", async (c) => {
       logo_url: logoUrl,
     },
     join_fields: joinFields,
-  });
+  };
+}
+
+publicRoutes.get("/:slug/info", async (c) => {
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  return c.json(infoPayload(tenant));
 });
 
 /**
@@ -1777,9 +1846,7 @@ publicRoutes.get("/:slug/member-photo/:fileId", async (c) => {
 });
 
 /** Site theme + nav for public guild page */
-publicRoutes.get("/:slug/site", async (c) => {
-  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
-  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+async function sitePayload(env: Env, tenant: Tenant) {
   let settings: any = {};
   try {
     settings = JSON.parse(tenant.settings_json || "{}");
@@ -1787,9 +1854,10 @@ publicRoutes.get("/:slug/site", async (c) => {
   let navPages: Array<{ slug: string; title: string; nav_label: string | null }> = [];
   try {
     navPages = await all(
-      c.env.DB.prepare(
+      env.DB.prepare(
         `SELECT slug, title, nav_label FROM pages
          WHERE tenant_id = ? AND published = 1 AND is_members_only = 0
+           AND deleted_at IS NULL
            AND coalesce(show_in_nav, 1) = 1 AND coalesce(page_type, 'page') = 'page'
          ORDER BY sort_order, title`
       ).bind(tenant.id)
@@ -1799,7 +1867,7 @@ publicRoutes.get("/:slug/site", async (c) => {
   }
   const taxRateBps = Number(settings.store?.tax_rate_bps || 0) || 0;
   const { theme: tokens, fonts } = readTenantTheme(tenant.settings_json);
-  return c.json({
+  return {
     // guild.html reads theme.primary, theme.font, and theme.style directly
     // (confirmed by grep of public/guild.html; accent/headerBg are kept for
     // shape-compatibility though nothing reads them today). Presence-based
@@ -1816,36 +1884,53 @@ publicRoutes.get("/:slug/site", async (c) => {
       tax_rate_bps: taxRateBps,
       tax_label: settings.store?.tax_label || "Sales tax",
     },
-  });
+  };
+}
+
+publicRoutes.get("/:slug/site", async (c) => {
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  return c.json(await sitePayload(c.env, tenant));
 });
 
 /** Blog posts (public pages with page_type=blog_post) */
-publicRoutes.get("/:slug/blog", async (c) => {
-  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
-  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+async function blogPayload(env: Env, tenant: Tenant) {
   try {
-    const posts = await all(
-      c.env.DB.prepare(
+    const posts = await all<{
+      slug: string;
+      title: string;
+      content_json: string | null;
+      blocks_json: string | null;
+      updated_at: string;
+      created_at: string;
+    }>(
+      env.DB.prepare(
         `SELECT slug, title, content_json, blocks_json, updated_at, created_at
          FROM pages
          WHERE tenant_id = ? AND published = 1 AND is_members_only = 0
+           AND deleted_at IS NULL
            AND coalesce(page_type, 'page') = 'blog_post'
          ORDER BY created_at DESC LIMIT 50`
       ).bind(tenant.id)
     );
-    const { contentFromPage } = await import("../lib/blocks");
-    return c.json({
-      posts: posts.map((p: any) => ({
+    return {
+      posts: posts.map((p) => ({
         slug: p.slug,
         title: p.title,
         html: contentFromPage(p).html,
         updated_at: p.updated_at,
         created_at: p.created_at,
       })),
-    });
+    };
   } catch {
-    return c.json({ posts: [] });
+    return { posts: [] };
   }
+}
+
+publicRoutes.get("/:slug/blog", async (c) => {
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  return c.json(await blogPayload(c.env, tenant));
 });
 
 /** Public form / survey by slug */

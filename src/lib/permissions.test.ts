@@ -10,6 +10,7 @@ import {
   TENANT_AREAS,
   TENANT_ROLES,
   ADMIN_ONLY_AREAS,
+  OPEN_SUBPATHS,
   type TenantRole,
 } from "./permissions";
 
@@ -223,5 +224,37 @@ describe("isExportPath / splitTenantPath", () => {
       area: "pages",
       subPath: "",
     });
+  });
+});
+
+describe("canAccess: OPEN_SUBPATHS (write-method routes that write nothing)", () => {
+  it("POST /pages/preview is open to every non-admin role, with or without a trailing slash", () => {
+    for (const role of ["viewer", "events", "membership"] as const) {
+      expect(canAccess(role, "pages", "POST", "/preview"), `${role} preview`).toBe(true);
+      expect(canAccess(role, "pages", "POST", "/preview/"), `${role} preview/`).toBe(true);
+      expect(canAccess(role, "pages", "post", "/preview"), `${role} lowercase method`).toBe(true);
+    }
+    expect(rolesAllowed("pages", "POST", "/preview")).toEqual([...TENANT_ROLES]);
+  });
+
+  it("does not widen anything else under /pages for those roles", () => {
+    for (const role of ["viewer", "events", "membership"] as const) {
+      expect(canAccess(role, "pages", "POST", "")).toBe(false);
+      expect(canAccess(role, "pages", "POST", "/")).toBe(false);
+      expect(canAccess(role, "pages", "POST", "/preview/anything")).toBe(false);
+      expect(canAccess(role, "pages", "POST", "/p1/publish")).toBe(false);
+      expect(canAccess(role, "pages", "PUT", "/p1/draft")).toBe(false);
+      expect(canAccess(role, "pages", "DELETE", "/p1")).toBe(false);
+      expect(canAccess(role, "pages", "GET", "/p1/preview")).toBe(true);
+    }
+    expect(rolesAllowed("pages", "POST", "")).toEqual(["owner", "admin", "platform"]);
+  });
+
+  it("the open sub-path never overrides an area the role may not read", () => {
+    expect(canAccess("viewer", "billing", "POST", "/preview")).toBe(false);
+  });
+
+  it("every OPEN_SUBPATHS entry names a known area", () => {
+    for (const o of OPEN_SUBPATHS) expect(TENANT_AREAS).toContain(o.area);
   });
 });

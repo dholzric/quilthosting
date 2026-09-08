@@ -15,7 +15,7 @@ import {
   fetchAudiencePage,
   type AudienceMember,
 } from "../lib/audience";
-import { processBlastChunk } from "../lib/blastSend";
+import { processBlastChunk, queueFailedRetry } from "../lib/blastSend";
 
 export const commsRoutes = new Hono<{
   Bindings: Env;
@@ -304,7 +304,7 @@ commsRoutes.get("/blasts", async (c) => {
     const rows = await all(
       c.env.DB.prepare(
         `SELECT id, subject, segment, recipients, sent_count, created_at, body_html,
-                status, send_at, layout
+                status, send_at, layout, error_count, skipped_count, last_error
          FROM blasts WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 100`
       ).bind(tenant.id)
     );
@@ -319,6 +319,31 @@ commsRoutes.get("/blasts", async (c) => {
     );
     return c.json(rows);
   }
+});
+
+// POST /api/tenants/:tenantId/emails/blasts/:blastId/retry
+// Re-queue a partial/failed blast so only recipients whose log row is
+// delivery_status='failed' are sent again, then work the first chunk
+// immediately (the cron picks up the rest).
+commsRoutes.post("/blasts/:blastId/retry", async (c) => {
+  const tenant = c.get("tenant");
+  const blastId = c.req.param("blastId");
+  const owned = await first<{ id: string }>(
+    c.env.DB.prepare(`SELECT id FROM blasts WHERE id = ? AND tenant_id = ?`).bind(
+      blastId,
+      tenant.id
+    )
+  );
+  if (!owned) return c.json({ error: "Blast not found" }, 404);
+  const { queued } = await queueFailedRetry(c.env, blastId);
+  if (!queued) {
+    return c.json(
+      { error: "Nothing to retry: the blast is still sending or has no failed recipients" },
+      409
+    );
+  }
+  const result = await processBlastChunk(c.env, blastId);
+  return c.json({ ok: true, queued: true, ...result });
 });
 
 // DELETE scheduled blast
@@ -378,6 +403,7 @@ commsRoutes.get("/audience", async (c) => {
   return c.json({
     segment: audience.label,
     count: audience.count,
+    opted_out: audience.opted_out ?? 0,
   });
 });
 

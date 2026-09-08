@@ -74,6 +74,13 @@ function fakeDb(
         },
       };
     },
+    // PATCH now runs its UPDATE (plus any redirect rows) as one batch;
+    // delegate to each statement's own run() so `writes` still records it.
+    async batch(stmts: { run: () => Promise<unknown> }[]) {
+      const out = [];
+      for (const s of stmts) out.push(await s.run());
+      return out;
+    },
   };
   return { db, writes, prepared };
 }
@@ -208,12 +215,14 @@ describe("PATCH /api/tenants/:id/pages/:pageId — slug + SEO fields", () => {
   });
 
   it("returns previous_slug when the slug changes", async () => {
-    const { app, env, writes } = buildApp({ existingPage });
+    const { app, env, writes, prepared } = buildApp({ existingPage });
     const res = await app.request("/page-1", jsonReq("PATCH", { slug: "New Slug" }), env);
     expect(res.status).toBe(200);
     expect(boundColumns(writes[0]).get("slug")).toBe("new-slug");
     const json = (await res.json()) as Record<string, unknown>;
     expect(json.previous_slug).toBe("old-slug");
+    // ...and a page_redirects row (old -> new) rides in the same batch.
+    expect(prepared.some((s) => s.includes("INSERT INTO page_redirects"))).toBe(true);
   });
 
   it("does not report previous_slug when the slug is unchanged", async () => {
@@ -435,8 +444,8 @@ describe("metadata: omitted leaves unchanged, '' or null clears to NULL", () => 
     const cols = boundColumns(writes[0]);
     expect(cols.has("seo_title")).toBe(false);
     expect(cols.get("title")).toBe("Renamed");
-    // Only the provided column and the timestamp are written.
-    expect([...cols.keys()]).toEqual(["title", "updated_at"]);
+    // Only the provided column, the timestamp and the revision bump are written.
+    expect([...cols.keys()]).toEqual(["title", "updated_at", "revision"]);
   });
 
   it("nav_label and seo_description: null clears, '  ' clears, a value trims and persists", async () => {
@@ -633,5 +642,854 @@ describe("database failures surface as 500 with exactly one write attempt (no fa
     expect(res.status).toBe(200);
     expect(prepared[0]).toContain("seo_description");
     expect(prepared[0]).toContain("coalesce(page_type, 'page') = ?");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Draft -> preview -> publish workflow (migration 0025).
+//
+// These need real state: a draft save must leave live content untouched, a
+// publish must promote the draft AND snapshot what was live before it, a
+// revision restore must land in the draft, and so on. So instead of the
+// keyword-routed stateless fake above, this section uses a tiny in-memory
+// D1 that actually executes the handful of statement shapes pages.ts
+// emits (generic `UPDATE pages SET ... WHERE ...` parsing included) and
+// records every batch, so assertions read the resulting rows rather than
+// trusting the response.
+// ---------------------------------------------------------------------------
+
+type MemPage = Record<string, unknown> & {
+  id: string;
+  tenant_id: string;
+  slug: string;
+  title: string;
+  revision: number;
+  deleted_at: string | null;
+  published: number;
+};
+type MemRevision = Record<string, unknown> & {
+  id: string;
+  tenant_id: string;
+  page_id: string;
+  kind: string;
+  title: string;
+  blocks_json: string | null;
+  content_json: string | null;
+  created_at: string;
+};
+type MemRedirect = { tenant_id: string; from_slug: string; to_slug: string; created_at: string };
+
+type MemState = {
+  pages: MemPage[];
+  revisions: MemRevision[];
+  redirects: MemRedirect[];
+  batches: string[][];
+  statements: { sql: string; binds: unknown[] }[];
+};
+
+function memPage(overrides: Partial<MemPage> = {}): MemPage {
+  return {
+    id: "page-1",
+    tenant_id: TENANT_ID,
+    slug: "about",
+    title: "About",
+    content_json: JSON.stringify({ html: '<h2 class="qh-block-heading">Live</h2>' }),
+    blocks_json: JSON.stringify([{ type: "heading", text: "Live", level: 2 }]),
+    page_type: "page",
+    show_in_nav: 1,
+    nav_label: null,
+    is_members_only: 0,
+    published: 1,
+    sort_order: 0,
+    seo_title: null,
+    seo_description: null,
+    og_image_file_id: null,
+    noindex: 0,
+    draft_blocks_json: null,
+    draft_title: null,
+    draft_updated_at: null,
+    revision: 3,
+    published_at: "2026-09-01T00:00:00.000Z",
+    deleted_at: null,
+    created_at: "2026-08-01T00:00:00.000Z",
+    updated_at: "2026-09-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+function memState(pages: MemPage[] = [memPage()]): MemState {
+  return { pages, revisions: [], redirects: [], batches: [], statements: [] };
+}
+
+function norm(sql: string): string {
+  return sql.replace(/\s+/g, " ").trim();
+}
+
+/** Evaluate one `col = expr` SET assignment against a row. */
+function evalAssignment(expr: string, row: MemPage, binds: unknown[], cursor: { i: number }): unknown {
+  if (expr === "?") return binds[cursor.i++];
+  if (expr === "NULL") return null;
+  if (expr === "revision + 1") return Number(row.revision) + 1;
+  if (/^-?\d+$/.test(expr)) return Number(expr);
+  throw new Error(`memDb: unsupported SET expression "${expr}"`);
+}
+
+function execMem(state: MemState, rawSql: string, binds: unknown[]): { results: unknown[]; changes: number } {
+  const sql = norm(rawSql);
+  state.statements.push({ sql, binds });
+  const T = (p: { tenant_id: string }, t: unknown) => p.tenant_id === t;
+
+  // ----- pages: reads -----
+  if (sql === "SELECT * FROM pages WHERE id = ? AND tenant_id = ?") {
+    const r = state.pages.find((p) => p.id === binds[0] && T(p, binds[1]));
+    return { results: r ? [{ ...r }] : [], changes: 0 };
+  }
+  if (sql === "SELECT * FROM pages WHERE id = ?") {
+    const r = state.pages.find((p) => p.id === binds[0]);
+    return { results: r ? [{ ...r }] : [], changes: 0 };
+  }
+  if (sql.startsWith("SELECT id FROM pages WHERE tenant_id = ? AND slug = ?")) {
+    const excl = sql.endsWith("AND id != ?") ? binds[2] : null;
+    const r = state.pages.find((p) => T(p, binds[0]) && p.slug === binds[1] && p.id !== excl);
+    return { results: r ? [{ id: r.id }] : [], changes: 0 };
+  }
+  if (sql.startsWith("SELECT id, slug, title, content_json, blocks_json, page_type")) {
+    const wantDeleted = sql.includes("deleted_at IS NOT NULL");
+    const rows = state.pages
+      .filter((p) => T(p, binds[0]) && (wantDeleted ? p.deleted_at !== null : p.deleted_at === null))
+      .map((p) => ({ ...p, has_draft: p.draft_blocks_json != null ? 1 : 0 }));
+    return { results: rows, changes: 0 };
+  }
+  if (sql.startsWith("SELECT slug, title, nav_label FROM pages")) {
+    const rows = state.pages.filter(
+      (p) => T(p, binds[0]) && p.published === 1 && p.deleted_at === null && p.is_members_only === 0
+    );
+    return { results: rows.map((p) => ({ slug: p.slug, title: p.title, nav_label: p.nav_label })), changes: 0 };
+  }
+
+  // ----- pages: writes -----
+  if (sql.startsWith("INSERT INTO pages")) {
+    const cols = sql.match(/INSERT INTO pages \((.*?)\) VALUES/)![1].split(",").map((s) => s.trim());
+    const row = {} as MemPage;
+    cols.forEach((col, i) => ((row as Record<string, unknown>)[col] = binds[i]));
+    row.deleted_at = row.deleted_at ?? null;
+    state.pages.push(row);
+    return { results: [], changes: 1 };
+  }
+  if (sql.startsWith("UPDATE pages SET")) {
+    const m = sql.match(/^UPDATE pages SET (.*?) WHERE (.*?)(?: RETURNING (.*))?$/)!;
+    const assignments = m[1].split(",").map((s) => s.trim());
+    const conditions = m[2].split(" AND ").map((s) => s.trim());
+    const returning = m[3] ? m[3].split(",").map((s) => s.trim()) : null;
+    // SET binds precede WHERE binds; count SET placeholders first.
+    const setPlaceholders = assignments.filter((a) => a.endsWith("= ?")).length;
+    const whereBinds = binds.slice(setPlaceholders);
+    let wi = 0;
+    const where: Record<string, unknown> = {};
+    for (const cond of conditions) {
+      if (cond === "id = ?") where.id = whereBinds[wi++];
+      else if (cond === "tenant_id = ?") where.tenant_id = whereBinds[wi++];
+      else if (cond === "revision = ?") where.revision = whereBinds[wi++];
+      else if (cond === "deleted_at IS NULL") where.notDeleted = true;
+      else if (cond === "deleted_at IS NOT NULL") where.deleted = true;
+      else throw new Error(`memDb: unsupported WHERE "${cond}"`);
+    }
+    const results: unknown[] = [];
+    let changes = 0;
+    for (const p of state.pages) {
+      if (where.id !== undefined && p.id !== where.id) continue;
+      if (where.tenant_id !== undefined && p.tenant_id !== where.tenant_id) continue;
+      if (where.revision !== undefined && Number(p.revision) !== Number(where.revision)) continue;
+      if (where.notDeleted && p.deleted_at !== null) continue;
+      if (where.deleted && p.deleted_at === null) continue;
+      const cursor = { i: 0 };
+      const next: Record<string, unknown> = {};
+      for (const a of assignments) {
+        const eq = a.indexOf(" = ");
+        const col = a.slice(0, eq).trim();
+        const expr = a.slice(eq + 3).trim();
+        next[col] = evalAssignment(expr, p, binds, cursor);
+      }
+      Object.assign(p, next);
+      changes++;
+      if (returning) {
+        const out: Record<string, unknown> = {};
+        for (const col of returning) out[col] = (p as Record<string, unknown>)[col];
+        results.push(out);
+      }
+    }
+    return { results, changes };
+  }
+  if (sql === "DELETE FROM pages WHERE id = ? AND tenant_id = ?") {
+    const before = state.pages.length;
+    state.pages = state.pages.filter((p) => !(p.id === binds[0] && T(p, binds[1])));
+    return { results: [], changes: before - state.pages.length };
+  }
+
+  // ----- page_revisions -----
+  if (sql.startsWith("INSERT INTO page_revisions")) {
+    const [id, tenantId, pageId, kind, title, blocksJson, contentJson, createdBy, createdAt, gPage, gTenant, gRev] = binds;
+    const guard = state.pages.find(
+      (p) => p.id === gPage && T(p, gTenant) && Number(p.revision) === Number(gRev)
+    );
+    if (!guard) return { results: [], changes: 0 };
+    state.revisions.push({
+      id: id as string,
+      tenant_id: tenantId as string,
+      page_id: pageId as string,
+      kind: kind as string,
+      title: title as string,
+      blocks_json: blocksJson as string | null,
+      content_json: contentJson as string | null,
+      created_by: createdBy as string | null,
+      created_at: createdAt as string,
+    });
+    return { results: [], changes: 1 };
+  }
+  if (sql.startsWith("SELECT r.id, r.kind, r.title, r.created_at, r.created_by")) {
+    const rows = state.revisions
+      .filter((r) => T(r, binds[0]) && r.page_id === binds[1])
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : a.id < b.id ? 1 : -1))
+      .slice(0, 50)
+      .map((r) => ({
+        id: r.id,
+        kind: r.kind,
+        title: r.title,
+        created_at: r.created_at,
+        created_by: r.created_by,
+        // LEFT JOIN users — the fake has no users table; mirror the coalesce.
+        created_by_name: r.created_by ? `name-of-${r.created_by}` : null,
+        block_count: r.blocks_json ? (JSON.parse(r.blocks_json) as unknown[]).length : 0,
+      }));
+    return { results: rows, changes: 0 };
+  }
+  if (sql === "SELECT * FROM page_revisions WHERE id = ? AND page_id = ? AND tenant_id = ?") {
+    const r = state.revisions.find((x) => x.id === binds[0] && x.page_id === binds[1] && T(x, binds[2]));
+    return { results: r ? [{ ...r }] : [], changes: 0 };
+  }
+  if (sql.startsWith("DELETE FROM page_revisions WHERE tenant_id = ? AND page_id = ? AND id NOT IN")) {
+    const mine = state.revisions
+      .filter((r) => T(r, binds[0]) && r.page_id === binds[1])
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+    const keep = new Set(mine.slice(0, 50).map((r) => r.id));
+    const before = state.revisions.length;
+    state.revisions = state.revisions.filter((r) => r.page_id !== binds[1] || keep.has(r.id));
+    return { results: [], changes: before - state.revisions.length };
+  }
+  if (sql === "DELETE FROM page_revisions WHERE tenant_id = ? AND page_id = ?") {
+    const before = state.revisions.length;
+    state.revisions = state.revisions.filter((r) => !(T(r, binds[0]) && r.page_id === binds[1]));
+    return { results: [], changes: before - state.revisions.length };
+  }
+
+  // ----- page_redirects -----
+  if (sql === "DELETE FROM page_redirects WHERE tenant_id = ? AND from_slug = ?") {
+    const before = state.redirects.length;
+    state.redirects = state.redirects.filter((r) => !(T(r, binds[0]) && r.from_slug === binds[1]));
+    return { results: [], changes: before - state.redirects.length };
+  }
+  if (sql === "DELETE FROM page_redirects WHERE tenant_id = ? AND (to_slug = ? OR from_slug = ?)") {
+    const before = state.redirects.length;
+    state.redirects = state.redirects.filter(
+      (r) => !(T(r, binds[0]) && (r.to_slug === binds[1] || r.from_slug === binds[2]))
+    );
+    return { results: [], changes: before - state.redirects.length };
+  }
+  if (sql === "UPDATE page_redirects SET to_slug = ? WHERE tenant_id = ? AND to_slug = ?") {
+    let changes = 0;
+    for (const r of state.redirects) {
+      if (T(r, binds[1]) && r.to_slug === binds[2]) {
+        r.to_slug = binds[0] as string;
+        changes++;
+      }
+    }
+    return { results: [], changes };
+  }
+  if (sql.startsWith("INSERT INTO page_redirects")) {
+    const [tenantId, from, to, createdAt] = binds as string[];
+    const existing = state.redirects.find((r) => r.tenant_id === tenantId && r.from_slug === from);
+    if (existing) {
+      existing.to_slug = to;
+      existing.created_at = createdAt;
+    } else {
+      state.redirects.push({ tenant_id: tenantId, from_slug: from, to_slug: to, created_at: createdAt });
+    }
+    return { results: [], changes: 1 };
+  }
+  if (sql === "SELECT to_slug FROM page_redirects WHERE tenant_id = ? AND from_slug = ?") {
+    const r = state.redirects.find((x) => T(x, binds[0]) && x.from_slug === binds[1]);
+    return { results: r ? [{ to_slug: r.to_slug }] : [], changes: 0 };
+  }
+  if (sql === "SELECT from_slug, to_slug FROM page_redirects WHERE tenant_id = ?") {
+    return { results: state.redirects.filter((x) => T(x, binds[0])), changes: 0 };
+  }
+
+  throw new Error(`memDb: unhandled SQL: ${sql}`);
+}
+
+function memDb(state: MemState): D1Database {
+  return {
+    prepare(sql: string) {
+      return {
+        bind(...binds: unknown[]) {
+          return {
+            __sql: sql,
+            __binds: binds,
+            async first<T>(): Promise<T | null> {
+              return ((execMem(state, sql, binds).results[0] as T) ?? null);
+            },
+            async all<T>() {
+              return { results: execMem(state, sql, binds).results as T[] };
+            },
+            async run() {
+              const { changes } = execMem(state, sql, binds);
+              return { success: true, meta: { changes } };
+            },
+          };
+        },
+      };
+    },
+    async batch(stmts: { __sql: string; __binds: unknown[] }[]) {
+      state.batches.push(stmts.map((s) => norm(s.__sql).split(" ").slice(0, 3).join(" ")));
+      return stmts.map((s) => {
+        const { results, changes } = execMem(state, s.__sql, s.__binds);
+        return { success: true, meta: { changes }, results };
+      });
+    },
+  } as unknown as D1Database;
+}
+
+function buildMemApp(state: MemState, tenantOverrides: Partial<Tenant> = {}) {
+  const app = new Hono<{ Bindings: Env; Variables: TenantVariables }>();
+  app.use("*", async (c, next) => {
+    c.set("tenant", {
+      id: TENANT_ID,
+      name: "Stitch Guild",
+      slug: "stitchguild",
+      tenant_type: "guild",
+      custom_domain: null,
+      settings_json: "{}",
+      updated_at: "2026-09-01T00:00:00.000Z",
+      ...tenantOverrides,
+    } as Tenant);
+    (c as unknown as { set(k: string, v: unknown): void }).set("user", { id: "user-9" });
+    await next();
+  });
+  app.route("/", pageRoutes);
+  const env = { DB: memDb(state), APP_URL: "https://quilthosting.com" } as unknown as Env;
+  return { app, env };
+}
+
+const DRAFT_BLOCKS = [{ type: "heading", text: "Draft heading", level: 2 }, { type: "divider" }];
+
+describe("GET list + GET /:id — draft flags and trash", () => {
+  it("lists live pages with has_draft/revision/published_at and hides trashed rows", async () => {
+    const state = memState([
+      memPage(),
+      memPage({ id: "page-2", slug: "drafty", draft_blocks_json: JSON.stringify(DRAFT_BLOCKS), draft_updated_at: "2026-09-05T00:00:00.000Z" }),
+      memPage({ id: "page-3", slug: "gone", deleted_at: "2026-09-06T00:00:00.000Z", published: 0 }),
+    ]);
+    const { app, env } = buildMemApp(state);
+    const res = await app.request("/", { method: "GET" }, env);
+    expect(res.status).toBe(200);
+    const rows = (await res.json()) as Record<string, unknown>[];
+    expect(rows.map((r) => r.id)).toEqual(["page-1", "page-2"]);
+    expect(rows[0]).toMatchObject({ has_draft: 0, revision: 3, published_at: "2026-09-01T00:00:00.000Z" });
+    expect(rows[1]).toMatchObject({ has_draft: 1, draft_updated_at: "2026-09-05T00:00:00.000Z" });
+  });
+
+  it("?trash=1 lists ONLY trashed rows", async () => {
+    const state = memState([memPage(), memPage({ id: "page-3", slug: "gone", deleted_at: "x", published: 0 })]);
+    const { app, env } = buildMemApp(state);
+    const rows = (await (await app.request("/?trash=1", { method: "GET" }, env)).json()) as { id: string }[];
+    expect(rows.map((r) => r.id)).toEqual(["page-3"]);
+  });
+
+  it("GET /:id returns the full row with parsed blocks and draft_blocks", async () => {
+    const state = memState([memPage({ draft_blocks_json: JSON.stringify(DRAFT_BLOCKS), draft_title: "Draft title" })]);
+    const { app, env } = buildMemApp(state);
+    const res = await app.request("/page-1", { method: "GET" }, env);
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as Record<string, unknown>;
+    expect(json.has_draft).toBe(1);
+    expect(json.draft_title).toBe("Draft title");
+    expect(json.draft_blocks).toEqual(DRAFT_BLOCKS);
+    expect(json.blocks).toEqual([{ type: "heading", text: "Live", level: 2 }]);
+    expect(json.revision).toBe(3);
+  });
+
+  it("GET /:id 404s for another tenant's page", async () => {
+    const state = memState([memPage({ tenant_id: "someone-else" })]);
+    const { app, env } = buildMemApp(state);
+    expect((await app.request("/page-1", { method: "GET" }, env)).status).toBe(404);
+  });
+});
+
+describe("PUT /:id/draft — autosave", () => {
+  it("writes the draft columns, bumps revision, and leaves live content untouched", async () => {
+    const state = memState();
+    const { app, env } = buildMemApp(state);
+    const res = await app.request(
+      "/page-1/draft",
+      jsonReq("PUT", { title: "New title", blocks: DRAFT_BLOCKS, revision: 3 }),
+      env
+    );
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as Record<string, unknown>;
+    expect(json).toMatchObject({ ok: true, revision: 4, has_draft: 1 });
+    expect(typeof json.draft_updated_at).toBe("string");
+
+    const page = state.pages[0];
+    expect(JSON.parse(page.draft_blocks_json as string)).toEqual(DRAFT_BLOCKS);
+    expect(page.draft_title).toBe("New title");
+    expect(page.revision).toBe(4);
+    // Live untouched.
+    expect(page.title).toBe("About");
+    expect(JSON.parse(page.blocks_json as string)).toEqual([{ type: "heading", text: "Live", level: 2 }]);
+    expect(page.updated_at).toBe("2026-09-01T00:00:00.000Z");
+    expect(page.published_at).toBe("2026-09-01T00:00:00.000Z");
+    // No revision snapshot on autosave.
+    expect(state.revisions).toHaveLength(0);
+  });
+
+  it("is a single UPDATE (no pre-read) on the happy path", async () => {
+    const state = memState();
+    const { app, env } = buildMemApp(state);
+    await app.request("/page-1/draft", jsonReq("PUT", { blocks: DRAFT_BLOCKS }), env);
+    expect(state.statements).toHaveLength(1);
+    expect(state.statements[0].sql).toMatch(/^UPDATE pages SET draft_blocks_json = \?/);
+    expect(state.statements[0].sql).toContain("RETURNING revision, draft_updated_at");
+  });
+
+  it("409s with the current revision when the client's revision is stale, writing nothing", async () => {
+    const state = memState();
+    const { app, env } = buildMemApp(state);
+    const res = await app.request("/page-1/draft", jsonReq("PUT", { blocks: DRAFT_BLOCKS, revision: 2 }), env);
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: "Page was changed elsewhere", revision: 3 });
+    expect(state.pages[0].draft_blocks_json).toBeNull();
+    expect(state.pages[0].revision).toBe(3);
+  });
+
+  it("rejects unsupported block types with a field-level 400", async () => {
+    const state = memState();
+    const { app, env } = buildMemApp(state);
+    const res = await app.request("/page-1/draft", jsonReq("PUT", { blocks: [{ type: "carousel" }] }), env);
+    expect(res.status).toBe(400);
+    const json = (await res.json()) as { issues: { path: string }[] };
+    expect(json.issues[0].path).toBe("blocks.0.type");
+    expect(state.pages[0].revision).toBe(3);
+  });
+
+  it("404s for an unknown page and 409s for a trashed page", async () => {
+    const state = memState([memPage({ id: "trashed", deleted_at: "x", published: 0 })]);
+    const { app, env } = buildMemApp(state);
+    expect((await app.request("/nope/draft", jsonReq("PUT", { blocks: [] }), env)).status).toBe(404);
+    const res = await app.request("/trashed/draft", jsonReq("PUT", { blocks: [] }), env);
+    expect(res.status).toBe(409);
+    expect(((await res.json()) as { error: string }).error).toMatch(/trash/);
+  });
+});
+
+describe("POST /:id/publish", () => {
+  it("promotes the draft, clears it, snapshots the PREVIOUS live content, bumps revision, and sets published_at", async () => {
+    const state = memState([
+      memPage({ draft_blocks_json: JSON.stringify(DRAFT_BLOCKS), draft_title: "Draft title", draft_updated_at: "2026-09-05T00:00:00.000Z" }),
+    ]);
+    const { app, env } = buildMemApp(state);
+    const res = await app.request("/page-1/publish", jsonReq("POST", { revision: 3 }), env);
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as Record<string, unknown>;
+    expect(json).toMatchObject({ id: "page-1", revision: 4, has_draft: 0, published: 1, title: "Draft title" });
+    expect(json.blocks).toEqual(DRAFT_BLOCKS);
+
+    const page = state.pages[0];
+    expect(JSON.parse(page.blocks_json as string)).toEqual(DRAFT_BLOCKS);
+    expect(JSON.parse(page.content_json as string).html).toContain("Draft heading");
+    expect(page.draft_blocks_json).toBeNull();
+    expect(page.draft_title).toBeNull();
+    expect(page.draft_updated_at).toBeNull();
+    expect(page.revision).toBe(4);
+    expect(page.published_at).not.toBe("2026-09-01T00:00:00.000Z");
+    expect(page.updated_at).toBe(page.published_at);
+
+    // History = what was live before.
+    expect(state.revisions).toHaveLength(1);
+    expect(state.revisions[0]).toMatchObject({ kind: "publish", title: "About", page_id: "page-1", created_by: "user-9" });
+    expect(JSON.parse(state.revisions[0].blocks_json as string)).toEqual([{ type: "heading", text: "Live", level: 2 }]);
+
+    // Snapshot + promote + prune arrived in ONE batch.
+    expect(state.batches).toHaveLength(1);
+    expect(state.batches[0]).toEqual(["INSERT INTO page_revisions", "UPDATE pages SET", "DELETE FROM page_revisions"]);
+  });
+
+  it("publishes explicit blocks from the body (and still clears any stored draft)", async () => {
+    const state = memState([memPage({ draft_blocks_json: JSON.stringify(DRAFT_BLOCKS), draft_title: "Stale draft" })]);
+    const { app, env } = buildMemApp(state);
+    const blocks = [{ type: "text", html: "<p>Explicit</p>" }];
+    const res = await app.request("/page-1/publish", jsonReq("POST", { blocks, title: "Explicit title", seo_title: "SEO" }), env);
+    expect(res.status).toBe(200);
+    const page = state.pages[0];
+    expect(JSON.parse(page.blocks_json as string)).toEqual(blocks);
+    expect(page.title).toBe("Explicit title");
+    expect(page.seo_title).toBe("SEO");
+    expect(page.draft_blocks_json).toBeNull();
+    expect(page.draft_title).toBeNull();
+  });
+
+  it("409s with the current revision on a stale revision and writes nothing (no snapshot either)", async () => {
+    const state = memState([memPage({ draft_blocks_json: JSON.stringify(DRAFT_BLOCKS) })]);
+    const { app, env } = buildMemApp(state);
+    const res = await app.request("/page-1/publish", jsonReq("POST", { revision: 1 }), env);
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: "Page was changed elsewhere", revision: 3 });
+    expect(state.revisions).toHaveLength(0);
+    expect(state.batches).toHaveLength(0);
+    expect(state.pages[0].draft_blocks_json).not.toBeNull();
+  });
+
+  it("a concurrent write between the read and the batch loses cleanly: no snapshot, no promote, 409", async () => {
+    const state = memState([memPage({ draft_blocks_json: JSON.stringify(DRAFT_BLOCKS) })]);
+    const { app, env } = buildMemApp(state);
+    // Simulate another tab landing an autosave after this request read the row.
+    const db = env.DB as unknown as { batch: (s: unknown[]) => Promise<unknown> };
+    const realBatch = db.batch;
+    db.batch = async (stmts) => {
+      state.pages[0].revision = 4;
+      return realBatch.call(db, stmts);
+    };
+    const res = await app.request("/page-1/publish", jsonReq("POST", { revision: 3 }), env);
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: "Page was changed elsewhere", revision: 4 });
+    expect(state.revisions).toHaveLength(0);
+    expect(state.pages[0].draft_blocks_json).not.toBeNull();
+  });
+
+  it("metadata-only republish of a legacy page (no blocks) keeps its content_json", async () => {
+    const legacy = JSON.stringify({ html: "<p>legacy</p>" });
+    const state = memState([memPage({ blocks_json: null, content_json: legacy })]);
+    const { app, env } = buildMemApp(state);
+    const res = await app.request("/page-1/publish", jsonReq("POST", { noindex: true, published: false }), env);
+    expect(res.status).toBe(200);
+    const page = state.pages[0];
+    expect(page.content_json).toBe(legacy);
+    expect(page.blocks_json).toBeNull();
+    expect(page.noindex).toBe(1);
+    expect(page.published).toBe(0);
+    expect(page.revision).toBe(4);
+  });
+
+  it("accepts an empty body", async () => {
+    const state = memState();
+    const { app, env } = buildMemApp(state);
+    const res = await app.request("/page-1/publish", { method: "POST" }, env);
+    expect(res.status).toBe(200);
+    expect(state.pages[0].revision).toBe(4);
+  });
+
+  it("a slug change on publish writes a redirect row (old -> new)", async () => {
+    const state = memState();
+    const { app, env } = buildMemApp(state);
+    const res = await app.request("/page-1/publish", jsonReq("POST", { slug: "about-us" }), env);
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { previous_slug: string }).previous_slug).toBe("about");
+    expect(state.pages[0].slug).toBe("about-us");
+    expect(state.redirects).toEqual([
+      expect.objectContaining({ tenant_id: TENANT_ID, from_slug: "about", to_slug: "about-us" }),
+    ]);
+  });
+
+  it("prunes history to the newest 50 revisions", async () => {
+    const state = memState();
+    for (let i = 0; i < 55; i++) {
+      state.revisions.push({
+        id: `old-${String(i).padStart(3, "0")}`,
+        tenant_id: TENANT_ID,
+        page_id: "page-1",
+        kind: "publish",
+        title: "old",
+        blocks_json: null,
+        content_json: null,
+        created_by: null,
+        created_at: `2026-01-01T00:00:${String(i).padStart(2, "0")}.000Z`,
+      } as MemRevision);
+    }
+    const { app, env } = buildMemApp(state);
+    await app.request("/page-1/publish", { method: "POST" }, env);
+    expect(state.revisions).toHaveLength(50);
+    // The one just written (newest) survives; the oldest were dropped.
+    expect(state.revisions.some((r) => r.kind === "publish" && r.title === "About")).toBe(true);
+    expect(state.revisions.some((r) => r.id === "old-000")).toBe(false);
+  });
+});
+
+describe("PATCH /:id — revision guard and redirects", () => {
+  it("409s on a stale revision without writing", async () => {
+    const state = memState();
+    const { app, env } = buildMemApp(state);
+    const res = await app.request("/page-1", jsonReq("PATCH", { title: "X", revision: 2 }), env);
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: "Page was changed elsewhere", revision: 3 });
+    expect(state.pages[0].title).toBe("About");
+  });
+
+  it("bumps revision on success and returns it", async () => {
+    const state = memState();
+    const { app, env } = buildMemApp(state);
+    const res = await app.request("/page-1", jsonReq("PATCH", { title: "X", revision: 3 }), env);
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { revision: number }).revision).toBe(4);
+    expect(state.pages[0].revision).toBe(4);
+  });
+
+  it("a slug change writes old -> new, collapses chains, and drops a redirect FROM the new slug", async () => {
+    const state = memState();
+    // "ancient" used to redirect to "about"; "about-us" used to redirect elsewhere.
+    state.redirects.push({ tenant_id: TENANT_ID, from_slug: "ancient", to_slug: "about", created_at: "x" });
+    state.redirects.push({ tenant_id: TENANT_ID, from_slug: "about-us", to_slug: "somewhere", created_at: "x" });
+    const { app, env } = buildMemApp(state);
+    const res = await app.request("/page-1", jsonReq("PATCH", { slug: "about-us" }), env);
+    expect(res.status).toBe(200);
+    const map = Object.fromEntries(state.redirects.map((r) => [r.from_slug, r.to_slug]));
+    expect(map).toEqual({ ancient: "about-us", about: "about-us" });
+  });
+
+  it("refuses to PATCH a trashed page", async () => {
+    const state = memState([memPage({ deleted_at: "x", published: 0 })]);
+    const { app, env } = buildMemApp(state);
+    expect((await app.request("/page-1", jsonReq("PATCH", { title: "X" }), env)).status).toBe(409);
+  });
+});
+
+describe("POST /:id/discard-draft", () => {
+  it("clears the draft columns and bumps revision", async () => {
+    const state = memState([memPage({ draft_blocks_json: "[]", draft_title: "T", draft_updated_at: "x" })]);
+    const { app, env } = buildMemApp(state);
+    const res = await app.request("/page-1/discard-draft", { method: "POST" }, env);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, revision: 4, has_draft: 0 });
+    expect(state.pages[0]).toMatchObject({ draft_blocks_json: null, draft_title: null, draft_updated_at: null, revision: 4 });
+    expect(state.pages[0].title).toBe("About");
+  });
+
+  it("409s on a stale revision", async () => {
+    const state = memState([memPage({ draft_blocks_json: "[]" })]);
+    const { app, env } = buildMemApp(state);
+    const res = await app.request("/page-1/discard-draft", jsonReq("POST", { revision: 1 }), env);
+    expect(res.status).toBe(409);
+    expect(state.pages[0].draft_blocks_json).toBe("[]");
+  });
+});
+
+describe("revisions", () => {
+  function seedRevisions(state: MemState) {
+    state.revisions.push(
+      {
+        id: "rev-a",
+        tenant_id: TENANT_ID,
+        page_id: "page-1",
+        kind: "publish",
+        title: "Older",
+        blocks_json: JSON.stringify([{ type: "heading", text: "Older", level: 2 }, { type: "divider" }]),
+        content_json: "{}",
+        created_by: "user-1",
+        created_at: "2026-08-01T00:00:00.000Z",
+      } as MemRevision,
+      {
+        id: "rev-b",
+        tenant_id: TENANT_ID,
+        page_id: "page-1",
+        kind: "publish",
+        title: "Newer",
+        blocks_json: null,
+        content_json: JSON.stringify({ html: "<p>legacy html</p>" }),
+        created_by: null,
+        created_at: "2026-08-15T00:00:00.000Z",
+      } as MemRevision
+    );
+  }
+
+  it("GET /revisions lists newest first with block_count and no bodies", async () => {
+    const state = memState();
+    seedRevisions(state);
+    const { app, env } = buildMemApp(state);
+    const res = await app.request("/page-1/revisions", { method: "GET" }, env);
+    expect(res.status).toBe(200);
+    const rows = (await res.json()) as Record<string, unknown>[];
+    expect(rows.map((r) => r.id)).toEqual(["rev-b", "rev-a"]);
+    expect(rows[1]).toEqual({ id: "rev-a", kind: "publish", title: "Older", created_at: "2026-08-01T00:00:00.000Z", created_by: "user-1", created_by_name: "name-of-user-1", block_count: 2 });
+    expect(rows[0]).not.toHaveProperty("blocks_json");
+  });
+
+  it("GET /revisions/:rid returns the full revision with parsed blocks (legacy HTML wrapped in an html block)", async () => {
+    const state = memState();
+    seedRevisions(state);
+    const { app, env } = buildMemApp(state);
+    let json = (await (await app.request("/page-1/revisions/rev-a", { method: "GET" }, env)).json()) as Record<string, unknown>;
+    expect(json.blocks).toEqual([{ type: "heading", text: "Older", level: 2 }, { type: "divider" }]);
+    json = (await (await app.request("/page-1/revisions/rev-b", { method: "GET" }, env)).json()) as Record<string, unknown>;
+    expect(json.blocks).toEqual([{ type: "html", html: "<p>legacy html</p>" }]);
+    expect((await app.request("/page-1/revisions/nope", { method: "GET" }, env)).status).toBe(404);
+  });
+
+  it("restore loads the revision INTO THE DRAFT, snapshots current live as pre_restore, and leaves live untouched", async () => {
+    const state = memState();
+    seedRevisions(state);
+    const { app, env } = buildMemApp(state);
+    const res = await app.request("/page-1/revisions/rev-a/restore", jsonReq("POST", { revision: 3 }), env);
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as Record<string, unknown>;
+    expect(json).toMatchObject({ ok: true, revision: 4, has_draft: 1, restored_from: "rev-a" });
+
+    const page = state.pages[0];
+    expect(JSON.parse(page.draft_blocks_json as string)).toEqual([{ type: "heading", text: "Older", level: 2 }, { type: "divider" }]);
+    expect(page.draft_title).toBe("Older");
+    expect(page.revision).toBe(4);
+    expect(page.title).toBe("About");
+    expect(JSON.parse(page.blocks_json as string)).toEqual([{ type: "heading", text: "Live", level: 2 }]);
+
+    const pre = state.revisions.find((r) => r.kind === "pre_restore");
+    expect(pre).toBeDefined();
+    expect(pre!.title).toBe("About");
+    expect(JSON.parse(pre!.blocks_json as string)).toEqual([{ type: "heading", text: "Live", level: 2 }]);
+    expect(state.batches[0]).toEqual(["INSERT INTO page_revisions", "UPDATE pages SET", "DELETE FROM page_revisions"]);
+  });
+
+  it("restore 409s on a stale revision and writes nothing", async () => {
+    const state = memState();
+    seedRevisions(state);
+    const { app, env } = buildMemApp(state);
+    const res = await app.request("/page-1/revisions/rev-a/restore", jsonReq("POST", { revision: 9 }), env);
+    expect(res.status).toBe(409);
+    expect(state.pages[0].draft_blocks_json).toBeNull();
+    expect(state.revisions).toHaveLength(2);
+  });
+});
+
+describe("DELETE /:id — trash, restore, permanent", () => {
+  it("soft delete sets deleted_at and unpublishes; the page vanishes from the list and shows in trash", async () => {
+    const state = memState();
+    const { app, env } = buildMemApp(state);
+    const res = await app.request("/page-1", { method: "DELETE" }, env);
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { ok: boolean }).ok).toBe(true);
+    expect(typeof state.pages[0].deleted_at).toBe("string");
+    expect(state.pages[0].published).toBe(0);
+    expect(state.pages[0].revision).toBe(4);
+
+    const live = (await (await app.request("/", { method: "GET" }, env)).json()) as unknown[];
+    expect(live).toEqual([]);
+    const trash = (await (await app.request("/?trash=1", { method: "GET" }, env)).json()) as { id: string }[];
+    expect(trash.map((r) => r.id)).toEqual(["page-1"]);
+  });
+
+  it("POST /:id/restore undeletes (still unpublished until the owner publishes again)", async () => {
+    const state = memState([memPage({ deleted_at: "2026-09-06T00:00:00.000Z", published: 0 })]);
+    const { app, env } = buildMemApp(state);
+    const res = await app.request("/page-1/restore", { method: "POST" }, env);
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as Record<string, unknown>;
+    expect(json.deleted_at).toBeNull();
+    expect(json.published).toBe(0);
+    expect(json.revision).toBe(4);
+    expect(state.pages[0].deleted_at).toBeNull();
+  });
+
+  it("?permanent=1 hard-deletes the page, its revisions, and redirects touching its slug", async () => {
+    const state = memState();
+    state.revisions.push({ id: "r1", tenant_id: TENANT_ID, page_id: "page-1", kind: "publish", title: "x", blocks_json: null, content_json: null, created_by: null, created_at: "x" } as MemRevision);
+    state.redirects.push({ tenant_id: TENANT_ID, from_slug: "old-about", to_slug: "about", created_at: "x" });
+    const { app, env } = buildMemApp(state);
+    const res = await app.request("/page-1?permanent=1", { method: "DELETE" }, env);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, permanent: true });
+    expect(state.pages).toHaveLength(0);
+    expect(state.revisions).toHaveLength(0);
+    expect(state.redirects).toHaveLength(0);
+  });
+
+  it("404s for a page that isn't this tenant's", async () => {
+    const state = memState([memPage({ tenant_id: "other" })]);
+    const { app, env } = buildMemApp(state);
+    expect((await app.request("/page-1", { method: "DELETE" }, env)).status).toBe(404);
+    expect((await app.request("/page-1?permanent=1", { method: "DELETE" }, env)).status).toBe(404);
+    expect(state.pages).toHaveLength(1);
+  });
+});
+
+describe("POST /preview — render unsaved editor state", () => {
+  it("returns sanitized HTML (script payload inert) and writes nothing", async () => {
+    const state = memState();
+    const { app, env } = buildMemApp(state);
+    const res = await app.request(
+      "/preview",
+      jsonReq("POST", {
+        blocks: [
+          { type: "heading", text: "<script>alert(1)</script>Hi" },
+          { type: "text", html: '<p onclick="evil()">Body</p><script>evil()</script>' },
+          { type: "button", label: "Go", href: "javascript:alert(1)" },
+        ],
+      }),
+      env
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    const { html } = (await res.json()) as { html: string };
+    expect(html).not.toContain("<script");
+    expect(html).not.toContain("onclick");
+    expect(html).not.toContain("javascript:");
+    expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;Hi");
+    expect(html).toContain("<p>Body</p>");
+    expect(state.statements).toHaveLength(0);
+  });
+
+  it("400s on an unsupported block type", async () => {
+    const { app, env } = buildMemApp(memState());
+    const res = await app.request("/preview", jsonReq("POST", { blocks: [{ type: "carousel" }] }), env);
+    expect(res.status).toBe(400);
+  });
+});
+
+describe("GET /:id/preview", () => {
+  it("guild tenant: JSON { title, html, slug } from the draft, no-store + noindex", async () => {
+    const state = memState([memPage({ draft_blocks_json: JSON.stringify(DRAFT_BLOCKS), draft_title: "Draft title" })]);
+    const { app, env } = buildMemApp(state);
+    const res = await app.request("/page-1/preview?source=draft", { method: "GET" }, env);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(res.headers.get("x-robots-tag")).toBe("noindex");
+    expect(res.headers.get("x-preview-source")).toBe("draft");
+    const json = (await res.json()) as { title: string; html: string; slug: string };
+    expect(json.title).toBe("Draft title");
+    expect(json.slug).toBe("about");
+    expect(json.html).toContain("Draft heading");
+    expect(json.html).not.toContain(">Live<");
+  });
+
+  it("guild tenant: source=live renders live content; source=draft with no draft falls back to live", async () => {
+    const state = memState([memPage({ draft_blocks_json: JSON.stringify(DRAFT_BLOCKS) })]);
+    const { app, env } = buildMemApp(state);
+    let res = await app.request("/page-1/preview?source=live", { method: "GET" }, env);
+    expect(((await res.json()) as { html: string }).html).toContain(">Live<");
+    expect(res.headers.get("x-preview-source")).toBe("live");
+
+    state.pages[0].draft_blocks_json = null;
+    res = await app.request("/page-1/preview", { method: "GET" }, env);
+    expect(res.headers.get("x-preview-source")).toBe("live");
+    expect(((await res.json()) as { html: string }).html).toContain(">Live<");
+  });
+
+  it("business tenant: full-page HTML through the live renderer", async () => {
+    const state = memState([memPage({ draft_blocks_json: JSON.stringify(DRAFT_BLOCKS), draft_title: "Draft title" })]);
+    const { app, env } = buildMemApp(state, { tenant_type: "business", name: "Stitch Studio" });
+    const res = await app.request("/page-1/preview", { method: "GET", headers: { host: "quilthosting.com" } }, env);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/html");
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    const html = await res.text();
+    expect(html).toContain("<!DOCTYPE html>");
+    expect(html).toContain("Draft heading");
+    expect(html).toContain("<title>Draft title");
+    expect(html).toContain("Stitch Studio");
   });
 });

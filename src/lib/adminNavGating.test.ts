@@ -24,6 +24,7 @@
 //      itself ever changes, this test fails and forces a look, rather than
 //      quietly testing a stale copy of logic nobody runs anymore.
 import { describe, it, expect } from "vitest";
+import { PERMISSION_MATRIX, ADMIN_ONLY_AREAS } from "./permissions";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -114,5 +115,37 @@ describe("admin.html sidebar — business-only / guild-only classes", () => {
     expect(isHiddenForTenant(nav["site-pages"], false)).toBe(true);
     expect(isHiddenForTenant(nav["site-theme"], false)).toBe(true);
     expect(isHiddenForTenant(nav["site-domain"], false)).toBe(true);
+  });
+});
+
+// The editor rewrite (2026-09-08) gates the sidebar and write buttons from a
+// client-side copy of PERMISSION_MATRIX (ADMIN_AREAS in admin.html). Pin the
+// copy to the real matrix so a permissions change cannot silently leave the
+// admin showing (or hiding) the wrong screens.
+describe("admin.html ADMIN_AREAS mirrors src/lib/permissions.ts", () => {
+  const src = ADMIN_HTML.replace(/\r\n/g, "\n");
+  const listOf = (text: string) =>
+    text.split(",").map((t) => t.trim().replace(/^"|"$/g, "")).filter(Boolean);
+
+  it("ADMIN_ONLY_AREAS matches", () => {
+    const m = src.match(/const ADMIN_ONLY_AREAS = \[([^\]]*)\];/);
+    expect(m, "ADMIN_ONLY_AREAS const missing from admin.html").toBeTruthy();
+    expect(listOf(m![1]).sort()).toEqual([...ADMIN_ONLY_AREAS].sort());
+  });
+
+  it("every limited role's write list matches the matrix", () => {
+    for (const role of ["membership", "events", "viewer"] as const) {
+      const re = new RegExp(role + ": \\{ write: \\[([^\\]]*)\\], noRead: ADMIN_ONLY_AREAS \\}");
+      const m = src.match(re);
+      expect(m, "role " + role + " missing from ADMIN_AREAS").toBeTruthy();
+      expect(listOf(m![1]).sort()).toEqual([...(PERMISSION_MATRIX[role].write as readonly string[])].sort());
+    }
+    for (const role of ["owner", "admin", "platform"]) {
+      expect(src).toContain(role + ': { write: "*", noRead: [] }');
+    }
+  });
+
+  it("navigate() applies the read-only state after every screen renders", () => {
+    expect(src).toContain("applyReadOnlyState(page);");
   });
 });

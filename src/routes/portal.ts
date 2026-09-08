@@ -7,6 +7,7 @@ import { createCheckoutSession } from "../lib/stripe";
 import { activateMembership, portalUrl } from "../lib/memberships";
 import { assertCanActivateMember } from "../lib/plans";
 import { renderReceiptHtml } from "../lib/receipts";
+import { optOutMember } from "../lib/suppression";
 
 export const portalRoutes = new Hono<{ Bindings: Env }>();
 
@@ -1042,7 +1043,8 @@ portalRoutes.get("/:slug/pages", async (c) => {
   }>(
     c.env.DB.prepare(
       `SELECT slug, title, content_json, blocks_json, is_members_only FROM pages
-       WHERE tenant_id = ? AND published = 1 ORDER BY sort_order, title`
+       WHERE tenant_id = ? AND published = 1 AND deleted_at IS NULL
+       ORDER BY sort_order, title`
     ).bind(ctx.tenant.id)
   );
   return c.json(
@@ -1054,6 +1056,63 @@ portalRoutes.get("/:slug/pages", async (c) => {
       content_json: JSON.stringify({ html: contentFromPage(row).html }),
     }))
   );
+});
+
+// ---------------------------------------------------------------------------
+// Email preferences: the member's own marketing opt-out for this guild.
+// ---------------------------------------------------------------------------
+
+type PreferencesMember = { id: string; email: string; email_opt_out_at: string | null };
+
+/** The signed-in user's member row for this guild, or a ready-made error. */
+async function requirePreferencesMember(
+  c: any,
+  slug: string
+): Promise<{ tenant: Tenant; member: PreferencesMember } | { error: Response }> {
+  const user = await requirePortalUser(c);
+  if (!user) return { error: c.json({ error: "Unauthorized" }, 401) };
+  const tenant = await getTenantBySlug(c.env.DB, slug);
+  if (!tenant) return { error: c.json({ error: "Guild not found" }, 404) };
+  const member = await first<PreferencesMember>(
+    c.env.DB.prepare(
+      "SELECT id, email, email_opt_out_at FROM members WHERE tenant_id = ? AND email = ?"
+    ).bind(tenant.id, user.email.toLowerCase())
+  );
+  if (!member) return { error: c.json({ error: "Not a member" }, 404) };
+  return { tenant, member };
+}
+
+// GET /api/portal/:slug/preferences -> { email_opt_out: boolean }
+portalRoutes.get("/:slug/preferences", async (c) => {
+  const ctx = await requirePreferencesMember(c, c.req.param("slug"));
+  if ("error" in ctx) return ctx.error;
+  return c.json({ email_opt_out: !!ctx.member.email_opt_out_at });
+});
+
+// PUT /api/portal/:slug/preferences  body { email_opt_out: boolean }
+portalRoutes.put("/:slug/preferences", async (c) => {
+  const ctx = await requirePreferencesMember(c, c.req.param("slug"));
+  if ("error" in ctx) return ctx.error;
+  let body: { email_opt_out?: unknown } = {};
+  try {
+    body = await c.req.json<{ email_opt_out?: unknown }>();
+  } catch {
+    return c.json({ error: "Request body must be valid JSON" }, 400);
+  }
+  if (typeof body.email_opt_out !== "boolean") {
+    return c.json({ error: "email_opt_out must be true or false" }, 400);
+  }
+  if (body.email_opt_out) {
+    // Same code path as the unsubscribe link / admin opt-out (idempotent).
+    await optOutMember(c.env.DB, ctx.tenant.id, ctx.member.email);
+  } else {
+    await c.env.DB.prepare(
+      `UPDATE members SET email_opt_out_at = NULL, updated_at = ? WHERE tenant_id = ? AND id = ?`
+    )
+      .bind(new Date().toISOString(), ctx.tenant.id, ctx.member.id)
+      .run();
+  }
+  return c.json({ email_opt_out: body.email_opt_out });
 });
 
 // GET /api/portal/guilds — guilds where this signed-in email is a member

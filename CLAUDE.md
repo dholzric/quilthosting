@@ -47,6 +47,8 @@ Single Worker entry point `src/index.ts` exports `fetch` (Hono app) and `schedul
 - `/public` — unauthenticated tenant pages (`public.ts`)
 - `/api/webhooks/resend`, `/u/:token` — email delivery events and one-click unsubscribe (`emailWebhooks.ts`, `unsubscribe.ts`)
 
+**Website builder = draft → preview → publish** (`src/routes/pages.ts`, `src/lib/pageDrafts.ts`, migration 0025): `PUT /pages/:id/draft` autosaves into `draft_*` columns, `POST /pages/:id/publish` promotes the draft in one batch and snapshots the previous live content into `page_revisions`; every write is CAS-guarded on `pages.revision` (409 on conflict). `DELETE` soft-deletes (`deleted_at`), slug changes write `page_redirects`. The shared editor lives in `public/admin.html` (`qhOpenPageEditor`) for both guild and business tenants; guild preview uses `guild.html`'s `__preview` postMessage mode, business preview uses the SSR renderer.
+
 **Tenant content is untrusted HTML.** Every rich-text/HTML block and legacy `content_json.html` goes through the allowlist sanitizer in `src/lib/sanitize.ts` at parse and render time. Never add a new output path that emits tenant strings without `escapeHtml`/`sanitizeHtml`.
 
 **Stripe fulfillment is a two-step idempotent state machine** (`src/routes/webhooks.ts` + `src/lib/fulfillment.ts`): events are claimed in `stripe_events`, the payment row is recorded (unique on the Stripe ref), then fulfillment runs in one D1 batch guarded by `payments.fulfilled_at`. Seats/stock are reserved atomically at checkout with `hold_expires_at`; the minute cron releases expired holds.

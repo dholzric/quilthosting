@@ -6,7 +6,7 @@
 // here as a Map keyed by project_id, with the fake INSERT's
 // "ON CONFLICT(project_id) DO NOTHING RETURNING id" returning null exactly
 // when SQLite would have skipped the insert.
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 import { Hono } from "hono";
 import type { Env, Tenant, Project, ProjectLine, AgreementSignature } from "../types";
 import { sha256Hex } from "../lib/projects/hash";
@@ -74,7 +74,55 @@ type State = {
   // landing between this request's read and its eventual guarded UPDATE.
   raceStatusFlipTo?: string;
   raceStatusFlipApplied?: boolean;
+  // Website pages + slug-rename redirects (draft/publish workflow, 0025).
+  pages?: SitePage[];
+  redirects?: { from_slug: string; to_slug: string }[];
 };
+
+type SitePage = {
+  id: string;
+  tenant_id: string;
+  slug: string;
+  title: string;
+  content_json: string | null;
+  blocks_json: string | null;
+  seo_title: string | null;
+  seo_description: string | null;
+  og_image_file_id: string | null;
+  noindex: number;
+  published: number;
+  is_members_only: number;
+  show_in_nav: number;
+  page_type: string;
+  nav_label: string | null;
+  sort_order: number;
+  deleted_at: string | null;
+  updated_at: string;
+};
+
+function makeSitePage(overrides: Partial<SitePage> = {}): SitePage {
+  return {
+    id: "page-1",
+    tenant_id: "tenant-a",
+    slug: "services",
+    title: "Services",
+    content_json: null,
+    blocks_json: JSON.stringify([{ type: "heading", text: "Our services", level: 2 }]),
+    seo_title: null,
+    seo_description: null,
+    og_image_file_id: null,
+    noindex: 0,
+    published: 1,
+    is_members_only: 0,
+    show_in_nav: 1,
+    page_type: "page",
+    nav_label: null,
+    sort_order: 0,
+    deleted_at: null,
+    updated_at: "2026-09-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
 
 function makeState(project?: Project, lines: ProjectLine[] = []): State {
   const projects = new Map<string, Project>();
@@ -116,6 +164,31 @@ function makeDb(state: State): D1Database {
     if (sql.includes("FROM project_lines")) {
       const projectId = binds[0] as string;
       return { results: state.lines.get(projectId) ?? [] };
+    }
+    // Pages. The deleted_at filter is applied ONLY when the SQL text carries
+    // it, so removing the clause from site.ts makes these tests fail rather
+    // than the fake silently filtering for it (same idiom as portal.test.ts).
+    if (sql.includes("FROM pages")) {
+      const tenantId = binds[0] as string;
+      let rows = (state.pages ?? []).filter((p) => p.tenant_id === tenantId);
+      if (sql.includes("deleted_at IS NULL")) rows = rows.filter((p) => p.deleted_at === null);
+      if (sql.includes("published = 1")) rows = rows.filter((p) => p.published === 1);
+      if (sql.includes("is_members_only = 0")) rows = rows.filter((p) => p.is_members_only === 0);
+      if (sql.includes("coalesce(noindex, 0) = 0")) rows = rows.filter((p) => p.noindex === 0);
+      if (sql.includes("max(updated_at)")) {
+        const v = rows.map((p) => p.updated_at).sort().pop() ?? null;
+        return { results: [{ v }] };
+      }
+      if (sql.includes("slug = ?")) {
+        const slug = binds[1] as string;
+        return { results: rows.filter((p) => p.slug === slug).slice(0, 1) };
+      }
+      return { results: rows };
+    }
+    if (sql.includes("FROM page_redirects")) {
+      const [, from] = binds as [string, string];
+      const r = (state.redirects ?? []).find((x) => x.from_slug === from);
+      return { results: r ? [{ to_slug: r.to_slug }] : [] };
     }
     if (sql.includes("FROM agreement_signatures WHERE project_id")) {
       const [projectId, tenantId] = binds as [string, string];
@@ -946,5 +1019,108 @@ describe("POST /quote/:token/sign — the customer's own permanent copy (Importa
     expect(emailBody.html).toContain("Line items:");
     // The fingerprint, matching what actually got persisted.
     expect(emailBody.html).toContain(row!.agreement_sha256);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Website pages: soft delete, slug redirects, sitemap, cache key (0025).
+// ---------------------------------------------------------------------------
+
+describe("serveBusinessSite — pages, trash, redirects", () => {
+  // cachedRender uses the Workers Cache API; a pass-through stub keeps every
+  // request rendering (and records the keys it was asked for).
+  const cacheKeys: string[] = [];
+  const cacheStub = {
+    default: {
+      async match(req: Request) {
+        cacheKeys.push(req.url);
+        return undefined;
+      },
+      async put() {},
+    },
+  };
+  const originalCaches = (globalThis as { caches?: unknown }).caches;
+  beforeAll(() => {
+    (globalThis as { caches?: unknown }).caches = cacheStub;
+  });
+  afterAll(() => {
+    (globalThis as { caches?: unknown }).caches = originalCaches;
+  });
+
+  const tenant = makeTenant();
+
+  it("renders a published page", async () => {
+    const state = makeState();
+    state.pages = [makeSitePage()];
+    const { app, env } = harness(tenant, state);
+    const res = await app.request("http://stitchstudioquilting.test/services", {}, env);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain("Our services");
+  });
+
+  it("a soft-deleted page 404s, is absent from the nav, and is absent from the sitemap", async () => {
+    const state = makeState();
+    state.pages = [
+      makeSitePage({ id: "home", slug: "home", title: "Home" }),
+      makeSitePage({ id: "gone", slug: "gone", title: "Gone", deleted_at: "2026-09-06T00:00:00.000Z", published: 0 }),
+      makeSitePage({ id: "ghost", slug: "ghost", title: "Ghost", deleted_at: "2026-09-06T00:00:00.000Z", published: 1 }),
+    ];
+    const { app, env } = harness(tenant, state);
+    expect((await app.request("http://stitchstudioquilting.test/gone", {}, env)).status).toBe(404);
+    // Trashed rows are excluded by deleted_at, not just by published=0.
+    expect((await app.request("http://stitchstudioquilting.test/ghost", {}, env)).status).toBe(404);
+
+    const home = await (await app.request("http://stitchstudioquilting.test/", {}, env)).text();
+    expect(home).toContain('href="/home"');
+    expect(home).not.toContain('href="/ghost"');
+
+    const sitemap = await (await app.request("http://stitchstudioquilting.test/sitemap.xml", {}, env)).text();
+    expect(sitemap).toContain("/home</loc>");
+    expect(sitemap).not.toContain("/ghost");
+    expect(sitemap).not.toContain("/gone");
+  });
+
+  it("a renamed slug 301s to the new slug via page_redirects (query string preserved)", async () => {
+    const state = makeState();
+    state.pages = [makeSitePage({ slug: "our-services" })];
+    state.redirects = [{ from_slug: "services", to_slug: "our-services" }];
+    const { app, env } = harness(tenant, state);
+    const res = await app.request("http://stitchstudioquilting.test/services?utm=x", { redirect: "manual" }, env);
+    expect(res.status).toBe(301);
+    expect(res.headers.get("location")).toBe("https://stitchstudio.quilthosting.com/our-services?utm=x");
+  });
+
+  it("a redirect to the home page lands on /", async () => {
+    const state = makeState();
+    state.pages = [makeSitePage({ slug: "home" })];
+    state.redirects = [{ from_slug: "welcome", to_slug: "home" }];
+    const { app, env } = harness(tenant, state);
+    const res = await app.request("http://stitchstudioquilting.test/welcome", { redirect: "manual" }, env);
+    expect(res.status).toBe(301);
+    expect(res.headers.get("location")).toBe("https://stitchstudio.quilthosting.com/");
+  });
+
+  it("an unknown slug with no redirect still falls through (null -> 404)", async () => {
+    const state = makeState();
+    state.pages = [makeSitePage()];
+    const { app, env } = harness(tenant, state);
+    expect((await app.request("http://stitchstudioquilting.test/nope", {}, env)).status).toBe(404);
+  });
+
+  it("the render cache key changes when ANOTHER page is updated (nav is built from all pages)", async () => {
+    const state = makeState();
+    state.pages = [
+      makeSitePage({ id: "home", slug: "home", updated_at: "2026-09-01T00:00:00.000Z" }),
+      makeSitePage({ id: "other", slug: "other", updated_at: "2026-09-01T00:00:00.000Z" }),
+    ];
+    const { app, env } = harness(tenant, state);
+    cacheKeys.length = 0;
+    await app.request("http://stitchstudioquilting.test/", {}, env);
+    const before = cacheKeys[0];
+    // Publishing "other" bumps its updated_at only; "home" is untouched.
+    state.pages[1].updated_at = "2026-09-08T12:00:00.000Z";
+    cacheKeys.length = 0;
+    await app.request("http://stitchstudioquilting.test/", {}, env);
+    expect(cacheKeys[0]).not.toBe(before);
   });
 });

@@ -4,8 +4,9 @@
 import type { Context } from "hono";
 import type { Env, Tenant, Project, ProjectLine, AgreementSignature } from "../types";
 import { all, first } from "../lib/db";
-import { renderPageHtml, readBranding } from "../lib/site/render";
+import { renderPageHtml, readBranding, type RenderArgs } from "../lib/site/render";
 import { cachedRender } from "../lib/site/cache";
+import { findRedirect } from "../lib/pageDrafts";
 import { tenantPublicBaseUrl } from "../lib/tenantHost";
 import { renderQuotePage, renderSignedCopy, renderInvalidLink, renderCannotSign } from "../lib/site/quote";
 import { hashToken } from "../lib/projects/token";
@@ -132,6 +133,7 @@ async function loadNav(env: Env, tenant: Tenant) {
     env.DB.prepare(
       `SELECT slug, title, nav_label FROM pages
        WHERE tenant_id = ? AND published = 1 AND is_members_only = 0
+         AND deleted_at IS NULL
          AND coalesce(show_in_nav, 1) = 1 AND coalesce(page_type, 'page') = 'page'
        ORDER BY sort_order, title`
     ).bind(tenant.id)
@@ -140,6 +142,62 @@ async function loadNav(env: Env, tenant: Tenant) {
     label: r.nav_label || r.title,
     href: r.slug ? `/${r.slug}` : "/",
   }));
+}
+
+/**
+ * Everything renderPageHtml needs for one page on one host, built the same
+ * way for the live site (serveBusinessSite) and the admin preview
+ * (GET /api/tenants/:id/pages/:pageId/preview). `page.slug` is the URL slug
+ * ("" for the home page), not necessarily the stored slug.
+ */
+export async function buildRenderArgs(
+  env: Env,
+  tenant: Tenant,
+  page: {
+    slug: string;
+    title: string;
+    seo_title?: string | null;
+    seo_description?: string | null;
+    og_image_file_id?: string | null;
+    noindex?: number | null;
+    content_json?: string | null;
+    blocks_json?: string | null;
+  },
+  host: string
+): Promise<RenderArgs> {
+  const baseUrl = tenantPublicBaseUrl(env, tenant, host);
+  const nav = await loadNav(env, tenant);
+  const { showPlatformCredit } = readBranding(tenant.settings_json);
+
+  let logoFileId = "";
+  try {
+    logoFileId = String(
+      (JSON.parse(tenant.settings_json || "{}").assets || {}).logo_file_id || ""
+    );
+  } catch {
+    logoFileId = "";
+  }
+  const logoUrl = logoFileId ? `${baseUrl}/img/${logoFileId}` : null;
+  const ogImageUrl = page.og_image_file_id ? `${baseUrl}/img/${page.og_image_file_id}` : null;
+
+  return {
+    tenant: { name: tenant.name, slug: tenant.slug, settings_json: tenant.settings_json },
+    page: {
+      title: page.title,
+      slug: page.slug,
+      seo_title: page.seo_title ?? null,
+      seo_description: page.seo_description ?? null,
+      og_image_file_id: page.og_image_file_id ?? null,
+      noindex: page.noindex ?? 0,
+      content_json: page.content_json ?? null,
+      blocks_json: page.blocks_json ?? null,
+    },
+    nav,
+    baseUrl,
+    logoUrl,
+    ogImageUrl,
+    showPlatformCredit,
+  };
 }
 
 /**
@@ -212,6 +270,7 @@ export async function serveBusinessSite(
       c.env.DB.prepare(
         `SELECT slug, updated_at FROM pages
          WHERE tenant_id = ? AND published = 1 AND is_members_only = 0
+           AND deleted_at IS NULL
            AND coalesce(noindex, 0) = 0
          ORDER BY sort_order, title`
       ).bind(tenant.id)
@@ -409,26 +468,41 @@ export async function serveBusinessSite(
               og_image_file_id, coalesce(noindex, 0) AS noindex, updated_at
        FROM pages
        WHERE tenant_id = ? AND published = 1 AND is_members_only = 0
+         AND deleted_at IS NULL
          AND slug = ?
        LIMIT 1`
     ).bind(tenant.id, slug || "home")
   );
 
-  if (!row) return null;
-
-  const nav = await loadNav(c.env, tenant);
-  const { showPlatformCredit } = readBranding(tenant.settings_json);
-
-  let logoFileId = "";
-  try {
-    logoFileId = String(
-      (JSON.parse(tenant.settings_json || "{}").assets || {}).logo_file_id || ""
-    );
-  } catch {
-    logoFileId = "";
+  if (!row) {
+    // A renamed page leaves a page_redirects row behind (pages.ts PATCH /
+    // publish). Only a single path segment can ever be a slug, so anything
+    // deeper falls through to the platform 404 without a lookup.
+    if (slug && !slug.includes("/")) {
+      const to = await findRedirect(c.env.DB, tenant.id, slug);
+      if (to) {
+        const target = to === "home" ? "/" : `/${to}`;
+        return Response.redirect(`${baseUrl}${target}${url.search}`, 301);
+      }
+    }
+    return null;
   }
-  const logoUrl = logoFileId ? `${baseUrl}/img/${logoFileId}` : null;
-  const ogImageUrl = row.og_image_file_id ? `${baseUrl}/img/${row.og_image_file_id}` : null;
+
+  // Nav is built from the whole pages list (loadNav), so publishing,
+  // renaming, or trashing ANOTHER page must also invalidate this page's
+  // cached render. max(updated_at) across the tenant's pages moves on every
+  // one of those writes (all of them bump updated_at), so folding it into
+  // the key covers it without a purge.
+  const siteVersion = await first<{ v: string | null }>(
+    c.env.DB.prepare(`SELECT max(updated_at) AS v FROM pages WHERE tenant_id = ?`).bind(
+      tenant.id
+    )
+  );
+
+  // buildRenderArgs runs loadNav + branding for every request, before the
+  // cache lookup -- same as before this helper existed. The cache saves the
+  // render, not the nav query.
+  const args = await buildRenderArgs(c.env, tenant, { ...row, slug }, host);
 
   return cachedRender({
     host,
@@ -454,26 +528,10 @@ export async function serveBusinessSite(
     // ":" or "%" inside either raw value into %3A / %25, so the two
     // components can never be reparsed into a different (page, tenant)
     // pair no matter what either timestamp format does later.
-    updatedAt: `${encodeURIComponent(row.updated_at)}:${encodeURIComponent(tenant.updated_at)}`,
-    build: () =>
-      renderPageHtml({
-        tenant: { name: tenant.name, slug: tenant.slug, settings_json: tenant.settings_json },
-        page: {
-          title: row.title,
-          slug: slug,
-          seo_title: row.seo_title,
-          seo_description: row.seo_description,
-          og_image_file_id: row.og_image_file_id,
-          noindex: row.noindex,
-          content_json: row.content_json,
-          blocks_json: row.blocks_json,
-        },
-        nav,
-        baseUrl,
-        logoUrl,
-        ogImageUrl,
-        showPlatformCredit,
-      }),
+    updatedAt: `${encodeURIComponent(row.updated_at)}:${encodeURIComponent(
+      tenant.updated_at
+    )}:${encodeURIComponent(siteVersion?.v || "0")}`,
+    build: () => renderPageHtml(args),
   });
 }
 

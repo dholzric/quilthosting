@@ -137,13 +137,34 @@
     // computed server-side (GET /api/tenants/:id/onboarding), not stored here.
     let justCreatedGuild = null;
 
+    const AUTH_PATHS = /^\/api\/auth\/(login|register|magic-link|magic|config|google)/;
     async function api(path, opts = {}) {
       const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
+      const sentToken = !!token;
       if (token) headers["Authorization"] = `Bearer ${token}`;
       const res = await fetch(API + path, { ...opts, headers });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || res.statusText);
+      if (res.status === 401 && sentToken && !AUTH_PATHS.test(path)) {
+        // Dead session (expired / revoked token): drop it and show sign-in
+        // instead of leaving every screen stuck on "Invalid or expired token".
+        sessionExpired();
+        const err = new Error("Your session expired. Please sign in again.");
+        err.status = 401;
+        throw err;
+      }
+      if (!res.ok) {
+        const err = new Error(data.error || res.statusText);
+        err.status = res.status;
+        err.issues = Array.isArray(data.issues) ? data.issues : null;
+        err.data = data;
+        throw err;
+      }
       return data;
+    }
+    function sessionExpired() {
+      logout();
+      const errEl = document.getElementById("login-error");
+      if (errEl) { errEl.textContent = "Your session expired. Please sign in again."; show(errEl); }
     }
 
     function show(el) { el.classList.remove("hidden"); }
@@ -204,34 +225,77 @@
       applyRoleNav();
       initApp();
     }
+    // Mirrors PERMISSION_MATRIX in src/lib/permissions.ts (the API enforces
+    // it; this copy only decides what the sidebar shows and which write
+    // buttons are enabled). Keep the two in sync when the matrix changes.
+    const ADMIN_ONLY_AREAS = ["api-keys", "credentials", "billing", "qbo", "webhooks", "domain"];
+    const ADMIN_AREAS = {
+      owner: { write: "*", noRead: [] },
+      admin: { write: "*", noRead: [] },
+      platform: { write: "*", noRead: [] },
+      membership: { write: ["members", "levels", "groups", "invoices", "payments", "emails", "sms", "forms"], noRead: ADMIN_ONLY_AREAS },
+      events: { write: ["events", "galleries", "forms"], noRead: ADMIN_ONLY_AREAS },
+      viewer: { write: [], noRead: ADMIN_ONLY_AREAS },
+    };
+    // Sidebar entry -> API area it reads/writes. "tenant" = PATCH /api/tenants/:id
+    // (owner/admin only, see tenants.ts).
+    const NAV_AREA = {
+      dashboard: "stats", members: "members", levels: "levels", events: "events", store: "products",
+      payments: "payments", invoices: "invoices", comms: "emails", automations: "automations", forms: "forms",
+      pages: "pages", "site-pages": "pages", "site-theme": "tenant", "site-domain": "domain", "site-identity": "tenant",
+      projects: "projects", "project-rates": "projects", blog: "pages", forum: "forum", files: "files",
+      galleries: "galleries", reports: "stats", sms: "sms", chapters: "chapters", api: "api-keys",
+      webhooks: "webhooks", team: "team", settings: "settings",
+    };
+    function roleRule() { return ADMIN_AREAS[tenantRole] || ADMIN_AREAS.viewer; }
+    function canReadArea(area) {
+      const r = roleRule();
+      if (r.write === "*") return true;
+      if (area === "tenant") return true; // read via GET /api/tenants/:id
+      return !r.noRead.includes(area);
+    }
+    function canWriteArea(area) {
+      const r = roleRule();
+      if (r.write === "*") return true;
+      if (area === "tenant" || area === "settings") return false;
+      return r.write.includes(area);
+    }
     function applyRoleNav() {
-      const role = tenantRole || "admin";
-      // viewer: dashboard + members + events view; membership: + levels; events role: events; owner/admin/platform: all
-      const map = {
-        viewer: ["dashboard", "members", "events", "pages"],
-        membership: ["dashboard", "members", "levels", "store", "payments", "comms", "pages", "settings"],
-        events: ["dashboard", "members", "events", "comms", "pages", "settings"],
-        admin: null,
-        owner: null,
-        platform: null,
-      };
-      const allowed = map[role] === undefined ? null : map[role];
       document.querySelectorAll(".sidebar nav a[data-page]").forEach((a) => {
         if (a.dataset.page === "platform") {
           a.style.display = isPlatformAdmin ? "" : "none";
           a.classList.toggle("hidden", !isPlatformAdmin);
           return;
         }
-        if (!allowed) {
-          a.style.display = "";
-          return;
-        }
-        a.style.display = allowed.includes(a.dataset.page) ? "" : "none";
+        const area = NAV_AREA[a.dataset.page] || a.dataset.page;
+        a.style.display = canReadArea(area) ? "" : "none";
       });
       const badge = document.getElementById("platform-badge");
       if (badge) {
         if (isPlatformAdmin) show(badge);
         else hide(badge);
+      }
+    }
+    // After a screen renders: for roles without write access, disable the
+    // buttons that would change data and say so once at the top.
+    const WRITE_BUTTON_RE = /\b(save|publish|delete|remove|create|add|send|invite|upload|schedule|cancel|archive|restore|retry|discard|new |connect|revoke|refund|import|mark|pin|enable|disable|test|replay|generate|check in|sign|re-?send|assign|clear)\b/i;
+    function applyReadOnlyState(page, root) {
+      const host = root || document.getElementById("page-content");
+      if (!host) return;
+      const area = NAV_AREA[page] || page;
+      if (canWriteArea(area)) return;
+      host.querySelectorAll("button").forEach((b) => {
+        if (b.dataset.readonlyOk != null) return;
+        if (b.hasAttribute("data-write") || WRITE_BUTTON_RE.test(b.textContent || "")) {
+          b.disabled = true;
+          b.title = "Read-only for your role";
+        }
+      });
+      if (!root && !host.querySelector(".wb-readonly-note")) {
+        const n = document.createElement("p");
+        n.className = "muted wb-readonly-note";
+        n.textContent = "Read-only for your role — you can view this screen but not change it.";
+        host.prepend(n);
       }
     }
 
@@ -414,6 +478,10 @@
 
     async function navigate(page) {
       const el = document.getElementById("page-content");
+      if (typeof WB !== "undefined" && WB.view === "editor") {
+        try { await wbFlushSave(); } catch {}
+        WB.view = "list";
+      }
       el.innerHTML = "<p style='color:var(--muted)'>Loading…</p>";
       try {
         if (page === "platform") await renderPlatform(el);
@@ -444,7 +512,8 @@
         else if (page === "api") await renderApiKeys(el);
         else if (page === "webhooks") await renderWebhooks(el);
         else if (page === "team") await renderTeam(el);
-        else if (page === "settings") renderSettings(el);
+        else if (page === "settings") await renderSettings(el);
+        applyReadOnlyState(page);
       } catch (e) {
         el.innerHTML = `<p class="error">${e.message}</p>`;
       }
@@ -2370,17 +2439,19 @@
           <h3 style="margin-bottom:0.75rem">Past newsletters &amp; announcements</h3>
           ${blasts.length === 0 ? "<p style='color:var(--muted)'>Nothing sent yet — sent emails are archived here and readable online by members.</p>" : `
             <table>
-              <thead><tr><th>Sent</th><th>Subject</th><th>To</th><th>Delivered</th><th></th></tr></thead>
+              <thead><tr><th>Sent</th><th>Subject</th><th>To</th><th>Delivered</th><th>Status</th><th></th></tr></thead>
               <tbody>
                 ${blasts.map((b) => `
                   <tr>
                     <td>${b.status === "scheduled" && b.send_at ? "Sched " + new Date(b.send_at).toLocaleString() : new Date(b.created_at).toLocaleDateString()}</td>
-                    <td>${esc(b.subject)}${b.status === "scheduled" ? ' <span class="badge pending">scheduled</span>' : ""}</td>
+                    <td>${esc(b.subject)}</td>
                     <td>${esc(b.segment)}</td>
                     <td>${b.status === "scheduled" ? "—" : `${b.sent_count}/${b.recipients}`}</td>
+                    <td>${blastStatusHtml(b)}</td>
                     <td>
                       <button class="secondary" onclick='viewBlast(${JSON.stringify(b.id)})'>View</button>
                       ${b.status === "scheduled" ? `<button class="secondary" onclick='cancelScheduled(${JSON.stringify(b.id)})'>Cancel</button>` : ""}
+                      ${b.status === "partial" ? `<button class="secondary" onclick='retryBlast(${JSON.stringify(b.id)}, this)'>Retry failed</button>` : ""}
                     </td>
                   </tr>
                 `).join("")}
@@ -2427,7 +2498,7 @@
       if (!seg || !out) return;
       try {
         const r = await api(`/api/tenants/${tenantId}/emails/audience?segment=${encodeURIComponent(seg.value)}`);
-        out.textContent = `${r.count} recipient${r.count === 1 ? "" : "s"}`;
+        out.textContent = `${r.count} recipient${r.count === 1 ? "" : "s"}` + (r.opted_out ? ` · ${r.opted_out} opted out of newsletters (not included)` : "");
       } catch {
         out.textContent = "";
       }
@@ -2509,6 +2580,26 @@
     async function removeFromGroup(groupId, memberId) {
       await api(`/api/tenants/${tenantId}/groups/${groupId}/members/${memberId}`, { method: "DELETE" });
       viewGroup(groupId);
+    }
+    function blastStatusHtml(b) {
+      const s = b.status || "sent";
+      const cls = s === "sent" ? "active" : s === "partial" || s === "sending" || s === "scheduled" ? "pending" : "";
+      const counts = [];
+      if (Number(b.error_count)) counts.push(`${b.error_count} failed`);
+      if (Number(b.skipped_count)) counts.push(`${b.skipped_count} skipped`);
+      return `<span class="badge ${cls}">${esc(s)}</span>${counts.length ? ` <span class="muted" style="font-size:0.8rem">${esc(counts.join(", "))}</span>` : ""}`;
+    }
+    async function retryBlast(id, btn) {
+      const out = document.getElementById("c-result");
+      if (btn) { btn.disabled = true; btn.textContent = "Retrying…"; }
+      try {
+        const r = await api(`/api/tenants/${tenantId}/emails/blasts/${id}/retry`, { method: "POST" });
+        if (out) out.textContent = r.queued ? "Retrying the failed recipients in the background — refresh in a minute to see the result." : (r.message || "Retry started.");
+        setTimeout(() => navigate("comms"), 900);
+      } catch (e) {
+        if (out) out.textContent = e.message;
+        if (btn) { btn.disabled = false; btn.textContent = "Retry failed"; }
+      }
     }
     function viewBlast(id) {
       const b = (window._blasts || []).find((x) => x.id === id);
@@ -2649,534 +2740,1906 @@
       navigate("team");
     }
 
-    /* —— Drag-and-drop website builder —— */
-    const BLOCK_PALETTE = [
-      { type: "heading", label: "Heading", icon: "H" },
-      { type: "text", label: "Text", icon: "¶" },
-      { type: "image", label: "Image", icon: "▣" },
-      { type: "button", label: "Button", icon: "▢" },
-      { type: "divider", label: "Divider", icon: "—" },
-      { type: "join_cta", label: "Join CTA", icon: "✦" },
-      { type: "events_list", label: "Events", icon: "◷" },
-      { type: "store_list", label: "Store", icon: "$" },
-      { type: "spacer", label: "Spacer", icon: "↕" },
-      { type: "html", label: "HTML", icon: "</>" },
+    /* ================================================================
+       Website editor — ONE visual editor shared by guild tenants (the
+       "Website" sidebar entry, renderPagesAdmin) and business tenants
+       (qh-site-builder.js calls window.qhOpenPageEditor). No JSON or HTML
+       is ever shown to the customer except the optional "Embed / custom
+       code" block.
+
+       Server contract (src/routes/pages.ts, implemented concurrently):
+         GET    /pages               rows + has_draft, revision, published_at, draft_updated_at (?trash=1)
+         GET    /pages/:id           row + blocks (live) + draft_blocks (when has_draft)
+         PUT    /pages/:id/draft     { title?, blocks, revision? } -> { ok, revision, has_draft, draft_updated_at } (409 on conflict)
+         POST   /pages/:id/publish   { revision?, title?, blocks?, ...metadata } -> row
+         POST   /pages/:id/discard-draft
+         GET    /pages/:id/revisions, GET /:id/revisions/:rid, POST /:id/revisions/:rid/restore (-> draft)
+         DELETE /pages/:id (trash), POST /pages/:id/restore, DELETE /pages/:id?permanent=1
+         POST   /pages/preview { blocks } -> { html }          (production renderer)
+         GET    /pages/:id/preview?source=draft|live           (business: HTML doc; guild: { title, html, slug })
+       ================================================================ */
+
+    // Block catalogue. Field names mirror the PageBlock union in
+    // src/lib/blocks.ts exactly -- that file is the source of truth.
+    const WB_BLOCK_META = {
+      hero:           { label: "Hero banner",        icon: "★",  hint: "Big headline with an optional photo and button" },
+      heading:        { label: "Heading",            icon: "H",  hint: "A section title" },
+      text:           { label: "Text",               icon: "¶",  hint: "Paragraphs, lists and links" },
+      button:         { label: "Button",             icon: "▢",  hint: "A link styled as a button" },
+      faq:            { label: "Questions & answers", icon: "?", hint: "Expandable Q&A list" },
+      testimonials:   { label: "Testimonials",       icon: "❝",  hint: "Quotes from happy customers" },
+      service_cards:  { label: "Service cards",      icon: "▦",  hint: "A grid of services with short blurbs" },
+      image:          { label: "Image",              icon: "▣",  hint: "A single photo with caption" },
+      gallery_grid:   { label: "Photo gallery",      icon: "▤",  hint: "A grid of photos" },
+      join_cta:       { label: "Join call-to-action", icon: "✦", hint: "Invite visitors to become members" },
+      events_list:    { label: "Upcoming events",    icon: "◷",  hint: "Your next events, kept up to date automatically" },
+      store_list:     { label: "Store items",        icon: "$",  hint: "Products from your store" },
+      contact_form:   { label: "Contact form",       icon: "✉",  hint: "One of your forms, embedded on the page" },
+      project_intake: { label: "Quote request form", icon: "✎",  hint: "Let customers request an estimate" },
+      divider:        { label: "Divider",            icon: "—",  hint: "A thin horizontal line" },
+      spacer:         { label: "Spacer",             icon: "↕",  hint: "Empty vertical space" },
+      html:           { label: "Embed / custom code", icon: "</>", hint: "Paste an embed (YouTube, Maps). Scripts are removed." },
+    };
+    // Mirrors BUSINESS_BLOCK_TYPES / GUILD_ONLY_BLOCK_TYPES in src/lib/blocks.ts.
+    const WB_BUSINESS_TYPES = ["hero", "heading", "text", "image", "gallery_grid", "service_cards",
+      "faq", "testimonials", "contact_form", "project_intake", "button", "events_list", "store_list",
+      "divider", "spacer", "html"];
+    const WB_GUILD_TYPES = ["hero", "heading", "text", "image", "gallery_grid", "faq", "button",
+      "join_cta", "events_list", "store_list", "divider", "spacer", "html"];
+    const WB_GROUPS = [
+      { name: "Content", types: ["hero", "heading", "text", "button", "faq", "testimonials", "service_cards", "html"] },
+      { name: "Media", types: ["image", "gallery_grid"] },
+      { name: "Membership", types: ["join_cta", "events_list", "store_list", "contact_form", "project_intake"] },
+      { name: "Layout", types: ["divider", "spacer"] },
     ];
+    // Mirrors the project_intake allowlist in parseBlocks (src/lib/blocks.ts).
+    const WB_PROJECT_TYPES = [["longarm", "Longarm quilting"], ["custom_quilt", "Custom quilt"], ["tshirt_quilt", "T-shirt quilt"]];
+    // Mirrors FONT_OPTIONS keys/labels in src/lib/site/fonts.ts (duplicated on
+    // purpose: the admin is a static page and cannot import Worker code).
+    const WB_FONTS = [["inter", "Inter"], ["fraunces", "Fraunces"], ["playfair", "Playfair Display"],
+      ["lora", "Lora"], ["merriweather", "Merriweather"], ["cormorant", "Cormorant"], ["poppins", "Poppins"],
+      ["sourcesans", "Source Sans 3"], ["worksans", "Work Sans"], ["nunito", "Nunito"]];
+    const WB_FONT_STACKS = {
+      inter: "'Inter', system-ui, sans-serif", fraunces: "'Fraunces', Georgia, serif", playfair: "'Playfair Display', Georgia, serif",
+      lora: "'Lora', Georgia, serif", merriweather: "'Merriweather', Georgia, serif", cormorant: "'Cormorant', Georgia, serif",
+      poppins: "'Poppins', system-ui, sans-serif", sourcesans: "'Source Sans 3', system-ui, sans-serif",
+      worksans: "'Work Sans', system-ui, sans-serif", nunito: "'Nunito', system-ui, sans-serif",
+    };
+    const WB_FONT_QUERY = {
+      inter: "Inter:wght@400;500;600;700;800", fraunces: "Fraunces:opsz,wght,SOFT@9..144,300..900,0..100",
+      playfair: "Playfair+Display:wght@400;600;700;800", lora: "Lora:wght@400;500;600;700",
+      merriweather: "Merriweather:wght@400;700;900", cormorant: "Cormorant:wght@400;500;600;700",
+      poppins: "Poppins:wght@400;500;600;700;800", sourcesans: "Source+Sans+3:wght@400;500;600;700",
+      worksans: "Work+Sans:wght@400;500;600;700;800", nunito: "Nunito:wght@400;500;600;700;800",
+    };
+    // Mirrors DEFAULT_THEME in src/lib/site/theme.ts.
+    const WB_DEFAULT_THEME = {
+      primary: "#8a2060", primaryBright: "#c060a0", primaryDark: "#6a1048", secondary: "#6a4060",
+      secondaryBright: "#e090c8", accent: "#a04080", accentBright: "#f0c8e0", gold: "#f0c060",
+      bg: "#fcf6fa", card: "#fdf4f8", textBase: "#2a2530", textMuted: "#504852", themeColor: "#c060a0",
+    };
+    const WB_GUILD_SWATCHES = ["#b5501f", "#8a2060", "#1f6f8b", "#2d6a4f", "#3a3a3c", "#a04080", "#c0392b", "#6b4c9a"];
+
+    const WB = {
+      tenantType: "guild", view: "list", onBack: null,
+      pages: [], trash: [], showTrash: false, site: { theme: {}, nav: [] }, settings: null,
+      page: null, meta: {}, blocks: [], selected: null,
+      undo: [], redo: [], hiddenStack: [], lastKey: null, lastAt: 0,
+      revision: null, hasDraft: false, dirty: false, saveTimer: null, saveState: "idle", savePromise: null,
+      mode: "edit", previewWidth: "desktop", previewTimer: null, previewSeq: 0, previewReady: false,
+      serverParts: null, files: null, forms: null, imgCache: {}, siteCssLoaded: false, canWrite: true,
+      slugTouched: false, armed: {},
+    };
+
+    function wbIsGuild() { return WB.tenantType !== "business"; }
+    function wbBase() { return `/api/tenants/${tenantId}/pages`; }
+    function wbImageUrl(fileId) {
+      return wbIsGuild() ? `/public/${encodeURIComponent(tenantSlug)}/img/${fileId}` : `/img/${fileId}`;
+    }
+    function wbPagePath(slug) {
+      const s = String(slug || "");
+      if (wbIsGuild()) return !s || s === "home" ? `/g/${tenantSlug}` : `/g/${tenantSlug}/${s}`;
+      return !s || s === "home" ? "/" : `/${s}`;
+    }
+    function wbSlugify(s) {
+      return String(s || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    }
+    function wbTypesForTenant() {
+      return wbIsGuild() ? WB_GUILD_TYPES : WB_BUSINESS_TYPES;
+    }
+    function wbLabel(type) { return (WB_BLOCK_META[type] || {}).label || type; }
+
+    // Client-side clean-up for HTML shown inside the admin canvas (the server
+    // sanitizes again before anything is stored or served).
+    function wbSanitize(html, allowEmbeds) {
+      const doc = new DOMParser().parseFromString(`<div>${html || ""}</div>`, "text/html");
+      const root = doc.body.firstElementChild;
+      if (!root) return "";
+      root.querySelectorAll("script, style, link, meta, object, embed, form, input, textarea, button").forEach((n) => n.remove());
+      if (!allowEmbeds) root.querySelectorAll("iframe").forEach((n) => n.remove());
+      root.querySelectorAll("*").forEach((n) => {
+        [...n.attributes].forEach((a) => {
+          const name = a.name.toLowerCase();
+          if (name.startsWith("on") || name === "srcdoc") n.removeAttribute(a.name);
+          else if ((name === "href" || name === "src") && /^\s*(javascript|vbscript|data):/i.test(a.value)) n.removeAttribute(a.name);
+        });
+      });
+      return root.innerHTML;
+    }
+    // Paste clean-up for the rich-text editor: keep structure, drop styling.
+    function wbCleanPaste(html) {
+      const doc = new DOMParser().parseFromString(`<div>${html || ""}</div>`, "text/html");
+      const root = doc.body.firstElementChild;
+      if (!root) return "";
+      const KEEP = new Set(["P", "BR", "STRONG", "B", "EM", "I", "U", "A", "UL", "OL", "LI", "H2", "H3", "H4", "BLOCKQUOTE", "DIV"]);
+      const walk = (node) => {
+        [...node.childNodes].forEach((child) => {
+          if (child.nodeType === 8) { child.remove(); return; }
+          if (child.nodeType !== 1) return;
+          walk(child);
+          if (child.tagName === "SCRIPT" || child.tagName === "STYLE") { child.remove(); return; }
+          if (!KEEP.has(child.tagName)) {
+            const frag = doc.createDocumentFragment();
+            while (child.firstChild) frag.appendChild(child.firstChild);
+            child.replaceWith(frag);
+            return;
+          }
+          [...child.attributes].forEach((a) => {
+            if (child.tagName === "A" && a.name.toLowerCase() === "href" && !/^\s*(javascript|vbscript|data):/i.test(a.value)) return;
+            child.removeAttribute(a.name);
+          });
+          if (child.tagName === "B") { const s = doc.createElement("strong"); s.innerHTML = child.innerHTML; child.replaceWith(s); }
+          if (child.tagName === "I") { const s = doc.createElement("em"); s.innerHTML = child.innerHTML; child.replaceWith(s); }
+        });
+      };
+      walk(root);
+      return root.innerHTML;
+    }
 
     function defaultBlock(type) {
       const b = { type };
-      if (type === "heading") { b.text = "Your heading"; b.level = 2; }
-      else if (type === "text") b.html = "<p>Write your story here. Click this block to edit.</p>";
-      else if (type === "image") { b.url = ""; b.alt = "Photo"; b.caption = ""; }
-      else if (type === "button") { b.label = "Join us"; b.href = "#h-membership"; b.style = "primary"; }
-      else if (type === "join_cta") { b.title = "Become a member"; b.body = "Join our guild community."; }
-      else if (type === "events_list" || type === "store_list") b.limit = 5;
-      else if (type === "html") b.html = "<p>Custom HTML</p>";
-      else if (type === "spacer") b.height = 24;
+      switch (type) {
+        case "heading": b.text = "Your heading"; b.level = 2; break;
+        case "text": b.html = "<p>Write your story here.</p>"; break;
+        case "image": b.url = ""; b.alt = ""; b.caption = ""; break;
+        case "button": b.label = wbIsGuild() ? "Join us" : "Get in touch"; b.href = wbIsGuild() ? `/g/${tenantSlug}/membership` : "/contact"; b.style = "primary"; break;
+        case "join_cta": b.title = "Become a member"; b.body = "Join our guild community."; break;
+        case "events_list": b.limit = 5; break;
+        case "store_list": b.limit = 6; break;
+        case "html": b.html = ""; break;
+        case "spacer": b.height = 24; break;
+        case "hero": b.eyebrow = ""; b.title = wbIsGuild() ? "Welcome to our guild" : "Welcome"; b.subtitle = "A short line about what you do."; b.imageUrl = ""; b.ctaLabel = ""; b.ctaHref = ""; break;
+        case "service_cards": b.items = [{ icon: "", title: "Service one", body: "What it includes." }, { icon: "", title: "Service two", body: "What it includes." }]; break;
+        case "gallery_grid": b.items = []; break;
+        case "faq": b.items = [{ q: "How do I get started?", a: "Send us a note and we will reply within a day." }]; break;
+        case "testimonials": b.items = [{ quote: "Wonderful work and quick turnaround.", author: "A happy customer" }]; break;
+        case "contact_form": b.formSlug = "contact"; b.submitLabel = "Send"; break;
+        case "project_intake": b.projectType = "longarm"; b.heading = "Request a quote"; b.submitLabel = "Get my estimate"; break;
+        default: break;
+      }
       return b;
     }
 
+    // Local (instant) preview used while the production renderer round-trip
+    // is in flight, and as the fallback when the request fails.
     function blockPreviewHtml(b) {
       if (!b) return "";
+      const ph = (text) => `<div class="wb-ph">${text}</div>`;
       switch (b.type) {
         case "heading": {
           const tag = "h" + (b.level || 2);
-          return `<${tag} style="margin:0.25rem 0">${esc(b.text || "Heading")}</${tag}>`;
+          return `<${tag} class="qh-block-heading">${esc(b.text || "Heading")}</${tag}>`;
         }
         case "text":
+          return `<div class="qh-block-text">${wbSanitize(b.html) || "<p class='muted'>Empty text — select to write.</p>"}</div>`;
         case "html":
-          return `<div class="qh-block-text">${b.html || "<p class='muted'>Empty text</p>"}</div>`;
+          return b.html ? `<div class="qh-block-html">${wbSanitize(b.html, true)}</div>` : ph("Embed / custom code — paste an embed in the panel on the right.");
         case "image":
           return b.url
-            ? `<figure style="margin:0"><img src="${esc(b.url)}" alt="${esc(b.alt||"")}" style="max-width:100%;border-radius:8px" />${b.caption ? `<figcaption class="muted" style="font-size:0.85rem">${esc(b.caption)}</figcaption>` : ""}</figure>`
-            : `<div class="muted" style="padding:2rem;text-align:center;background:var(--surface-2);border-radius:8px">Drop / set image URL</div>`;
+            ? `<figure class="qh-block-image"><img src="${esc(b.url)}" alt="${esc(b.alt || "")}" />${b.caption ? `<figcaption>${esc(b.caption)}</figcaption>` : ""}</figure>`
+            : ph("Image — upload one or choose from your library.");
         case "button":
-          return `<p style="margin:0.5rem 0"><a class="btn ${b.style === "secondary" ? "secondary" : ""}" href="${esc(b.href||"#")}">${esc(b.label||"Button")}</a></p>`;
+          return `<p class="qh-block-button"><a class="btn ${b.style === "secondary" ? "secondary" : ""}" href="${esc(b.href || "#")}" tabindex="-1">${esc(b.label || "Button")}</a></p>`;
         case "divider":
-          return `<hr style="border:none;border-top:1px solid var(--border);margin:0.75rem 0" />`;
+          return `<hr class="qh-block-divider" />`;
         case "join_cta":
-          return `<div class="card" style="margin:0;background:var(--brand-soft)"><strong>${esc(b.title||"Join")}</strong><p class="muted" style="margin:0.35rem 0 0;font-size:0.9rem">${esc(b.body||"")}</p></div>`;
+          return `<div class="qh-block-cta card"><h3>${esc(b.title || "Become a member")}</h3>${b.body ? `<p>${esc(b.body)}</p>` : ""}<p class="muted">See membership levels above to join.</p></div>`;
         case "events_list":
-          return `<div class="muted" style="padding:1rem;border:1px dashed var(--border);border-radius:8px">📅 Upcoming events (shows up to ${b.limit||5} on the public site)</div>`;
+          return ph(`Upcoming events — shows up to ${b.limit || 5} on the live site`);
         case "store_list":
-          return `<div class="muted" style="padding:1rem;border:1px dashed var(--border);border-radius:8px">🛒 Store items (up to ${b.limit||6})</div>`;
+          return ph(`Store items — shows up to ${b.limit || 6} on the live site`);
         case "spacer":
-          return `<div style="height:${b.height||24}px;background:repeating-linear-gradient(90deg,transparent,transparent 4px,var(--border) 4px,var(--border) 5px);opacity:0.4"></div>`;
+          return `<div class="qh-block-spacer wb-spacer" style="height:${Number(b.height) || 24}px"></div>`;
+        case "hero":
+          return `<section class="qh-block-hero"${b.imageUrl ? ` style="background-image:url('${esc(b.imageUrl)}')"` : ""}><div class="qh-hero-inner">${b.eyebrow ? `<p class="qh-hero-eyebrow">${esc(b.eyebrow)}</p>` : ""}<h1 class="qh-hero-title">${esc(b.title || "Headline")}</h1>${b.subtitle ? `<p class="qh-hero-sub">${esc(b.subtitle)}</p>` : ""}${b.ctaLabel ? `<p class="qh-hero-cta"><a class="btn" tabindex="-1">${esc(b.ctaLabel)}</a></p>` : ""}</div></section>`;
+        case "service_cards":
+          return `<div class="qh-block-services">${(b.items || []).map((it) => `<div class="qh-service-card card">${it.icon ? `<div class="qh-service-icon">${esc(it.icon)}</div>` : ""}<h3>${esc(it.title || "")}</h3>${it.body ? `<p>${esc(it.body)}</p>` : ""}</div>`).join("") || ph("Service cards — add a card in the panel on the right.")}</div>`;
+        case "gallery_grid":
+          return (b.items || []).filter((it) => it.url).length
+            ? `<div class="qh-block-gallery">${b.items.filter((it) => it.url).map((it) => `<figure class="qh-gallery-item"><img src="${esc(it.url)}" alt="${esc(it.alt || "")}" />${it.caption ? `<figcaption>${esc(it.caption)}</figcaption>` : ""}</figure>`).join("")}</div>`
+            : ph("Photo gallery — add photos in the panel on the right.");
+        case "faq":
+          return `<div class="qh-block-faq">${(b.items || []).map((it) => `<details class="qh-faq-item" open><summary>${esc(it.q || "")}</summary><div>${esc(it.a || "")}</div></details>`).join("") || ph("Questions & answers — add a question on the right.")}</div>`;
+        case "testimonials":
+          return `<div class="qh-block-testimonials">${(b.items || []).map((it) => `<blockquote class="qh-testimonial"><p>${esc(it.quote || "")}</p>${it.author ? `<cite>${esc(it.author)}</cite>` : ""}</blockquote>`).join("") || ph("Testimonials — add a quote on the right.")}</div>`;
+        case "contact_form":
+          return ph(`Contact form “${esc(b.formSlug || "contact")}” — visitors fill it in on the live site`);
+        case "project_intake":
+          return ph(`${esc(b.heading || "Request a quote")} — quote request form (${esc((WB_PROJECT_TYPES.find((p) => p[0] === b.projectType) || [])[1] || b.projectType || "")})`);
         default:
-          return `<span class="muted">${esc(b.type)}</span>`;
+          return ph(esc(wbLabel(b.type)));
       }
     }
 
+    // Blocks that produce no output in the production renderer (blocksToHtml
+    // skips an image with no valid URL). Used to align POST /preview output
+    // with the blocks array.
+    function wbRenders(b) {
+      if (b.type === "image") return /^(https?:\/\/|\/|\.\.?\/)/.test(String(b.url || ""));
+      return true;
+    }
+
+    /* ---------- role gate ---------- */
+    function wbRefreshWrite() {
+      WB.canWrite = typeof canWriteArea === "function" ? canWriteArea("pages") : true;
+    }
+
+    /* ---------- entry points ---------- */
+
+    // Guild "Website" screen: page list + theme + navigation.
     async function renderPagesAdmin(el) {
-      const pagesRaw = await api(`/api/tenants/${tenantId}/pages`);
-      const pages = asList(pagesRaw, "pages").filter((p) => (p.page_type || "page") !== "blog_post");
-      let site = { theme: {}, nav: [] };
-      try { site = await api(`/api/tenants/${tenantId}/pages/site/settings`); } catch {}
-      window._pages = pages;
-      window._pageBlocks = window._pageBlocks || [];
-      window._selectedBlock = window._selectedBlock ?? null;
-      window._builderTheme = site.theme || {};
+      WB.tenantType = "guild";
+      WB.view = "list";
+      wbRefreshWrite();
+      const [pagesRaw, trashRaw, site] = await Promise.all([
+        api(wbBase()),
+        WB.showTrash ? api(`${wbBase()}?trash=1`).catch(() => []) : Promise.resolve([]),
+        api(`${wbBase()}/site/settings`).catch(() => ({ theme: {}, nav: [] })),
+      ]);
+      WB.pages = asList(pagesRaw, "pages").filter((p) => (p.page_type || "page") !== "blog_post");
+      WB.trash = asList(trashRaw, "pages").filter((p) => (p.page_type || "page") !== "blog_post");
+      WB.site = { theme: site.theme || {}, nav: site.nav || [] };
+      window._pages = WB.pages;
 
       el.innerHTML = `
-        <style>
-          .wb-grid { display:grid; grid-template-columns: 160px 1fr 260px; gap:0; min-height:520px; border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--surface); }
-          @media (max-width: 960px) { .wb-grid { grid-template-columns: 1fr; } }
-          .wb-palette { background:var(--surface-2); border-right:1px solid var(--border); padding:0.75rem; overflow-y:auto; }
-          .wb-palette h4 { font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-3); margin:0 0 0.5rem; }
-          .wb-chip { display:flex; align-items:center; gap:0.5rem; padding:0.5rem 0.6rem; margin-bottom:0.35rem; background:#fff; border:1px solid var(--border); border-radius:8px; cursor:grab; font-size:0.85rem; user-select:none; }
-          .wb-chip:hover { border-color:var(--brand); }
-          .wb-chip .ico { width:1.4rem; text-align:center; color:var(--brand); font-weight:700; }
-          .wb-canvas-wrap { display:flex; flex-direction:column; min-height:520px; background:#efe9e0; }
-          .wb-canvas-bar { display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center; padding:0.6rem 0.75rem; background:var(--surface); border-bottom:1px solid var(--border); }
-          .wb-canvas { flex:1; padding:1.25rem; overflow-y:auto; }
-          .wb-page { max-width:640px; margin:0 auto; background:#fff; border-radius:12px; box-shadow:var(--shadow-md); padding:1.25rem 1.5rem; min-height:360px; }
-          .wb-drop { min-height:48px; border:2px dashed transparent; border-radius:8px; transition:border-color .15s, background .15s; }
-          .wb-drop.over { border-color:var(--brand); background:var(--brand-soft); }
-          .wb-block { position:relative; margin:0.35rem 0; padding:0.5rem; border:2px solid transparent; border-radius:8px; cursor:pointer; }
-          .wb-block:hover { border-color:var(--border-strong); }
-          .wb-block.selected { border-color:var(--brand); background:rgba(181,80,31,0.04); }
-          .wb-block .wb-handle { position:absolute; left:-6px; top:50%; transform:translateY(-50%); opacity:0; font-size:0.75rem; color:var(--ink-3); cursor:grab; padding:0.25rem; }
-          .wb-block:hover .wb-handle, .wb-block.selected .wb-handle { opacity:1; }
-          .wb-empty { text-align:center; padding:3rem 1rem; color:var(--ink-3); border:2px dashed var(--border); border-radius:12px; }
-          .wb-props { background:var(--surface-2); border-left:1px solid var(--border); padding:0.75rem; overflow-y:auto; }
-          .wb-props h4 { font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-3); margin:0 0 0.75rem; }
-          .wb-props label { font-size:0.8rem; display:block; margin:0.5rem 0 0.2rem; }
-          .wb-props input, .wb-props select, .wb-props textarea { width:100%; font:inherit; padding:0.45rem 0.55rem; border:1px solid var(--border); border-radius:8px; background:#fff; }
-          .wb-props textarea { min-height:80px; resize:vertical; }
-          .wb-pages-list tr.wb-active { background:var(--brand-soft); }
-        </style>
-
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;margin-bottom:1rem">
+        <div class="wb-head">
           <div>
-            <h2 style="margin:0">Website builder</h2>
-            <p class="muted" style="margin:0.25rem 0 0;font-size:0.9rem">Drag blocks onto the canvas. Click a block to edit. Saves to your public guild site.</p>
+            <h2 style="margin:0">Website</h2>
+            <p class="muted" style="margin:0.25rem 0 0;font-size:0.9rem">Build pages, choose your look and arrange your menu. Changes stay private until you publish.</p>
           </div>
-          <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
-            <button class="secondary" onclick="resetPageForm()">New page</button>
-            <button onclick="savePage()">Save page</button>
-            <a class="secondary" href="/g/${esc(tenantSlug)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;padding:0.5rem 0.9rem;text-decoration:none;border:1px solid var(--border);border-radius:8px">Preview site ↗</a>
+          <div class="wb-head-actions">
+            <a class="btn secondary" href="/g/${esc(tenantSlug)}" target="_blank" rel="noopener">Preview site ↗</a>
+            <button type="button" data-write onclick="qhOpenPageEditor(null, { tenantType: 'guild' })">New page</button>
           </div>
         </div>
-        <span id="pg-result" class="muted" style="display:block;margin-bottom:0.75rem"></span>
+        <div id="wb-list-host"></div>
+        <div class="card" id="wb-theme-card"></div>
+        <div class="card" id="wb-nav-card"></div>`;
+      wbRenderPageList(document.getElementById("wb-list-host"), {
+        onEdit: (p) => qhOpenPageEditor(p, { tenantType: "guild" }),
+        onPreview: (p) => qhOpenPageEditor(p, { tenantType: "guild", mode: "preview" }),
+        reload: () => navigate("pages"),
+      });
+      wbRenderGuildTheme(document.getElementById("wb-theme-card"));
+      wbRenderNavCard(document.getElementById("wb-nav-card"));
+      applyReadOnlyState("pages");
+    }
 
-        <div class="card" style="margin-bottom:1rem">
-          <details>
-            <summary style="cursor:pointer;font-weight:600">Theme &amp; site navigation</summary>
-            <div class="form-row" style="margin-top:0.75rem">
-              <div><label>Primary color</label><input id="th-primary" type="color" value="${esc(site.theme?.primary || "#b5501f")}" /></div>
-              <div><label>Style</label>
-                <select id="th-style">
-                  <option value="classic" ${site.theme?.style==="classic"?"selected":""}>Classic</option>
-                  <option value="modern" ${site.theme?.style==="modern"?"selected":""}>Modern</option>
-                  <option value="warm" ${site.theme?.style==="warm"?"selected":""}>Warm</option>
-                </select>
-              </div>
-              <div><label>Font</label>
-                <select id="th-font">
-                  <option value="system" ${!site.theme?.font||site.theme?.font==="system"?"selected":""}>System</option>
-                  <option value="serif" ${site.theme?.font==="serif"?"selected":""}>Serif</option>
-                  <option value="rounded" ${site.theme?.font==="rounded"?"selected":""}>Rounded</option>
-                </select>
-              </div>
-            </div>
-            <label>Extra nav links (JSON)</label>
-            <input id="th-nav" value="${esc(JSON.stringify(site.nav||[]))}" placeholder='[{"label":"QuiltMap","href":"https://…"}]' />
-            <button onclick="saveSiteTheme()" style="margin-top:0.5rem">Save theme</button>
-            <span id="th-msg" class="muted" style="margin-left:0.5rem"></span>
-          </details>
-        </div>
-
-        <div class="card" style="margin-bottom:1rem;padding:0.75rem">
-          <input type="hidden" id="pg-id" />
-          <input type="hidden" id="pg-content" value="" />
-          <textarea id="pg-blocks" class="hidden" aria-hidden="true"></textarea>
-          <div class="form-row">
-            <div><label>Page title</label><input id="pg-title" placeholder="About Our Guild" /></div>
-            <div style="display:flex;gap:1rem;align-items:end;padding-bottom:0.35rem;flex-wrap:wrap">
-              <label style="display:flex;align-items:center;gap:0.35rem;margin:0"><input type="checkbox" id="pg-members" style="width:auto" /> Members only</label>
-              <label style="display:flex;align-items:center;gap:0.35rem;margin:0"><input type="checkbox" id="pg-published" checked style="width:auto" /> Published</label>
-              <label style="display:flex;align-items:center;gap:0.35rem;margin:0"><input type="checkbox" id="pg-nav" checked style="width:auto" /> Show in nav</label>
-            </div>
+    // Shared page table (guild uses it directly; qh-site-builder.js renders
+    // its own list but calls the same trash/restore helpers).
+    function wbRenderPageList(host, handlers) {
+      const rows = WB.showTrash ? WB.trash : WB.pages;
+      const statusCell = (p) => {
+        const parts = [];
+        parts.push(p.published ? `<span class="badge active">Published</span>` : `<span class="badge">Unpublished</span>`);
+        if (p.has_draft) parts.push(`<span class="badge pending" title="Edits saved but not yet published">Unpublished changes</span>`);
+        if (p.is_members_only) parts.push(`<span class="badge">Members only</span>`);
+        return parts.join(" ");
+      };
+      host.innerHTML = `
+        <div class="card" style="padding:0.75rem 1rem">
+          <div class="wb-tabs" role="tablist" aria-label="Page lists">
+            <button type="button" class="secondary ${WB.showTrash ? "" : "on"}" role="tab" aria-selected="${!WB.showTrash}" data-action="tab-pages">Pages (${WB.pages.length})</button>
+            <button type="button" class="secondary ${WB.showTrash ? "on" : ""}" role="tab" aria-selected="${WB.showTrash}" data-action="tab-trash">Trash${WB.trash.length ? ` (${WB.trash.length})` : ""}</button>
           </div>
-          <p id="pg-form-title" class="muted" style="font-size:0.85rem;margin:0.35rem 0 0">Editing: <strong>New page</strong></p>
-        </div>
-
-        <div class="wb-grid">
-          <aside class="wb-palette">
-            <h4>Blocks</h4>
-            <p class="muted" style="font-size:0.75rem;margin:0 0 0.6rem">Drag onto the page</p>
-            ${BLOCK_PALETTE.map((p) => `
-              <div class="wb-chip" draggable="true"
-                ondragstart="paletteDragStart(event,'${p.type}')"
-                title="Drag to canvas or click to add">
-                <span class="ico">${p.icon}</span> ${esc(p.label)}
-              </div>`).join("")}
-            <p class="muted" style="font-size:0.75rem;margin-top:0.75rem">Or click a chip to append.</p>
-            ${BLOCK_PALETTE.map((p) => `
-              <button type="button" class="secondary" style="width:100%;margin-bottom:0.25rem;font-size:0.8rem"
-                onclick="addPageBlock('${p.type}')">+ ${esc(p.label)}</button>`).join("")}
-          </aside>
-
-          <div class="wb-canvas-wrap">
-            <div class="wb-canvas-bar">
-              <span class="muted" style="font-size:0.85rem">Canvas · drop zones highlight when dragging</span>
-              <button type="button" class="secondary" style="margin-left:auto" onclick="builderDeselect()">Deselect</button>
-            </div>
-            <div class="wb-canvas"
-              ondragover="canvasDragOver(event)"
-              ondrop="canvasDropEnd(event)"
-              ondragleave="canvasDragLeave(event)">
-              <div class="wb-page" id="wb-page" style="--brand:${esc(site.theme?.primary || "#b5501f")}"></div>
-            </div>
-          </div>
-
-          <aside class="wb-props" id="wb-props">
-            <h4>Properties</h4>
-            <p class="muted" style="font-size:0.85rem">Select a block on the canvas to edit its properties.</p>
-          </aside>
-        </div>
-
-        <div class="card" style="margin-top:1rem">
-          <h3 style="margin:0 0 0.75rem">Your pages</h3>
           <table class="wb-pages-list">
-            <thead><tr><th>Title</th><th>Visibility</th><th>Status</th><th>Updated</th><th></th></tr></thead>
+            <thead><tr><th>Title</th><th>Address</th><th>Status</th><th>Updated</th><th></th></tr></thead>
             <tbody>
-              ${pages.length === 0 ? "<tr><td colspan='5' class='muted'>No pages yet — build one above</td></tr>" : pages.map((p) => `
+              ${rows.length === 0
+                ? `<tr><td colspan="5" class="muted">${WB.showTrash ? "Trash is empty." : "No pages yet — click “New page” to start."}</td></tr>`
+                : rows.map((p) => `
                 <tr data-page-id="${esc(p.id)}">
-                  <td>${esc(p.title)}</td>
-                  <td>${p.is_members_only ? "Members only" : "Public"}</td>
-                  <td>${p.published ? "Published" : "Draft"}</td>
-                  <td>${new Date(p.updated_at).toLocaleDateString()}</td>
-                  <td>
-                    <button class="secondary" onclick='editPage(${JSON.stringify(p.id)})'>Edit</button>
-                    <button class="secondary" onclick='deletePage(${JSON.stringify(p.id)}, ${JSON.stringify(p.title)})'>Delete</button>
+                  <td><strong>${esc(p.title)}</strong></td>
+                  <td class="muted">${esc(wbPagePath(p.slug))}</td>
+                  <td>${statusCell(p)}</td>
+                  <td>${new Date(p.draft_updated_at || p.updated_at).toLocaleDateString()}</td>
+                  <td class="wb-row-actions">
+                    ${WB.showTrash
+                      ? `<button type="button" class="secondary" data-write data-action="restore" data-id="${esc(p.id)}">Restore</button>
+                         <button type="button" class="secondary" data-write data-action="delete-forever" data-id="${esc(p.id)}">Delete permanently</button>`
+                      : `<button type="button" class="secondary" data-action="edit" data-id="${esc(p.id)}">Edit</button>
+                         <button type="button" class="secondary" data-action="preview" data-id="${esc(p.id)}">Preview draft</button>
+                         <button type="button" class="secondary" data-write data-action="trash" data-id="${esc(p.id)}">Delete</button>`}
                   </td>
-                </tr>
-              `).join("")}
+                </tr>`).join("")}
             </tbody>
           </table>
-        </div>
-      `;
-
-      // Click palette chips to add (in addition to drag)
-      document.querySelectorAll(".wb-chip").forEach((chip) => {
-        chip.addEventListener("click", () => {
-          const t = chip.getAttribute("ondragstart")?.match(/'([^']+)'/)?.[1];
-          if (t) addPageBlock(t);
+          <p id="wb-list-msg" class="muted" style="font-size:0.85rem;margin:0.5rem 0 0" aria-live="polite"></p>
+        </div>`;
+      host.querySelectorAll("[data-action]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const act = btn.dataset.action;
+          const id = btn.dataset.id;
+          const msg = host.querySelector("#wb-list-msg");
+          const find = (list) => list.find((p) => p.id === id);
+          try {
+            if (act === "tab-pages") { WB.showTrash = false; return handlers.reload(); }
+            if (act === "tab-trash") { WB.showTrash = true; return handlers.reload(); }
+            if (act === "edit") return handlers.onEdit(find(WB.pages));
+            if (act === "preview") return handlers.onPreview(find(WB.pages));
+            if (act === "trash") {
+              if (!wbArm(btn, "Click again to move to trash")) return;
+              await api(`${wbBase()}/${id}`, { method: "DELETE" });
+              msg.textContent = "Moved to trash. You can restore it from the Trash tab.";
+              return handlers.reload();
+            }
+            if (act === "restore") {
+              await api(`${wbBase()}/${id}/restore`, { method: "POST" });
+              WB.showTrash = false;
+              return handlers.reload();
+            }
+            if (act === "delete-forever") {
+              if (!wbArm(btn, "Click again to delete forever")) return;
+              await api(`${wbBase()}/${id}?permanent=1`, { method: "DELETE" });
+              return handlers.reload();
+            }
+          } catch (e) { msg.textContent = e.message; }
         });
       });
-      renderBlockEditor();
     }
 
-    function renderBlockEditor() {
-      const page = document.getElementById("wb-page");
-      if (!page) return;
-      const blocks = window._pageBlocks || [];
-      const sel = window._selectedBlock;
-
-      if (!blocks.length) {
-        page.innerHTML = `<div class="wb-empty wb-drop" data-insert="0"
-          ondragover="blockDragOver(event)" ondrop="blockDropAt(event,0)">
-          <p style="margin:0 0 0.35rem;font-weight:600">Empty page</p>
-          <p style="margin:0;font-size:0.9rem">Drag a block from the left, or click a block type to start.</p>
-        </div>`;
-        syncBlocksJson();
-        renderBlockProps();
-        return;
-      }
-
-      let html = `<div class="wb-drop" data-insert="0" style="min-height:12px"
-        ondragover="blockDragOver(event)" ondrop="blockDropAt(event,0)"></div>`;
-      blocks.forEach((b, i) => {
-        const selected = sel === i ? "selected" : "";
-        html += `
-          <div class="wb-block ${selected}" data-bi="${i}" draggable="true"
-            onclick="selectBlock(${i})"
-            ondragstart="blockDragStart(event,${i})"
-            ondragover="blockDragOver(event)"
-            ondrop="blockDropAt(event,${i})">
-            <span class="wb-handle" title="Drag to reorder">⋮⋮</span>
-            ${blockPreviewHtml(b)}
-          </div>
-          <div class="wb-drop" data-insert="${i + 1}" style="min-height:12px"
-            ondragover="blockDragOver(event)" ondrop="blockDropAt(event,${i + 1})"></div>`;
-      });
-      page.innerHTML = html;
-      syncBlocksJson();
-      renderBlockProps();
-    }
-
-    function renderBlockProps() {
-      const panel = document.getElementById("wb-props");
-      if (!panel) return;
-      const i = window._selectedBlock;
-      const b = typeof i === "number" ? (window._pageBlocks || [])[i] : null;
-      if (!b) {
-        panel.innerHTML = `<h4>Properties</h4><p class="muted" style="font-size:0.85rem">Select a block on the canvas to edit.</p>
-          <button type="button" class="secondary" style="margin-top:0.5rem;width:100%" onclick="addPageBlock('heading')">+ Add heading</button>`;
-        return;
-      }
-      let fields = "";
-      if (b.type === "heading") {
-        fields = `
-          <label>Text</label><input id="bp-text" value="${esc(b.text||"")}" oninput="updateSelectedBlock({text:this.value})" />
-          <label>Level</label>
-          <select id="bp-level" onchange="updateSelectedBlock({level:Number(this.value)})">
-            <option value="1" ${b.level===1?"selected":""}>H1</option>
-            <option value="2" ${b.level===2||!b.level?"selected":""}>H2</option>
-            <option value="3" ${b.level===3?"selected":""}>H3</option>
-          </select>`;
-      } else if (b.type === "text" || b.type === "html") {
-        fields = `<label>HTML</label><textarea id="bp-html" oninput="updateSelectedBlock({html:this.value})">${esc(b.html||"")}</textarea>`;
-      } else if (b.type === "image") {
-        fields = `
-          <label>Image URL</label><input id="bp-url" value="${esc(b.url||"")}" oninput="updateSelectedBlock({url:this.value})" placeholder="https://…" />
-          <label>Alt text</label><input value="${esc(b.alt||"")}" oninput="updateSelectedBlock({alt:this.value})" />
-          <label>Caption</label><input value="${esc(b.caption||"")}" oninput="updateSelectedBlock({caption:this.value})" />`;
-      } else if (b.type === "button") {
-        fields = `
-          <label>Label</label><input value="${esc(b.label||"")}" oninput="updateSelectedBlock({label:this.value})" />
-          <label>Link</label><input value="${esc(b.href||"")}" oninput="updateSelectedBlock({href:this.value})" />
-          <label>Style</label>
-          <select onchange="updateSelectedBlock({style:this.value})">
-            <option value="primary" ${b.style!=="secondary"?"selected":""}>Primary</option>
-            <option value="secondary" ${b.style==="secondary"?"selected":""}>Secondary</option>
-          </select>`;
-      } else if (b.type === "join_cta") {
-        fields = `
-          <label>Title</label><input value="${esc(b.title||"")}" oninput="updateSelectedBlock({title:this.value})" />
-          <label>Body</label><textarea oninput="updateSelectedBlock({body:this.value})">${esc(b.body||"")}</textarea>`;
-      } else if (b.type === "events_list" || b.type === "store_list") {
-        fields = `<label>How many to show</label><input type="number" min="1" max="20" value="${b.limit||5}" oninput="updateSelectedBlock({limit:Number(this.value)||5})" />`;
-      } else if (b.type === "spacer") {
-        fields = `<label>Height (px)</label><input type="number" min="8" max="120" value="${b.height||24}" oninput="updateSelectedBlock({height:Number(this.value)||24})" />`;
-      } else if (b.type === "divider") {
-        fields = `<p class="muted" style="font-size:0.85rem">No options for divider.</p>`;
-      }
-      panel.innerHTML = `
-        <h4>${esc(b.type)} · #${i + 1}</h4>
-        ${fields}
-        <button type="button" class="secondary" style="width:100%;margin-top:1rem;color:var(--danger)"
-          onclick="removePageBlock(${i})">Remove block</button>
-        <button type="button" class="secondary" style="width:100%;margin-top:0.35rem"
-          onclick="duplicateBlock(${i})">Duplicate</button>
-      `;
-    }
-
-    function updateSelectedBlock(patch) {
-      const i = window._selectedBlock;
-      if (typeof i !== "number" || !window._pageBlocks[i]) return;
-      Object.assign(window._pageBlocks[i], patch);
-      // Re-render canvas but keep selection; avoid full props wipe on every keystroke for textareas
-      const page = document.getElementById("wb-page");
-      if (page) {
-        const blockEl = page.querySelector(`.wb-block[data-bi="${i}"]`);
-        if (blockEl) {
-          const handle = `<span class="wb-handle" title="Drag to reorder">⋮⋮</span>`;
-          blockEl.innerHTML = handle + blockPreviewHtml(window._pageBlocks[i]);
+    // Two-click arm pattern (no window.confirm). Returns true on the second click.
+    function wbArm(btn, label) {
+      if (btn.dataset.armed === "1") return true;
+      btn.dataset.armed = "1";
+      btn.dataset.label = btn.textContent;
+      btn.textContent = label;
+      btn.classList.add("wb-armed");
+      setTimeout(() => {
+        if (btn.isConnected && btn.dataset.armed === "1") {
+          btn.dataset.armed = "";
+          btn.textContent = btn.dataset.label;
+          btn.classList.remove("wb-armed");
         }
-      }
-      syncBlocksJson();
+      }, 4000);
+      return false;
     }
 
-    function selectBlock(i) {
-      window._selectedBlock = i;
-      renderBlockEditor();
-    }
-    function builderDeselect() {
-      window._selectedBlock = null;
-      renderBlockEditor();
-    }
-    function duplicateBlock(i) {
-      const b = window._pageBlocks[i];
-      if (!b) return;
-      window._pageBlocks.splice(i + 1, 0, JSON.parse(JSON.stringify(b)));
-      window._selectedBlock = i + 1;
-      renderBlockEditor();
-    }
-
-    function syncBlocksJson() {
-      const ta = document.getElementById("pg-blocks");
-      if (ta) ta.value = JSON.stringify(window._pageBlocks || [], null, 2);
-    }
-    function addPageBlock(type) {
-      window._pageBlocks = window._pageBlocks || [];
-      window._pageBlocks.push(defaultBlock(type));
-      window._selectedBlock = window._pageBlocks.length - 1;
-      renderBlockEditor();
-    }
-    function removePageBlock(i) {
-      window._pageBlocks.splice(i, 1);
-      window._selectedBlock = null;
-      renderBlockEditor();
-    }
-
-    let _dragBi = null;
-    let _dragFromPalette = null;
-
-    function paletteDragStart(e, type) {
-      _dragFromPalette = type;
-      _dragBi = null;
-      e.dataTransfer.effectAllowed = "copy";
-      e.dataTransfer.setData("text/plain", "palette:" + type);
-    }
-    function blockDragStart(e, i) {
-      _dragBi = i;
-      _dragFromPalette = null;
-      e.dataTransfer.effectAllowed = "move";
-      e.dataTransfer.setData("text/plain", "block:" + i);
-      e.stopPropagation();
-    }
-    function blockDragOver(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.dataTransfer.dropEffect = _dragFromPalette ? "copy" : "move";
-      document.querySelectorAll(".wb-drop").forEach((el) => el.classList.remove("over"));
-      const drop = e.currentTarget.classList?.contains("wb-drop")
-        ? e.currentTarget
-        : e.currentTarget.querySelector?.(".wb-drop") || e.currentTarget;
-      if (drop && drop.classList) drop.classList.add("over");
-      if (e.currentTarget.classList?.contains("wb-drop")) e.currentTarget.classList.add("over");
-    }
-    function canvasDragOver(e) {
-      e.preventDefault();
-    }
-    function canvasDragLeave(e) {
-      if (!e.currentTarget.contains(e.relatedTarget)) {
-        document.querySelectorAll(".wb-drop.over").forEach((el) => el.classList.remove("over"));
-      }
-    }
-    function canvasDropEnd(e) {
-      // drop on empty canvas area → append
-      if (e.target.id === "wb-page" || e.target.classList?.contains("wb-canvas")) {
-        blockDropAt(e, (window._pageBlocks || []).length);
-      }
-    }
-    function blockDropAt(e, insertAt) {
-      e.preventDefault();
-      e.stopPropagation();
-      document.querySelectorAll(".wb-drop.over").forEach((el) => el.classList.remove("over"));
-      window._pageBlocks = window._pageBlocks || [];
-      if (_dragFromPalette) {
-        const b = defaultBlock(_dragFromPalette);
-        const idx = Math.max(0, Math.min(insertAt, window._pageBlocks.length));
-        window._pageBlocks.splice(idx, 0, b);
-        window._selectedBlock = idx;
-        _dragFromPalette = null;
-        renderBlockEditor();
-        return;
-      }
-      if (_dragBi == null) return;
-      let from = _dragBi;
-      let to = insertAt;
-      const arr = window._pageBlocks;
-      const [item] = arr.splice(from, 1);
-      if (to > from) to -= 1;
-      to = Math.max(0, Math.min(to, arr.length));
-      arr.splice(to, 0, item);
-      window._selectedBlock = to;
-      _dragBi = null;
-      renderBlockEditor();
-    }
-    // legacy name used by older handlers
-    function blockDrop(e, i) { blockDropAt(e, i); }
-
-    function resetPageForm() {
-      const idEl = document.getElementById("pg-id");
-      if (idEl) idEl.value = "";
-      const title = document.getElementById("pg-title");
-      if (title) title.value = "";
-      const content = document.getElementById("pg-content");
-      if (content) content.value = "";
-      window._pageBlocks = [];
-      window._selectedBlock = null;
-      renderBlockEditor();
-      const mem = document.getElementById("pg-members");
-      if (mem) mem.checked = false;
-      const pub = document.getElementById("pg-published");
-      if (pub) pub.checked = true;
-      const nav = document.getElementById("pg-nav");
-      if (nav) nav.checked = true;
-      const ft = document.getElementById("pg-form-title");
-      if (ft) ft.innerHTML = `Editing: <strong>New page</strong>`;
-      document.querySelectorAll(".wb-pages-list tr").forEach((tr) => tr.classList.remove("wb-active"));
-    }
-    function editPage(id) {
-      const p = (window._pages || []).find((x) => x.id === id);
-      if (!p) return;
-      document.getElementById("pg-id").value = p.id;
-      document.getElementById("pg-title").value = p.title;
-      const content = document.getElementById("pg-content");
-      if (content) content.value = (JSON.parse(p.content_json || "{}").html) || "";
-      try {
-        window._pageBlocks = p.blocks_json ? JSON.parse(p.blocks_json) : [];
-        if (!Array.isArray(window._pageBlocks)) window._pageBlocks = [];
-      } catch { window._pageBlocks = []; }
-      // If only HTML content, seed a text block so canvas isn't empty
-      if (!window._pageBlocks.length && content?.value) {
-        window._pageBlocks = [{ type: "html", html: content.value }];
-      }
-      window._selectedBlock = null;
-      renderBlockEditor();
-      document.getElementById("pg-members").checked = !!p.is_members_only;
-      document.getElementById("pg-published").checked = !!p.published;
-      if (document.getElementById("pg-nav")) document.getElementById("pg-nav").checked = p.show_in_nav !== 0;
-      const ft = document.getElementById("pg-form-title");
-      if (ft) ft.innerHTML = `Editing: <strong>${esc(p.title)}</strong>`;
-      document.querySelectorAll(".wb-pages-list tr").forEach((tr) => {
-        tr.classList.toggle("wb-active", tr.getAttribute("data-page-id") === p.id);
-      });
-      window.scrollTo({ top: 0, behavior: "smooth" });
+    /* ---------- guild theme card ---------- */
+    function wbRenderGuildTheme(card) {
+      const theme = WB.site.theme || {};
+      const primary = /^#[0-9a-f]{6}$/i.test(theme.primary || "") ? theme.primary : "#b5501f";
+      card.innerHTML = `
+        <h3 style="margin:0 0 0.5rem">Look &amp; feel</h3>
+        <p class="muted" style="font-size:0.85rem;margin:0 0 0.75rem">Pick a main color, a style and a font. The editor canvas updates as you choose.</p>
+        <label>Main color</label>
+        <div class="wb-swatches" role="radiogroup" aria-label="Main color">
+          ${WB_GUILD_SWATCHES.map((c) => `<button type="button" class="wb-swatch ${c.toLowerCase() === primary.toLowerCase() ? "on" : ""}" role="radio" aria-checked="${c.toLowerCase() === primary.toLowerCase()}" aria-label="${esc(c)}" style="background:${c}" data-color="${c}"></button>`).join("")}
+          <label class="wb-swatch-custom" title="Custom color"><input type="color" id="th-primary" value="${esc(primary)}" aria-label="Custom color" /><span>Custom</span></label>
+        </div>
+        <div class="form-row">
+          <div><label for="th-style">Style</label>
+            <select id="th-style">
+              <option value="classic" ${theme.style === "classic" || !theme.style ? "selected" : ""}>Classic</option>
+              <option value="modern" ${theme.style === "modern" ? "selected" : ""}>Modern</option>
+              <option value="warm" ${theme.style === "warm" ? "selected" : ""}>Warm</option>
+            </select></div>
+          <div><label for="th-font">Font</label>
+            <select id="th-font">
+              <option value="system" ${!theme.font || theme.font === "system" ? "selected" : ""}>System (clean)</option>
+              <option value="serif" ${theme.font === "serif" ? "selected" : ""}>Serif (traditional)</option>
+              <option value="rounded" ${theme.font === "rounded" ? "selected" : ""}>Rounded (friendly)</option>
+            </select></div>
+        </div>
+        <div class="wb-font-sample" id="th-sample" style="--brand:${esc(primary)}">
+          <strong>${esc((currentTenant && currentTenant.name) || "Your Guild")}</strong> · Monthly meetings, workshops and shows. <a class="btn" tabindex="-1">Join us</a>
+        </div>
+        <button type="button" data-write onclick="saveSiteTheme()" style="margin-top:0.75rem">Save look &amp; feel</button>
+        <span id="th-msg" class="muted" style="margin-left:0.5rem" aria-live="polite"></span>`;
+      const applyLive = () => {
+        const c = document.getElementById("th-primary").value;
+        const font = document.getElementById("th-font").value;
+        const sample = document.getElementById("th-sample");
+        sample.style.setProperty("--brand", c);
+        sample.style.fontFamily = font === "serif" ? "Georgia, 'Times New Roman', serif" : font === "rounded" ? "system-ui, 'Segoe UI', sans-serif" : "";
+        card.querySelectorAll(".wb-swatch").forEach((s) => {
+          const on = s.dataset.color.toLowerCase() === c.toLowerCase();
+          s.classList.toggle("on", on);
+          s.setAttribute("aria-checked", String(on));
+        });
+        WB.site.theme = { ...WB.site.theme, primary: c, style: document.getElementById("th-style").value, font };
+        wbApplyCanvasTheme();
+      };
+      card.querySelectorAll(".wb-swatch").forEach((s) => s.addEventListener("click", () => {
+        document.getElementById("th-primary").value = s.dataset.color;
+        applyLive();
+      }));
+      ["th-primary", "th-style", "th-font"].forEach((id) => document.getElementById(id).addEventListener("input", applyLive));
     }
     async function saveSiteTheme() {
-      let nav = [];
-      try { nav = JSON.parse(document.getElementById("th-nav").value || "[]"); } catch { document.getElementById("th-msg").textContent = "Invalid nav JSON"; return; }
       const theme = {
         primary: document.getElementById("th-primary").value,
         style: document.getElementById("th-style").value,
         font: document.getElementById("th-font").value,
       };
+      const msg = document.getElementById("th-msg");
       try {
-        await api(`/api/tenants/${tenantId}/pages/site/settings`, {
-          method: "PATCH",
-          body: JSON.stringify({ theme, nav }),
-        });
-        document.getElementById("th-msg").textContent = "Saved.";
-        const page = document.getElementById("wb-page");
-        if (page) page.style.setProperty("--brand", theme.primary);
-      } catch (e) { document.getElementById("th-msg").textContent = e.message; }
+        const res = await api(`${wbBase()}/site/settings`, { method: "PATCH", body: JSON.stringify({ theme }) });
+        WB.site.theme = res.theme || theme;
+        msg.textContent = "Saved.";
+      } catch (e) { msg.textContent = e.message; }
     }
-    async function savePage() {
-      const id = document.getElementById("pg-id").value;
-      let blocks = window._pageBlocks || [];
-      const title = (document.getElementById("pg-title").value || "").trim();
-      if (!title) {
-        document.getElementById("pg-result").textContent = "Page title is required.";
+
+    /* ---------- navigation editor (shared) ---------- */
+    // window.qhNavEditor(container, { items, pages, linkFor(page), onChange }) -> { getItems() }
+    function qhNavEditor(container, opts) {
+      const pages = opts.pages || [];
+      const linkFor = opts.linkFor;
+      const items = (opts.items || []).map((n) => ({ label: n.label || "", href: n.href || "", external: !!n.external }));
+      const pageFor = (href) => pages.find((p) => linkFor(p) === href);
+      const render = () => {
+        container.replaceChildren();
+        const list = document.createElement("ol");
+        list.className = "wb-nav-list";
+        if (!items.length) {
+          const p = document.createElement("p");
+          p.className = "muted";
+          p.style.fontSize = "0.85rem";
+          p.textContent = opts.emptyText || "No custom menu items. Pages marked “Show in menu” are listed automatically.";
+          container.appendChild(p);
+        }
+        items.forEach((it, i) => {
+          const li = document.createElement("li");
+          li.className = "wb-nav-item";
+          const isPage = !it.external && !!pageFor(it.href);
+          const kind = document.createElement("select");
+          kind.setAttribute("aria-label", "Item type");
+          [["page", "Page"], ["link", "Web link"]].forEach(([v, l]) => {
+            const o = document.createElement("option"); o.value = v; o.textContent = l; kind.appendChild(o);
+          });
+          kind.value = isPage || (!it.external && !it.href) ? "page" : "link";
+          li.appendChild(kind);
+
+          const body = document.createElement("div");
+          body.className = "wb-nav-body";
+          li.appendChild(body);
+          const drawBody = () => {
+            body.replaceChildren();
+            if (kind.value === "page") {
+              const sel = document.createElement("select");
+              sel.setAttribute("aria-label", "Page");
+              const blank = document.createElement("option"); blank.value = ""; blank.textContent = "Choose a page…"; sel.appendChild(blank);
+              pages.forEach((p) => {
+                const o = document.createElement("option");
+                o.value = linkFor(p);
+                o.textContent = p.title + (p.published ? "" : " (unpublished)");
+                sel.appendChild(o);
+              });
+              sel.value = pageFor(it.href) ? it.href : "";
+              sel.addEventListener("change", () => {
+                it.href = sel.value; it.external = false;
+                const p = pageFor(sel.value);
+                if (p && (!it.label || it.label === lbl.dataset.auto)) { it.label = p.nav_label || p.title; lbl.value = it.label; lbl.dataset.auto = it.label; }
+                warn(); opts.onChange && opts.onChange(getItems());
+              });
+              body.appendChild(sel);
+            } else {
+              const url = document.createElement("input");
+              url.placeholder = "https://example.org";
+              url.setAttribute("aria-label", "Web address");
+              url.value = it.href;
+              url.addEventListener("input", () => { it.href = url.value.trim(); it.external = /^https?:\/\//i.test(it.href); warn(); opts.onChange && opts.onChange(getItems()); });
+              body.appendChild(url);
+            }
+            const lbl = document.createElement("input");
+            lbl.placeholder = "Menu label";
+            lbl.setAttribute("aria-label", "Menu label");
+            lbl.value = it.label;
+            lbl.dataset.auto = it.label;
+            lbl.addEventListener("input", () => { it.label = lbl.value; opts.onChange && opts.onChange(getItems()); });
+            body.appendChild(lbl);
+            const w = document.createElement("p");
+            w.className = "wb-nav-warn";
+            body.appendChild(w);
+            const warn = () => {
+              w.textContent = "";
+              if (kind.value === "page") {
+                const p = pageFor(it.href);
+                if (!it.href) w.textContent = "Choose a page.";
+                else if (!p) w.textContent = "No page found at this address.";
+                else if (!p.published) w.textContent = "That page isn't published yet — visitors will see “Page not found”.";
+              } else if (it.href && !/^(https?:\/\/|mailto:|tel:|\/)/i.test(it.href)) {
+                w.textContent = "Enter a full web address starting with https://";
+              } else if (it.href.startsWith("/") && !pageFor(it.href) && !opts.allowUnknownInternal) {
+                w.textContent = "No page found at this address.";
+              }
+            };
+            warn();
+          };
+          kind.addEventListener("change", () => { it.href = ""; it.external = kind.value === "link"; drawBody(); opts.onChange && opts.onChange(getItems()); });
+          drawBody();
+
+          const tools = document.createElement("div");
+          tools.className = "wb-nav-tools";
+          const mk = (label, title, fn, disabled) => {
+            const b = document.createElement("button");
+            b.type = "button"; b.className = "secondary"; b.textContent = label; b.title = title; b.setAttribute("aria-label", title);
+            b.disabled = !!disabled;
+            b.addEventListener("click", () => { fn(); render(); opts.onChange && opts.onChange(getItems()); });
+            tools.appendChild(b);
+          };
+          mk("↑", "Move up", () => { if (i > 0) items.splice(i - 1, 0, items.splice(i, 1)[0]); }, i === 0);
+          mk("↓", "Move down", () => { if (i < items.length - 1) items.splice(i + 1, 0, items.splice(i, 1)[0]); }, i === items.length - 1);
+          mk("✕", "Remove", () => { items.splice(i, 1); });
+          li.appendChild(tools);
+          list.appendChild(li);
+        });
+        container.appendChild(list);
+        const addRow = document.createElement("div");
+        addRow.className = "wb-nav-add";
+        const addPage = document.createElement("button");
+        addPage.type = "button"; addPage.className = "secondary"; addPage.textContent = "+ Add a page";
+        addPage.addEventListener("click", () => { items.push({ label: "", href: "", external: false }); render(); });
+        const addLink = document.createElement("button");
+        addLink.type = "button"; addLink.className = "secondary"; addLink.textContent = "+ Add a web link";
+        addLink.addEventListener("click", () => { items.push({ label: "", href: "", external: true }); render(); });
+        addRow.appendChild(addPage); addRow.appendChild(addLink);
+        container.appendChild(addRow);
+      };
+      const getItems = () => items.filter((it) => it.label && it.href).map((it) => ({ label: it.label.slice(0, 60), href: it.href, external: !!it.external }));
+      render();
+      return { getItems, render };
+    }
+    window.qhNavEditor = qhNavEditor;
+
+    function wbRenderNavCard(card) {
+      card.innerHTML = `
+        <h3 style="margin:0 0 0.5rem">Site menu</h3>
+        <p class="muted" style="font-size:0.85rem;margin:0 0 0.75rem">Home, Membership and Events are always shown, followed by pages marked “Show in menu”. Add extra pages or outside links here.</p>
+        <div id="wb-nav-editor"></div>
+        <button type="button" data-write id="wb-nav-save" style="margin-top:0.75rem">Save menu</button>
+        <span id="wb-nav-msg" class="muted" style="margin-left:0.5rem" aria-live="polite"></span>`;
+      const ed = qhNavEditor(document.getElementById("wb-nav-editor"), {
+        items: WB.site.nav,
+        pages: WB.pages,
+        linkFor: (p) => wbPagePath(p.slug),
+      });
+      document.getElementById("wb-nav-save").addEventListener("click", async () => {
+        const msg = document.getElementById("wb-nav-msg");
+        try {
+          const res = await api(`${wbBase()}/site/settings`, { method: "PATCH", body: JSON.stringify({ nav: ed.getItems() }) });
+          WB.site.nav = res.nav || ed.getItems();
+          msg.textContent = "Saved.";
+        } catch (e) { msg.textContent = e.message; }
+      });
+    }
+
+    /* ---------- editor ---------- */
+
+    // pageOrNull: a list row (or null for a new page).
+    // opts: { tenantType: "guild"|"business", mode?: "edit"|"preview", onBack?: fn }
+    async function qhOpenPageEditor(pageOrNull, opts) {
+      opts = opts || {};
+      WB.tenantType = opts.tenantType || WB.tenantType;
+      WB.onBack = opts.onBack || (() => navigate(wbIsGuild() ? "pages" : "site-pages"));
+      wbRefreshWrite();
+      const el = document.getElementById("page-content");
+      el.innerHTML = "<p class='muted'>Loading…</p>";
+      // Reset editor state.
+      Object.assign(WB, {
+        view: "editor", page: null, blocks: [], selected: null, undo: [], redo: [], hiddenStack: [],
+        revision: null, hasDraft: false, dirty: false, saveState: "idle", savePromise: null, mode: opts.mode || "edit",
+        serverParts: null, previewReady: false, slugTouched: !!(pageOrNull && pageOrNull.id), armed: {},
+      });
+      clearTimeout(WB.saveTimer);
+      try {
+        // Always refetch: the theme (Appearance / Look & feel) and the page
+        // list may have changed since the editor was last open.
+        const [tenantRow, siteSettings, pageRows] = await Promise.all([
+          wbIsGuild() ? Promise.resolve(null) : api(`/api/tenants/${tenantId}`).catch(() => null),
+          wbIsGuild() ? api(`${wbBase()}/site/settings`).catch(() => null) : Promise.resolve(null),
+          api(wbBase()).catch(() => []),
+        ]);
+        if (tenantRow) { try { WB.settings = JSON.parse(tenantRow.settings_json || "{}"); } catch { WB.settings = {}; } }
+        if (siteSettings) WB.site = { theme: siteSettings.theme || {}, nav: siteSettings.nav || [] };
+        WB.pages = asList(pageRows, "pages").filter((p) => (p.page_type || "page") !== "blog_post");
+        if (pageOrNull && pageOrNull.id) {
+          const row = await api(`${wbBase()}/${pageOrNull.id}`);
+          WB.page = row;
+          WB.revision = row.revision ?? null;
+          WB.hasDraft = !!row.has_draft;
+          let blocks = WB.hasDraft && Array.isArray(row.draft_blocks) ? row.draft_blocks : row.blocks;
+          if (!Array.isArray(blocks)) {
+            try { blocks = row.blocks_json ? JSON.parse(row.blocks_json) : []; } catch { blocks = []; }
+          }
+          if (!Array.isArray(blocks)) blocks = [];
+          if (!blocks.length) {
+            // Legacy rich-text page: seed one text block from content_json.
+            try { const html = JSON.parse(row.content_json || "{}").html; if (html) blocks = [{ type: "text", html }]; } catch {}
+          }
+          WB.blocks = blocks;
+          WB.meta = {
+            title: row.title || "", slug: row.slug || "", published: !!row.published,
+            show_in_nav: row.show_in_nav !== 0, nav_label: row.nav_label || "", is_members_only: !!row.is_members_only,
+            seo_title: row.seo_title || "", seo_description: row.seo_description || "", noindex: !!row.noindex,
+          };
+        } else {
+          WB.meta = { title: "", slug: "", published: false, show_in_nav: true, nav_label: "", is_members_only: false, seo_title: "", seo_description: "", noindex: false };
+          WB.blocks = [];
+        }
+      } catch (e) {
+        el.innerHTML = `<p class="error">${esc(e.message)}</p><button type="button" class="secondary" onclick="WB.onBack()">← Back</button>`;
         return;
       }
-      // Derive plain HTML snapshot for consumers that only read content_json
-      const htmlSnapshot = blocks.map(blockPreviewHtml).join("\n");
-      const payload = {
-        title,
-        content_html: document.getElementById("pg-content")?.value || htmlSnapshot,
-        blocks,
-        is_members_only: document.getElementById("pg-members").checked,
-        published: document.getElementById("pg-published").checked,
-        show_in_nav: document.getElementById("pg-nav")?.checked !== false,
-        page_type: "page",
-      };
-      const out = document.getElementById("pg-result");
-      try {
-        if (id) await api(`/api/tenants/${tenantId}/pages/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
-        else await api(`/api/tenants/${tenantId}/pages`, { method: "POST", body: JSON.stringify(payload) });
-        out.textContent = "Saved.";
-        navigate("pages");
-      } catch (e) { out.textContent = e.message; }
+      wbRenderEditor();
     }
-    async function deletePage(id, title) {
-      if (!confirm(`Delete page "${title}"?`)) return;
-      await api(`/api/tenants/${tenantId}/pages/${id}`, { method: "DELETE" });
-      navigate("pages");
+    window.qhOpenPageEditor = qhOpenPageEditor;
+
+    function wbRenderEditor() {
+      const el = document.getElementById("page-content");
+      const m = WB.meta;
+      const isGuild = wbIsGuild();
+      const field = (key, label, extra, type) => `
+        <div data-field="${key}">
+          <label for="wb-m-${key}">${label}</label>
+          ${type === "textarea" ? `<textarea id="wb-m-${key}" rows="2" ${extra || ""}>${esc(m[key] || "")}</textarea>` : `<input id="wb-m-${key}" value="${esc(m[key] || "")}" ${extra || ""} />`}
+          <p class="wb-field-err" aria-live="polite"></p>
+        </div>`;
+      const check = (key, label) => `
+        <label class="wb-check" data-field="${key}"><input type="checkbox" id="wb-m-${key}" ${m[key] ? "checked" : ""} /> ${label}<span class="wb-field-err"></span></label>`;
+      el.innerHTML = `
+        <div class="wb-editor">
+          <div class="wb-topbar">
+            <button type="button" class="secondary" id="wb-back" aria-label="Back to pages">← Pages</button>
+            <input id="wb-title" class="wb-title" value="${esc(m.title)}" placeholder="Page title" aria-label="Page title" maxlength="200" />
+            <span class="wb-pill" id="wb-save-state" role="status" aria-live="polite"></span>
+            <div class="wb-mode" role="tablist" aria-label="Editor mode">
+              <button type="button" class="secondary" role="tab" id="wb-mode-edit" aria-selected="true">Edit</button>
+              <button type="button" class="secondary" role="tab" id="wb-mode-preview" aria-selected="false">Preview</button>
+            </div>
+            <button type="button" class="secondary" id="wb-history">History</button>
+            <button type="button" class="secondary hidden" id="wb-discard" data-write>Discard draft</button>
+            <button type="button" class="secondary hidden" id="wb-unpublish" data-write>Unpublish</button>
+            <button type="button" id="wb-publish" data-write>Publish</button>
+          </div>
+          <div id="wb-conflict" class="notice warn hidden" role="alert">
+            Someone else changed this page — reload to see their version. Your unsaved edits here will be replaced.
+            <button type="button" class="secondary" id="wb-reload" style="margin-left:0.5rem">Reload</button>
+          </div>
+          <div id="wb-issues" class="notice err hidden" role="alert"></div>
+          <p id="wb-note" class="muted hidden" style="font-size:0.85rem;margin:0 0 0.5rem"></p>
+          <details class="card wb-settings" id="wb-settings">
+            <summary>Page settings — address, menu, search engines</summary>
+            <div class="form-row">
+              ${field("slug", isGuild ? "Page address" : "Page address (use “home” for your home page)", `placeholder="about-us" aria-describedby="wb-slug-hint"`)}
+              ${field("nav_label", "Menu label (optional)", `placeholder="Defaults to the page title" maxlength="60"`)}
+            </div>
+            <p id="wb-slug-hint" class="muted" style="font-size:0.8rem;margin:0.25rem 0 0">Visitors will find this page at <code id="wb-slug-preview">${esc(wbPagePath(m.slug))}</code></p>
+            <div class="wb-checks">
+              ${check("show_in_nav", "Show in menu")}
+              ${isGuild ? check("is_members_only", "Members only") : ""}
+              ${check("noindex", "Hide from search engines")}
+            </div>
+            <div class="form-row">
+              ${field("seo_title", "Search title (optional)", `placeholder="Defaults to the page title" maxlength="70"`)}
+              ${field("seo_description", "Search description (optional)", `maxlength="200"`, "textarea")}
+            </div>
+          </details>
+          <div class="wb-grid" id="wb-edit-mode">
+            <aside class="wb-palette" aria-label="Add a section">
+              <h4>Add a section</h4>
+              ${WB_GROUPS.map((g) => {
+                const types = g.types.filter((t) => wbTypesForTenant().includes(t));
+                if (!types.length) return "";
+                return `<h5>${esc(g.name)}</h5>${types.map((t) => `
+                  <button type="button" class="wb-chip" draggable="true" data-type="${t}" title="${esc(WB_BLOCK_META[t].hint)}">
+                    <span class="ico" aria-hidden="true">${WB_BLOCK_META[t].icon}</span><span>${esc(WB_BLOCK_META[t].label)}</span>
+                  </button>`).join("")}`;
+              }).join("")}
+              <p class="muted" style="font-size:0.75rem;margin-top:0.75rem">Click to add at the end, or drag onto the page.</p>
+            </aside>
+            <div class="wb-canvas-wrap">
+              <div class="wb-canvas-bar">
+                <button type="button" class="secondary" id="wb-undo" title="Undo (Ctrl+Z)" aria-label="Undo">↶ Undo</button>
+                <button type="button" class="secondary" id="wb-redo" title="Redo (Ctrl+Y)" aria-label="Redo">↷ Redo</button>
+                <button type="button" class="secondary hidden" id="wb-unhide">Bring back hidden section</button>
+                <span class="muted" style="font-size:0.8rem;margin-left:auto">Click a section to edit it. Sections stay private until you publish.</span>
+              </div>
+              <div class="wb-canvas" id="wb-canvas">
+                <div class="wb-page" id="wb-page"></div>
+              </div>
+            </div>
+            <aside class="wb-props" id="wb-props" aria-label="Section settings"></aside>
+          </div>
+          <div class="wb-preview hidden" id="wb-preview-mode">
+            <div class="wb-canvas-bar">
+              <span class="muted" style="font-size:0.85rem">Preview of your draft, rendered exactly like the live site.</span>
+              <div class="wb-devices" role="radiogroup" aria-label="Preview width" style="margin-left:auto">
+                <button type="button" class="secondary" data-width="desktop" role="radio">Desktop</button>
+                <button type="button" class="secondary" data-width="tablet" role="radio">Tablet</button>
+                <button type="button" class="secondary" data-width="mobile" role="radio">Mobile</button>
+              </div>
+            </div>
+            <div class="wb-preview-stage"><iframe id="wb-preview-frame" title="Page preview" sandbox="allow-scripts allow-same-origin allow-forms"></iframe></div>
+          </div>
+        </div>
+        <dialog id="wb-library" aria-label="Image library"></dialog>
+        <dialog id="wb-history-dlg" aria-label="Page history"></dialog>`;
+
+      // Wire top bar.
+      document.getElementById("wb-back").addEventListener("click", async () => { await wbFlushSave(); WB.view = "list"; WB.onBack(); });
+      document.getElementById("wb-title").addEventListener("input", (e) => {
+        WB.meta.title = e.target.value;
+        if (!WB.slugTouched) { WB.meta.slug = wbSlugify(e.target.value); const s = document.getElementById("wb-m-slug"); if (s) s.value = WB.meta.slug; wbSlugPreview(); }
+        wbMarkDirty();
+      });
+      document.getElementById("wb-mode-edit").addEventListener("click", () => wbSetMode("edit"));
+      document.getElementById("wb-mode-preview").addEventListener("click", () => wbSetMode("preview"));
+      document.getElementById("wb-history").addEventListener("click", wbOpenHistory);
+      document.getElementById("wb-discard").addEventListener("click", wbDiscardDraft);
+      document.getElementById("wb-unpublish").addEventListener("click", wbUnpublish);
+      document.getElementById("wb-publish").addEventListener("click", wbPublish);
+      document.getElementById("wb-reload").addEventListener("click", () => qhOpenPageEditor(WB.page, { tenantType: WB.tenantType, onBack: WB.onBack }));
+      document.getElementById("wb-undo").addEventListener("click", wbUndo);
+      document.getElementById("wb-redo").addEventListener("click", wbRedo);
+      document.getElementById("wb-unhide").addEventListener("click", wbUnhide);
+      document.querySelectorAll("#wb-preview-mode [data-width]").forEach((b) => b.addEventListener("click", () => wbSetPreviewWidth(b.dataset.width)));
+      // Page settings.
+      ["slug", "nav_label", "seo_title", "seo_description"].forEach((k) => {
+        const input = document.getElementById(`wb-m-${k}`);
+        if (!input) return;
+        input.addEventListener("input", () => {
+          if (k === "slug") { WB.slugTouched = true; WB.meta.slug = wbSlugify(input.value); wbSlugPreview(); }
+          else WB.meta[k] = input.value;
+          wbClearIssue(k);
+          wbMarkDirty(true);
+        });
+      });
+      ["show_in_nav", "is_members_only", "noindex"].forEach((k) => {
+        const input = document.getElementById(`wb-m-${k}`);
+        if (input) input.addEventListener("change", () => { WB.meta[k] = input.checked; wbMarkDirty(true); });
+      });
+      // Palette.
+      document.querySelectorAll(".wb-chip").forEach((chip) => {
+        chip.addEventListener("click", () => wbAddBlock(chip.dataset.type));
+        chip.addEventListener("dragstart", (e) => { _dragFromPalette = chip.dataset.type; _dragBi = null; e.dataTransfer.effectAllowed = "copy"; e.dataTransfer.setData("text/plain", "palette:" + chip.dataset.type); });
+      });
+      const canvas = document.getElementById("wb-canvas");
+      canvas.addEventListener("dragover", (e) => e.preventDefault());
+      canvas.addEventListener("dragleave", (e) => { if (!canvas.contains(e.relatedTarget)) document.querySelectorAll(".wb-drop.over").forEach((x) => x.classList.remove("over")); });
+      canvas.addEventListener("drop", (e) => { if (e.target.id === "wb-page" || e.target.id === "wb-canvas") wbDropAt(e, WB.blocks.length); });
+
+      wbApplyCanvasTheme();
+      wbLoadSiteCss();
+      wbUpdateChrome();
+      wbRenderCanvas();
+      wbRenderProps();
+      wbScheduleServerPreview();
+      if (WB.mode === "preview") wbSetMode("preview");
+      if (!WB.canWrite) {
+        const note = document.getElementById("wb-note");
+        note.textContent = "Read-only for your role — you can look around and preview, but changes are not saved.";
+        note.classList.remove("hidden");
+      }
+      applyReadOnlyState("pages");
+    }
+
+    function wbSlugPreview() {
+      const p = document.getElementById("wb-slug-preview");
+      if (p) p.textContent = wbPagePath(WB.meta.slug);
+    }
+
+    function wbUpdateChrome() {
+      const pill = document.getElementById("wb-save-state");
+      if (!pill) return;
+      const states = {
+        idle: ["", WB.page ? "Saved" : "Not saved yet"], saving: ["saving", "Saving…"], saved: ["saved", "Saved"],
+        dirty: ["dirty", "Unsaved changes"], needtitle: ["dirty", "Add a title to save"], error: ["error", "Save failed — retry"], conflict: ["error", "Out of date"], readonly: ["", "Read-only"],
+      };
+      const s = !WB.canWrite ? states.readonly : (states[WB.saveState] || states.idle);
+      pill.className = "wb-pill " + s[0];
+      pill.textContent = s[1];
+      if (WB.saveState === "error") { pill.setAttribute("role", "button"); pill.tabIndex = 0; pill.onclick = () => wbSaveDraft(); pill.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") wbSaveDraft(); }; }
+      else { pill.onclick = null; pill.onkeydown = null; pill.tabIndex = -1; }
+      const discard = document.getElementById("wb-discard");
+      const unpub = document.getElementById("wb-unpublish");
+      const pub = document.getElementById("wb-publish");
+      if (discard) discard.classList.toggle("hidden", !(WB.page && WB.hasDraft));
+      if (unpub) unpub.classList.toggle("hidden", !(WB.page && WB.page.published));
+      if (pub) pub.textContent = WB.page && WB.page.published && !WB.hasDraft && !WB.dirty ? "Published ✓" : "Publish";
+      const undo = document.getElementById("wb-undo"), redo = document.getElementById("wb-redo");
+      if (undo) undo.disabled = !WB.undo.length;
+      if (redo) redo.disabled = !WB.redo.length;
+      const unhide = document.getElementById("wb-unhide");
+      if (unhide) { unhide.classList.toggle("hidden", !WB.hiddenStack.length); unhide.textContent = `Bring back hidden section${WB.hiddenStack.length > 1 ? `s (${WB.hiddenStack.length})` : ""}`; }
+      const conflict = document.getElementById("wb-conflict");
+      if (conflict) conflict.classList.toggle("hidden", WB.saveState !== "conflict");
+    }
+
+    /* ---------- canvas theme / site css ---------- */
+    function wbApplyCanvasTheme() {
+      const page = document.getElementById("wb-page");
+      if (!page) return;
+      let tokens, fonts;
+      if (wbIsGuild()) {
+        const t = WB.site.theme || {};
+        const p = /^#[0-9a-f]{6}$/i.test(t.primary || "") ? t.primary : "#b5501f";
+        tokens = { ...WB_DEFAULT_THEME, primary: p, primaryDark: p, primaryBright: p, accent: p, accentBright: "#f1e6dc", bg: "#ffffff", card: "#ffffff", textBase: "#221f1a", textMuted: "#5f5a52" };
+        const fam = t.font === "serif" ? "Georgia, 'Times New Roman', serif" : t.font === "rounded" ? "system-ui, 'Segoe UI', sans-serif" : "";
+        page.style.setProperty("--font-sans", fam || "inherit");
+        page.style.setProperty("--font-display", fam || "inherit");
+        page.style.setProperty("--brand", p);
+      } else {
+        const s = WB.settings || {};
+        tokens = { ...WB_DEFAULT_THEME, ...(s.theme || {}) };
+        fonts = s.fonts || { heading: "fraunces", body: "inter" };
+        page.style.setProperty("--font-display", WB_FONT_STACKS[fonts.heading] || WB_FONT_STACKS.fraunces);
+        page.style.setProperty("--font-sans", WB_FONT_STACKS[fonts.body] || WB_FONT_STACKS.inter);
+        page.style.setProperty("--brand", tokens.primary);
+      }
+      const map = { primary: "--color-primary", primaryBright: "--color-primary-bright", primaryDark: "--color-primary-dark", secondary: "--color-secondary", secondaryBright: "--color-secondary-bright", accent: "--color-accent", accentBright: "--color-accent-bright", gold: "--color-gold", bg: "--color-bg", card: "--color-card", textBase: "--color-text-base", textMuted: "--color-text-muted" };
+      Object.keys(map).forEach((k) => page.style.setProperty(map[k], tokens[k]));
+      page.style.background = tokens.bg;
+      page.style.color = tokens.textBase;
+    }
+    // Loads /qh-site.css once and scopes every rule under .wb-page so the
+    // canvas looks like the public site without restyling the admin.
+    async function wbLoadSiteCss() {
+      if (WB.siteCssLoaded) return;
+      WB.siteCssLoaded = true;
+      try {
+        const css = await (await fetch("/qh-site.css")).text();
+        const raw = document.createElement("style");
+        raw.media = "not all";
+        raw.textContent = css;
+        document.head.appendChild(raw);
+        const scope = (rules) => {
+          let out = "";
+          for (const r of rules) {
+            if (r.type === 1) {
+              const sel = r.selectorText.split(",").map((s) => {
+                s = s.trim();
+                if (/^(body\.qh-site|html|body|:root)$/.test(s)) return ".wb-page";
+                if (s.startsWith("body.qh-site ")) return ".wb-page " + s.slice(13);
+                return ".wb-page " + s;
+              }).join(", ");
+              out += `${sel}{${r.style.cssText}}\n`;
+            } else if (r.type === 4) {
+              out += `@media ${r.conditionText}{${scope(r.cssRules)}}\n`;
+            }
+          }
+          return out;
+        };
+        const scoped = scope(raw.sheet.cssRules);
+        raw.remove();
+        const st = document.createElement("style");
+        st.id = "wb-site-css";
+        st.textContent = scoped;
+        document.head.appendChild(st);
+      } catch { /* canvas falls back to admin styles */ }
+    }
+
+    /* ---------- blocks: commit / undo ---------- */
+    function wbSnapshot() { return JSON.parse(JSON.stringify(WB.blocks)); }
+    function wbCommit(nextBlocks, opts) {
+      opts = opts || {};
+      const now = Date.now();
+      const coalesce = opts.key && WB.lastKey === opts.key && now - WB.lastAt < 1500;
+      if (!coalesce) {
+        WB.undo.push(wbSnapshot());
+        if (WB.undo.length > 100) WB.undo.shift();
+        WB.redo = [];
+      }
+      WB.lastKey = opts.key || null;
+      WB.lastAt = now;
+      WB.blocks = nextBlocks;
+      wbMarkDirty();
+      if (!opts.skipCanvas) wbRenderCanvas();
+      else wbRefreshBlock(opts.index);
+      wbScheduleServerPreview();
+      wbUpdateChrome();
+    }
+    function wbUndo() {
+      if (!WB.undo.length) return;
+      WB.redo.push(wbSnapshot());
+      WB.blocks = WB.undo.pop();
+      WB.lastKey = null;
+      if (WB.selected != null && WB.selected >= WB.blocks.length) WB.selected = null;
+      wbMarkDirty(); wbRenderCanvas(); wbRenderProps(); wbScheduleServerPreview(); wbUpdateChrome();
+    }
+    function wbRedo() {
+      if (!WB.redo.length) return;
+      WB.undo.push(wbSnapshot());
+      WB.blocks = WB.redo.pop();
+      WB.lastKey = null;
+      if (WB.selected != null && WB.selected >= WB.blocks.length) WB.selected = null;
+      wbMarkDirty(); wbRenderCanvas(); wbRenderProps(); wbScheduleServerPreview(); wbUpdateChrome();
+    }
+    function wbPatchBlock(i, patch, key) {
+      const next = wbSnapshot();
+      if (!next[i]) return;
+      Object.assign(next[i], patch);
+      wbCommit(next, { key: key ? `${i}:${key}` : null, skipCanvas: !!key, index: i });
+    }
+    function wbAddBlock(type, at) {
+      const next = wbSnapshot();
+      const idx = at == null ? next.length : Math.max(0, Math.min(at, next.length));
+      if (next.length >= 80) { wbShowIssues([{ path: "blocks", message: "A page can have at most 80 sections." }]); return; }
+      next.splice(idx, 0, defaultBlock(type));
+      WB.selected = idx;
+      wbCommit(next);
+      wbRenderProps();
+      const blockEl = document.querySelector(`.wb-block[data-bi="${idx}"]`);
+      if (blockEl) blockEl.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+    function wbRemoveBlock(i, hide) {
+      const next = wbSnapshot();
+      const [removed] = next.splice(i, 1);
+      if (!removed) return;
+      if (hide) WB.hiddenStack.push({ block: removed, index: i });
+      WB.selected = null;
+      wbCommit(next);
+      wbRenderProps();
+      const canvas = document.getElementById("wb-canvas");
+      if (canvas) canvas.focus();
+    }
+    function wbUnhide() {
+      const h = WB.hiddenStack.pop();
+      if (!h) return;
+      const next = wbSnapshot();
+      const idx = Math.min(h.index, next.length);
+      next.splice(idx, 0, h.block);
+      WB.selected = idx;
+      wbCommit(next);
+      wbRenderProps();
+    }
+    function wbMoveBlock(i, dir) {
+      const j = i + dir;
+      if (j < 0 || j >= WB.blocks.length) return;
+      const next = wbSnapshot();
+      const [b] = next.splice(i, 1);
+      next.splice(j, 0, b);
+      WB.selected = j;
+      wbCommit(next);
+      wbRenderProps();
+      const el = document.querySelector(`.wb-block[data-bi="${j}"]`);
+      if (el) el.focus();
+    }
+    function wbDuplicateBlock(i) {
+      const next = wbSnapshot();
+      if (!next[i]) return;
+      next.splice(i + 1, 0, JSON.parse(JSON.stringify(next[i])));
+      WB.selected = i + 1;
+      wbCommit(next);
+      wbRenderProps();
+    }
+
+    let _dragBi = null;
+    let _dragFromPalette = null;
+    function wbDropAt(e, insertAt) {
+      e.preventDefault();
+      e.stopPropagation();
+      document.querySelectorAll(".wb-drop.over").forEach((x) => x.classList.remove("over"));
+      if (_dragFromPalette) {
+        const t = _dragFromPalette; _dragFromPalette = null;
+        wbAddBlock(t, insertAt);
+        return;
+      }
+      if (_dragBi == null) return;
+      const next = wbSnapshot();
+      const from = _dragBi; let to = insertAt;
+      const [item] = next.splice(from, 1);
+      if (to > from) to -= 1;
+      to = Math.max(0, Math.min(to, next.length));
+      next.splice(to, 0, item);
+      WB.selected = to;
+      _dragBi = null;
+      wbCommit(next);
+      wbRenderProps();
+    }
+
+    /* ---------- canvas ---------- */
+    function wbBlockInner(i) {
+      const b = WB.blocks[i];
+      const server = WB.serverParts && WB.serverParts[i];
+      return server != null ? server : blockPreviewHtml(b);
+    }
+    function wbRenderCanvas() {
+      const page = document.getElementById("wb-page");
+      if (!page) return;
+      const blocks = WB.blocks;
+      if (!blocks.length) {
+        page.innerHTML = `<div class="wb-empty wb-drop" data-insert="0">
+          <p style="margin:0 0 0.35rem;font-weight:600">This page is empty</p>
+          <p style="margin:0;font-size:0.9rem">Pick a section from the left to start — a hero banner or some text is a good first step.</p>
+        </div>`;
+        wbWireDrops(page);
+        return;
+      }
+      let html = `<div class="wb-drop" data-insert="0"></div>`;
+      blocks.forEach((b, i) => {
+        html += `
+          <section class="wb-block ${WB.selected === i ? "selected" : ""}" data-bi="${i}" draggable="true" tabindex="0" aria-label="${esc(wbLabel(b.type))} section ${i + 1} of ${blocks.length}">
+            <div class="wb-block-tools" role="toolbar" aria-label="Section actions">
+              <span class="wb-block-name">${esc(wbLabel(b.type))}</span>
+              <button type="button" class="secondary" data-act="up" title="Move up" aria-label="Move up" ${i === 0 ? "disabled" : ""}>↑</button>
+              <button type="button" class="secondary" data-act="down" title="Move down" aria-label="Move down" ${i === blocks.length - 1 ? "disabled" : ""}>↓</button>
+              <button type="button" class="secondary" data-act="dup" title="Duplicate" aria-label="Duplicate">⧉</button>
+              <button type="button" class="secondary" data-act="hide" title="Hide (keeps a copy you can bring back)" aria-label="Hide section">◌</button>
+              <button type="button" class="secondary" data-act="del" title="Delete" aria-label="Delete section">✕</button>
+            </div>
+            <div class="wb-block-body">${wbBlockInner(i)}</div>
+          </section>
+          <div class="wb-drop" data-insert="${i + 1}"></div>`;
+      });
+      page.innerHTML = html;
+      page.querySelectorAll(".wb-block").forEach((el) => {
+        const i = Number(el.dataset.bi);
+        el.addEventListener("click", (e) => {
+          if (e.target.closest("button")) return;
+          if (WB.selected !== i) { WB.selected = i; wbRenderCanvas(); wbRenderProps(); }
+        });
+        el.addEventListener("keydown", (e) => {
+          if (e.target !== el) return;
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); WB.selected = i; wbRenderCanvas(); wbRenderProps(); document.querySelector("#wb-props input, #wb-props textarea, #wb-props select, #wb-props [contenteditable]")?.focus(); }
+          else if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); wbRemoveBlock(i, false); }
+          else if (e.altKey && e.key === "ArrowUp") { e.preventDefault(); wbMoveBlock(i, -1); }
+          else if (e.altKey && e.key === "ArrowDown") { e.preventDefault(); wbMoveBlock(i, 1); }
+        });
+        el.addEventListener("dragstart", (e) => { _dragBi = i; _dragFromPalette = null; e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", "block:" + i); e.stopPropagation(); });
+        el.addEventListener("dragover", (e) => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = _dragFromPalette ? "copy" : "move"; });
+        el.addEventListener("drop", (e) => wbDropAt(e, i));
+        el.querySelectorAll("[data-act]").forEach((btn) => btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const a = btn.dataset.act;
+          if (a === "up") wbMoveBlock(i, -1);
+          else if (a === "down") wbMoveBlock(i, 1);
+          else if (a === "dup") wbDuplicateBlock(i);
+          else if (a === "hide") wbRemoveBlock(i, true);
+          else if (a === "del") wbRemoveBlock(i, false);
+        }));
+        // Links inside previews must not navigate the admin.
+        el.querySelectorAll("a").forEach((a) => a.addEventListener("click", (e) => e.preventDefault()));
+      });
+      wbWireDrops(page);
+      wbHydrateImages(page);
+    }
+    function wbWireDrops(page) {
+      page.querySelectorAll(".wb-drop").forEach((d) => {
+        d.addEventListener("dragover", (e) => { e.preventDefault(); e.stopPropagation(); document.querySelectorAll(".wb-drop.over").forEach((x) => x.classList.remove("over")); d.classList.add("over"); });
+        d.addEventListener("drop", (e) => wbDropAt(e, Number(d.dataset.insert)));
+      });
+    }
+    function wbRefreshBlock(i) {
+      const el = document.querySelector(`.wb-block[data-bi="${i}"] .wb-block-body`);
+      if (!el) return wbRenderCanvas();
+      el.innerHTML = wbBlockInner(i);
+      el.querySelectorAll("a").forEach((a) => a.addEventListener("click", (e) => e.preventDefault()));
+      wbHydrateImages(el);
+    }
+
+    // Swap tenant image URLs (/img/<id>, /public/<slug>/img/<id>) for
+    // authenticated blob URLs: /img/ only resolves on the tenant's own host,
+    // never on the admin origin. Also flags images that fail to load.
+    function wbFileIdFromUrl(url) {
+      const m = String(url || "").match(/^(?:\/img\/|\/public\/[^/]+\/img\/)([A-Za-z0-9_-]+)(?:[?#].*)?$/);
+      return m ? m[1] : null;
+    }
+    async function wbResolveImg(url) {
+      const id = wbFileIdFromUrl(url);
+      if (!id) return url;
+      if (WB.imgCache[id]) return WB.imgCache[id];
+      WB.imgCache[id] = (async () => {
+        const res = await fetch(`${API}/api/tenants/${tenantId}/files/${id}/download`, { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) throw new Error("not found");
+        return URL.createObjectURL(await res.blob());
+      })().catch(() => { delete WB.imgCache[id]; return url; });
+      return WB.imgCache[id];
+    }
+    function wbHydrateImages(root) {
+      root.querySelectorAll("img").forEach(async (img) => {
+        img.addEventListener("error", () => {
+          img.classList.add("wb-img-broken");
+          if (!img.nextElementSibling || !img.nextElementSibling.classList.contains("wb-img-warn")) {
+            const w = document.createElement("span");
+            w.className = "wb-img-warn";
+            w.textContent = "This image could not be loaded — check the address or upload it again.";
+            img.after(w);
+          }
+        }, { once: true });
+        const src = img.getAttribute("src");
+        if (wbFileIdFromUrl(src)) img.src = await wbResolveImg(src);
+      });
+      root.querySelectorAll("[style*='background-image']").forEach(async (n) => {
+        const m = n.style.backgroundImage.match(/url\(["']?([^"')]+)["']?\)/);
+        if (m && wbFileIdFromUrl(m[1])) n.style.backgroundImage = `url("${await wbResolveImg(m[1])}")`;
+      });
+    }
+    async function wbSwapImageUrls(html) {
+      const ids = new Set();
+      html.replace(/(?:\/img\/|\/public\/[^/"']+\/img\/)([A-Za-z0-9_-]+)/g, (_, id) => { ids.add(id); return _; });
+      for (const id of ids) {
+        const blob = await wbResolveImg(`/img/${id}`);
+        if (blob !== `/img/${id}`) html = html.split(`/img/${id}`).join(blob).replace(new RegExp(`/public/[^/"']+/img/${id}`, "g"), blob);
+      }
+      return html;
+    }
+
+    // Production renderer round-trip: POST /preview for the whole page,
+    // then split the returned HTML back into one part per block.
+    function wbScheduleServerPreview() {
+      clearTimeout(WB.previewTimer);
+      WB.previewTimer = setTimeout(wbFetchServerParts, 600);
+    }
+    async function wbFetchServerParts() {
+      if (WB.view !== "editor") return;
+      const seq = ++WB.previewSeq;
+      const blocks = wbSnapshot();
+      try {
+        const res = await api(`${wbBase()}/preview`, { method: "POST", body: JSON.stringify({ blocks }) });
+        if (seq !== WB.previewSeq || WB.view !== "editor") return;
+        const doc = new DOMParser().parseFromString(`<div>${res.html || ""}</div>`, "text/html");
+        const nodes = [...doc.body.firstElementChild.children];
+        const expected = blocks.filter(wbRenders).length;
+        if (nodes.length !== expected) { WB.serverParts = null; return; }
+        const parts = {};
+        let n = 0;
+        blocks.forEach((b, i) => { if (wbRenders(b)) parts[i] = nodes[n++].outerHTML; });
+        WB.serverParts = parts;
+        if (JSON.stringify(blocks) !== JSON.stringify(WB.blocks)) return; // stale
+        document.querySelectorAll(".wb-block").forEach((el) => {
+          const i = Number(el.dataset.bi);
+          const body = el.querySelector(".wb-block-body");
+          if (body && parts[i] != null && body.innerHTML !== parts[i]) {
+            body.innerHTML = parts[i];
+            body.querySelectorAll("a").forEach((a) => a.addEventListener("click", (e) => e.preventDefault()));
+            wbHydrateImages(body);
+          }
+        });
+      } catch { /* keep local previews */ }
+    }
+
+    /* ---------- properties panel ---------- */
+    function wbRenderProps() {
+      const panel = document.getElementById("wb-props");
+      if (!panel) return;
+      const i = WB.selected;
+      const b = typeof i === "number" ? WB.blocks[i] : null;
+      panel.replaceChildren();
+      const h = document.createElement("h4");
+      if (!b) {
+        h.textContent = "Section settings";
+        panel.appendChild(h);
+        const p = document.createElement("p");
+        p.className = "muted"; p.style.fontSize = "0.85rem";
+        p.textContent = WB.blocks.length ? "Select a section on the page to change its text, images and options." : "Add a section from the left to get started.";
+        panel.appendChild(p);
+        return;
+      }
+      h.textContent = `${wbLabel(b.type)} · section ${i + 1}`;
+      panel.appendChild(h);
+      if (WB_BLOCK_META[b.type] && WB_BLOCK_META[b.type].hint) {
+        const hint = document.createElement("p"); hint.className = "muted"; hint.style.fontSize = "0.8rem"; hint.style.margin = "0 0 0.5rem"; hint.textContent = WB_BLOCK_META[b.type].hint; panel.appendChild(hint);
+      }
+      const set = (patch, key) => wbPatchBlock(i, patch, key);
+      const text = (label, key, opts) => panel.appendChild(wbTextField(label, b[key] || "", (v) => set({ [key]: v }, key), opts));
+      const num = (label, key, min, max, dflt) => panel.appendChild(wbTextField(label, b[key] || dflt, (v) => set({ [key]: Math.min(max, Math.max(min, Number(v) || dflt)) }, key), { type: "number", min, max }));
+      const select = (label, key, options) => panel.appendChild(wbSelectField(label, b[key], options, (v) => set({ [key]: v })));
+      switch (b.type) {
+        case "heading":
+          text("Text", "text", { maxlength: 200 });
+          select("Size", "level", [[2, "Large (section title)"], [3, "Small (sub-heading)"], [1, "Page title"]]);
+          break;
+        case "text":
+          panel.appendChild(wbRichEditor(b.html || "", (html) => set({ html }, "html")));
+          break;
+        case "html": {
+          const ta = wbTextField("Embed code", b.html || "", (v) => set({ html: v }, "html"), { textarea: true, rows: 8, placeholder: "<iframe src=\"https://www.youtube.com/embed/…\"></iframe>" });
+          panel.appendChild(ta);
+          const note = document.createElement("p"); note.className = "muted"; note.style.fontSize = "0.8rem";
+          note.textContent = "Video, map and calendar embeds work. Scripts and styles are removed automatically for safety.";
+          panel.appendChild(note);
+          break;
+        }
+        case "image":
+          panel.appendChild(wbImageField("Image", b.url || "", (url) => set({ url })));
+          text("Description for screen readers (alt text)", "alt", { maxlength: 200, altHint: true });
+          text("Caption", "caption", { maxlength: 300 });
+          break;
+        case "button":
+          text("Button text", "label", { maxlength: 80 });
+          panel.appendChild(wbLinkField("Goes to", b.href || "", (href) => set({ href }, "href")));
+          select("Look", "style", [["primary", "Filled"], ["secondary", "Outlined"]]);
+          break;
+        case "join_cta":
+          text("Title", "title", { maxlength: 120 });
+          text("Message", "body", { textarea: true, maxlength: 500 });
+          break;
+        case "events_list":
+          num("How many events to show", "limit", 1, 20, 5);
+          break;
+        case "store_list":
+          num("How many items to show", "limit", 1, 20, 6);
+          break;
+        case "spacer":
+          num("Height (pixels)", "height", 8, 120, 24);
+          break;
+        case "divider": {
+          const p = document.createElement("p"); p.className = "muted"; p.style.fontSize = "0.85rem"; p.textContent = "Nothing to set for a divider."; panel.appendChild(p);
+          break;
+        }
+        case "hero":
+          text("Small line above the title", "eyebrow", { maxlength: 80, placeholder: "Est. 1984" });
+          text("Title", "title", { maxlength: 160 });
+          text("Subtitle", "subtitle", { textarea: true, maxlength: 300 });
+          panel.appendChild(wbImageField("Background photo", b.imageUrl || "", (imageUrl) => set({ imageUrl })));
+          text("Button text", "ctaLabel", { maxlength: 60, placeholder: "Leave empty for no button" });
+          panel.appendChild(wbLinkField("Button goes to", b.ctaHref || "", (ctaHref) => set({ ctaHref }, "ctaHref")));
+          break;
+        case "service_cards":
+          panel.appendChild(wbItemList(i, "Card", [
+            { key: "icon", label: "Emoji or symbol (optional)", maxlength: 8 },
+            { key: "title", label: "Title", maxlength: 120 },
+            { key: "body", label: "Short description", textarea: true, maxlength: 600 },
+          ], () => ({ icon: "", title: "New service", body: "" }), 12));
+          break;
+        case "gallery_grid":
+          panel.appendChild(wbItemList(i, "Photo", [
+            { key: "url", label: "Photo", image: true },
+            { key: "alt", label: "Description (alt text)", maxlength: 200, altHint: true },
+            { key: "caption", label: "Caption", maxlength: 300 },
+          ], () => ({ url: "", alt: "", caption: "" }), 40));
+          break;
+        case "faq":
+          panel.appendChild(wbItemList(i, "Question", [
+            { key: "q", label: "Question", maxlength: 300 },
+            { key: "a", label: "Answer", textarea: true, maxlength: 2000 },
+          ], () => ({ q: "New question", a: "" }), 30));
+          break;
+        case "testimonials":
+          panel.appendChild(wbItemList(i, "Quote", [
+            { key: "quote", label: "Quote", textarea: true, maxlength: 800 },
+            { key: "author", label: "Who said it", maxlength: 120 },
+          ], () => ({ quote: "", author: "" }), 20));
+          break;
+        case "contact_form":
+          panel.appendChild(wbFormPicker(b.formSlug || "contact", (formSlug) => set({ formSlug })));
+          text("Send button text", "submitLabel", { maxlength: 60 });
+          break;
+        case "project_intake":
+          select("Project type", "projectType", WB_PROJECT_TYPES);
+          text("Heading", "heading", { maxlength: 120 });
+          text("Submit button text", "submitLabel", { maxlength: 60 });
+          break;
+        default: {
+          const p = document.createElement("p"); p.className = "muted"; p.textContent = "This section has no settings."; panel.appendChild(p);
+        }
+      }
+      const actions = document.createElement("div");
+      actions.className = "wb-props-actions";
+      const mk = (label, fn, danger) => { const btn = document.createElement("button"); btn.type = "button"; btn.className = "secondary"; if (danger) btn.style.color = "var(--danger)"; btn.textContent = label; btn.addEventListener("click", fn); actions.appendChild(btn); };
+      mk("Duplicate", () => wbDuplicateBlock(i));
+      mk("Hide", () => wbRemoveBlock(i, true));
+      mk("Delete section", () => wbRemoveBlock(i, false), true);
+      panel.appendChild(actions);
+    }
+
+    function wbTextField(label, value, onChange, opts) {
+      opts = opts || {};
+      const wrap = document.createElement("div");
+      const l = document.createElement("label");
+      l.textContent = label;
+      wrap.appendChild(l);
+      let input;
+      if (opts.textarea) { input = document.createElement("textarea"); input.rows = opts.rows || 3; }
+      else { input = document.createElement("input"); input.type = opts.type || "text"; if (opts.min != null) input.min = opts.min; if (opts.max != null) input.max = opts.max; }
+      if (opts.maxlength) input.maxLength = opts.maxlength;
+      if (opts.placeholder) input.placeholder = opts.placeholder;
+      input.value = value == null ? "" : value;
+      l.appendChild(input);
+      let hint;
+      if (opts.altHint) {
+        hint = document.createElement("p"); hint.className = "wb-hint";
+        const upd = () => { hint.textContent = input.value.trim() ? "" : "Describe the photo in a few words — it helps people using screen readers and search engines."; };
+        upd();
+        input.addEventListener("input", upd);
+        wrap.appendChild(hint);
+      }
+      input.addEventListener("input", () => onChange(input.value));
+      return wrap;
+    }
+    function wbSelectField(label, value, options, onChange) {
+      const l = document.createElement("label");
+      l.textContent = label;
+      const sel = document.createElement("select");
+      options.forEach(([v, text]) => { const o = document.createElement("option"); o.value = String(v); o.textContent = text; sel.appendChild(o); });
+      sel.value = String(value == null ? options[0][0] : value);
+      if (sel.selectedIndex < 0) sel.selectedIndex = 0;
+      sel.addEventListener("change", () => onChange(typeof options[0][0] === "number" ? Number(sel.value) : sel.value));
+      l.appendChild(sel);
+      return l;
+    }
+    // Link target: pick one of your pages or type an outside address.
+    function wbLinkField(label, value, onChange) {
+      const wrap = document.createElement("div");
+      const l = document.createElement("label");
+      l.textContent = label;
+      wrap.appendChild(l);
+      const sel = document.createElement("select");
+      const custom = document.createElement("option"); custom.value = "__custom"; custom.textContent = "Web address…"; sel.appendChild(custom);
+      if (wbIsGuild()) [["membership", "Membership page"], ["events", "Events page"]].forEach(([s, t]) => { const o = document.createElement("option"); o.value = wbPagePath(s); o.textContent = t; sel.appendChild(o); });
+      WB.pages.forEach((p) => { const o = document.createElement("option"); o.value = wbPagePath(p.slug); o.textContent = p.title + (p.published ? "" : " (unpublished)"); sel.appendChild(o); });
+      const known = [...sel.options].some((o) => o.value === value && o.value !== "__custom");
+      sel.value = known ? value : "__custom";
+      l.appendChild(sel);
+      const url = document.createElement("input");
+      url.placeholder = "https://…";
+      url.value = known ? "" : value;
+      url.setAttribute("aria-label", label + " web address");
+      url.classList.toggle("hidden", known);
+      wrap.appendChild(url);
+      sel.addEventListener("change", () => {
+        if (sel.value === "__custom") { url.classList.remove("hidden"); url.focus(); onChange(url.value); }
+        else { url.classList.add("hidden"); onChange(sel.value); }
+      });
+      url.addEventListener("input", () => onChange(url.value.trim()));
+      return wrap;
+    }
+    function wbFormPicker(value, onChange) {
+      const wrap = document.createElement("div");
+      const l = document.createElement("label");
+      l.textContent = "Which form";
+      wrap.appendChild(l);
+      const sel = document.createElement("select");
+      const loading = document.createElement("option"); loading.textContent = "Loading forms…"; sel.appendChild(loading);
+      l.appendChild(sel);
+      const fill = (forms) => {
+        sel.replaceChildren();
+        if (!forms.length) {
+          const o = document.createElement("option"); o.value = value; o.textContent = value; sel.appendChild(o);
+          const p = document.createElement("p"); p.className = "wb-hint"; p.textContent = "No forms yet — create one under Forms, then pick it here."; wrap.appendChild(p);
+          return;
+        }
+        forms.forEach((f) => { const o = document.createElement("option"); o.value = f.slug; o.textContent = f.name + (f.published === 0 ? " (unpublished)" : ""); sel.appendChild(o); });
+        if (![...sel.options].some((o) => o.value === value)) { const o = document.createElement("option"); o.value = value; o.textContent = value + " (missing)"; sel.appendChild(o); }
+        sel.value = value;
+      };
+      (WB.forms ? Promise.resolve(WB.forms) : api(`/api/tenants/${tenantId}/forms`).then((d) => (WB.forms = asList(d, "forms"))).catch(() => [])).then(fill);
+      sel.addEventListener("change", () => onChange(sel.value));
+      return wrap;
+    }
+
+    // Repeatable item list (service cards, gallery, FAQ, testimonials).
+    function wbItemList(blockIndex, noun, fields, makeNew, max) {
+      const wrap = document.createElement("div");
+      wrap.className = "wb-items";
+      const items = () => WB.blocks[blockIndex].items || [];
+      const commit = (next, key) => wbPatchBlock(blockIndex, { items: next }, key);
+      const draw = () => {
+        wrap.replaceChildren();
+        items().forEach((it, j) => {
+          const box = document.createElement("fieldset");
+          box.className = "wb-item";
+          const legend = document.createElement("legend");
+          legend.textContent = `${noun} ${j + 1}`;
+          box.appendChild(legend);
+          const tools = document.createElement("div");
+          tools.className = "wb-item-tools";
+          const mk = (label, title, fn, disabled) => { const btn = document.createElement("button"); btn.type = "button"; btn.className = "secondary"; btn.textContent = label; btn.title = title; btn.setAttribute("aria-label", `${title} ${noun.toLowerCase()} ${j + 1}`); btn.disabled = !!disabled; btn.addEventListener("click", fn); tools.appendChild(btn); };
+          mk("↑", "Move up", () => { const n = items().map((x) => ({ ...x })); n.splice(j - 1, 0, n.splice(j, 1)[0]); commit(n); wbRenderProps(); }, j === 0);
+          mk("↓", "Move down", () => { const n = items().map((x) => ({ ...x })); n.splice(j + 1, 0, n.splice(j, 1)[0]); commit(n); wbRenderProps(); }, j === items().length - 1);
+          mk("✕", "Remove", () => { const n = items().map((x) => ({ ...x })); n.splice(j, 1); commit(n); wbRenderProps(); });
+          box.appendChild(tools);
+          fields.forEach((f) => {
+            const setVal = (v) => { const n = items().map((x) => ({ ...x })); n[j][f.key] = v; commit(n, `${j}.${f.key}`); };
+            if (f.image) box.appendChild(wbImageField(f.label, it[f.key] || "", (v) => { setVal(v); }));
+            else box.appendChild(wbTextField(f.label, it[f.key] || "", setVal, f));
+          });
+          wrap.appendChild(box);
+        });
+        const add = document.createElement("button");
+        add.type = "button"; add.className = "secondary"; add.style.width = "100%";
+        add.textContent = `+ Add ${noun.toLowerCase()}`;
+        add.disabled = items().length >= max;
+        add.addEventListener("click", () => { commit([...items().map((x) => ({ ...x })), makeNew()]); wbRenderProps(); });
+        wrap.appendChild(add);
+      };
+      draw();
+      return wrap;
+    }
+
+    /* ---------- images ---------- */
+    function wbImageField(label, value, onChange) {
+      const wrap = document.createElement("div");
+      wrap.className = "wb-image-field";
+      const l = document.createElement("label"); l.textContent = label; wrap.appendChild(l);
+      const thumb = document.createElement("div"); thumb.className = "wb-thumb";
+      wrap.appendChild(thumb);
+      const drawThumb = async (url) => {
+        thumb.replaceChildren();
+        if (!url) { thumb.textContent = "No image yet"; thumb.classList.add("empty"); return; }
+        thumb.classList.remove("empty");
+        const img = document.createElement("img");
+        img.alt = "";
+        img.addEventListener("error", () => { thumb.replaceChildren(); const w = document.createElement("span"); w.className = "wb-img-warn"; w.textContent = "This image could not be loaded."; thumb.appendChild(w); });
+        img.src = await wbResolveImg(url);
+        thumb.appendChild(img);
+      };
+      drawThumb(value);
+      const row = document.createElement("div"); row.className = "wb-image-actions";
+      const file = document.createElement("input"); file.type = "file"; file.accept = "image/png,image/jpeg,image/gif,image/webp"; file.className = "hidden"; file.setAttribute("aria-hidden", "true"); file.tabIndex = -1;
+      const up = document.createElement("button"); up.type = "button"; up.className = "secondary"; up.textContent = "Upload image";
+      const lib = document.createElement("button"); lib.type = "button"; lib.className = "secondary"; lib.textContent = "Choose from library";
+      const rm = document.createElement("button"); rm.type = "button"; rm.className = "secondary"; rm.textContent = "Remove"; rm.classList.toggle("hidden", !value);
+      const status = document.createElement("span"); status.className = "wb-hint"; status.setAttribute("aria-live", "polite");
+      row.appendChild(up); row.appendChild(lib); row.appendChild(rm); row.appendChild(file);
+      wrap.appendChild(row); wrap.appendChild(status);
+      const setUrl = (url) => { value = url; drawThumb(url); rm.classList.toggle("hidden", !url); onChange(url); };
+      up.addEventListener("click", () => file.click());
+      file.addEventListener("change", async () => {
+        const f = file.files && file.files[0];
+        if (!f) return;
+        status.textContent = "Uploading…";
+        try { const id = await wbUploadImage(f); setUrl(wbImageUrl(id)); status.textContent = "Uploaded."; }
+        catch (e) { status.textContent = e.message; }
+        file.value = "";
+      });
+      lib.addEventListener("click", () => wbOpenLibrary((id) => setUrl(wbImageUrl(id))));
+      rm.addEventListener("click", () => setUrl(""));
+      return wrap;
+    }
+    async function wbUploadImage(f) {
+      if (!/^image\/(png|jpeg|gif|webp)$/.test(f.type)) throw new Error("Please choose a PNG, JPEG, GIF or WebP image.");
+      const res = await fetch(`${API}/api/tenants/${tenantId}/files?filename=${encodeURIComponent(f.name)}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": f.type },
+        body: f,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Upload failed");
+      WB.files = null; // refresh library next time
+      return data.id;
+    }
+    async function wbOpenLibrary(onPick) {
+      const dlg = document.getElementById("wb-library");
+      if (!dlg) return;
+      dlg.innerHTML = `<h3 style="margin-top:0">Choose an image</h3><p class="muted" style="font-size:0.85rem">Loading…</p>`;
+      dlg.showModal();
+      let files = WB.files;
+      if (!files) {
+        try { files = WB.files = asList(await api(`/api/tenants/${tenantId}/files`), "files"); } catch (e) { files = []; }
+      }
+      const images = files.filter((f) => /^image\/(png|jpeg|gif|webp)$/.test(f.content_type || ""));
+      dlg.innerHTML = `
+        <div class="wb-lib-head">
+          <h3 style="margin:0">Choose an image</h3>
+          <button type="button" class="secondary" data-close aria-label="Close">✕</button>
+        </div>
+        <div class="wb-lib-tools">
+          <input type="file" id="wb-lib-file" accept="image/png,image/jpeg,image/gif,image/webp" class="hidden" aria-hidden="true" tabindex="-1" />
+          <button type="button" class="secondary" id="wb-lib-upload">Upload new image</button>
+          <span class="wb-hint" id="wb-lib-status" aria-live="polite"></span>
+        </div>
+        ${images.length ? `<div class="wb-lib-grid" role="list">${images.map((f) => `
+          <button type="button" class="wb-lib-item" role="listitem" data-id="${esc(f.id)}" title="${esc(f.filename)}">
+            <span class="wb-lib-thumb"></span><span class="wb-lib-name">${esc(f.filename)}</span>
+          </button>`).join("")}</div>` : `<p class="muted">No images uploaded yet. Upload one to get started.</p>`}`;
+      dlg.querySelector("[data-close]").addEventListener("click", () => dlg.close());
+      dlg.querySelectorAll(".wb-lib-item").forEach(async (btn) => {
+        btn.addEventListener("click", () => { dlg.close(); onPick(btn.dataset.id); });
+        const img = document.createElement("img"); img.alt = "";
+        img.src = await wbResolveImg(`/img/${btn.dataset.id}`);
+        btn.querySelector(".wb-lib-thumb").appendChild(img);
+      });
+      const file = dlg.querySelector("#wb-lib-file");
+      dlg.querySelector("#wb-lib-upload").addEventListener("click", () => file.click());
+      file.addEventListener("change", async () => {
+        const f = file.files && file.files[0];
+        if (!f) return;
+        const st = dlg.querySelector("#wb-lib-status");
+        st.textContent = "Uploading…";
+        try { const id = await wbUploadImage(f); dlg.close(); onPick(id); }
+        catch (e) { st.textContent = e.message; }
+      });
+    }
+
+    /* ---------- rich text ---------- */
+    function wbRichEditor(html, onChange) {
+      const wrap = document.createElement("div");
+      wrap.className = "wb-rte";
+      const bar = document.createElement("div");
+      bar.className = "wb-rte-bar";
+      bar.setAttribute("role", "toolbar");
+      bar.setAttribute("aria-label", "Text formatting");
+      const area = document.createElement("div");
+      area.className = "wb-rte-area";
+      area.contentEditable = "true";
+      area.setAttribute("role", "textbox");
+      area.setAttribute("aria-multiline", "true");
+      area.setAttribute("aria-label", "Text");
+      area.innerHTML = wbSanitize(html) || "<p></p>";
+      try { document.execCommand("defaultParagraphSeparator", false, "p"); } catch {}
+      let savedRange = null;
+      const saveSel = () => { const s = window.getSelection(); if (s && s.rangeCount && area.contains(s.anchorNode)) savedRange = s.getRangeAt(0).cloneRange(); };
+      const restoreSel = () => { if (!savedRange) return; const s = window.getSelection(); s.removeAllRanges(); s.addRange(savedRange); };
+      const emit = () => onChange(wbCleanPaste(area.innerHTML));
+      const cmd = (name, val) => { area.focus(); restoreSel(); document.execCommand(name, false, val); saveSel(); emit(); };
+      const linkRow = document.createElement("div");
+      linkRow.className = "wb-rte-link hidden";
+      const linkInput = document.createElement("input");
+      linkInput.placeholder = "https://… or /page-address";
+      linkInput.setAttribute("aria-label", "Link address");
+      const linkApply = document.createElement("button"); linkApply.type = "button"; linkApply.className = "secondary"; linkApply.textContent = "Apply";
+      const linkRemove = document.createElement("button"); linkRemove.type = "button"; linkRemove.className = "secondary"; linkRemove.textContent = "Remove link";
+      const linkCancel = document.createElement("button"); linkCancel.type = "button"; linkCancel.className = "secondary"; linkCancel.textContent = "Cancel";
+      linkRow.appendChild(linkInput); linkRow.appendChild(linkApply); linkRow.appendChild(linkRemove); linkRow.appendChild(linkCancel);
+      const openLink = () => {
+        saveSel();
+        const a = savedRange && savedRange.startContainer.parentElement && savedRange.startContainer.parentElement.closest("a");
+        linkInput.value = a ? a.getAttribute("href") || "" : "";
+        linkRow.classList.remove("hidden");
+        linkInput.focus();
+      };
+      linkApply.addEventListener("click", () => {
+        const v = linkInput.value.trim();
+        if (!v || /^\s*(javascript|data|vbscript):/i.test(v)) { linkInput.focus(); return; }
+        linkRow.classList.add("hidden");
+        cmd("createLink", v);
+      });
+      linkRemove.addEventListener("click", () => { linkRow.classList.add("hidden"); cmd("unlink"); });
+      linkCancel.addEventListener("click", () => { linkRow.classList.add("hidden"); area.focus(); restoreSel(); });
+      linkInput.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); linkApply.click(); } if (e.key === "Escape") linkCancel.click(); });
+      const tools = [
+        ["B", "Bold (Ctrl+B)", () => cmd("bold")],
+        ["I", "Italic (Ctrl+I)", () => cmd("italic")],
+        ["🔗", "Link (Ctrl+K)", openLink],
+        ["•", "Bulleted list", () => cmd("insertUnorderedList")],
+        ["1.", "Numbered list", () => cmd("insertOrderedList")],
+        ["H2", "Heading", () => cmd("formatBlock", "h2")],
+        ["H3", "Sub-heading", () => cmd("formatBlock", "h3")],
+        ["¶", "Paragraph", () => cmd("formatBlock", "p")],
+        ["Tx", "Remove formatting", () => { cmd("removeFormat"); cmd("formatBlock", "p"); }],
+      ];
+      tools.forEach(([label, title, fn]) => {
+        const btn = document.createElement("button");
+        btn.type = "button"; btn.className = "secondary"; btn.textContent = label; btn.title = title; btn.setAttribute("aria-label", title);
+        if (label === "B") btn.style.fontWeight = "700";
+        if (label === "I") btn.style.fontStyle = "italic";
+        btn.addEventListener("mousedown", (e) => e.preventDefault()); // keep selection
+        btn.addEventListener("click", fn);
+        bar.appendChild(btn);
+      });
+      let t = null;
+      area.addEventListener("input", () => { clearTimeout(t); t = setTimeout(emit, 350); });
+      area.addEventListener("blur", () => { clearTimeout(t); emit(); });
+      area.addEventListener("keyup", saveSel);
+      area.addEventListener("mouseup", saveSel);
+      area.addEventListener("keydown", (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); openLink(); }
+        if (e.key === "Escape") { area.blur(); }
+        e.stopPropagation(); // editor-level shortcuts (undo/redo) stay out of the text box
+      });
+      area.addEventListener("paste", (e) => {
+        e.preventDefault();
+        const cd = e.clipboardData;
+        let clean = "";
+        const h = cd.getData("text/html");
+        if (h) clean = wbCleanPaste(h);
+        else clean = esc(cd.getData("text/plain")).split(/\n{2,}/).map((p) => `<p>${p.replace(/\n/g, "<br>")}</p>`).join("");
+        document.execCommand("insertHTML", false, clean);
+        emit();
+      });
+      wrap.appendChild(bar);
+      wrap.appendChild(linkRow);
+      wrap.appendChild(area);
+      const hint = document.createElement("p"); hint.className = "wb-hint"; hint.textContent = "Tip: paste from Word or Google Docs — formatting is tidied up automatically.";
+      wrap.appendChild(hint);
+      return wrap;
+    }
+
+    /* ---------- draft save / publish ---------- */
+    function wbMarkDirty(metaOnly) {
+      if (!WB.canWrite) return;
+      WB.dirty = true;
+      if (WB.saveState !== "conflict") WB.saveState = "dirty";
+      wbUpdateChrome();
+      clearTimeout(WB.saveTimer);
+      WB.saveTimer = setTimeout(() => wbSaveDraft(), 1500);
+    }
+    function wbMetaPayload() {
+      const m = WB.meta;
+      const out = {
+        title: (m.title || "").trim() || "Untitled page",
+        show_in_nav: !!m.show_in_nav, nav_label: m.nav_label || "", is_members_only: !!m.is_members_only,
+        seo_title: m.seo_title || "", seo_description: m.seo_description || "", noindex: !!m.noindex,
+      };
+      if (!wbIsGuild() || WB.slugTouched || m.slug) out.slug = m.slug || (wbIsGuild() ? wbSlugify(out.title) : "home");
+      return out;
+    }
+    async function wbFlushSave() {
+      clearTimeout(WB.saveTimer);
+      if (WB.dirty && WB.saveState !== "conflict" && WB.canWrite) await wbSaveDraft();
+      if (WB.savePromise) await WB.savePromise.catch(() => {});
+    }
+    function wbSaveDraft() {
+      if (WB.savePromise) { WB.saveQueued = true; return WB.savePromise; }
+      WB.savePromise = (async () => {
+        if (!WB.canWrite || WB.saveState === "conflict" || WB.view !== "editor") return;
+        clearTimeout(WB.saveTimer);
+        if (!WB.page && !(WB.meta.title || "").trim()) { WB.saveState = "needtitle"; wbUpdateChrome(); return; }
+        WB.saveState = "saving"; wbUpdateChrome();
+        const blocks = wbSnapshot();
+        const metaSnapshot = JSON.stringify(WB.meta);
+        try {
+          if (!WB.page) {
+            const row = await api(wbBase(), { method: "POST", body: JSON.stringify({ ...wbMetaPayload(), blocks, published: false, page_type: "page" }) });
+            WB.page = row;
+            WB.revision = row.revision ?? null;
+            WB.hasDraft = false;
+            if (!WB.pages.some((p) => p.id === row.id)) WB.pages.push(row);
+          } else {
+            const res = await api(`${wbBase()}/${WB.page.id}/draft`, { method: "PUT", body: JSON.stringify({ title: wbMetaPayload().title, blocks, revision: WB.revision }) });
+            if (res.revision != null) WB.revision = res.revision;
+            WB.hasDraft = res.has_draft !== false;
+            WB.page.has_draft = WB.hasDraft ? 1 : 0;
+          }
+          const unchanged = JSON.stringify(WB.blocks) === JSON.stringify(blocks) && JSON.stringify(WB.meta) === metaSnapshot;
+          WB.dirty = !unchanged;
+          WB.saveState = unchanged ? "saved" : "dirty";
+          wbClearIssues();
+        } catch (e) {
+          if (wbIsConflict(e)) WB.saveState = "conflict";
+          else { WB.saveState = "error"; wbShowIssues(wbIssuesOf(e), e.message); }
+        }
+        wbUpdateChrome();
+      })().finally(() => {
+        WB.savePromise = null;
+        if (WB.saveQueued) { WB.saveQueued = false; if (WB.dirty) WB.saveTimer = setTimeout(() => wbSaveDraft(), 300); }
+      });
+      return WB.savePromise;
+    }
+    async function wbPublish() {
+      if (!WB.canWrite) return;
+      const btn = document.getElementById("wb-publish");
+      const title = (WB.meta.title || "").trim();
+      if (!title) { wbShowIssues([{ path: "title", message: "Give the page a title before publishing." }]); document.getElementById("wb-title").focus(); return; }
+      clearTimeout(WB.saveTimer);
+      if (WB.savePromise) await WB.savePromise.catch(() => {});
+      if (WB.saveState === "conflict") return;
+      btn.disabled = true; btn.textContent = "Publishing…";
+      try {
+        const blocks = wbSnapshot();
+        if (!WB.page) {
+          const row = await api(wbBase(), { method: "POST", body: JSON.stringify({ ...wbMetaPayload(), blocks, published: false, page_type: "page" }) });
+          WB.page = row; WB.revision = row.revision ?? null;
+        }
+        const row = await api(`${wbBase()}/${WB.page.id}/publish`, {
+          method: "POST",
+          body: JSON.stringify({ revision: WB.revision, ...wbMetaPayload(), blocks, published: true }),
+        });
+        WB.page = row;
+        WB.revision = row.revision ?? WB.revision;
+        WB.hasDraft = false; WB.dirty = false; WB.saveState = "saved";
+        WB.meta.published = true;
+        const idx = WB.pages.findIndex((p) => p.id === row.id);
+        if (idx >= 0) WB.pages[idx] = row; else WB.pages.push(row);
+        wbClearIssues();
+        wbToast(`Published. Visitors now see this version at ${wbPagePath(row.slug)}.`);
+        if (WB.mode === "preview") wbRefreshPreview();
+      } catch (e) {
+        if (wbIsConflict(e)) WB.saveState = "conflict";
+        else wbShowIssues(wbIssuesOf(e), e.message);
+      }
+      btn.disabled = false;
+      wbUpdateChrome();
+    }
+    async function wbUnpublish() {
+      if (!WB.page || !WB.canWrite) return;
+      const btn = document.getElementById("wb-unpublish");
+      if (!wbArm(btn, "Click again to unpublish")) return;
+      try {
+        const row = await api(`${wbBase()}/${WB.page.id}`, { method: "PATCH", body: JSON.stringify({ published: false, revision: WB.revision }) });
+        WB.page = row; WB.revision = row.revision ?? WB.revision; WB.meta.published = false;
+        wbToast("Unpublished — visitors will no longer see this page.");
+      } catch (e) {
+        if (wbIsConflict(e)) WB.saveState = "conflict"; else wbShowIssues(wbIssuesOf(e), e.message);
+      }
+      wbUpdateChrome();
+    }
+    // A 409 with a revision means someone else saved this page; a 409 without
+    // one is a duplicate slug (POST / publish / PATCH).
+    function wbIsConflict(e) {
+      return e.status === 409 && !!(e.data && e.data.revision != null);
+    }
+    function wbIssuesOf(e) {
+      if (Array.isArray(e.issues) && e.issues.length) return e.issues;
+      if (e.status === 409) return [{ path: "slug", message: e.message }];
+      return [];
+    }
+    async function wbDiscardDraft() {
+      if (!WB.page || !WB.canWrite) return;
+      const btn = document.getElementById("wb-discard");
+      if (!wbArm(btn, "Click again to discard")) return;
+      clearTimeout(WB.saveTimer);
+      try {
+        await api(`${wbBase()}/${WB.page.id}/discard-draft`, { method: "POST" });
+        WB.dirty = false;
+        await qhOpenPageEditor(WB.page, { tenantType: WB.tenantType, onBack: WB.onBack });
+        wbToast("Draft discarded — showing the published version.");
+      } catch (e) { wbShowIssues([], e.message); }
+    }
+    function wbToast(text) {
+      const note = document.getElementById("wb-note");
+      if (!note) return;
+      note.textContent = text;
+      note.classList.remove("hidden");
+      clearTimeout(WB.toastTimer);
+      WB.toastTimer = setTimeout(() => { if (WB.canWrite) note.classList.add("hidden"); }, 6000);
+    }
+    function wbShowIssues(issues, headline) {
+      const box = document.getElementById("wb-issues");
+      if (!box) return;
+      const fieldMap = { slug: "slug", title: "title", nav_label: "nav_label", seo_title: "seo_title", seo_description: "seo_description" };
+      const rest = [];
+      (issues || []).forEach((is) => {
+        const key = fieldMap[String(is.path || "").split(".")[0]];
+        const host = key === "title" ? document.getElementById("wb-title") : document.querySelector(`[data-field="${key}"] .wb-field-err`);
+        if (host && key !== "title") { host.textContent = is.message; document.getElementById("wb-settings").open = true; }
+        else rest.push((is.path ? is.path + ": " : "") + is.message);
+      });
+      // Field-level messages are shown next to their fields; the banner only
+      // carries what has no field of its own.
+      const generic = /^Invalid request body$/i.test(headline || "");
+      const text = [(issues || []).length && generic ? "" : headline, ...rest].filter(Boolean).join(" · ");
+      box.textContent = text;
+      box.classList.toggle("hidden", !text);
+    }
+    function wbClearIssue(key) { const h = document.querySelector(`[data-field="${key}"] .wb-field-err`); if (h) h.textContent = ""; }
+    function wbClearIssues() {
+      document.querySelectorAll(".wb-field-err").forEach((h) => { h.textContent = ""; });
+      const box = document.getElementById("wb-issues");
+      if (box) box.classList.add("hidden");
+    }
+
+    /* ---------- preview ---------- */
+    function wbSetMode(mode) {
+      WB.mode = mode;
+      document.getElementById("wb-edit-mode").classList.toggle("hidden", mode !== "edit");
+      document.getElementById("wb-preview-mode").classList.toggle("hidden", mode !== "preview");
+      document.getElementById("wb-mode-edit").setAttribute("aria-selected", String(mode === "edit"));
+      document.getElementById("wb-mode-preview").setAttribute("aria-selected", String(mode === "preview"));
+      document.getElementById("wb-mode-edit").classList.toggle("on", mode === "edit");
+      document.getElementById("wb-mode-preview").classList.toggle("on", mode === "preview");
+      if (mode === "preview") { wbSetPreviewWidth(WB.previewWidth); wbRefreshPreview(); }
+    }
+    function wbSetPreviewWidth(w) {
+      WB.previewWidth = w;
+      const frame = document.getElementById("wb-preview-frame");
+      frame.style.width = w === "mobile" ? "390px" : w === "tablet" ? "768px" : "100%";
+      document.querySelectorAll("#wb-preview-mode [data-width]").forEach((b) => { b.classList.toggle("on", b.dataset.width === w); b.setAttribute("aria-checked", String(b.dataset.width === w)); });
+    }
+    function wbWrapSiteHtml(bodyHtml) {
+      const s = WB.settings || {};
+      const theme = { ...WB_DEFAULT_THEME, ...(s.theme || {}) };
+      const fonts = s.fonts || { heading: "fraunces", body: "inter" };
+      const map = { primary: "--color-primary", primaryBright: "--color-primary-bright", primaryDark: "--color-primary-dark", secondary: "--color-secondary", secondaryBright: "--color-secondary-bright", accent: "--color-accent", accentBright: "--color-accent-bright", gold: "--color-gold", bg: "--color-bg", card: "--color-card", textBase: "--color-text-base", textMuted: "--color-text-muted" };
+      const safe = (v, d) => (/^#[0-9a-fA-F]{3,8}$/.test(String(v || "").trim()) ? v.trim() : d);
+      const vars = Object.keys(map).map((k) => `${map[k]}:${safe(theme[k], WB_DEFAULT_THEME[k])}`).join(";")
+        + `;--font-display:${WB_FONT_STACKS[fonts.heading] || WB_FONT_STACKS.fraunces};--font-sans:${WB_FONT_STACKS[fonts.body] || WB_FONT_STACKS.inter}`;
+      const q = [WB_FONT_QUERY[fonts.heading] || WB_FONT_QUERY.fraunces, WB_FONT_QUERY[fonts.body] || WB_FONT_QUERY.inter];
+      const fontsHref = `https://fonts.googleapis.com/css2?${[...new Set(q)].map((f) => `family=${f}`).join("&")}&display=swap`;
+      return `<!DOCTYPE html><html lang="en" data-tenant-slug="${esc(tenantSlug)}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><link rel="stylesheet" href="${esc(fontsHref)}"><link rel="stylesheet" href="/qh-site.css"><style>:root{${vars}}</style></head><body class="qh-site"><main class="qh-site-main">${bodyHtml}</main><script src="/qh-site.js" defer><\/script></body></html>`;
+    }
+    async function wbRefreshPreview() {
+      const frame = document.getElementById("wb-preview-frame");
+      if (!frame) return;
+      const seq = ++WB.previewSeq;
+      await wbFlushSave();
+      const blocks = wbSnapshot();
+      try {
+        if (wbIsGuild()) {
+          const res = await api(`${wbBase()}/preview`, { method: "POST", body: JSON.stringify({ blocks }) });
+          if (seq !== WB.previewSeq) return;
+          const page = { title: WB.meta.title || "Untitled page", html: res.html || "", slug: WB.meta.slug || "home" };
+          const target = `/g/${encodeURIComponent(tenantSlug)}/__preview`;
+          const post = () => frame.contentWindow && frame.contentWindow.postMessage({ type: "qh:preview", page }, location.origin);
+          if (frame.dataset.src === target && WB.previewReady) { post(); return; }
+          WB.previewReady = false;
+          WB.pendingPreview = post;
+          frame.dataset.src = target;
+          frame.removeAttribute("srcdoc");
+          frame.src = target;
+        } else {
+          let html;
+          if (WB.page && !WB.dirty && WB.saveState !== "error") {
+            const res = await fetch(`${API}${wbBase()}/${WB.page.id}/preview?source=draft`, { headers: { Authorization: `Bearer ${token}` } });
+            if (res.ok) html = await res.text();
+          }
+          if (!html) {
+            const res = await api(`${wbBase()}/preview`, { method: "POST", body: JSON.stringify({ blocks }) });
+            html = wbWrapSiteHtml(res.html || "");
+          }
+          if (seq !== WB.previewSeq) return;
+          html = await wbSwapImageUrls(html);
+          frame.removeAttribute("src");
+          frame.dataset.src = "";
+          frame.srcdoc = html;
+        }
+      } catch (e) {
+        frame.srcdoc = `<p style="font-family:system-ui;padding:1rem">Preview unavailable: ${esc(e.message)}</p>`;
+      }
+    }
+    window.addEventListener("message", (e) => {
+      if (e.origin !== location.origin || !e.data || e.data.type !== "qh:preview-ready") return;
+      WB.previewReady = true;
+      if (WB.pendingPreview) { WB.pendingPreview(); WB.pendingPreview = null; }
+    });
+
+    /* ---------- history ---------- */
+    async function wbOpenHistory() {
+      const dlg = document.getElementById("wb-history-dlg");
+      if (!dlg) return;
+      if (!WB.page) { dlg.innerHTML = `<h3 style="margin-top:0">History</h3><p class="muted">Save or publish the page first — history starts with the first version.</p><button type="button" class="secondary" data-close>Close</button>`; dlg.querySelector("[data-close]").addEventListener("click", () => dlg.close()); dlg.showModal(); return; }
+      dlg.innerHTML = `<h3 style="margin-top:0">History</h3><p class="muted">Loading…</p>`;
+      dlg.showModal();
+      let revs = [];
+      try { revs = asList(await api(`${wbBase()}/${WB.page.id}/revisions`), "revisions"); } catch (e) { dlg.innerHTML = `<p class="error">${esc(e.message)}</p>`; }
+      dlg.innerHTML = `
+        <div class="wb-lib-head"><h3 style="margin:0">History</h3><button type="button" class="secondary" data-close aria-label="Close">✕</button></div>
+        <p class="muted" style="font-size:0.85rem">Restoring loads that version into your draft. Nothing changes on the live site until you publish.</p>
+        <p id="wb-hist-msg" class="muted" style="font-size:0.85rem" aria-live="polite"></p>
+        ${revs.length ? `<ol class="wb-hist">${revs.map((r) => `
+          <li>
+            <div><span class="badge ${r.kind === "publish" ? "active" : ""}">${esc(r.kind || "save")}</span> <strong>${esc(r.title || "")}</strong>
+              <span class="muted" style="font-size:0.8rem"> · ${new Date(r.created_at).toLocaleString()}${r.created_by_name ? " · " + esc(r.created_by_name) : ""} · ${r.block_count ?? "?"} section${r.block_count === 1 ? "" : "s"}</span></div>
+            <button type="button" class="secondary" data-write data-restore="${esc(r.id)}">Restore</button>
+          </li>`).join("")}</ol>` : `<p class="muted">No versions yet.</p>`}`;
+      dlg.querySelector("[data-close]").addEventListener("click", () => dlg.close());
+      dlg.querySelectorAll("[data-restore]").forEach((btn) => btn.addEventListener("click", async () => {
+        if (!wbArm(btn, "Click again to restore into draft")) return;
+        const msg = dlg.querySelector("#wb-hist-msg");
+        try {
+          await api(`${wbBase()}/${WB.page.id}/revisions/${btn.dataset.restore}/restore`, { method: "POST" });
+          dlg.close();
+          WB.dirty = false;
+          await qhOpenPageEditor(WB.page, { tenantType: WB.tenantType, onBack: WB.onBack });
+          wbToast("Version restored into your draft. Preview it, then click Publish to make it live.");
+        } catch (e) { msg.textContent = e.message; }
+      }));
+      applyReadOnlyState("pages", dlg);
+    }
+
+    /* ---------- global keys / unload ---------- */
+    document.addEventListener("keydown", (e) => {
+      if (WB.view !== "editor") return;
+      const t = e.target;
+      const editable = t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); wbFlushSave(); return; }
+      if (editable) return;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && !e.shiftKey) { e.preventDefault(); wbUndo(); }
+      else if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === "y" || (e.key.toLowerCase() === "z" && e.shiftKey))) { e.preventDefault(); wbRedo(); }
+    });
+    window.addEventListener("beforeunload", (e) => {
+      if (WB.view === "editor" && WB.dirty && WB.canWrite) { e.preventDefault(); e.returnValue = ""; }
+    });
+
+    // Blog admin still calls deletePage(id, title) for posts. Pages are now
+    // soft-deleted (trash) server-side; the two-click arm lives on the button.
+    async function deletePage(id, title, btn) {
+      const b = btn || (window.event && window.event.target);
+      if (b && b.tagName === "BUTTON" && !wbArm(b, "Click again to delete")) return;
+      await api(`${wbBase()}/${id}`, { method: "DELETE" });
+      navigate("blog");
     }
 
     async function renderFiles(el) {
@@ -3256,7 +4719,7 @@
           <button onclick="saveTenantName()" style="margin-top:0.5rem">Save</button>
           <span id="set-saved" class="hidden" style="color:var(--success);margin-left:0.5rem">Saved ✓</span>
         </div>
-        <div class="card" id="domain-card">
+        <div class="card admin-only-area" id="domain-card" data-area="domain">
           <h3 style="margin-bottom:0.75rem">Custom domain</h3>
           <p class="muted" style="font-size:0.85rem;margin-bottom:0.75rem">
             Use your own domain (e.g. <code>www.yourguild.org</code>) or the free QuiltHosting subdomain.
@@ -3277,7 +4740,7 @@
           <div id="domain-msg" class="muted" style="font-size:0.85rem;margin-top:0.5rem"></div>
           <div id="domain-dns" style="margin-top:0.75rem;font-size:0.85rem"></div>
         </div>
-        <div class="card" id="billing-card">
+        <div class="card admin-only-area" id="billing-card" data-area="billing">
           <h3 style="margin-bottom:0.75rem">Billing &amp; payouts</h3>
           <p class="muted" style="font-size:0.85rem;margin-bottom:0.75rem">Connect your guild's bank account so dues, events, and donations land with you — not QuiltHosting. Upgrade for unlimited active members.</p>
           <div id="billing-status" style="font-size:0.9rem">Loading…</div>
@@ -3363,7 +4826,7 @@
           <code style="display:block;padding:0.6rem;background:var(--surface-2);border-radius:8px;font-size:0.75rem;word-break:break-all">&lt;iframe src="${esc(API)}/embed/${esc(tenantSlug)}/store" width="100%" height="480" style="border:0;max-width:440px" loading="lazy"&gt;&lt;/iframe&gt;</code>
         </div>
         <div class="card">
-          <h3 style="margin-bottom:0.75rem">QuickBooks Online</h3>
+          <h3 style="margin-bottom:0.75rem" data-qbo-heading>QuickBooks Online</h3>
           <p class="muted" style="font-size:0.85rem;margin-bottom:0.5rem">Connect Intuit QBO to push recent payments, or keep using IIF export. Requires platform <code>QBO_CLIENT_ID</code> / <code>QBO_CLIENT_SECRET</code>.</p>
           <div id="qbo-status" class="muted" style="font-size:0.9rem">Loading…</div>
           <div class="row" style="margin-top:0.5rem;gap:0.5rem;flex-wrap:wrap">
@@ -3411,11 +4874,20 @@
         const st = settings.store || {};
         if (st.tax_rate_bps != null) localStorage.setItem("qh_tax_" + tenantId, JSON.stringify({ tax_rate_bps: st.tax_rate_bps }));
       } catch {}
+      gateSettingsCards();
       loadQboStatus();
       loadBilling();
       loadDomainStatus();
     }
+    function gateSettingsCards() {
+      document.querySelectorAll("#page-content .admin-only-area").forEach((card) => {
+        card.classList.toggle("hidden", !canReadArea(card.dataset.area));
+      });
+      const qbo = document.querySelector("#page-content [data-qbo-heading]");
+      if (qbo && !canReadArea("qbo")) qbo.closest(".card").classList.add("hidden");
+    }
     async function loadDomainStatus() {
+      if (!canReadArea("domain")) return;
       const el = document.getElementById("domain-status");
       const dnsEl = document.getElementById("domain-dns");
       if (!el) return;
@@ -3513,6 +4985,7 @@
       }
     }
     async function loadQboStatus() {
+      if (!canReadArea("qbo")) return;
       const el = document.getElementById("qbo-status");
       if (!el) return;
       try {
@@ -3555,6 +5028,7 @@
       loadQboStatus();
     }
     async function loadBilling() {
+      if (!canReadArea("billing")) return;
       const box = document.getElementById("billing-status");
       const actions = document.getElementById("billing-actions");
       if (!box || !actions) return;

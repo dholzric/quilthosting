@@ -1375,3 +1375,187 @@ describe("POST /public/:slug/cart/checkout — atomic stock reservation", () => 
     expect(h.batches[1][h.batches[1].length - 1].binds[0]).toBe("cancelled");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Guild site: /img/:fileId, /site-bootstrap, trashed pages, slug redirects
+// (draft/publish workflow, migration 0025). Own small fake: the big harness
+// above returns [] for every .all(), which is not enough to prove a
+// deleted_at filter or a redirects map.
+// ---------------------------------------------------------------------------
+
+type GuildPage = {
+  slug: string;
+  title: string;
+  content_json: string;
+  blocks_json: string | null;
+  page_type: string;
+  published: number;
+  is_members_only: number;
+  show_in_nav: number;
+  deleted_at: string | null;
+  updated_at: string;
+  created_at: string;
+};
+
+function guildHarness(opts: {
+  pages?: GuildPage[];
+  redirects?: { from_slug: string; to_slug: string }[];
+  files?: { id: string; tenant_id: string; r2_key: string; content_type: string | null }[];
+} = {}) {
+  const tenant = {
+    id: TENANT_ID,
+    name: "Stitch Guild",
+    slug: "stitchguild",
+    tenant_type: "guild",
+    status: "active",
+    settings_json: JSON.stringify({ profile: { description: "A guild" } }),
+  };
+  const prepared: string[] = [];
+  function pages(sql: string): GuildPage[] {
+    let rows = opts.pages ?? [];
+    // Mirrors the route's own predicate text so dropping the clause from
+    // public.ts makes these tests fail.
+    if (sql.includes("deleted_at IS NULL")) rows = rows.filter((p) => p.deleted_at === null);
+    if (sql.includes("published = 1")) rows = rows.filter((p) => p.published === 1);
+    if (sql.includes("= 'blog_post'")) rows = rows.filter((p) => p.page_type === "blog_post");
+    else if (sql.includes("= 'page'")) rows = rows.filter((p) => p.page_type === "page");
+    return rows;
+  }
+  const db = {
+    prepare(sql: string) {
+      prepared.push(sql);
+      return {
+        bind(...binds: unknown[]) {
+          return {
+            async first() {
+              if (sql.includes("FROM tenants")) return binds[0] === tenant.slug ? tenant : null;
+              if (sql.includes("FROM files WHERE id = ? AND tenant_id = ?")) {
+                return (opts.files ?? []).find((f) => f.id === binds[0] && f.tenant_id === binds[1]) ?? null;
+              }
+              return null;
+            },
+            async all() {
+              if (sql.includes("FROM pages")) return { results: pages(sql) };
+              if (sql.includes("FROM page_redirects")) return { results: opts.redirects ?? [] };
+              return { results: [] };
+            },
+            async run() {
+              return { success: true };
+            },
+          };
+        },
+      };
+    },
+  };
+  const app = new Hono<{ Bindings: Env }>();
+  app.route("/", publicRoutes);
+  const env = {
+    DB: db,
+    FILES: { async get(key: string) { return { body: `bytes:${key}` }; } },
+  } as unknown as Env;
+  return { app, env, prepared };
+}
+
+function guildPage(overrides: Partial<GuildPage> = {}): GuildPage {
+  return {
+    slug: "about",
+    title: "About",
+    content_json: "{}",
+    blocks_json: JSON.stringify([{ type: "heading", text: "About us", level: 2 }]),
+    page_type: "page",
+    published: 1,
+    is_members_only: 0,
+    show_in_nav: 1,
+    deleted_at: null,
+    updated_at: "2026-09-01T00:00:00.000Z",
+    created_at: "2026-08-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+describe("GET /public/:slug/img/:fileId", () => {
+  const png = { id: "f-png", tenant_id: TENANT_ID, r2_key: "t1/f-png", content_type: "image/png" };
+  const svg = { id: "f-svg", tenant_id: TENANT_ID, r2_key: "t1/f-svg", content_type: "image/svg+xml" };
+  const html = { id: "f-html", tenant_id: TENANT_ID, r2_key: "t1/f-html", content_type: "text/html" };
+  const foreign = { id: "f-other", tenant_id: "other-tenant", r2_key: "t2/f", content_type: "image/png" };
+
+  it("serves an allowlisted raster image inline with nosniff and immutable caching", async () => {
+    const { app, env } = guildHarness({ files: [png] });
+    const res = await app.request("/stitchguild/img/f-png", {}, env);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe("image/png");
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(res.headers.get("cache-control")).toBe("public, max-age=31536000, immutable");
+    expect(await res.text()).toBe("bytes:t1/f-png");
+  });
+
+  it("404s non-raster types (SVG, HTML) even though the row exists", async () => {
+    const { app, env } = guildHarness({ files: [svg, html] });
+    expect((await app.request("/stitchguild/img/f-svg", {}, env)).status).toBe(404);
+    expect((await app.request("/stitchguild/img/f-html", {}, env)).status).toBe(404);
+  });
+
+  it("404s another tenant's file id (files.tenant_id must match)", async () => {
+    const { app, env } = guildHarness({ files: [foreign] });
+    expect((await app.request("/stitchguild/img/f-other", {}, env)).status).toBe(404);
+  });
+
+  it("404s an unknown guild slug and a malformed id", async () => {
+    const { app, env } = guildHarness({ files: [png] });
+    expect((await app.request("/nope/img/f-png", {}, env)).status).toBe(404);
+    expect((await app.request("/stitchguild/img/" + encodeURIComponent("a b"), {}, env)).status).toBe(404);
+  });
+});
+
+describe("GET /public/:slug/pages — trash + redirects", () => {
+  it("excludes soft-deleted pages and includes the redirects map", async () => {
+    const { app, env, prepared } = guildHarness({
+      pages: [guildPage(), guildPage({ slug: "old", title: "Old", deleted_at: "2026-09-06T00:00:00.000Z", published: 1 })],
+      redirects: [{ from_slug: "old", to_slug: "about" }],
+    });
+    const res = await app.request("/stitchguild/pages", {}, env);
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as { pages: { slug: string; html: string }[]; redirects: Record<string, string> };
+    expect(json.pages.map((p) => p.slug)).toEqual(["about"]);
+    expect(json.pages[0].html).toContain("About us");
+    expect(json.redirects).toEqual({ old: "about" });
+    expect(prepared.find((s) => s.includes("FROM pages"))).toContain("deleted_at IS NULL");
+  });
+
+  it("/site nav_pages and /blog also exclude trashed rows", async () => {
+    const { app, env } = guildHarness({
+      pages: [
+        guildPage(),
+        guildPage({ slug: "trashed", deleted_at: "x" }),
+        guildPage({ slug: "post", page_type: "blog_post" }),
+        guildPage({ slug: "trashed-post", page_type: "blog_post", deleted_at: "x" }),
+      ],
+    });
+    const site = (await (await app.request("/stitchguild/site", {}, env)).json()) as { nav_pages: { slug: string }[] };
+    expect(site.nav_pages.map((p) => p.slug)).toEqual(["about"]);
+    const blog = (await (await app.request("/stitchguild/blog", {}, env)).json()) as { posts: { slug: string }[] };
+    expect(blog.posts.map((p) => p.slug)).toEqual(["post"]);
+  });
+});
+
+describe("GET /public/:slug/site-bootstrap", () => {
+  it("returns all seven boot payloads, each identical to its standalone endpoint", async () => {
+    const { app, env } = guildHarness({
+      pages: [guildPage(), guildPage({ slug: "post", page_type: "blog_post" })],
+      redirects: [{ from_slug: "old", to_slug: "about" }],
+    });
+    const res = await app.request("/stitchguild/site-bootstrap", {}, env);
+    expect(res.status).toBe(200);
+    const boot = (await res.json()) as Record<string, unknown>;
+    expect(Object.keys(boot).sort()).toEqual(["blog", "events", "info", "levels", "pages", "products", "site"]);
+    for (const key of ["levels", "events", "info", "products", "site", "blog", "pages"]) {
+      const standalone = await (await app.request(`/stitchguild/${key}`, {}, env)).json();
+      expect(boot[key], key).toEqual(standalone);
+    }
+  });
+
+  it("404s an unknown guild", async () => {
+    const { app, env } = guildHarness();
+    expect((await app.request("/nope/site-bootstrap", {}, env)).status).toBe(404);
+  });
+});

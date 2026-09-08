@@ -48,6 +48,9 @@
 //   /members/export.csv, /payments/export.iif, /events/:id/registrations.csv).
 //   Exports are owner/admin/platform/membership only, even where the role can
 //   otherwise read the area (so the events role cannot pull registrations.csv).
+// - OPEN_SUBPATHS (below) lists the few write-method routes that write
+//   nothing and are therefore open to every role that can read the area
+//   (today: POST /pages/preview).
 // - Routes that already carry their own stricter checks (team.ts owner-only
 //   rules, billing.ts owner-only cancel, domain.ts / credentials.ts /
 //   projects.ts owner|admin|platform guards) keep them; this matrix is a
@@ -155,6 +158,29 @@ export const PERMISSION_MATRIX: Readonly<Record<TenantRole, RoleRule>> = {
 
 const READ_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
+/**
+ * Write-method sub-paths that are open to every role allowed to READ the
+ * area. Each entry is a route that writes nothing despite its method:
+ *
+ * - POST /pages/preview renders unsaved editor state to sanitized HTML so an
+ *   events chair (or a viewer) can preview a page she cannot publish.
+ *
+ * Matched on the exact sub-path (trailing slash ignored), never a prefix,
+ * so /pages/preview/anything stays governed by the area's write rule.
+ */
+export const OPEN_SUBPATHS: readonly {
+  area: TenantArea;
+  method: string;
+  subPath: string;
+}[] = [{ area: "pages", method: "POST", subPath: "/preview" }];
+
+function isOpenSubPath(area: string, method: string, subPath: string): boolean {
+  const p = subPath.split("?")[0].replace(/\/+$/, "").toLowerCase();
+  return OPEN_SUBPATHS.some(
+    (o) => o.area === area && o.method === method && o.subPath === p
+  );
+}
+
 export function isTenantRole(role: unknown): role is TenantRole {
   return typeof role === "string" && (TENANT_ROLES as readonly string[]).includes(role);
 }
@@ -191,6 +217,7 @@ export function canAccess(
   if (rule.noRead.includes(area)) return false;
   if (isExportPath(subPath) && !rule.exports) return false;
   if (isRead) return true;
+  if (isOpenSubPath(area, m, subPath)) return true;
   return rule.write.includes(area);
 }
 

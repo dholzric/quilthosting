@@ -114,13 +114,35 @@
       }
     }
 
+    const AUTH_PATHS = /^\/api\/(auth\/|portal\/[^/]+\/(login|magic-link|magic|register)\b)/;
     async function api(path, opts = {}) {
       const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
+      const sentToken = !!token;
       if (token) headers["Authorization"] = `Bearer ${token}`;
       const res = await fetch(API + path, { ...opts, headers });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || res.statusText);
+      if (res.status === 401 && sentToken && !AUTH_PATHS.test(path)) {
+        // Dead session (expired / revoked token): drop it and show sign-in.
+        sessionExpired();
+        const err = new Error("Your session expired. Please sign in again.");
+        err.status = 401;
+        throw err;
+      }
+      if (!res.ok) {
+        const err = new Error(data.error || res.statusText);
+        err.status = res.status;
+        throw err;
+      }
       return data;
+    }
+    function sessionExpired() {
+      localStorage.removeItem("gb_token");
+      token = null;
+      hide(document.getElementById("portal-view"));
+      show(document.getElementById("login-view"));
+      const err = document.getElementById("login-error");
+      if (err) { err.textContent = "Your session expired. Please sign in again."; show(err); }
+      window.scrollTo({ top: 0 });
     }
 
     function show(el) { el.classList.remove("hidden"); }
@@ -730,6 +752,15 @@
             </div>` : ""}
             <label>Email</label>
             <input value="${esc(m.email)}" disabled />
+            <div style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid var(--border)">
+              <h3 style="font-size:1rem;margin:0 0 0.35rem">Email preferences</h3>
+              <label style="display:flex;align-items:center;gap:0.4rem;margin:0.25rem 0">
+                <input type="checkbox" id="p-newsletters" style="width:auto" checked disabled />
+                Send me newsletters and announcements
+              </label>
+              <p class="muted" style="font-size:0.8rem;margin:0.25rem 0 0">You will still receive receipts, renewal reminders and event confirmations.</p>
+              <span id="p-newsletters-msg" class="muted" style="font-size:0.85rem" aria-live="polite"></span>
+            </div>
             <div id="p-custom"></div>
             <button onclick="saveProfile()" style="margin-top:0.5rem">Save</button>
             <span id="profile-msg" class="muted" style="margin-left:0.75rem"></span>
@@ -764,9 +795,40 @@
           }
         } catch {}
         loadPaymentMethod();
+        loadEmailPreferences();
       } catch (e) {
         el.innerHTML = `<p class="error">${esc(e.message)}</p>`;
       }
+    }
+
+    // GET/PUT /api/portal/:slug/preferences { email_opt_out }
+    async function loadEmailPreferences() {
+      const box = document.getElementById("p-newsletters");
+      const msg = document.getElementById("p-newsletters-msg");
+      if (!box) return;
+      try {
+        const prefs = await api(`/api/portal/${slug}/preferences`);
+        box.checked = !prefs.email_opt_out;
+        box.disabled = false;
+      } catch (e) {
+        msg.textContent = e.status === 404 ? "" : "Could not load your email preferences.";
+        return;
+      }
+      box.addEventListener("change", async () => {
+        box.disabled = true;
+        msg.textContent = "Saving…";
+        try {
+          await api(`/api/portal/${slug}/preferences`, {
+            method: "PUT",
+            body: JSON.stringify({ email_opt_out: !box.checked }),
+          });
+          msg.textContent = box.checked ? "You're subscribed to newsletters." : "You won't get newsletters or announcements.";
+        } catch (e) {
+          msg.textContent = e.message;
+          box.checked = !box.checked;
+        }
+        box.disabled = false;
+      });
     }
 
     async function saveProfile() {
