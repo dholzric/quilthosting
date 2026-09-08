@@ -126,6 +126,13 @@ function normalizePathForGate(rawPath: string): string | null {
 const TENANT_IMAGE_PATH_RE = /^\/img\/[a-z0-9_-]{1,64}$/;
 
 /**
+ * serveSite's system routes (src/routes/site.ts `resolveSiteRoute`): the
+ * index pages and one optional detail segment. Matched against the
+ * normalized (lowercased) path like TENANT_IMAGE_PATH_RE above.
+ */
+const SITE_SYSTEM_PATH_RE = /^\/(membership|join|join-renew|events|calendar|galleries|photos|blog)(\/[a-z0-9_.-]{1,120})?$/;
+
+/**
  * Allowlist for a launched business tenant's own hostname: everything a
  * launched site actually serves, and nothing else. This is the inverse of a
  * denylist on purpose -- a route added to the platform in the future is
@@ -143,6 +150,14 @@ export function isLaunchedSitePath(rawPath: string, tenantSlug: string): boolean
 
   // 2. The renderer's own static assets.
   if (path === "/qh-site.css" || path === "/qh-site.js") return true;
+
+  // 2b. The renderer's system pages (Task 8, serveSite's routing table):
+  //     /membership, /join, /join-renew, /events, /events/<id>, /calendar,
+  //     /galleries, /galleries/<slug>, /photos, /blog, /blog/<slug>. Rule 5
+  //     would pass these today too (none is a reserved prefix), but they are
+  //     named here so a future reservation of "/events" or "/blog" as a
+  //     platform prefix cannot silently close a launched site's own pages.
+  if (SITE_SYSTEM_PATH_RE.test(path)) return true;
 
   // 3. Tenant image route (Task 14).
   if (TENANT_IMAGE_PATH_RE.test(path)) return true;
@@ -242,9 +257,10 @@ export const siteGate = createMiddleware<{ Bindings: Env }>(
     //      tenant's allowlist, never in isolation.
     //   2. isLaunchedSitePath is an ALLOWLIST, not a denylist: only the exact
     //      surface a launched site actually serves (robots.txt, sitemap.xml,
-    //      its own qh-site.css/js, /img/<id>, /public/<its own slug>/..., and
-    //      its own pages) opens the gate. /admin, /portal, /docs, /public/
-    //      <another tenant's slug>, and every other platform route fall
+    //      its own qh-site.css/js, /img/<id>, /public/<its own slug>/...,
+    //      the renderer's system pages, and its own pages) opens the gate.
+    //      /admin, /portal, /docs, /public/<another tenant's slug>, and
+    //      every other platform route fall
     //      through to the password gate below — including on a launched
     //      tenant's own custom domain — because they are simply absent from
     //      the allowlist, not because of a separate denylist that has to be

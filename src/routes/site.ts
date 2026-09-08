@@ -1,10 +1,29 @@
 // src/routes/site.ts
-// Serves a business tenant's public website: pages, sitemap, robots.
+// Serves a tenant's public website (guild or business) through the section
+// renderer: pages, the composed home, system pages (membership, events,
+// calendar, galleries, blog), images, sitemap, robots, and the business
+// quote/e-signature pages. `serveSite` is the entry point for tenant hosts
+// and for /g/<slug>/* on the platform host; `useLegacyRenderer` tells
+// index.ts when a guild still gets the classic guild.html shell instead.
 
 import type { Context } from "hono";
 import type { Env, Tenant, Project, ProjectLine, AgreementSignature } from "../types";
 import { all, first } from "../lib/db";
-import { renderPageHtml, readBranding, type RenderArgs } from "../lib/site/render";
+import {
+  renderSitePage,
+  buildMenu,
+  readSettingsMenu,
+  readBranding,
+  type RenderArgs,
+  type SitePageArgs,
+} from "../lib/site/render";
+import { readSiteDesign } from "../lib/site/design/migrate";
+import { needsFor, loadSiteData, readProfile, excerptFromHtml } from "../lib/site/data";
+import type { DataNeed, SiteData, SiteEvent, SitePost, SiteProfile } from "../lib/site/data";
+import { systemPageSections, type SystemPageKind } from "../lib/site/pages/system";
+import { sectionsFromPage } from "../lib/site/sections/normalize";
+import { DEFAULT_STYLE, type Section, type SectionStyle } from "../lib/site/sections/schema";
+import { isLaunched } from "../lib/tenantType";
 import { cachedRender } from "../lib/site/cache";
 import { findRedirect } from "../lib/pageDrafts";
 import { tenantPublicBaseUrl } from "../lib/tenantHost";
@@ -16,7 +35,7 @@ import type { ProjectStatus } from "../lib/projects/types";
 import { buildAgreementSnapshot, CONSENT_TEXT, type AgreementSnapshotLine } from "../lib/projects/agreement";
 import { sha256Hex } from "../lib/projects/hash";
 import { sendEmail } from "../lib/email";
-import { escapeHtml } from "../lib/blocks";
+import { escapeHtml, contentFromPage } from "../lib/blocks";
 import { generateId } from "../lib/utils/id";
 
 // Shared by every route that echoes a stored `files.content_type` back as a
@@ -200,338 +219,697 @@ export async function buildRenderArgs(
   };
 }
 
+// ---------------------------------------------------------------------------
+// serveSite — one renderer for guild and business sites
+// ---------------------------------------------------------------------------
+
+/** `SELECT * FROM tenants WHERE slug = ? AND status = 'active'` — the same lookup public.ts uses. */
+export async function getTenantBySlug(db: D1Database, slug: string): Promise<Tenant | null> {
+  return first<Tenant>(
+    db.prepare("SELECT * FROM tenants WHERE slug = ? AND status = 'active'").bind(slug)
+  );
+}
+
+function parseSettings(settingsJson: string | null | undefined): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(settingsJson || "{}");
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
 /**
- * Serve a public site path. Returns null when the path is not a site page so
- * the caller can fall through to the platform's own routes.
+ * `settings.site.renderer === "legacy"` exactly. Existing guilds get that
+ * value from migration 0026 so they keep guild.html until an admin opts in;
+ * a missing key (new guilds, every business) means the section renderer.
  */
-export async function serveBusinessSite(
+export function useLegacyRenderer(tenant: Pick<Tenant, "settings_json">): boolean {
+  const site = parseSettings(tenant.settings_json).site;
+  return !!site && typeof site === "object" && (site as { renderer?: unknown }).renderer === "legacy";
+}
+
+export type SiteRoute =
+  | { kind: "home" }
+  | { kind: "page"; slug: string }
+  | { kind: "not_found"; slug: string }
+  | { kind: Exclude<SystemPageKind, "members_only" | "not_found">; param?: string };
+
+/**
+ * The routing table, on the path AFTER the base path. `null` means "not a
+ * site route" (the renderer's own assets), so the caller falls through to the
+ * static asset binding. System routes win over a stored page with the same
+ * slug; anything deeper than the shapes below is `not_found`.
+ */
+export function resolveSiteRoute(path: string): SiteRoute | null {
+  if (path === "/qh-site.css" || path === "/qh-site.js") return null;
+  const rel = path.replace(/^\/+/, "").replace(/\/+$/, "");
+  if (rel === "") return { kind: "home" };
+  const parts = rel.split("/");
+  const [head, second] = parts;
+  if (parts.length === 1) {
+    switch (head) {
+      case "membership":
+      case "join":
+      case "join-renew":
+        return { kind: "membership" };
+      case "events":
+        return { kind: "events" };
+      case "calendar":
+        return { kind: "calendar" };
+      case "galleries":
+      case "photos":
+        return { kind: "galleries" };
+      case "blog":
+        return { kind: "blog" };
+      default:
+        return { kind: "page", slug: head };
+    }
+  }
+  if (parts.length === 2 && second) {
+    if (head === "events") return { kind: "event", param: second };
+    if (head === "galleries") return { kind: "gallery", param: second };
+    if (head === "blog") return { kind: "post", param: second };
+  }
+  return { kind: "not_found", slug: rel };
+}
+
+type SitePageRow = PageRow & { is_members_only: number; created_at: string };
+
+const PAGE_COLUMNS = `id, slug, title, content_json, blocks_json, seo_title, seo_description,
+              og_image_file_id, coalesce(noindex, 0) AS noindex,
+              coalesce(is_members_only, 0) AS is_members_only, created_at, updated_at`;
+
+/** One published, non-deleted page by slug (members-only rows included; the caller renders the sign-in stack). */
+function pageBySlugStatement(db: D1Database, tenantId: string, slug: string, postOnly: boolean): D1PreparedStatement {
+  return db
+    .prepare(
+      `SELECT ${PAGE_COLUMNS}
+       FROM pages
+       WHERE tenant_id = ? AND published = 1
+         AND deleted_at IS NULL
+         AND slug = ?${postOnly ? " AND coalesce(page_type, 'page') = 'blog_post'" : ""}
+       LIMIT 1`
+    )
+    .bind(tenantId, slug);
+}
+
+/**
+ * Sections for a stored page. Kits (kits/apply.ts) write section documents
+ * into `blocks_json`, and older editors wrote legacy block arrays there;
+ * `parseSections` accepts both, so `blocks_json` is offered as the section
+ * source first and `sectionsFromPage` falls back to the block and
+ * content_json paths on its own.
+ */
+function pageSections(row: { blocks_json: string | null; content_json: string | null }): Section[] {
+  return sectionsFromPage({ sections_json: row.blocks_json, blocks_json: row.blocks_json, content_json: row.content_json });
+}
+
+function sectionStyle(overrides: Partial<SectionStyle> = {}): SectionStyle {
+  return { ...DEFAULT_STYLE, ...overrides };
+}
+
+/**
+ * The composed default home (spec §5.2) for a guild with no `home` page:
+ * hero from the profile, the membership levels, the next three events, the
+ * latest three posts and a join band -- so every guild has a real home the
+ * moment it exists.
+ */
+export function defaultHomeSections(tenant: Pick<Tenant, "name">, profile: SiteProfile): Section[] {
+  return [
+    {
+      type: "hero",
+      variant: "minimal",
+      title: tenant.name,
+      subtitle: profile.description?.trim() || undefined,
+      ctaLabel: "Join",
+      ctaHref: "/membership",
+      secondaryLabel: "See events",
+      secondaryHref: "/events",
+      style: sectionStyle({ align: "center" }),
+      id: "home-hero",
+    },
+    { type: "membership_levels", variant: "cards", heading: "Membership", style: sectionStyle(), id: "home-levels" },
+    { type: "events", variant: "cards", heading: "Upcoming events", limit: 3, style: sectionStyle({ bg: "tint" }), id: "home-events" },
+    { type: "blog_teaser", heading: "News", limit: 3, style: sectionStyle(), id: "home-blog" },
+    {
+      type: "join_band",
+      title: `Join ${tenant.name}`,
+      body: "Meetings, workshops, and a community of quilters. Membership is open to all.",
+      ctaLabel: "Join",
+      style: sectionStyle({ bg: "brand", align: "center" }),
+      id: "home-join",
+    },
+  ];
+}
+
+/** Data a system stack needs before it can be built (the stack itself comes from the loaded data). */
+const SYSTEM_NEEDS: Record<SystemPageKind, DataNeed[]> = {
+  membership: ["levels", "profile"],
+  events: ["events"],
+  event: [], // looked up by id directly -- eventsStatement only lists upcoming events
+  calendar: ["events"],
+  galleries: ["galleries"],
+  gallery: ["gallery"],
+  blog: ["posts"],
+  post: [], // the post row is looked up by slug directly
+  members_only: [],
+  not_found: [],
+};
+
+/** Events/posts the index stacks in pages/system.ts list (their sections say `limit: 50`). */
+const SYSTEM_LIST_LIMIT = 50;
+
+/** Largest events/posts limit any section on the page asks for, so one query covers every section. */
+function pageLimit(sections: Section[]): number | undefined {
+  let max: number | undefined;
+  for (const s of sections) {
+    if (s.type === "events" || s.type === "blog_teaser" || s.type === "store_teaser") {
+      if (typeof s.limit === "number" && s.limit > 0) max = Math.max(max ?? 0, s.limit);
+    }
+  }
+  return max;
+}
+
+type EventDetailRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  location: string | null;
+  start_at: string;
+  end_at: string | null;
+  member_price_cents: number;
+  non_member_price_cents: number;
+  capacity: number | null;
+  registration_open: number;
+};
+
+/** One public event by id, past or upcoming (the detail page must outlive the listing window). */
+async function loadEventById(env: Env, tenant: Tenant, id: string): Promise<SiteEvent | null> {
+  const r = await first<EventDetailRow>(
+    env.DB.prepare(
+      `SELECT id, title, description, location, start_at, end_at,
+              member_price_cents, non_member_price_cents, capacity, registration_open
+       FROM events WHERE id = ? AND tenant_id = ? AND is_public = 1`
+    ).bind(id, tenant.id)
+  );
+  if (!r) return null;
+  return {
+    id: r.id,
+    title: r.title,
+    start_at: r.start_at,
+    end_at: r.end_at ?? null,
+    location: r.location ?? null,
+    description: r.description ?? null,
+    member_price_cents: Number(r.member_price_cents) || 0,
+    non_member_price_cents: Number(r.non_member_price_cents) || 0,
+    registration_open: Number(r.registration_open) || 0,
+    capacity: r.capacity == null ? null : Number(r.capacity),
+  };
+}
+
+function postFromRow(row: SitePageRow): SitePost {
+  return {
+    slug: row.slug,
+    title: row.title,
+    published_at: row.created_at,
+    excerpt: excerptFromHtml(contentFromPage(row).html),
+  };
+}
+
+/**
+ * The members-only stack's sign-in CTA (pages/system.ts) is the root-relative
+ * `/portal?slug=…`. The section renderer prefixes root-relative hrefs with
+ * the base URL, which is right on a tenant host but wrong under `/g/<slug>`
+ * on the platform host (the portal lives at the origin, never under the base
+ * path). Pin it to an absolute URL so the renderer leaves it alone.
+ */
+function pinPortalLink(section: Section, origin: string): Section {
+  if (section.type !== "cta" || !section.href.startsWith("/portal")) return section;
+  return { ...section, href: `${origin.replace(/\/+$/, "")}${section.href}` };
+}
+
+/** Five-minute buckets: dynamic data (events, levels, posts…) changes without any updated_at the cache key can see. */
+const DYNAMIC_BUCKET_MS = 5 * 60 * 1000;
+
+/**
+ * Serve a public site path for any tenant. Returns null when the path is not
+ * a site page (the renderer's own qh-site.css/js, or a path outside
+ * `opts.basePath`) so the caller can fall through to assets / platform routes.
+ *
+ * `basePath` is "" on tenant hosts and "/g/<slug>" on the platform host.
+ * Every internal link is `${baseUrl}${path}`; the portal and public API stay
+ * at the origin (render.ts handles that).
+ */
+export async function serveSite(
   c: Context<{ Bindings: Env }>,
-  tenant: Tenant
+  tenant: Tenant,
+  opts: { basePath?: string } = {}
 ): Promise<Response | null> {
   const url = new URL(c.req.url);
-  const path = url.pathname;
+  const basePath = (opts.basePath || "").replace(/\/+$/, "");
+  let path = url.pathname;
+  if (basePath) {
+    if (path === basePath) path = "/";
+    else if (path.startsWith(basePath + "/")) path = path.slice(basePath.length);
+    else return null;
+  }
   const host = c.req.header("host") || url.host;
-  const baseUrl = tenantPublicBaseUrl(c.env, tenant, host);
+  const onTenantHost = !basePath;
+  const baseUrl = onTenantHost ? tenantPublicBaseUrl(c.env, tenant, host) : basePath;
 
-  if (path === "/robots.txt") {
-    // A launched business site is meant to be crawled. Point at its own
-    // sitemap, not the platform's.
-    return new Response(`User-agent: *\nAllow: /\nSitemap: ${baseUrl}/sitemap.xml\n`, {
-      headers: { "Content-Type": "text/plain; charset=utf-8" },
-    });
-  }
-
-  // Tenant-uploaded images (logo, OG image, and anything else uploaded
-  // through the Files admin page). tenant_id in the WHERE clause is what
-  // stops one tenant's file id from reading another tenant's image -- see
-  // siteGate's TENANT_IMAGE_PATH_RE for the allowlist that lets this path
-  // shape through the private-preview gate in the first place.
-  const imgMatch = path.match(/^\/img\/([A-Za-z0-9_-]{1,64})$/);
-  if (imgMatch) {
-    const fileRow = await first<{ r2_key: string; content_type: string | null }>(
-      c.env.DB.prepare(
-        `SELECT r2_key, content_type FROM files WHERE id = ? AND tenant_id = ?`
-      ).bind(imgMatch[1], tenant.id)
-    );
-    if (!fileRow) return new Response("Not found", { status: 404 });
-    // Security: this route is served on the tenant's own first-party
-    // origin, so echoing back whatever content_type was recorded at upload
-    // time (fileRoutes.post("/") accepts ANY Content-Type a caller with
-    // upload rights sends) would let a stored `text/html` file execute as
-    // same-origin script on the tenant's live site -- stored XSS, not
-    // cross-tenant, but real. A route named /img/ has no legitimate reason
-    // to serve anything but an actual raster image, so this allowlists the
-    // handful of real image types and 404s on everything else rather than
-    // guessing or falling back to a default. image/svg+xml is deliberately
-    // EXCLUDED: SVG is active content (it can carry inline <script>) and
-    // would reopen the same hole even though its MIME type looks image-y.
-    const contentType = fileRow.content_type || "";
-    if (!ALLOWED_IMAGE_TYPES.has(contentType)) {
-      return new Response("Not found", { status: 404 });
-    }
-    const obj = await c.env.FILES.get(fileRow.r2_key);
-    if (!obj) return new Response("Not found", { status: 404 });
-    return new Response(obj.body, {
-      headers: {
-        "Content-Type": contentType,
-        // Belt-and-suspenders alongside the allowlist above: even if a
-        // browser tried to sniff the body into a different interpretation
-        // than the declared (already-allowlisted) type, this forbids it.
-        "X-Content-Type-Options": "nosniff",
-        // File ids are immutable -- a replaced image gets a new id, so this
-        // can be cached forever without a purge.
-        "Cache-Control": "public, max-age=31536000, immutable",
-      },
-    });
-  }
-
-  if (path === "/sitemap.xml") {
-    const rows = await all<{ slug: string; updated_at: string }>(
-      c.env.DB.prepare(
-        `SELECT slug, updated_at FROM pages
-         WHERE tenant_id = ? AND published = 1 AND is_members_only = 0
-           AND deleted_at IS NULL
-           AND coalesce(noindex, 0) = 0
-         ORDER BY sort_order, title`
-      ).bind(tenant.id)
-    );
-    const urls = rows
-      .map((r) => {
-        const loc = r.slug ? `${baseUrl}/${r.slug}` : `${baseUrl}/`;
-        return `<url><loc>${loc}</loc><lastmod>${(r.updated_at || "").slice(0, 10)}</lastmod></url>`;
-      })
-      .join("");
-    return new Response(
-      `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`,
-      { headers: { "Content-Type": "application/xml; charset=utf-8" } }
-    );
-  }
-
-  // Customer quote page. Matched BEFORE the page-slug lookup below.
-  //
-  // There is no collision with a page whose slug is "quote": a page slug is
-  // one path segment, this is two, and pages.ts's slugify strips "/", so
-  // "quote/<token>" can never equal a stored slug. No reserved-slug
-  // machinery is needed.
-  //
-  // No siteGate change is required either: rule 5 already passes any path
-  // that is not a reserved platform prefix, and "quote" is not in
-  // PLATFORM_PATH_PREFIXES (src/lib/platformPaths.ts:53).
-  const quoteMatch = path.match(/^\/quote\/([A-Za-z0-9_-]{20,120})$/);
-  const signMatch = path.match(/^\/quote\/([A-Za-z0-9_-]{20,120})\/sign$/);
-
-  if (quoteMatch || signMatch) {
-    const rawToken = (quoteMatch || signMatch)![1];
-    const tokenHash = await hashToken(rawToken);
-    // Scoped to the resolved (Host-header) tenant, not just the token hash.
-    // access_token_hash is already globally unique (idx_projects_token_hash),
-    // so this AND is defense in depth rather than the only thing preventing
-    // a token minted for tenant A from resolving on tenant B's host -- but
-    // it also means a request that reaches the wrong tenant's host for a
-    // given token fails the SAME way as an unknown token, not with a
-    // different error, which matters for property 4 below.
-    const project = await first<Project>(
-      c.env.DB.prepare(
-        `SELECT * FROM projects WHERE access_token_hash = ? AND tenant_id = ?`
-      ).bind(tokenHash, tenant.id)
-    );
-
-    // Looked up BEFORE the expiry gate below. A signed project's customer
-    // must always be able to retrieve their own copy of what they agreed to
-    // -- the one thing this whole table exists to answer -- independent of
-    // the access token's normal 90-day TTL (Task 9's resend-link window).
-    // Without this reorder, the token going stale after a signature already
-    // exists would 404 the customer out of their own signed record forever
-    // (Task 10 fix round 1, Important #3).
-    //
-    // Issued UNCONDITIONALLY -- binding "" when there is no project -- not
-    // guarded behind `if (project)`. Guarding it made an unknown token cost
-    // one round trip and an expired-unsigned token cost two, even though
-    // both return byte-identical responses: a timing oracle for "this token
-    // existed once" that fix round 1 introduced by accident (fix round 2,
-    // Finding 3). No project has id "", so this is a real query that always
-    // finds nothing when `project` is null, rather than a conditional skip.
-    const signature = await first<AgreementSignature>(
-      c.env.DB.prepare(
-        `SELECT * FROM agreement_signatures WHERE project_id = ? AND tenant_id = ?`
-      ).bind(project?.id ?? "", tenant.id)
-    );
-
-    const expired =
-      !!project?.token_expires_at &&
-      new Date(project.token_expires_at).getTime() < Date.now();
-
-    // Invalid and expired-with-no-signature return the SAME response, same
-    // status. Distinguishing them would let the endpoint be probed to learn
-    // which tokens exist (or existed). Expired-WITH-a-signature is NOT
-    // folded into this branch -- see the comment above.
-    if (!project || (expired && !signature)) {
-      return new Response(renderInvalidLink(tenant), {
-        status: 404,
-        headers: {
-          "Content-Type": "text/html; charset=utf-8",
-          "Referrer-Policy": "no-referrer",
-          "X-Robots-Tag": "noindex",
-        },
+  if (onTenantHost) {
+    if (path === "/robots.txt") {
+      // A launched business site is meant to be crawled. Point at its own
+      // sitemap, not the platform's.
+      return new Response(`User-agent: *\nAllow: /\nSitemap: ${baseUrl}/sitemap.xml\n`, {
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
       });
     }
+    const imgMatch = path.match(/^\/img\/([A-Za-z0-9_-]{1,64})$/);
+    if (imgMatch) return serveTenantImage(c, tenant, imgMatch[1]);
+    if (path === "/sitemap.xml") return serveSitemap(c, tenant, baseUrl);
+    const quote = await serveQuotePage(c, tenant, path, baseUrl);
+    if (quote) return quote;
+  }
 
-    if (signMatch) {
-      if (c.req.method !== "POST") {
-        return new Response("Method not allowed", {
-          status: 405,
-          headers: { Allow: "POST" },
-        });
-      }
-      return signQuote(c, tenant, project, tokenHash);
-    }
+  const route = resolveSiteRoute(path);
+  if (!route) return null;
 
-    let html: string;
-    if (signature) {
-      // Signed copy renders from the signature row alone -- see quote.ts's
-      // renderSignedCopy for why (Important #2). No project_lines query.
-      html = renderSignedCopy({ tenant, project, signature, baseUrl });
-    } else if (project.status !== "estimated") {
-      // A terminal (or not-yet-estimated) status can never legally reach
-      // 'signed' -- assertTransition() would refuse it anyway, but showing
-      // a full sign form the customer can fill in and submit only to be
-      // rejected on POST is a bad UX and, worse, an unnecessary place for an
-      // internal transition string to almost leak (Minor #2).
-      html = renderCannotSign(tenant, project, cannotSignMessage(project.status));
+  const settings = tenant.settings_json;
+  const design = readSiteDesign(settings);
+  const profile = readProfile(settings);
+
+  // -- Resolve the page row (stored pages, the home page, blog posts) ------
+  let row: SitePageRow | null = null;
+  let kind: SystemPageKind | "page" = route.kind === "home" ? "page" : route.kind;
+  let param = "param" in route ? route.param : undefined;
+  let pageSectionsForRoute: Section[] = [];
+
+  if (route.kind === "home" || route.kind === "page") {
+    const slug = route.kind === "home" ? "home" : route.slug;
+    row = await first<SitePageRow>(pageBySlugStatement(c.env.DB, tenant.id, slug, false));
+    if (row) {
+      pageSectionsForRoute = pageSections(row);
+      if (row.is_members_only) kind = "members_only";
+    } else if (route.kind === "home") {
+      if (tenant.tenant_type === "business") kind = "not_found";
+      else pageSectionsForRoute = defaultHomeSections(tenant, profile);
     } else {
-      const { title: agreementTitle, body: agreementBody } = readAgreementFields(tenant);
-      if (!agreementBody.trim()) {
-        // A shop that never wrote terms has nothing for a customer to agree
-        // to -- refuse to render the signing form (Minor #3).
-        html = renderCannotSign(tenant, project, EMPTY_AGREEMENT_MESSAGE);
-      } else {
-        const lines = await all<ProjectLine>(
-          c.env.DB.prepare(
-            // ", id" makes the ordering total: sort_order alone has no
-            // UNIQUE constraint, so a future writer that produces a tie
-            // would let this GET and signQuote's own identically-shaped
-            // query (below) order their rows differently -- and since both
-            // build the SAME hash from that order, any tie would make every
-            // signature attempt 409 forever (final review, F7). `id` is
-            // unique and stable, so appending it as the tiebreaker is a
-            // no-op today (no ties exist) and a guarantee for whenever one
-            // does.
-            `SELECT * FROM project_lines WHERE project_id = ? ORDER BY sort_order, id`
-          ).bind(project.id)
-        );
-        // Hash the EXACT snapshot being rendered below, using the same
-        // buildAgreementSnapshot() call signQuote uses to rebuild it at POST
-        // time -- including the SAME line items, so a re-itemise between
-        // this render and the POST is caught the same way an edited
-        // agreement body is (Important #1). The hash is round-tripped
-        // through a hidden form field so the POST can prove (see signQuote)
-        // that the text about to be signed matches what was on screen when
-        // the customer clicked -- not whatever happens to be live by the
-        // time the request arrives.
-        const snapshotLines: AgreementSnapshotLine[] = lines.map((l) => ({
-          description: l.description,
-          quantity: l.quantity,
-          unitCents: l.unit_cents,
-          amountCents: l.amount_cents,
-        }));
-        try {
-          const snapshot = buildAgreementSnapshot({
-            title: agreementTitle,
-            body: agreementBody,
-            project: {
-              reference: project.reference,
-              customerName: project.customer_name,
-              totalCents: project.total_cents,
-            },
-            lines: snapshotLines,
-          });
-          const agreementSha256 = await sha256Hex(snapshot);
-          html = renderQuotePage({
-            tenant,
-            project,
-            lines,
-            baseUrl,
-            agreementTitle,
-            agreementBody,
-            agreementSha256,
-          });
-        } catch (err) {
-          // money()/assertIntCents() threw -- a fractional cents value
-          // somewhere in project.total_cents or a line's amount_cents/
-          // unit_cents. Render the same "can't sign right now" page a
-          // terminal status or a blank agreement body already produces,
-          // rather than letting the TypeError propagate into a 500 (F8).
-          console.error("quote page: could not build agreement snapshot", err);
-          html = renderCannotSign(tenant, project, INVALID_PRICING_MESSAGE);
-        }
+      // A renamed page leaves a page_redirects row behind (pages.ts PATCH /
+      // publish). Only a single path segment can ever be a slug.
+      const to = await findRedirect(c.env.DB, tenant.id, route.slug);
+      if (to) {
+        const target = to === "home" ? "/" : `/${to}`;
+        return c.redirect(`${baseUrl}${target}${url.search}`, 301);
       }
+      kind = "not_found";
     }
+  } else if (route.kind === "post") {
+    row = await first<SitePageRow>(pageBySlugStatement(c.env.DB, tenant.id, route.param!, true));
+    if (row) pageSectionsForRoute = pageSections(row);
+    else kind = "not_found";
+  }
 
-    return new Response(html, {
-      headers: {
-        "Content-Type": "text/html; charset=utf-8",
-        // The token is in the URL path. Without this, any outbound link the
-        // customer clicks hands their quote to a third party in a Referer
-        // header.
-        "Referrer-Policy": "no-referrer",
-        "X-Robots-Tag": "noindex",
-        "Cache-Control": "no-store",
-      },
+  // -- Data: one batch for the page's sections, the system stack and the shell
+  const needs = needsFor(pageSectionsForRoute);
+  for (const n of SYSTEM_NEEDS[kind === "page" ? "not_found" : kind]) needs.add(n);
+  if (design.footer.variant === "meeting") needs.add("profile");
+  const systemKind = kind === "page" ? null : kind;
+  const listKind = systemKind === "events" || systemKind === "calendar" || systemKind === "blog";
+  const limit = listKind ? SYSTEM_LIST_LIMIT : pageLimit(pageSectionsForRoute);
+  const data: SiteData = await loadSiteData(c.env, tenant, needs, {
+    limit,
+    gallerySlug: kind === "gallery" ? param : undefined,
+  });
+  if (kind === "event" && param) {
+    const ev = await loadEventById(c.env, tenant, param);
+    data.events = ev ? [ev] : [];
+  }
+  if (kind === "post" && row) data.posts = [postFromRow(row)];
+  if (!data.profile && needs.has("profile")) data.profile = profile;
+
+  // -- Sections + SEO for the page -----------------------------------------
+  let title: string;
+  let sections: Section[];
+  let status = 200;
+  let membersOnly = false;
+  let noindex = 0;
+  let seo: Pick<SitePageRow, "seo_title" | "seo_description" | "og_image_file_id"> = {
+    seo_title: null,
+    seo_description: null,
+    og_image_file_id: null,
+  };
+  if (kind === "page") {
+    title = row?.title ?? tenant.name;
+    sections = pageSectionsForRoute;
+    noindex = row?.noindex ?? 0;
+    if (row) seo = row;
+  } else {
+    const system = systemPageSections(kind, { tenant, design, data, param });
+    title = system.title;
+    sections = kind === "post" && system.status !== 404 ? [...system.sections, ...pageSectionsForRoute] : system.sections;
+    if (kind === "members_only") sections = sections.map((s) => pinPortalLink(s, onTenantHost ? baseUrl : c.env.APP_URL));
+    status = system.status ?? 200;
+    membersOnly = kind === "members_only";
+    noindex = system.noindex ? 1 : 0;
+    if (kind === "post" && row) seo = row;
+  }
+  const cacheable = status === 200 && !membersOnly && kind !== "not_found";
+
+  // -- Shell: menu, branding, image URLs -----------------------------------
+  const navRows = await all<{ slug: string; title: string; nav_label: string | null; show_in_nav: number }>(
+    c.env.DB.prepare(
+      `SELECT slug, title, nav_label, coalesce(show_in_nav, 1) AS show_in_nav FROM pages
+       WHERE tenant_id = ? AND published = 1 AND is_members_only = 0
+         AND deleted_at IS NULL
+         AND coalesce(show_in_nav, 1) = 1 AND coalesce(page_type, 'page') = 'page'
+       ORDER BY sort_order, title`
+    ).bind(tenant.id)
+  );
+  const menu = buildMenu(navRows, readSettingsMenu(settings), baseUrl);
+  const { showPlatformCredit } = readBranding(settings);
+  const imgUrl: SitePageArgs["imgUrl"] = onTenantHost
+    ? (id) => `${baseUrl}/img/${id}`
+    : (id) => `/public/${encodeURIComponent(tenant.slug)}/img/${id}`;
+  const logoFileId = String(((parseSettings(settings).assets || {}) as { logo_file_id?: unknown }).logo_file_id || "");
+  const logoUrl = logoFileId ? imgUrl(logoFileId) : null;
+  const ogImageUrl = seo.og_image_file_id ? imgUrl(seo.og_image_file_id) : null;
+  // Never let an unlaunched site into an index, whichever host it renders on.
+  const extraHead = isLaunched(tenant) ? undefined : `<meta name="robots" content="noindex">`;
+  const slug = path === "/" ? "" : path.replace(/^\/+/, "").replace(/\/+$/, "");
+
+  const args: SitePageArgs = {
+    tenant: { name: tenant.name, slug: tenant.slug, settings_json: settings, tenant_type: tenant.tenant_type === "business" ? "business" : "guild" },
+    page: {
+      title,
+      slug,
+      seo_title: seo.seo_title ?? null,
+      seo_description: seo.seo_description ?? null,
+      og_image_file_id: seo.og_image_file_id ?? null,
+      noindex,
+      sections,
+      membersOnly,
+    },
+    menu,
+    baseUrl,
+    host,
+    logoUrl,
+    ogImageUrl,
+    showPlatformCredit,
+    design,
+    data,
+    imgUrl,
+    extraHead,
+  };
+
+  if (!cacheable) {
+    return new Response(renderSitePage(args), {
+      status,
+      headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
     });
   }
 
-  const slug = path === "/" ? "" : path.replace(/^\/+/, "").replace(/\/+$/, "");
-  // Home page convention: an empty slug, or a page explicitly named "home".
-  const row = await first<PageRow>(
-    c.env.DB.prepare(
-      `SELECT id, slug, title, content_json, blocks_json, seo_title, seo_description,
-              og_image_file_id, coalesce(noindex, 0) AS noindex, updated_at
-       FROM pages
-       WHERE tenant_id = ? AND published = 1 AND is_members_only = 0
-         AND deleted_at IS NULL
-         AND slug = ?
-       LIMIT 1`
-    ).bind(tenant.id, slug || "home")
-  );
-
-  if (!row) {
-    // A renamed page leaves a page_redirects row behind (pages.ts PATCH /
-    // publish). Only a single path segment can ever be a slug, so anything
-    // deeper falls through to the platform 404 without a lookup.
-    if (slug && !slug.includes("/")) {
-      const to = await findRedirect(c.env.DB, tenant.id, slug);
-      if (to) {
-        const target = to === "home" ? "/" : `/${to}`;
-        return Response.redirect(`${baseUrl}${target}${url.search}`, 301);
-      }
-    }
-    return null;
-  }
-
-  // Nav is built from the whole pages list (loadNav), so publishing,
-  // renaming, or trashing ANOTHER page must also invalidate this page's
-  // cached render. max(updated_at) across the tenant's pages moves on every
-  // one of those writes (all of them bump updated_at), so folding it into
-  // the key covers it without a purge.
+  // Nav is built from the whole pages list, so publishing, renaming, or
+  // trashing ANOTHER page must also invalidate this page's cached render.
+  // max(updated_at) across the tenant's pages moves on every one of those
+  // writes, so folding it into the key covers it without a purge.
   const siteVersion = await first<{ v: string | null }>(
-    c.env.DB.prepare(`SELECT max(updated_at) AS v FROM pages WHERE tenant_id = ?`).bind(
-      tenant.id
-    )
+    c.env.DB.prepare(`SELECT max(updated_at) AS v FROM pages WHERE tenant_id = ?`).bind(tenant.id)
   );
-
-  // buildRenderArgs runs loadNav + branding for every request, before the
-  // cache lookup -- same as before this helper existed. The cache saves the
-  // render, not the nav query.
-  const args = await buildRenderArgs(c.env, tenant, { ...row, slug }, host);
+  // Dynamic data (events, levels, posts, galleries) has no updated_at the
+  // key can see, so pages that render it also fold in a coarse time bucket.
+  const dynamic = [...needs].some((n) => n !== "profile");
+  const bucket = dynamic ? String(Math.floor(Date.now() / DYNAMIC_BUCKET_MS)) : "";
 
   return cachedRender({
     host,
-    path,
+    path: url.pathname,
     // Folds in tenant.updated_at, not just the page's own updated_at:
-    // business identity (name/phone/address), the logo file id, and nav all
-    // live in tenant.settings_json, not on the pages row, and
-    // src/routes/tenants.ts's PATCH handler bumps tenants.updated_at
-    // unconditionally on every settings save (tenants.ts:167-168). Without
-    // this, saving Business Details wouldn't change the cache key at all --
-    // the owner could edit her phone number, save, reload, and see nothing
-    // change for up to the 24h edge TTL, with no way to force a refresh.
+    // identity, logo, nav, theme and design all live in tenant.settings_json,
+    // and src/routes/tenants.ts's PATCH handler bumps tenants.updated_at on
+    // every settings save -- so a theme change re-renders without a purge.
     //
-    // Each component is percent-encoded BEFORE being joined with ":", not
-    // after -- siteCacheKey only applies one outer encodeURIComponent to
-    // the whole string it's handed, so an unescaped ":" here would rely on
-    // neither timestamp ever containing a literal ":" itself to stay
-    // injective. Both today's formats (SQLite's `datetime('now')` and
-    // `Date.prototype.toISOString()`) happen to start "YYYY-MM-DD" before
-    // any colon, so a collision can't actually happen right now -- but
-    // that's an unenforced property of two unrelated timestamp formats, not
-    // something this code guarantees. Encoding each side first turns any
-    // ":" or "%" inside either raw value into %3A / %25, so the two
-    // components can never be reparsed into a different (page, tenant)
-    // pair no matter what either timestamp format does later.
-    updatedAt: `${encodeURIComponent(row.updated_at)}:${encodeURIComponent(
-      tenant.updated_at
-    )}:${encodeURIComponent(siteVersion?.v || "0")}`,
-    build: () => renderPageHtml(args),
+    // Each component is percent-encoded BEFORE being joined with ":" so a
+    // literal ":" or "%" inside any raw value can never be reparsed into a
+    // different (page, tenant, site, bucket) tuple.
+    updatedAt: [row?.updated_at || kind, tenant.updated_at, siteVersion?.v || "0", bucket]
+      .map((v) => encodeURIComponent(v))
+      .join(":"),
+    build: () => renderSitePage(args),
+  });
+}
+
+/** `serveSite` on a tenant host; kept for callers written against the business-only name. */
+export function serveBusinessSite(c: Context<{ Bindings: Env }>, tenant: Tenant): Promise<Response | null> {
+  return serveSite(c, tenant);
+}
+
+/**
+ * Tenant-uploaded images (logo, OG image, and anything else uploaded through
+ * the Files admin page). tenant_id in the WHERE clause is what stops one
+ * tenant's file id from reading another tenant's image -- see siteGate's
+ * TENANT_IMAGE_PATH_RE for the allowlist that lets this path shape through
+ * the private-preview gate in the first place.
+ */
+async function serveTenantImage(c: Context<{ Bindings: Env }>, tenant: Tenant, fileId: string): Promise<Response> {
+  const fileRow = await first<{ r2_key: string; content_type: string | null }>(
+    c.env.DB.prepare(`SELECT r2_key, content_type FROM files WHERE id = ? AND tenant_id = ?`).bind(fileId, tenant.id)
+  );
+  if (!fileRow) return new Response("Not found", { status: 404 });
+  // Security: this route is served on the tenant's own first-party origin,
+  // so echoing back whatever content_type was recorded at upload time
+  // (fileRoutes.post("/") accepts ANY Content-Type a caller with upload
+  // rights sends) would let a stored `text/html` file execute as same-origin
+  // script on the tenant's live site -- stored XSS, not cross-tenant, but
+  // real. A route named /img/ has no legitimate reason to serve anything but
+  // an actual raster image, so this allowlists the handful of real image
+  // types and 404s on everything else rather than guessing or falling back
+  // to a default. image/svg+xml is deliberately EXCLUDED: SVG is active
+  // content (it can carry inline <script>) and would reopen the same hole
+  // even though its MIME type looks image-y.
+  const contentType = fileRow.content_type || "";
+  if (!ALLOWED_IMAGE_TYPES.has(contentType)) {
+    return new Response("Not found", { status: 404 });
+  }
+  const obj = await c.env.FILES.get(fileRow.r2_key);
+  if (!obj) return new Response("Not found", { status: 404 });
+  return new Response(obj.body, {
+    headers: {
+      "Content-Type": contentType,
+      // Belt-and-suspenders alongside the allowlist above: even if a browser
+      // tried to sniff the body into a different interpretation than the
+      // declared (already-allowlisted) type, this forbids it.
+      "X-Content-Type-Options": "nosniff",
+      // File ids are immutable -- a replaced image gets a new id, so this can
+      // be cached forever without a purge.
+      "Cache-Control": "public, max-age=31536000, immutable",
+    },
+  });
+}
+
+async function serveSitemap(c: Context<{ Bindings: Env }>, tenant: Tenant, baseUrl: string): Promise<Response> {
+  const rows = await all<{ slug: string; updated_at: string }>(
+    c.env.DB.prepare(
+      `SELECT slug, updated_at FROM pages
+       WHERE tenant_id = ? AND published = 1 AND is_members_only = 0
+         AND deleted_at IS NULL
+         AND coalesce(noindex, 0) = 0
+       ORDER BY sort_order, title`
+    ).bind(tenant.id)
+  );
+  const urls = rows
+    .map((r) => {
+      const loc = r.slug ? `${baseUrl}/${r.slug}` : `${baseUrl}/`;
+      return `<url><loc>${loc}</loc><lastmod>${(r.updated_at || "").slice(0, 10)}</lastmod></url>`;
+    })
+    .join("");
+  return new Response(
+    `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`,
+    { headers: { "Content-Type": "application/xml; charset=utf-8" } }
+  );
+}
+
+/**
+ * Customer quote page (business tenants). Matched BEFORE the page-slug lookup.
+ *
+ * There is no collision with a page whose slug is "quote": a page slug is one
+ * path segment, this is two, and pages.ts's slugify strips "/", so
+ * "quote/<token>" can never equal a stored slug. No reserved-slug machinery is
+ * needed.
+ *
+ * No siteGate change is required either: rule 5 already passes any path that
+ * is not a reserved platform prefix, and "quote" is not in
+ * PLATFORM_PATH_PREFIXES (src/lib/platformPaths.ts).
+ *
+ * Returns null when `path` is not a quote path.
+ */
+async function serveQuotePage(
+  c: Context<{ Bindings: Env }>,
+  tenant: Tenant,
+  path: string,
+  baseUrl: string
+): Promise<Response | null> {
+  const quoteMatch = path.match(/^\/quote\/([A-Za-z0-9_-]{20,120})$/);
+  const signMatch = path.match(/^\/quote\/([A-Za-z0-9_-]{20,120})\/sign$/);
+  if (!quoteMatch && !signMatch) return null;
+
+  const rawToken = (quoteMatch || signMatch)![1];
+  const tokenHash = await hashToken(rawToken);
+  // Scoped to the resolved (Host-header) tenant, not just the token hash.
+  // access_token_hash is already globally unique (idx_projects_token_hash),
+  // so this AND is defense in depth rather than the only thing preventing
+  // a token minted for tenant A from resolving on tenant B's host -- but
+  // it also means a request that reaches the wrong tenant's host for a
+  // given token fails the SAME way as an unknown token, not with a
+  // different error, which matters for property 4 below.
+  const project = await first<Project>(
+    c.env.DB.prepare(
+      `SELECT * FROM projects WHERE access_token_hash = ? AND tenant_id = ?`
+    ).bind(tokenHash, tenant.id)
+  );
+
+  // Looked up BEFORE the expiry gate below. A signed project's customer
+  // must always be able to retrieve their own copy of what they agreed to
+  // -- the one thing this whole table exists to answer -- independent of
+  // the access token's normal 90-day TTL (Task 9's resend-link window).
+  // Without this reorder, the token going stale after a signature already
+  // exists would 404 the customer out of their own signed record forever
+  // (Task 10 fix round 1, Important #3).
+  //
+  // Issued UNCONDITIONALLY -- binding "" when there is no project -- not
+  // guarded behind `if (project)`. Guarding it made an unknown token cost
+  // one round trip and an expired-unsigned token cost two, even though
+  // both return byte-identical responses: a timing oracle for "this token
+  // existed once" that fix round 1 introduced by accident (fix round 2,
+  // Finding 3). No project has id "", so this is a real query that always
+  // finds nothing when `project` is null, rather than a conditional skip.
+  const signature = await first<AgreementSignature>(
+    c.env.DB.prepare(
+      `SELECT * FROM agreement_signatures WHERE project_id = ? AND tenant_id = ?`
+    ).bind(project?.id ?? "", tenant.id)
+  );
+
+  const expired =
+    !!project?.token_expires_at &&
+    new Date(project.token_expires_at).getTime() < Date.now();
+
+  // Invalid and expired-with-no-signature return the SAME response, same
+  // status. Distinguishing them would let the endpoint be probed to learn
+  // which tokens exist (or existed). Expired-WITH-a-signature is NOT
+  // folded into this branch -- see the comment above.
+  if (!project || (expired && !signature)) {
+    return new Response(renderInvalidLink(tenant), {
+      status: 404,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Referrer-Policy": "no-referrer",
+        "X-Robots-Tag": "noindex",
+      },
+    });
+  }
+
+  if (signMatch) {
+    if (c.req.method !== "POST") {
+      return new Response("Method not allowed", {
+        status: 405,
+        headers: { Allow: "POST" },
+      });
+    }
+    return signQuote(c, tenant, project, tokenHash);
+  }
+
+  let html: string;
+  if (signature) {
+    // Signed copy renders from the signature row alone -- see quote.ts's
+    // renderSignedCopy for why (Important #2). No project_lines query.
+    html = renderSignedCopy({ tenant, project, signature, baseUrl });
+  } else if (project.status !== "estimated") {
+    // A terminal (or not-yet-estimated) status can never legally reach
+    // 'signed' -- assertTransition() would refuse it anyway, but showing
+    // a full sign form the customer can fill in and submit only to be
+    // rejected on POST is a bad UX and, worse, an unnecessary place for an
+    // internal transition string to almost leak (Minor #2).
+    html = renderCannotSign(tenant, project, cannotSignMessage(project.status));
+  } else {
+    const { title: agreementTitle, body: agreementBody } = readAgreementFields(tenant);
+    if (!agreementBody.trim()) {
+      // A shop that never wrote terms has nothing for a customer to agree
+      // to -- refuse to render the signing form (Minor #3).
+      html = renderCannotSign(tenant, project, EMPTY_AGREEMENT_MESSAGE);
+    } else {
+      const lines = await all<ProjectLine>(
+        c.env.DB.prepare(
+          // ", id" makes the ordering total: sort_order alone has no
+          // UNIQUE constraint, so a future writer that produces a tie
+          // would let this GET and signQuote's own identically-shaped
+          // query (below) order their rows differently -- and since both
+          // build the SAME hash from that order, any tie would make every
+          // signature attempt 409 forever (final review, F7). `id` is
+          // unique and stable, so appending it as the tiebreaker is a
+          // no-op today (no ties exist) and a guarantee for whenever one
+          // does.
+          `SELECT * FROM project_lines WHERE project_id = ? ORDER BY sort_order, id`
+        ).bind(project.id)
+      );
+      // Hash the EXACT snapshot being rendered below, using the same
+      // buildAgreementSnapshot() call signQuote uses to rebuild it at POST
+      // time -- including the SAME line items, so a re-itemise between
+      // this render and the POST is caught the same way an edited
+      // agreement body is (Important #1). The hash is round-tripped
+      // through a hidden form field so the POST can prove (see signQuote)
+      // that the text about to be signed matches what was on screen when
+      // the customer clicked -- not whatever happens to be live by the
+      // time the request arrives.
+      const snapshotLines: AgreementSnapshotLine[] = lines.map((l) => ({
+        description: l.description,
+        quantity: l.quantity,
+        unitCents: l.unit_cents,
+        amountCents: l.amount_cents,
+      }));
+      try {
+        const snapshot = buildAgreementSnapshot({
+          title: agreementTitle,
+          body: agreementBody,
+          project: {
+            reference: project.reference,
+            customerName: project.customer_name,
+            totalCents: project.total_cents,
+          },
+          lines: snapshotLines,
+        });
+        const agreementSha256 = await sha256Hex(snapshot);
+        html = renderQuotePage({
+          tenant,
+          project,
+          lines,
+          baseUrl,
+          agreementTitle,
+          agreementBody,
+          agreementSha256,
+        });
+      } catch (err) {
+        // money()/assertIntCents() threw -- a fractional cents value
+        // somewhere in project.total_cents or a line's amount_cents/
+        // unit_cents. Render the same "can't sign right now" page a
+        // terminal status or a blank agreement body already produces,
+        // rather than letting the TypeError propagate into a 500 (F8).
+        console.error("quote page: could not build agreement snapshot", err);
+        html = renderCannotSign(tenant, project, INVALID_PRICING_MESSAGE);
+      }
+    }
+  }
+
+  return new Response(html, {
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      // The token is in the URL path. Without this, any outbound link the
+      // customer clicks hands their quote to a third party in a Referer
+      // header.
+      "Referrer-Policy": "no-referrer",
+      "X-Robots-Tag": "noindex",
+      "Cache-Control": "no-store",
+    },
   });
 }
 

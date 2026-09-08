@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import type { Env } from "./types";
@@ -51,7 +52,7 @@ import { processQueuedBlasts } from "./lib/blastSend";
 import { generateId } from "./lib/utils/id";
 import { getTenantByHost } from "./lib/tenantHost";
 import { isBusiness } from "./lib/tenantType";
-import { serveBusinessSite } from "./routes/site";
+import { serveSite, useLegacyRenderer, getTenantBySlug } from "./routes/site";
 import { handleWebhookQueue } from "./consumers/webhookConsumer";
 import { sweepOutbox } from "./lib/webhookOutbox";
 import { sweepExpired } from "./lib/idempotency";
@@ -134,7 +135,7 @@ app.use("*", async (c, next) => {
       path === "/icon.svg" ||
       path.startsWith("/assets");
     if (!isPlatformPath) {
-      const res = await serveBusinessSite(c, tenant);
+      const res = await serveSite(c, tenant);
       if (res) return res;
       return c.notFound();
     }
@@ -172,7 +173,17 @@ app.use("*", async (c, next) => {
   if (path.startsWith("/g/")) {
     return c.redirect("/" + path.split("/").slice(3).join("/"), 302);
   }
-  // Any other path on a tenant host is the public guild multi-page site
+  // Any other path on a tenant host is the public guild site: server-rendered
+  // through serveSite unless the guild still carries the legacy flag
+  // (settings.site.renderer === "legacy", written by migration 0026 for
+  // guilds that existed before the section renderer), in which case the
+  // classic guild.html shell keeps serving until an admin opts in.
+  if (!useLegacyRenderer(tenant)) {
+    const res = await serveSite(c, tenant);
+    if (res) return res;
+    // qh-site.css / qh-site.js: fall through to the static asset binding.
+    return c.notFound();
+  }
   {
     const url = new URL(c.req.url);
     url.pathname = "/guild";
@@ -201,17 +212,30 @@ app.get("/", (c) => {
 // and hand a session to the portal via the URL hash. See lib/auth/magic.ts.
 app.get("/auth/verify", magicLinkLanding);
 
-// Public guild multi-page site: /g/:slug and /g/:slug/:pageSlug…
-app.get("/g/:slug", (c) => {
+// Public guild multi-page site on the platform host: /g/:slug and
+// /g/:slug/:pageSlug… Server-rendered through serveSite with the base path
+// "/g/<slug>" unless the tenant carries the legacy flag, in which case the
+// classic guild.html shell serves. /g/:slug/__preview ALWAYS serves
+// guild.html: the admin's guild preview mode (public/admin.html) loads it in
+// an iframe and guild.html's own router handles "__preview".
+async function serveGuildPath(c: Context<{ Bindings: Env }>) {
   const url = new URL(c.req.url);
-  url.pathname = "/guild";
-  return c.env.ASSETS.fetch(new Request(url.toString(), c.req.raw));
-});
-app.get("/g/:slug/*", (c) => {
-  const url = new URL(c.req.url);
-  url.pathname = "/guild";
-  return c.env.ASSETS.fetch(new Request(url.toString(), c.req.raw));
-});
+  const guildAsset = () => {
+    const assetUrl = new URL(url.toString());
+    assetUrl.pathname = "/guild";
+    return c.env.ASSETS.fetch(new Request(assetUrl.toString(), c.req.raw));
+  };
+  const slug = c.req.param("slug") || "";
+  const basePath = `/g/${slug}`;
+  const rel = url.pathname === basePath ? "/" : url.pathname.startsWith(basePath + "/") ? url.pathname.slice(basePath.length) : null;
+  if (rel === null || rel === "/__preview") return guildAsset();
+  const tenant = await getTenantBySlug(c.env.DB, slug);
+  if (!tenant || useLegacyRenderer(tenant)) return guildAsset();
+  const res = await serveSite(c, tenant, { basePath });
+  return res ?? c.notFound();
+}
+app.get("/g/:slug", serveGuildPath);
+app.get("/g/:slug/*", serveGuildPath);
 
 // Embeddable widgets for WordPress / external sites (allow framing)
 app.get("/embed/:slug/join", (c) => {

@@ -175,6 +175,7 @@ function makeDb(state: State): D1Database {
       if (sql.includes("published = 1")) rows = rows.filter((p) => p.published === 1);
       if (sql.includes("is_members_only = 0")) rows = rows.filter((p) => p.is_members_only === 0);
       if (sql.includes("coalesce(noindex, 0) = 0")) rows = rows.filter((p) => p.noindex === 0);
+      if (sql.includes("= 'blog_post'")) rows = rows.filter((p) => p.page_type === "blog_post");
       if (sql.includes("max(updated_at)")) {
         const v = rows.map((p) => p.updated_at).sort().pop() ?? null;
         return { results: [{ v }] };
@@ -1071,8 +1072,12 @@ describe("serveBusinessSite — pages, trash, redirects", () => {
     expect((await app.request("http://stitchstudioquilting.test/ghost", {}, env)).status).toBe(404);
 
     const home = await (await app.request("http://stitchstudioquilting.test/", {}, env)).text();
-    expect(home).toContain('href="/home"');
-    expect(home).not.toContain('href="/ghost"');
+    // Task 8: the menu is built by buildMenu, which links the "home" page to
+    // the site root and prefixes every href with the site's base URL (the
+    // platform subdomain here, since this Host isn't the tenant's custom
+    // domain) -- so the legacy root-relative 'href="/home"' is gone.
+    expect(home).toContain('href="https://stitchstudio.quilthosting.com/"');
+    expect(home).not.toContain("/ghost");
 
     const sitemap = await (await app.request("http://stitchstudioquilting.test/sitemap.xml", {}, env)).text();
     expect(sitemap).toContain("/home</loc>");

@@ -383,6 +383,60 @@ describe("P1 public paths", () => {
   });
 });
 
+describe("Task 8 system pages — serveSite's routing table opens on a launched host", () => {
+  const systemPaths = [
+    "/membership",
+    "/join",
+    "/join-renew",
+    "/events",
+    "/events/ev_abc123",
+    "/calendar",
+    "/galleries",
+    "/galleries/spring-show",
+    "/photos",
+    "/blog",
+    "/blog/spring-show-recap",
+    "/qh-site.js",
+  ];
+
+  it.each(systemPaths)("allowlist: %s", (p) => {
+    expect(isLaunchedSitePathForTest(p, "stitchstudio")).toBe(true);
+  });
+
+  it.each(systemPaths)("end to end on a launched business host: %s", async (p) => {
+    getTenantByHostMock.mockResolvedValue(launchedBusiness);
+    const res = await requestPath(p, "stitchstudioquilting.test");
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("OK");
+  });
+
+  it("the same paths stay gated on a guild host (guilds are never launched)", async () => {
+    getTenantByHostMock.mockResolvedValue(guildTenant);
+    for (const p of ["/membership", "/events", "/blog/hello"]) {
+      const res = await requestPath(p, "somequiltguild.quilthosting.com");
+      expect(res.status).toBe(401);
+    }
+  });
+
+  it("the same paths stay gated on the platform host, under /g/<slug> too", async () => {
+    getTenantByHostMock.mockResolvedValue(null);
+    expect((await requestPath("/membership", "quilthosting.com")).status).toBe(401);
+    expect((await requestPath("/g/stitchstudio/events", "quilthosting.com")).status).toBe(401);
+  });
+
+  it("obfuscated variants normalize and still match (case, doubled slashes) or fail closed (dot-segments)", () => {
+    expect(isLaunchedSitePathForTest("/Events", "stitchstudio")).toBe(true);
+    expect(isLaunchedSitePathForTest("//blog", "stitchstudio")).toBe(true);
+    expect(isLaunchedSitePathForTest("/events/..%2fadmin", "stitchstudio")).toBe(false);
+  });
+
+  it("a deeper path under a system prefix is not a system page but still a (non-reserved) site path, i.e. rule 5", () => {
+    // serveSite answers /events/<id>/anything with its own 404 page; the gate
+    // simply passes it through like any other non-reserved slug.
+    expect(isLaunchedSitePathForTest("/events/ev_1/extra", "stitchstudio")).toBe(true);
+  });
+});
+
 describe("P1 public paths — full request path, including tenant-type and launch-state gating", () => {
   // Complements the pure-function checks above: these drive the whole
   // middleware (resolved tenant + isLaunched + isLaunchedSitePath together),
