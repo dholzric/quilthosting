@@ -212,7 +212,15 @@ function fakeCreateDb(opts: {
     },
     async batch(stmts: { sql: string; binds: unknown[] }[]) {
       batches.push(stmts.map((s) => ({ sql: s.sql, binds: s.binds })));
-      return stmts.map(() => ({ success: true, meta: { changes: 1 } }));
+      // Read statements (computeOnboarding batches its counts) answer through
+      // the same keyword router as first(); writes just report one change.
+      return Promise.all(
+        stmts.map(async (s) =>
+          /^\s*SELECT/i.test(s.sql)
+            ? { success: true, results: [await stmt(s.sql, s.binds).first()], meta: { changes: 0 } }
+            : { success: true, meta: { changes: 1 } }
+        )
+      );
     },
   };
   return { db, batches, runs };
@@ -451,5 +459,36 @@ describe("POST /api/tenants/:tenantId/domain/retry — guard + status", () => {
     expect(runs).toHaveLength(1);
     expect(runs[0].sql).toContain("domain_status = ?");
     expect(runs[0].binds.slice(0, 2)).toEqual(["skipped", null]);
+  });
+});
+
+describe("redactSettingsForRole — provider secrets stay with owner/admin", () => {
+  const row = {
+    id: "t1",
+    settings_json: JSON.stringify({
+      profile: { description: "x" },
+      twilio: { account_sid: "AC123", auth_token: "supersecret", from_number: "+15550100" },
+    }),
+  };
+  it("masks twilio.auth_token for viewer/membership/events roles", async () => {
+    const { redactSettingsForRole } = await import("./tenants");
+    for (const role of ["viewer", "membership", "events", null, undefined]) {
+      const out = redactSettingsForRole(row, role as string | null | undefined);
+      const s = JSON.parse(out.settings_json!);
+      expect(s.twilio.auth_token).not.toBe("supersecret");
+      expect(s.twilio.account_sid).toBe("AC123");
+      expect(s.profile.description).toBe("x");
+    }
+  });
+  it("leaves owner/admin/platform untouched", async () => {
+    const { redactSettingsForRole } = await import("./tenants");
+    for (const role of ["owner", "admin", "platform"]) {
+      expect(redactSettingsForRole(row, role)).toBe(row);
+    }
+  });
+  it("tolerates missing or unparsable settings", async () => {
+    const { redactSettingsForRole } = await import("./tenants");
+    expect(redactSettingsForRole({ settings_json: null }, "viewer").settings_json).toBeNull();
+    expect(redactSettingsForRole({ settings_json: "{nope" }, "viewer").settings_json).toBe("{nope");
   });
 });

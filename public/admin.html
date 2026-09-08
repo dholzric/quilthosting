@@ -461,9 +461,10 @@
       hide(document.getElementById("login-view"));
       show(document.getElementById("app-view"));
       document.getElementById("tenant-label").textContent = tenantName || tenantSlug || "";
-      await refreshPlatformFlag();
+      // Both lookups are independent; run them together so the dashboard
+      // starts one round trip sooner.
+      await Promise.all([refreshPlatformFlag(), applyTenantTypeNav()]);
       applyRoleNav();
-      await applyTenantTypeNav();
       navigate("dashboard");
     }
 

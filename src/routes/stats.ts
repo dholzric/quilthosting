@@ -22,49 +22,46 @@ statsRoutes.get("/", async (c) => {
   const in30 = new Date(now.getTime() + 30 * 86400000).toISOString().slice(0, 10);
   const monthStart = today.slice(0, 8) + "01";
 
-  const [byStatus, newThisMonth, expiring30, upcomingEvents, revenue6mo, regsThisMonth] =
-    await Promise.all([
-      all<{ status: string; cnt: number }>(
-        c.env.DB.prepare(
-          "SELECT status, COUNT(*) cnt FROM members WHERE tenant_id = ? GROUP BY status"
-        ).bind(tenant.id)
-      ),
-      first<{ cnt: number }>(
-        c.env.DB.prepare(
-          "SELECT COUNT(*) cnt FROM members WHERE tenant_id = ? AND created_at >= ?"
-        ).bind(tenant.id, monthStart)
-      ),
-      first<{ cnt: number }>(
-        c.env.DB.prepare(
-          `SELECT COUNT(*) cnt FROM memberships
-           WHERE tenant_id = ? AND status = 'active'
-             AND date(end_date) BETWEEN ? AND ?`
-        ).bind(tenant.id, today, in30)
-      ),
-      first<{ cnt: number }>(
-        c.env.DB.prepare(
-          "SELECT COUNT(*) cnt FROM events WHERE tenant_id = ? AND start_at >= ?"
-        ).bind(tenant.id, now.toISOString())
-      ),
-      all<{ month: string; total_cents: number; payments: number }>(
-        c.env.DB.prepare(
-          `SELECT substr(created_at, 1, 7) month,
-                  SUM(amount_cents) total_cents,
-                  COUNT(*) payments
-           FROM payments
-           WHERE tenant_id = ? AND status = 'succeeded'
-             AND created_at >= date('now', '-6 months')
-           GROUP BY month ORDER BY month`
-        ).bind(tenant.id)
-      ),
-      first<{ cnt: number }>(
-        c.env.DB.prepare(
-          `SELECT COUNT(*) cnt FROM event_registrations
-           WHERE tenant_id = ? AND created_at >= ?
-             AND status IN ('registered', 'checked_in')`
-        ).bind(tenant.id, monthStart)
-      ),
-    ]);
+  // One D1 round trip: the binding runs queries from the same request
+  // sequentially, so Promise.all over six statements still paid six
+  // network hops (~350 ms measured). batch() sends them together.
+  const [byStatusR, newR, expR, upR, revR, regsR] = await c.env.DB.batch([
+    c.env.DB.prepare(
+      "SELECT status, COUNT(*) cnt FROM members WHERE tenant_id = ? GROUP BY status"
+    ).bind(tenant.id),
+    c.env.DB.prepare(
+      "SELECT COUNT(*) cnt FROM members WHERE tenant_id = ? AND created_at >= ?"
+    ).bind(tenant.id, monthStart),
+    c.env.DB.prepare(
+      `SELECT COUNT(*) cnt FROM memberships
+       WHERE tenant_id = ? AND status = 'active'
+         AND date(end_date) BETWEEN ? AND ?`
+    ).bind(tenant.id, today, in30),
+    c.env.DB.prepare(
+      "SELECT COUNT(*) cnt FROM events WHERE tenant_id = ? AND start_at >= ?"
+    ).bind(tenant.id, now.toISOString()),
+    c.env.DB.prepare(
+      `SELECT substr(created_at, 1, 7) month,
+              SUM(amount_cents) total_cents,
+              COUNT(*) payments
+       FROM payments
+       WHERE tenant_id = ? AND status = 'succeeded'
+         AND created_at >= date('now', '-6 months')
+       GROUP BY month ORDER BY month`
+    ).bind(tenant.id),
+    c.env.DB.prepare(
+      `SELECT COUNT(*) cnt FROM event_registrations
+       WHERE tenant_id = ? AND created_at >= ?
+         AND status IN ('registered', 'checked_in')`
+    ).bind(tenant.id, monthStart),
+  ]);
+  const byStatus = (byStatusR.results || []) as { status: string; cnt: number }[];
+  const one = (r: D1Result<unknown>) => (r.results?.[0] as { cnt: number } | undefined) || null;
+  const newThisMonth = one(newR);
+  const expiring30 = one(expR);
+  const upcomingEvents = one(upR);
+  const revenue6mo = (revR.results || []) as { month: string; total_cents: number; payments: number }[];
+  const regsThisMonth = one(regsR);
 
   const statusMap: Record<string, number> = {};
   for (const r of byStatus) statusMap[r.status] = r.cnt;

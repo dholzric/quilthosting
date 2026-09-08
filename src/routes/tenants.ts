@@ -36,6 +36,34 @@ function publicUrlFor(env: Env, tenant: OnboardingTenant): string {
   return `${env.APP_URL.replace(/\/$/, "")}/g/${tenant.slug}`;
 }
 
+const SECRET_BEARING_ROLES = new Set(["owner", "admin", "platform"]);
+
+/**
+ * settings_json carries a few provider secrets that only owners/admins may
+ * see (today: settings.twilio.auth_token). Every other role gets a masked
+ * copy so a viewer or events chair cannot lift the guild's Twilio token from
+ * the tenant record. Writes are unaffected: the tenant PATCH is owner/admin
+ * only and replaces the whole settings object.
+ */
+export function redactSettingsForRole<T extends { settings_json?: string | null }>(
+  row: T,
+  role: string | null | undefined
+): T {
+  if (role && SECRET_BEARING_ROLES.has(role)) return row;
+  if (!row.settings_json) return row;
+  try {
+    const s = JSON.parse(row.settings_json) as Record<string, unknown>;
+    const tw = s.twilio as Record<string, unknown> | undefined;
+    if (tw && typeof tw === "object" && tw.auth_token) {
+      s.twilio = { ...tw, auth_token: "••••••••" };
+      return { ...row, settings_json: JSON.stringify(s) };
+    }
+  } catch {
+    /* unparsable settings: return as-is */
+  }
+  return row;
+}
+
 function withPublicFields(env: Env, tenant: OnboardingTenant) {
   return {
     ...tenant,
@@ -94,7 +122,10 @@ tenantRoutes.get("/", async (c) => {
        ORDER BY t.created_at`
     ).bind(user.id)
   );
-  return c.json({ tenants: rows, platform_admin: false });
+  return c.json({
+    tenants: rows.map((r) => redactSettingsForRole(r, r.role)),
+    platform_admin: false,
+  });
 });
 
 // POST /api/tenants — create a guild; creator becomes owner.
@@ -248,11 +279,12 @@ tenantRoutes.post("/:id/onboarding/dismiss", async (c) => {
 tenantRoutes.get("/:id", async (c) => {
   const user = c.get("user");
   const id = c.req.param("id");
-  const membership = await first(
+  const membership = await first<{ role: string }>(
     c.env.DB.prepare(
       "SELECT role FROM tenant_users WHERE tenant_id = ? AND user_id = ?"
     ).bind(id, user.id)
   );
+  const viewerRole = membership?.role || "platform";
   if (!membership) {
     const adminRow = await first<{ is_platform_admin: number }>(
       c.env.DB.prepare(
@@ -277,7 +309,7 @@ tenantRoutes.get("/:id", async (c) => {
   // reach raw public/ files there -- siteGate's JWT-bearer bypass is
   // host-agnostic by design). public_url additionally falls back to the
   // /g/:slug path while the free subdomain is still pending/failed.
-  return c.json(withPublicFields(c.env, tenant));
+  return c.json(redactSettingsForRole(withPublicFields(c.env, tenant), viewerRole));
 });
 
 // PATCH /api/tenants/:id — owner/admin can rename or update settings

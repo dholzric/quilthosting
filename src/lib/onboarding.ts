@@ -69,26 +69,36 @@ export async function computeOnboarding(
   tenant: OnboardingTenant
 ): Promise<OnboardingState> {
   const like = `%${SAMPLE_MARKER}%`;
-  const [pageCount, sampleCount, levelRow, memberCount, teamCount] = await Promise.all([
-    count(db, "SELECT COUNT(*) AS n FROM pages WHERE tenant_id = ?", tenant.id),
-    count(
-      db,
-      "SELECT COUNT(*) AS n FROM pages WHERE tenant_id = ? AND (blocks_json LIKE ? OR content_json LIKE ?)",
-      tenant.id,
-      like,
-      like
-    ),
-    first<{ n: number | null; paid: number | null }>(
-      db
-        .prepare(
-          `SELECT COUNT(*) AS n, SUM(CASE WHEN price_cents > 0 THEN 1 ELSE 0 END) AS paid
-           FROM membership_levels WHERE tenant_id = ? AND status = 'active'`
-        )
-        .bind(tenant.id)
-    ),
-    count(db, "SELECT COUNT(*) AS n FROM members WHERE tenant_id = ?", tenant.id),
-    count(db, "SELECT COUNT(*) AS n FROM tenant_users WHERE tenant_id = ?", tenant.id),
-  ]);
+  // One batched round trip (D1 serializes per-request queries, so
+  // Promise.all here still cost five network hops).
+  const stmts = [
+    db.prepare("SELECT COUNT(*) AS n FROM pages WHERE tenant_id = ?").bind(tenant.id),
+    db
+      .prepare(
+        "SELECT COUNT(*) AS n FROM pages WHERE tenant_id = ? AND (blocks_json LIKE ? OR content_json LIKE ?)"
+      )
+      .bind(tenant.id, like, like),
+    db
+      .prepare(
+        `SELECT COUNT(*) AS n, SUM(CASE WHEN price_cents > 0 THEN 1 ELSE 0 END) AS paid
+         FROM membership_levels WHERE tenant_id = ? AND status = 'active'`
+      )
+      .bind(tenant.id),
+    db.prepare("SELECT COUNT(*) AS n FROM members WHERE tenant_id = ?").bind(tenant.id),
+    db.prepare("SELECT COUNT(*) AS n FROM tenant_users WHERE tenant_id = ?").bind(tenant.id),
+  ];
+  // Test fakes may not implement batch(); fall back to sequential firsts.
+  const results: { results?: unknown[] }[] =
+    typeof (db as { batch?: unknown }).batch === "function"
+      ? await db.batch(stmts)
+      : await Promise.all(stmts.map(async (s) => ({ results: [await s.first()] })));
+  const firstRow = (i: number) => (results[i]?.results?.[0] || null) as Record<string, unknown> | null;
+  const n = (i: number) => Number((firstRow(i) || {}).n || 0);
+  const pageCount = n(0);
+  const sampleCount = n(1);
+  const levelRow = firstRow(2) as { n: number | null; paid: number | null } | null;
+  const memberCount = n(3);
+  const teamCount = n(4);
 
   const levelCount = Number(levelRow?.n || 0);
   const paidLevels = Number(levelRow?.paid || 0);

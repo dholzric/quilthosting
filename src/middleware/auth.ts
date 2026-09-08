@@ -66,6 +66,11 @@ export const requireTenantAccess = createMiddleware<{
 }>(async (c, next) => {
   const user = c.get("user");
   const tenant = c.get("tenant");
+  // tenantMiddleware may already have resolved the role in its joined query.
+  if (c.get("tenantRole")) {
+    await next();
+    return;
+  }
   const row = await first<{ role: string }>(
     c.env.DB.prepare(
       "SELECT role FROM tenant_users WHERE tenant_id = ? AND user_id = ?"
