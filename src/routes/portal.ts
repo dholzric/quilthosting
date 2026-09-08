@@ -8,6 +8,7 @@ import { activateMembership, portalUrl } from "../lib/memberships";
 import { assertCanActivateMember } from "../lib/plans";
 import { renderReceiptHtml } from "../lib/receipts";
 import { optOutMember, clearUnsubscribe } from "../lib/suppression";
+import { parseEventSettings } from "../lib/eventQuestions";
 
 export const portalRoutes = new Hono<{ Bindings: Env }>();
 
@@ -161,9 +162,10 @@ portalRoutes.get("/:slug/events", async (c) => {
     ).bind(tenant.id)
   );
 
+  // status is needed below for is_member (a narrower SELECT made it always false).
   const member = await first<Member>(
     c.env.DB.prepare(
-      "SELECT id FROM members WHERE tenant_id = ? AND email = ?"
+      "SELECT id, status FROM members WHERE tenant_id = ? AND email = ?"
     ).bind(tenant.id, user.email)
   );
 
@@ -180,7 +182,12 @@ portalRoutes.get("/:slug/events", async (c) => {
 
   return c.json({
     tenant: { name: tenant.name, slug: tenant.slug },
-    events,
+    // Registration questions ride along so the portal's register dialog can
+    // collect answers (public.ts validates required ones on POST).
+    events: events.map((e) => ({
+      ...e,
+      questions: parseEventSettings(e.settings_json).questions || [],
+    })),
     my_registrations: myRegs,
     is_member: !!member && member.status === "active",
   });

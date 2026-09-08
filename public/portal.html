@@ -30,6 +30,17 @@
     </div>
   </header>
 
+  <!-- Event registration: collects the event's custom questions before POSTing -->
+  <dialog id="reg-dialog">
+    <h3 id="reg-title" style="margin-top:0"></h3>
+    <div id="reg-error" class="error hidden"></div>
+    <div id="reg-questions"></div>
+    <div class="row" style="justify-content:flex-end;margin-top:1.2rem">
+      <button class="secondary" type="button" onclick="document.getElementById('reg-dialog').close()">Cancel</button>
+      <button id="reg-submit" type="button" onclick="submitRegistration()">Register</button>
+    </div>
+  </dialog>
+
   <div class="wrap">
     <!-- Login -->
     <div id="login-view" class="card">
@@ -607,6 +618,8 @@
       el.innerHTML = "<p class='muted'>Loading…</p>";
       try {
         const data = await api(`/api/portal/${slug}/events`);
+        portalEvents = {};
+        data.events.forEach((e) => { portalEvents[e.id] = e; });
         const regMap = {};
         (data.my_registrations || []).forEach((r) => {
           regMap[r.event_id] = r;
@@ -638,7 +651,7 @@
                     ${reg
                       ? `<span class="badge ${reg.status}">${reg.status}</span>${reg.ticket_code ? ` <code>${reg.ticket_code}</code>` : ""}`
                       : e.registration_open
-                        ? `<button onclick="registerEvent('${e.id}', ${data.is_member})">Register</button>`
+                        ? `<button onclick="registerEvent('${e.id}')">Register</button>`
                         : `<span class="muted">Closed</span>`}
                   </div>
                 </div>`;
@@ -649,27 +662,103 @@
       }
     }
 
-    async function registerEvent(eventId, isMember) {
+    // Events keyed by id from the last loadEvents(), so the register dialog
+    // can render each event's custom questions without another request.
+    let portalEvents = {};
+    let pendingRegistration = null;
+
+    function registerEvent(eventId) {
+      const ev = portalEvents[eventId];
+      const questions = (ev && Array.isArray(ev.questions)) ? ev.questions : [];
+      if (!questions.length) return submitRegistration(eventId, {});
+      // Same fields the public site's signup dialog collects (guild.html).
+      pendingRegistration = eventId;
+      const dlg = document.getElementById("reg-dialog");
+      document.getElementById("reg-title").textContent = "Register — " + (ev.title || "Event");
+      hide(document.getElementById("reg-error"));
+      const box = document.getElementById("reg-questions");
+      box.replaceChildren();
+      for (const q of questions) {
+        const label = document.createElement("label");
+        label.textContent = q.label + (q.required ? " *" : "");
+        box.appendChild(label);
+        let input;
+        if (q.type === "select") {
+          input = document.createElement("select");
+          const blank = document.createElement("option");
+          blank.value = "";
+          blank.textContent = "—";
+          input.appendChild(blank);
+          for (const o of q.options || []) {
+            const opt = document.createElement("option");
+            opt.value = o;
+            opt.textContent = o;
+            input.appendChild(opt);
+          }
+        } else {
+          input = document.createElement("input");
+          input.type = "text";
+          input.maxLength = 500;
+        }
+        input.dataset.qKey = q.key;
+        if (q.required) input.required = true;
+        box.appendChild(input);
+      }
+      document.getElementById("reg-submit").disabled = false;
+      dlg.showModal();
+    }
+
+    async function submitRegistration(eventId, presetAnswers) {
+      const dlg = document.getElementById("reg-dialog");
+      const errEl = document.getElementById("reg-error");
+      const fromDialog = presetAnswers === undefined;
+      const id = eventId || pendingRegistration;
+      if (!id) return;
+      let answers = presetAnswers || {};
+      if (fromDialog) {
+        answers = {};
+        hide(errEl);
+        for (const input of document.querySelectorAll("#reg-questions [data-q-key]")) {
+          const v = (input.value || "").trim();
+          if (input.required && !v) {
+            errEl.textContent = "Please answer the required questions (marked *).";
+            show(errEl);
+            input.focus();
+            return;
+          }
+          if (v) answers[input.dataset.qKey] = v;
+        }
+        document.getElementById("reg-submit").disabled = true;
+      }
       try {
         // Need email from profile
         const me = await api(`/api/portal/${slug}/me`);
-        const data = await api(`/public/${slug}/events/${eventId}/register`, {
+        const body = {
+          email: me.user?.email || me.member?.email,
+          name: [me.member?.first_name, me.member?.last_name].filter(Boolean).join(" ") || undefined,
+        };
+        if (Object.keys(answers).length) body.custom_answers = answers;
+        const data = await api(`/public/${slug}/events/${id}/register`, {
           method: "POST",
-          body: JSON.stringify({
-            email: me.user?.email || me.member?.email,
-            name: [me.member?.first_name, me.member?.last_name].filter(Boolean).join(" ") || undefined,
-            member_id: me.member?.id,
-            is_member: !!isMember,
-          }),
+          body: JSON.stringify(body),
         });
         if (data.status === "checkout" && data.checkout_url) {
           window.location.href = data.checkout_url;
-        } else {
-          alert(data.message || "Registered!");
-          loadEvents();
+          return;
         }
+        if (fromDialog) dlg.close();
+        alert((data.message || "Registered!") + (data.ticket_code ? " Your ticket code is " + data.ticket_code + "." : ""));
+        loadEvents();
       } catch (e) {
-        alert(e.message);
+        if (fromDialog) {
+          errEl.textContent = e.message;
+          show(errEl);
+          document.getElementById("reg-submit").disabled = false;
+        } else {
+          alert(e.message);
+        }
+      } finally {
+        if (fromDialog && !dlg.open) pendingRegistration = null;
       }
     }
 
