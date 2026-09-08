@@ -177,3 +177,8 @@ Each phase is one implementation plan and one deploy; phases 1 and 2 overlap (re
 - Owner asked for more ambition on 2026-09-08: at least twelve kits and a palette library of 24+ palettes, with Codex and GLM invited to author kits through the authoring pipeline. Adopted above.
 - Sample imagery: pattern art plus QuiltMap-owned quilt photography; no licensed stock.
 - One-pager ships as a kit.
+
+
+## Implementation notes
+
+**Phase 1 shipped 2026-09-08 as v0.57.0-preview** (plan: `docs/superpowers/plans/2026-09-08-site-foundation-phase1.md`). One SSR renderer for guilds and businesses behind the legacy flag (migration 0026 stamps existing guilds `legacy`); token model with 26 palettes, 12 type pairs, contrast-checked derivation and migration from both old theme shapes; token-driven stylesheet with header/footer variants, drawer, and quilt-block pattern art; 19-section library with variants and style props; batched data loaders; system pages; islands for join/register/cart/donate/calendar/lightbox/volunteer; kit schema + validator + preview tooling + authoring brief; twelve kits on disk (Heritage authored in-house; the rest contributed through the authoring pipeline and validated, copy not yet reviewed); admin Design panel and renderer switch; pages API and editor accept section documents. New guilds are seeded from the Heritage kit on the new renderer. Evidence: 1502 unit tests, local browser pass on desktop and phone for five kits (no console errors, no horizontal overflow), editor round-trip on a kit page. Residual: phase 2 items (image upload variants/focal picker, Style tab polish, palette-from-logo, remaining sections), kit copy review for contributed kits, guild.html retirement after migration.
