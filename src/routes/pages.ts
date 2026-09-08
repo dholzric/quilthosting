@@ -17,9 +17,20 @@ import { isBusiness } from "../lib/tenantType";
 import { renderPageHtml } from "../lib/site/render";
 import { buildRenderArgs } from "./site";
 import {
+  parseSections,
+  sectionSchema,
+  SECTION_TYPES,
+  SECTION_VARIANTS,
+  type Section,
+  type SectionType,
+} from "../lib/site/sections/schema";
+import { isLegacyBlockItem, isSectionDocument } from "../lib/site/sections/normalize";
+import { renderSectionsStandalone } from "../lib/site/sections/render";
+import { readSiteDesign } from "../lib/site/design/migrate";
+import { buildDesignVars, designFontsHref } from "../lib/site/design/tokens";
+import {
   type PageRecord,
   type PageRevisionRecord,
-  blocksFromJson,
   revisionBlocks,
   revisionOf,
   serializePage,
@@ -144,18 +155,18 @@ function reservedSlugError(c: Ctx, slug: string) {
 const MAX_BODY_BYTES = 512 * 1024;
 const MAX_BLOCKS = 200;
 
-const blockSchema = z
-  .object({
-    type: z.string().refine((t) => KNOWN_BLOCK_TYPE_SET.has(t), (t) => ({
-      message: `Unsupported block type "${t}"`,
-    })),
-  })
-  .passthrough();
+// A page document is either a legacy block array or a section array (see
+// src/lib/site/sections/schema.ts). Both arrive in `blocks`; the format is
+// detected per request (documentFormat) and each format is validated by
+// its own parser in parseDocument. The zod layer only checks the shape
+// "array of objects with a string type" so the format-specific errors keep
+// their field-level paths (`blocks.N.type` / `sections.N.field`).
+const documentItemSchema = z.object({ type: z.string() }).passthrough();
 
 /** "" and null both mean "clear"; absent means "leave unchanged" (PATCH). */
 const clearableText = (max: number) => z.string().max(max).nullable().optional();
 
-const blocksSchema = z.array(blockSchema).max(MAX_BLOCKS);
+const blocksSchema = z.array(documentItemSchema).max(MAX_BLOCKS);
 
 /** Optimistic-concurrency token: the `revision` the client last saw. */
 const revisionSchema = z.number().int().nonnegative().optional();
@@ -283,6 +294,432 @@ function parseBlocksStrict(c: Ctx, raw: unknown[]): { ok: true; blocks: PageBloc
   return { ok: true, blocks };
 }
 
+// ---------------------------------------------------------------------------
+// Page documents: blocks or sections.
+//
+// The new site renderer stores pages as section documents in the same
+// `blocks_json` column (there is no sections column; serveSite treats a
+// section-shaped array there as sections). Kits write section documents for
+// new guilds, older pages carry block arrays, and the editor may send a
+// mixed array when a section is added to a block page. This layer keeps
+// both formats first-class: detection, validation, storage, the html
+// snapshot for readers that only know content_json, and reading stored
+// documents back (draft, live, revisions).
+// ---------------------------------------------------------------------------
+
+export type DocumentFormat = "blocks" | "sections";
+
+export type PageDocument =
+  | { format: "blocks"; items: PageBlock[] }
+  | { format: "sections"; items: Section[] };
+
+const SECTION_TYPE_SET: ReadonlySet<string> = new Set(SECTION_TYPES);
+
+/** parseSections' own cap (it slices silently; the route reports instead). */
+const MAX_SECTIONS = 80;
+
+const isPlainObject = (v: unknown): v is Record<string, unknown> =>
+  !!v && typeof v === "object" && !Array.isArray(v);
+
+/**
+ * Which parser a raw array belongs to.
+ *   - every item has a `style` object            -> sections (a section document)
+ *   - every item is a plain legacy block           -> blocks (unchanged path)
+ *   - otherwise, if any item is section-shaped     -> sections (mixed document;
+ *     parseSections normalizes the legacy blocks in it)
+ *   - otherwise                                    -> blocks (so an unknown type
+ *     is still reported as `blocks.N.type`, as before)
+ */
+export function documentFormat(raw: unknown[]): DocumentFormat {
+  if (!raw.length) return "blocks";
+  if (isSectionDocument(raw)) return "sections";
+  if (raw.every((item) => isPlainObject(item) && isLegacyBlockItem(item))) return "blocks";
+  const anySection = raw.some(
+    (item) => isPlainObject(item) && !isLegacyBlockItem(item) && SECTION_TYPE_SET.has(String(item.type ?? ""))
+  );
+  return anySection ? "sections" : "blocks";
+}
+
+/** Format of a stored *_json column; malformed/NULL -> "blocks" (empty). */
+function documentFormatOfJson(json: string | null | undefined): DocumentFormat {
+  if (!json) return "blocks";
+  try {
+    const parsed = JSON.parse(json);
+    return Array.isArray(parsed) ? documentFormat(parsed) : "blocks";
+  } catch {
+    return "blocks";
+  }
+}
+
+function invalidBody(c: Ctx, issues: { path: string; message: string }[]) {
+  return c.json({ error: "Invalid request body", issues }, 400);
+}
+
+/**
+ * Validate a request document. Block documents keep the exact behaviour
+ * the route always had (unknown type -> 400 `blocks.N.type`, then
+ * parseBlocksStrict). Section documents go through parseSections: any issue
+ * (unknown type, failed field validation) is a 400 with the
+ * `sections.N.field` path; nothing is silently dropped.
+ */
+function parseDocument(c: Ctx, raw: unknown[]): { ok: true; doc: PageDocument } | { ok: false; response: Response } {
+  const format = documentFormat(raw);
+  if (format === "blocks") {
+    const issues: { path: string; message: string }[] = [];
+    raw.forEach((item, i) => {
+      const type = String((item as { type?: unknown }).type ?? "");
+      if (!KNOWN_BLOCK_TYPE_SET.has(type)) {
+        issues.push({ path: `blocks.${i}.type`, message: `Unsupported block type "${type}"` });
+      }
+    });
+    if (issues.length) return { ok: false, response: invalidBody(c, issues) };
+    const strict = parseBlocksStrict(c, raw);
+    if (!strict.ok) return strict;
+    return { ok: true, doc: { format: "blocks", items: strict.blocks } };
+  }
+  if (raw.length > MAX_SECTIONS) {
+    return {
+      ok: false,
+      response: invalidBody(c, [
+        { path: "sections", message: `Only ${MAX_SECTIONS} of ${raw.length} sections can be stored; reduce the page to at most ${MAX_SECTIONS} sections` },
+      ]),
+    };
+  }
+  const { sections, issues } = parseSections(raw);
+  if (issues.length) return { ok: false, response: invalidBody(c, issues) };
+  return { ok: true, doc: { format: "sections", items: sections } };
+}
+
+/** Column value for blocks_json: the document as a JSON array, NULL when empty. */
+function documentJson(doc: PageDocument): string | null {
+  return doc.items.length ? JSON.stringify(doc.items) : null;
+}
+
+function tenantDesign(c: Ctx) {
+  return readSiteDesign(c.get("tenant").settings_json);
+}
+
+/**
+ * The html snapshot written to content_json (and returned by /preview).
+ * Sections render standalone (no dynamic data, platform-host image URLs)
+ * with the tenant's design, so older readers like the portal still get
+ * sensible markup for a section page.
+ */
+function documentHtml(c: Ctx, doc: PageDocument): string {
+  if (!doc.items.length) return "";
+  if (doc.format === "blocks") return blocksToHtml(doc.items);
+  const tenant = c.get("tenant");
+  return renderSectionsStandalone(doc.items, { slug: tenant.slug, baseUrl: "", design: tenantDesign(c) });
+}
+
+/**
+ * Read a stored document back. Section documents are parsed with
+ * parseSections (never parseBlocks, which would mangle them); block arrays
+ * keep the blocksFromJson behaviour. Malformed/NULL -> empty block document.
+ */
+export function documentFromJson(json: string | null | undefined): PageDocument {
+  if (!json) return { format: "blocks", items: [] };
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    return { format: "blocks", items: [] };
+  }
+  if (!Array.isArray(parsed)) return { format: "blocks", items: [] };
+  if (documentFormat(parsed) === "sections") {
+    return { format: "sections", items: parseSections(parsed).sections };
+  }
+  return { format: "blocks", items: parseBlocks(parsed) };
+}
+
+/**
+ * Admin API shape: serializePage's row plus `format` and, for section
+ * documents, `sections` (parsed) with `blocks: []`; the draft likewise as
+ * `draft_format` / `draft_sections` / `draft_blocks` when a draft exists.
+ */
+function serializeDocument(row: PageRow): Record<string, unknown> {
+  const out = serializePage(row);
+  const live = documentFromJson(row.blocks_json);
+  out.format = live.format;
+  if (live.format === "sections") {
+    out.blocks = [];
+    out.sections = live.items;
+  } else {
+    out.sections = null;
+  }
+  if (row.draft_blocks_json != null) {
+    const draft = documentFromJson(row.draft_blocks_json);
+    out.draft_format = draft.format;
+    if (draft.format === "sections") {
+      out.draft_blocks = [];
+      out.draft_sections = draft.items;
+    } else {
+      out.draft_sections = null;
+    }
+  } else {
+    out.draft_format = null;
+    out.draft_sections = null;
+  }
+  return out;
+}
+
+/** A revision's document; a pre-block revision's HTML becomes one `html` block (revisionBlocks). */
+function revisionDocument(rev: PageRevisionRecord): PageDocument {
+  const doc = documentFromJson(rev.blocks_json);
+  if (doc.items.length) return doc;
+  return { format: "blocks", items: revisionBlocks(rev) };
+}
+
+// ---------------------------------------------------------------------------
+// Section catalog (GET /section-catalog): the editor's palette and its
+// schema-driven props panel are built from this, so the admin never carries
+// a copy of the section schema. Field kinds and limits come from walking the
+// zod shapes in sectionSchema; labels, groups and hints live in the small
+// maps below.
+// ---------------------------------------------------------------------------
+
+export const SECTION_GROUPS = ["Openers", "Content", "Membership", "Events", "Community", "Business", "Layout"] as const;
+
+const SECTION_META: Record<SectionType, { label: string; group: (typeof SECTION_GROUPS)[number]; hint: string }> = {
+  hero: { label: "Hero", group: "Openers", hint: "Big headline with a photo, pattern band, or numbers" },
+  rich_text: { label: "Text", group: "Content", hint: "Paragraphs, lists and links; optional heading and side image" },
+  image: { label: "Image", group: "Content", hint: "One photo, a full-width photo, or two side by side" },
+  feature_grid: { label: "Feature grid", group: "Content", hint: "Cards, icons or numbered steps" },
+  faq: { label: "Questions & answers", group: "Content", hint: "Expandable Q&A list" },
+  membership_levels: { label: "Membership levels", group: "Membership", hint: "Your levels with real Join buttons, kept up to date" },
+  join_band: { label: "Join band", group: "Membership", hint: "A call-to-action band inviting visitors to join" },
+  meeting_info: { label: "Meeting info", group: "Membership", hint: "When and where you meet, with a map link" },
+  events: { label: "Events", group: "Events", hint: "Upcoming events as cards, a list, a calendar, or the next one" },
+  gallery: { label: "Photo gallery", group: "Community", hint: "A grid or masonry of photos with a lightbox" },
+  testimonials: { label: "Testimonials", group: "Community", hint: "Quotes from members or customers" },
+  blog_teaser: { label: "News & newsletter", group: "Community", hint: "Your latest posts" },
+  quote_cta: { label: "Quote request", group: "Business", hint: "Let customers request an estimate" },
+  store_teaser: { label: "Store items", group: "Business", hint: "Products from your store" },
+  contact: { label: "Contact", group: "Business", hint: "A contact form and your details" },
+  cta: { label: "Button", group: "Layout", hint: "A link styled as a button" },
+  divider: { label: "Divider", group: "Layout", hint: "A thin horizontal line" },
+  spacer: { label: "Spacer", group: "Layout", hint: "Empty vertical space" },
+  embed: { label: "Embed / custom code", group: "Layout", hint: "Paste an embed (YouTube, Maps). Scripts are removed." },
+};
+
+// Sanity: every section type has a catalog entry (tsc enforces the keys; this catches a runtime drift).
+for (const t of SECTION_TYPES) {
+  if (!SECTION_META[t]) throw new Error(`pages.ts SECTION_META is missing section type "${t}"`);
+}
+
+const FIELD_LABELS: Record<string, string> = {
+  eyebrow: "Small line above the title",
+  title: "Title",
+  subtitle: "Subtitle",
+  heading: "Heading",
+  html: "Text",
+  ctaLabel: "Button text",
+  ctaHref: "Button goes to",
+  secondaryLabel: "Second button text",
+  secondaryHref: "Second button goes to",
+  stats: "Numbers",
+  value: "Number",
+  label: "Label",
+  items: "Items",
+  imageId: "Image",
+  url: "Image web address (optional)",
+  alt: "Description for screen readers (alt text)",
+  caption: "Caption",
+  icon: "Emoji or symbol (optional)",
+  body: "Text",
+  href: "Goes to",
+  price: "Price",
+  q: "Question",
+  a: "Answer",
+  quote: "Quote",
+  author: "Who said it",
+  source: "Photos come from",
+  gallerySlug: "Gallery address (when photos come from a gallery)",
+  limit: "How many to show",
+  when: "When",
+  where: "Where",
+  address: "Address",
+  mapUrl: "Map link",
+  note: "Directions or notes",
+  formSlug: "Which form",
+  showDetails: "Show contact details next to the form",
+  projectType: "Project type",
+  submitLabel: "Submit button text",
+  kind: "Look",
+  height: "Height (pixels)",
+};
+
+const ITEM_NOUNS: Partial<Record<SectionType, string>> = {
+  hero: "Number",
+  image: "Image",
+  feature_grid: "Card",
+  faq: "Question",
+  testimonials: "Quote",
+  gallery: "Photo",
+};
+
+const LINK_FIELDS = new Set(["href", "ctaHref", "secondaryHref", "mapUrl"]);
+
+export type CatalogField = {
+  name: string;
+  label: string;
+  kind: "text" | "html" | "link" | "image" | "number" | "boolean" | "select" | "items";
+  required?: boolean;
+  multiline?: boolean;
+  maxLength?: number;
+  min?: number;
+  max?: number;
+  options?: string[];
+  default?: unknown;
+  noun?: string;
+  maxItems?: number;
+  itemFields?: CatalogField[];
+};
+
+type ZodAny = z.ZodTypeAny;
+
+function unwrapZod(t: ZodAny): { inner: ZodAny; optional: boolean; def: unknown } {
+  let optional = false;
+  let def: unknown = undefined;
+  for (let guard = 0; guard < 10; guard++) {
+    const name = String(t._def?.typeName ?? "");
+    if (name === "ZodOptional" || name === "ZodNullable") {
+      optional = true;
+      t = t._def.innerType;
+      continue;
+    }
+    if (name === "ZodDefault") {
+      optional = true;
+      def = t._def.defaultValue();
+      t = t._def.innerType;
+      continue;
+    }
+    if (name === "ZodEffects") {
+      t = t._def.schema;
+      continue;
+    }
+    break;
+  }
+  return { inner: t, optional, def };
+}
+
+function zodCheck(t: ZodAny, kind: string): number | undefined {
+  const checks = (t._def?.checks ?? []) as { kind: string; value?: number }[];
+  const found = checks.find((ch) => ch.kind === kind);
+  return typeof found?.value === "number" ? found.value : undefined;
+}
+
+function humanize(name: string): string {
+  const spaced = name.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/_/g, " ");
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+function catalogField(type: SectionType, name: string, schema: ZodAny): CatalogField | null {
+  const { inner, optional, def } = unwrapZod(schema);
+  const typeName = String(inner._def?.typeName ?? "");
+  const base: CatalogField = { name, label: FIELD_LABELS[name] ?? humanize(name), kind: "text", required: !optional };
+  if (def !== undefined) base.default = def;
+  if (typeName === "ZodString") {
+    const max = zodCheck(inner, "max");
+    if (max !== undefined) base.maxLength = max;
+    if (name === "imageId") base.kind = "image";
+    else if (LINK_FIELDS.has(name)) base.kind = "link";
+    else if (name === "html" && type !== "embed") base.kind = "html";
+    else {
+      base.kind = "text";
+      if ((max !== undefined && max >= 300) || (name === "html" && type === "embed")) base.multiline = true;
+    }
+    return base;
+  }
+  if (typeName === "ZodNumber") {
+    base.kind = "number";
+    const min = zodCheck(inner, "min");
+    const max = zodCheck(inner, "max");
+    if (min !== undefined) base.min = min;
+    if (max !== undefined) base.max = max;
+    return base;
+  }
+  if (typeName === "ZodBoolean") {
+    base.kind = "boolean";
+    return base;
+  }
+  if (typeName === "ZodEnum") {
+    base.kind = "select";
+    base.options = [...(inner._def.values as string[])];
+    return base;
+  }
+  if (typeName === "ZodArray") {
+    const element = unwrapZod(inner._def.type as ZodAny).inner;
+    if (String(element._def?.typeName ?? "") !== "ZodObject") return null;
+    base.kind = "items";
+    base.noun = ITEM_NOUNS[type] ?? "Item";
+    const maxLen = inner._def.maxLength?.value;
+    if (typeof maxLen === "number") base.maxItems = maxLen;
+    base.itemFields = [];
+    for (const [k, v] of Object.entries((element as z.ZodObject<z.ZodRawShape>).shape)) {
+      const f = catalogField(type, k, v as ZodAny);
+      if (f) base.itemFields.push(f);
+    }
+    return base;
+  }
+  return null;
+}
+
+export type CatalogType = {
+  type: SectionType;
+  label: string;
+  group: string;
+  hint: string;
+  variants: string[];
+  fields: CatalogField[];
+  defaults: Record<string, unknown>;
+};
+
+export const STYLE_OPTIONS = {
+  bg: ["none", "tint", "brand", "dark", "image", "pattern"],
+  width: ["narrow", "normal", "wide", "full"],
+  spacing: ["tight", "normal", "airy"],
+  align: ["left", "center"],
+  media: ["left", "right", "top"],
+} as const;
+
+let catalogCache: CatalogType[] | null = null;
+
+/** Walk sectionSchema once; the result is static for the Worker's lifetime. */
+export function sectionCatalog(): CatalogType[] {
+  if (catalogCache) return catalogCache;
+  const out: CatalogType[] = [];
+  for (const option of sectionSchema.options) {
+    const shape = (option as z.ZodObject<z.ZodRawShape>).shape;
+    const typeLiteral = unwrapZod(shape.type as ZodAny).inner;
+    const type = String(typeLiteral._def?.value ?? "") as SectionType;
+    if (!SECTION_TYPE_SET.has(type)) continue;
+    const meta = SECTION_META[type];
+    const fields: CatalogField[] = [];
+    const defaults: Record<string, unknown> = {};
+    for (const [name, fieldSchema] of Object.entries(shape)) {
+      if (name === "type" || name === "id" || name === "style" || name === "variant") continue;
+      const f = catalogField(type, name, fieldSchema as ZodAny);
+      if (!f) continue;
+      fields.push(f);
+      if (f.default !== undefined) defaults[name] = f.default;
+    }
+    out.push({
+      type,
+      label: meta.label,
+      group: meta.group,
+      hint: meta.hint,
+      variants: [...(SECTION_VARIANTS[type] ?? [""])],
+      fields,
+      defaults,
+    });
+  }
+  // Present in SECTION_TYPES order so the palette is stable.
+  out.sort((a, b) => SECTION_TYPES.indexOf(a.type) - SECTION_TYPES.indexOf(b.type));
+  catalogCache = out;
+  return out;
+}
+
 function dbFailure(c: Ctx, what: string, err: unknown) {
   const tenant = c.get("tenant");
   console.error(`[pages] ${what} failed`, {
@@ -406,7 +843,7 @@ pageRoutes.get("/", async (c) => {
   // rather than as a silently narrower result set.
   try {
     const rows = await all<PageRow & { has_draft: number }>(c.env.DB.prepare(sql).bind(...binds));
-    return c.json(rows.map((r) => ({ ...r, revision: revisionOf(r) })));
+    return c.json(rows.map((r) => ({ ...r, revision: revisionOf(r), format: documentFormatOfJson(r.blocks_json) })));
   } catch (err) {
     return dbFailure(c, "list pages", err);
   }
@@ -420,12 +857,28 @@ pageRoutes.post("/preview", async (c) => {
   if (!raw.ok) return raw.response;
   const parsed = previewSchema.safeParse(raw.json);
   if (!parsed.success) return validationError(c, parsed.error);
-  const strict = parseBlocksStrict(c, parsed.data.blocks);
-  if (!strict.ok) return strict.response;
+  const doc = parseDocument(c, parsed.data.blocks);
+  if (!doc.ok) return doc.response;
+  const out: Record<string, unknown> = { html: documentHtml(c, doc.doc), format: doc.doc.format };
+  if (doc.doc.format === "sections") {
+    // The editor canvas scopes /qh-site.css under its own element; hand it
+    // the tenant's design tokens (and font stylesheet) so sections look like
+    // the live site there too.
+    const design = tenantDesign(c);
+    out.designVars = buildDesignVars(design);
+    out.fontsHref = designFontsHref(design);
+  }
+  return c.json(out, 200, { "Cache-Control": "no-store", "X-Robots-Tag": "noindex" });
+});
+
+// GET /api/tenants/:tenantId/pages/section-catalog — the section library
+// (types, groups, variants, fields) the editor builds its palette and props
+// panel from. Static: derived from sectionSchema at first call.
+pageRoutes.get("/section-catalog", (c) => {
   return c.json(
-    { html: blocksToHtml(strict.blocks) },
+    { groups: SECTION_GROUPS, style: STYLE_OPTIONS, types: sectionCatalog() },
     200,
-    { "Cache-Control": "no-store", "X-Robots-Tag": "noindex" }
+    { "Cache-Control": "private, max-age=300" }
   );
 });
 
@@ -500,11 +953,11 @@ pageRoutes.post("/", async (c) => {
   }
   if (RESERVED_SLUGS.has(slug)) return reservedSlugError(c, slug);
 
-  let blocks: PageBlock[] = [];
+  let doc: PageDocument = { format: "blocks", items: [] };
   if (body.blocks !== undefined) {
-    const strict = parseBlocksStrict(c, body.blocks);
-    if (!strict.ok) return strict.response;
-    blocks = strict.blocks;
+    const parsedDoc = parseDocument(c, body.blocks);
+    if (!parsedDoc.ok) return parsedDoc.response;
+    doc = parsedDoc.doc;
   }
 
   const dupe = await first(
@@ -521,12 +974,7 @@ pageRoutes.post("/", async (c) => {
   // readers that only know content_json (older portal code) see the current
   // content instead of an empty page.
   const contentJson = JSON.stringify({
-    html:
-      body.content_html !== undefined
-        ? body.content_html
-        : blocks.length
-          ? blocksToHtml(blocks)
-          : "",
+    html: body.content_html !== undefined ? body.content_html : documentHtml(c, doc),
   });
   const pageType = body.page_type === "blog_post" ? "blog_post" : "page";
   const published = body.published === false ? 0 : 1;
@@ -551,7 +999,7 @@ pageRoutes.post("/", async (c) => {
         slug,
         body.title,
         contentJson,
-        blocks.length ? JSON.stringify(blocks) : null,
+        documentJson(doc),
         pageType,
         body.show_in_nav === false ? 0 : 1,
         cleanOptionalText(body.nav_label ?? null),
@@ -573,14 +1021,14 @@ pageRoutes.post("/", async (c) => {
   const page = await first<PageRow>(
     c.env.DB.prepare("SELECT * FROM pages WHERE id = ?").bind(id)
   );
-  return c.json({ ...page, revision: page ? revisionOf(page) : 1 }, 201);
+  return c.json({ ...page, revision: page ? revisionOf(page) : 1, format: doc.format }, 201);
 });
 
 // GET /api/tenants/:tenantId/pages/:pageId — full row incl. draft (trashed rows included)
 pageRoutes.get("/:pageId", async (c) => {
   const row = await loadPage(c, c.req.param("pageId"));
   if (!row) return notFound(c);
-  return c.json(serializePage(row));
+  return c.json(serializeDocument(row));
 });
 
 // PATCH /api/tenants/:tenantId/pages/:pageId — legacy live write
@@ -629,14 +1077,14 @@ pageRoutes.patch("/:pageId", async (c) => {
   //      HTML was still sitting in content_json and a page the customer
   //      emptied would resurrect its old content.
   if (body.blocks !== undefined) {
-    const strict = parseBlocksStrict(c, body.blocks);
-    if (!strict.ok) return strict.response;
-    const blocks = strict.blocks;
-    set("blocks_json", blocks.length ? JSON.stringify(blocks) : null);
+    const parsedDoc = parseDocument(c, body.blocks);
+    if (!parsedDoc.ok) return parsedDoc.response;
+    const doc = parsedDoc.doc;
+    set("blocks_json", documentJson(doc));
     if (body.content_html !== undefined) {
       set("content_json", JSON.stringify({ html: body.content_html }));
     } else {
-      set("content_json", JSON.stringify({ html: blocks.length ? blocksToHtml(blocks) : "" }));
+      set("content_json", JSON.stringify({ html: documentHtml(c, doc) }));
     }
   } else if (body.content_html !== undefined) {
     set("content_json", JSON.stringify({ html: body.content_html }));
@@ -670,7 +1118,11 @@ pageRoutes.patch("/:pageId", async (c) => {
   const page = await first<PageRow>(
     c.env.DB.prepare("SELECT * FROM pages WHERE id = ?").bind(pageId)
   );
-  const out = { ...page, revision: page ? revisionOf(page) : expected + 1 };
+  const out = {
+    ...page,
+    revision: page ? revisionOf(page) : expected + 1,
+    format: documentFormatOfJson(page?.blocks_json),
+  };
   if (nextSlug !== null && nextSlug !== existing.slug) {
     return c.json({ ...out, previous_slug: existing.slug });
   }
@@ -742,7 +1194,7 @@ pageRoutes.post("/:pageId/restore", async (c) => {
   }
   const page = await loadPage(c, pageId);
   if (!page) return notFound(c);
-  return c.json(serializePage(page));
+  return c.json(serializeDocument(page));
 });
 
 // PUT /api/tenants/:tenantId/pages/:pageId/draft — autosave (one UPDATE)
@@ -754,8 +1206,8 @@ pageRoutes.put("/:pageId/draft", async (c) => {
   const parsed = draftSchema.safeParse(raw.json);
   if (!parsed.success) return validationError(c, parsed.error);
   const body = parsed.data;
-  const strict = parseBlocksStrict(c, body.blocks);
-  if (!strict.ok) return strict.response;
+  const parsedDoc = parseDocument(c, body.blocks);
+  if (!parsedDoc.ok) return parsedDoc.response;
 
   const now = new Date().toISOString();
   // Cheap by design: no pre-read, no revision snapshot. The optional
@@ -764,7 +1216,8 @@ pageRoutes.put("/:pageId/draft", async (c) => {
   // row to say WHY (404 / trashed / 409).
   const guard = body.revision !== undefined ? " AND revision = ?" : "";
   const binds: unknown[] = [
-    JSON.stringify(strict.blocks),
+    // A draft is stored even when empty ("[]" is a draft; NULL is "no draft").
+    JSON.stringify(parsedDoc.doc.items),
     body.title ?? null,
     now,
     pageId,
@@ -794,6 +1247,7 @@ pageRoutes.put("/:pageId/draft", async (c) => {
     revision: revisionOf(row),
     draft_updated_at: row.draft_updated_at,
     has_draft: 1,
+    format: parsedDoc.doc.format,
   });
 });
 
@@ -852,17 +1306,17 @@ pageRoutes.post("/:pageId/publish", async (c) => {
   // else the stored draft, else the current live content (metadata-only
   // republish).
   let source: "body" | "draft" | "live";
-  let blocks: PageBlock[];
+  let doc: PageDocument;
   if (body.blocks !== undefined) {
-    const strict = parseBlocksStrict(c, body.blocks);
-    if (!strict.ok) return strict.response;
-    blocks = strict.blocks;
+    const parsedDoc = parseDocument(c, body.blocks);
+    if (!parsedDoc.ok) return parsedDoc.response;
+    doc = parsedDoc.doc;
     source = "body";
   } else if (existing.draft_blocks_json != null) {
-    blocks = blocksFromJson(existing.draft_blocks_json);
+    doc = documentFromJson(existing.draft_blocks_json);
     source = "draft";
   } else {
-    blocks = blocksFromJson(existing.blocks_json);
+    doc = documentFromJson(existing.blocks_json);
     source = "live";
   }
   const title =
@@ -883,9 +1337,9 @@ pageRoutes.post("/:pageId/publish", async (c) => {
   if (nextSlug !== null) set("slug", nextSlug);
   // A live republish of a legacy page (no blocks, only content_json HTML)
   // must not blank its content; every other case re-renders from blocks.
-  if (source !== "live" || blocks.length) {
-    set("blocks_json", blocks.length ? JSON.stringify(blocks) : null);
-    set("content_json", JSON.stringify({ html: blocks.length ? blocksToHtml(blocks) : "" }));
+  if (source !== "live" || doc.items.length) {
+    set("blocks_json", documentJson(doc));
+    set("content_json", JSON.stringify({ html: documentHtml(c, doc) }));
   }
   applyMetadata(body, set);
   const now = new Date().toISOString();
@@ -931,7 +1385,7 @@ pageRoutes.post("/:pageId/publish", async (c) => {
 
   const page = await loadPage(c, pageId);
   if (!page) return notFound(c);
-  const out = serializePage(page);
+  const out = serializeDocument(page);
   if (nextSlug !== null && nextSlug !== existing.slug) out.previous_slug = existing.slug;
   return c.json(out);
 });
@@ -982,7 +1436,13 @@ async function loadRevision(c: Ctx, pageId: string, rid: string): Promise<PageRe
 pageRoutes.get("/:pageId/revisions/:rid", async (c) => {
   const rev = await loadRevision(c, c.req.param("pageId"), c.req.param("rid"));
   if (!rev) return c.json({ error: "Revision not found" }, 404);
-  return c.json({ ...rev, blocks: revisionBlocks(rev) });
+  const doc = revisionDocument(rev);
+  return c.json({
+    ...rev,
+    format: doc.format,
+    blocks: doc.format === "blocks" ? doc.items : [],
+    sections: doc.format === "sections" ? doc.items : null,
+  });
 });
 
 // POST /api/tenants/:tenantId/pages/:pageId/revisions/:rid/restore
@@ -1007,7 +1467,7 @@ pageRoutes.post("/:pageId/revisions/:rid/restore", async (c) => {
   if (!rev) return c.json({ error: "Revision not found" }, 404);
 
   const now = new Date().toISOString();
-  const blocks = revisionBlocks(rev);
+  const restored = revisionDocument(rev);
   try {
     const results = await c.env.DB.batch([
       revisionSnapshotStatement(c.env.DB, {
@@ -1022,7 +1482,7 @@ pageRoutes.post("/:pageId/revisions/:rid/restore", async (c) => {
       c.env.DB.prepare(
         `UPDATE pages SET draft_blocks_json = ?, draft_title = ?, draft_updated_at = ?, revision = ?
          WHERE id = ? AND tenant_id = ? AND revision = ?`
-      ).bind(JSON.stringify(blocks), rev.title, now, expected + 1, pageId, tenant.id, expected),
+      ).bind(JSON.stringify(restored.items), rev.title, now, expected + 1, pageId, tenant.id, expected),
       pruneRevisionsStatement(c.env.DB, tenant.id, pageId),
     ]);
     if (lostRace(results[1])) return revisionConflict(c, await currentRevision(c, pageId));
@@ -1053,10 +1513,10 @@ pageRoutes.get("/:pageId/preview", async (c) => {
   let blocksJson = row.blocks_json;
   let contentJson = row.content_json;
   if (useDraft) {
-    const draftBlocks = blocksFromJson(row.draft_blocks_json);
+    const draft = documentFromJson(row.draft_blocks_json);
     title = row.draft_title || row.title;
-    blocksJson = JSON.stringify(draftBlocks);
-    contentJson = JSON.stringify({ html: blocksToHtml(draftBlocks) });
+    blocksJson = JSON.stringify(draft.items);
+    contentJson = JSON.stringify({ html: documentHtml(c, draft) });
   }
   const headers: Record<string, string> = {
     "Cache-Control": "no-store",
@@ -1084,13 +1544,13 @@ pageRoutes.get("/:pageId/preview", async (c) => {
     });
   }
 
-  return c.json(
-    {
-      title,
-      slug: row.slug,
-      html: contentFromPage({ blocks_json: blocksJson, content_json: contentJson }).html,
-    },
-    200,
-    headers
-  );
+  // A section document must not go through contentFromPage (parseBlocks
+  // would read a `hero` section as a hero block and drop the rest); render
+  // it standalone like content_json's snapshot.
+  const shown = documentFromJson(blocksJson);
+  const html =
+    shown.format === "sections"
+      ? documentHtml(c, shown)
+      : contentFromPage({ blocks_json: blocksJson, content_json: contentJson }).html;
+  return c.json({ title, slug: row.slug, html, format: shown.format }, 200, headers);
 });

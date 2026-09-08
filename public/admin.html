@@ -2794,8 +2794,16 @@
          POST   /pages/:id/discard-draft
          GET    /pages/:id/revisions, GET /:id/revisions/:rid, POST /:id/revisions/:rid/restore (-> draft)
          DELETE /pages/:id (trash), POST /pages/:id/restore, DELETE /pages/:id?permanent=1
-         POST   /pages/preview { blocks } -> { html }          (production renderer)
+         POST   /pages/preview { blocks } -> { html, format[, designVars, fontsHref] }  (production renderer)
          GET    /pages/:id/preview?source=draft|live           (business: HTML doc; guild: { title, html, slug })
+         GET    /pages/section-catalog                         section types, groups, variants, fields, style options
+
+       Two document formats share the `blocks` payload: legacy block arrays
+       (WB_BLOCK_META) and section documents (every item has a `style`
+       object; src/lib/site/sections/schema.ts). The server detects the
+       format; the editor keeps whichever the page has (WB.format) and shows
+       the matching palette and settings panel. New pages start as sections
+       unless the guild is on the classic renderer.
        ================================================================ */
 
     // Block catalogue. Field names mirror the PageBlock union in
@@ -2833,6 +2841,53 @@
     ];
     // Mirrors the project_intake allowlist in parseBlocks (src/lib/blocks.ts).
     const WB_PROJECT_TYPES = [["longarm", "Longarm quilting"], ["custom_quilt", "Custom quilt"], ["tshirt_quilt", "T-shirt quilt"]];
+
+    // Section documents (the new site renderer, src/lib/site/sections/).
+    // Labels, groups, variants and fields come from GET /pages/section-catalog
+    // (derived from the zod schema server-side); only icons, friendlier option
+    // labels, and the starter content for a freshly added section live here.
+    const WB_SECTION_ICONS = {
+      hero: "★", rich_text: "¶", image: "▣", feature_grid: "▦", faq: "?", membership_levels: "◈", join_band: "✦",
+      meeting_info: "⌂", events: "◷", gallery: "▤", testimonials: "❝", blog_teaser: "✎", quote_cta: "✉", store_teaser: "$",
+      contact: "@", cta: "▢", divider: "—", spacer: "↕", embed: "</>",
+    };
+    const WB_VARIANT_LABELS = {
+      image: "Photo (full width)", split: "Split — photo beside text", pattern: "Quilt pattern band", minimal: "Minimal", stats: "Numbers strip",
+      prose: "Single column", two_column: "Two columns", with_image: "With a side image", single: "Single", full_bleed: "Full width", duo: "Two side by side",
+      cards: "Cards", icons: "Icons", numbered: "Numbered steps", grid: "Grid", masonry: "Masonry", list: "List", calendar: "Calendar", next_up: "Next up (one event)", compact: "Compact list",
+    };
+    const WB_STYLE_LABELS = {
+      bg: { none: "None", tint: "Light tint", brand: "Brand color", dark: "Dark", image: "Photo", pattern: "Quilt pattern" },
+      width: { narrow: "Narrow", normal: "Normal", wide: "Wide", full: "Full width" },
+      spacing: { tight: "Tight", normal: "Normal", airy: "Airy" },
+      align: { left: "Left", center: "Centered" },
+      media: { left: "Left", right: "Right", top: "Top" },
+    };
+    // Mirrors STYLE_OPTIONS in src/routes/pages.ts; the catalog's `style` wins when loaded.
+    const WB_STYLE_FALLBACK = {
+      bg: ["none", "tint", "brand", "dark", "image", "pattern"], width: ["narrow", "normal", "wide", "full"],
+      spacing: ["tight", "normal", "airy"], align: ["left", "center"], media: ["left", "right", "top"],
+    };
+    // Starter content for a new section: generic, not the fixture copy.
+    const WB_SECTION_DEFAULTS = {
+      hero: { title: "Welcome", subtitle: "A short line about who you are." },
+      rich_text: { html: "<p>Write your story here.</p>" },
+      image: { items: [] },
+      feature_grid: { items: [{ icon: "", title: "First item", body: "What it includes." }, { icon: "", title: "Second item", body: "What it includes." }] },
+      faq: { items: [{ q: "How do I get started?", a: "Send us a note and we will reply within a day." }] },
+      testimonials: { items: [{ quote: "Wonderful work and quick turnaround.", author: "A happy member" }] },
+      gallery: { source: "manual", items: [] },
+      events: { heading: "Upcoming events", limit: 6 },
+      membership_levels: { heading: "Membership" },
+      join_band: { title: "Become a member", body: "Dues support our programs, workshops and community projects.", ctaLabel: "Join" },
+      meeting_info: { heading: "When and where we meet", when: "Second Tuesday of the month, 6:30 PM", where: "Community hall" },
+      store_teaser: { heading: "From the store", limit: 6 },
+      blog_teaser: { heading: "News", limit: 3 },
+      contact: { heading: "Get in touch", formSlug: "contact", showDetails: true },
+      quote_cta: { projectType: "longarm", heading: "Request a quote", submitLabel: "Get my estimate" },
+      cta: { label: "Learn more", href: "/", kind: "primary" },
+      divider: {}, spacer: { height: 24 }, embed: { html: "" },
+    };
     // Mirrors FONT_OPTIONS keys/labels in src/lib/site/fonts.ts (duplicated on
     // purpose: the admin is a static page and cannot import Worker code).
     const WB_FONTS = [["inter", "Inter"], ["fraunces", "Fraunces"], ["playfair", "Playfair Display"],
@@ -2868,6 +2923,10 @@
       mode: "edit", previewWidth: "desktop", previewTimer: null, previewSeq: 0, previewReady: false,
       serverParts: null, files: null, forms: null, imgCache: {}, siteCssLoaded: false, canWrite: true,
       slugTouched: false, armed: {},
+      // Document format of the open page ("blocks" | "sections"), which
+      // renderer serves this tenant ("legacy" | "sections"), the section
+      // catalog (fetched once), and the design vars applied to the canvas.
+      format: "blocks", renderer: "sections", catalog: null, designVars: "",
     };
 
     function wbIsGuild() { return WB.tenantType !== "business"; }
@@ -2886,7 +2945,23 @@
     function wbTypesForTenant() {
       return wbIsGuild() ? WB_GUILD_TYPES : WB_BUSINESS_TYPES;
     }
-    function wbLabel(type) { return (WB_BLOCK_META[type] || {}).label || type; }
+    function wbIsSections() { return WB.format === "sections"; }
+    // A section item carries a `style` object (isSectionDocument's rule server-side).
+    function wbIsSectionItem(b) { return !!b && !!b.style && typeof b.style === "object" && !Array.isArray(b.style); }
+    function wbCatalogType(type) { return (WB.catalog && WB.catalog.types || []).find((t) => t.type === type) || null; }
+    // What an empty page becomes: sections on the new renderer, blocks on the classic one.
+    function wbDefaultFormat() { return WB.renderer === "legacy" ? "blocks" : "sections"; }
+    function wbDocFormat(items) {
+      if (items.some(wbIsSectionItem)) return "sections";
+      return items.length ? "blocks" : wbDefaultFormat();
+    }
+    function wbHumanize(s) { s = String(s || "").replace(/_/g, " "); return s.charAt(0).toUpperCase() + s.slice(1); }
+    function wbVariantLabel(v) { return WB_VARIANT_LABELS[v] || wbHumanize(v); }
+    function wbLabel(type) {
+      const cat = wbCatalogType(type);
+      if (wbIsSections() && cat) return cat.label;
+      return (WB_BLOCK_META[type] || {}).label || (cat && cat.label) || type;
+    }
 
     // Client-side clean-up for HTML shown inside the admin canvas (the server
     // sanitizes again before anything is stored or served).
@@ -2959,10 +3034,45 @@
       return b;
     }
 
+    // A new section: type + first variant + a fresh id + default style, then
+    // the schema's own defaults (from the catalog) and the starter content.
+    function wbSectionId() { return "s_" + Math.random().toString(36).slice(2, 10); }
+    function defaultSection(type) {
+      const cat = wbCatalogType(type);
+      const s = { type, ...((cat && cat.defaults) || {}), ...JSON.parse(JSON.stringify(WB_SECTION_DEFAULTS[type] || {})) };
+      const variants = ((cat && cat.variants) || []).filter((v) => v);
+      if (variants.length) s.variant = variants[0];
+      s.id = wbSectionId();
+      s.style = { bg: "none", width: "normal", spacing: "normal", align: "left", media: "right" };
+      return s;
+    }
+
+    // Local preview for a section while the production renderer round-trip
+    // is in flight: text-like sections show their content, everything else
+    // shows its label and title.
+    function sectionPreviewHtml(b) {
+      const ph = (text) => `<div class="wb-ph">${text}</div>`;
+      const label = wbLabel(b.type);
+      const title = b.title || b.heading || b.label || "";
+      switch (b.type) {
+        case "rich_text":
+          return `<div class="qh-block-text">${b.heading ? `<h2>${esc(b.heading)}</h2>` : ""}${wbSanitize(b.html) || "<p class='muted'>Empty text — select to write.</p>"}</div>`;
+        case "embed":
+          return b.html ? `<div class="qh-block-html">${wbSanitize(b.html, true)}</div>` : ph(`${esc(label)} — paste an embed in the panel on the right.`);
+        case "spacer":
+          return `<div class="wb-spacer" style="height:${Number(b.height) || 24}px"></div>`;
+        case "divider":
+          return `<hr />`;
+        default:
+          return ph(esc(label) + (title ? ` — ${esc(title)}` : ""));
+      }
+    }
+
     // Local (instant) preview used while the production renderer round-trip
     // is in flight, and as the fallback when the request fails.
     function blockPreviewHtml(b) {
       if (!b) return "";
+      if (wbIsSectionItem(b)) return sectionPreviewHtml(b);
       const ph = (text) => `<div class="wb-ph">${text}</div>`;
       switch (b.type) {
         case "heading": {
@@ -3014,6 +3124,9 @@
     // skips an image with no valid URL). Used to align POST /preview output
     // with the blocks array.
     function wbRenders(b) {
+      // Every section renders one wrapper (empty state included); a section
+      // document also normalizes any legacy block in it to a section.
+      if (wbIsSections()) return true;
       if (b.type === "image") return /^(https?:\/\/|\/|\.\.?\/)/.test(String(b.url || ""));
       return true;
     }
@@ -4006,12 +4119,21 @@
       try {
         // Always refetch: the theme (Appearance / Look & feel) and the page
         // list may have changed since the editor was last open.
-        const [tenantRow, siteSettings, pageRows] = await Promise.all([
-          wbIsGuild() ? Promise.resolve(null) : api(`/api/tenants/${tenantId}`).catch(() => null),
+        // The tenant row tells us which renderer serves the site (guild
+        // settings.site.renderer; a business is always on the new one) and,
+        // for a business, its legacy theme for the canvas.
+        const [tenantRow, siteSettings, pageRows, catalog] = await Promise.all([
+          api(`/api/tenants/${tenantId}`).catch(() => null),
           wbIsGuild() ? api(`${wbBase()}/site/settings`).catch(() => null) : Promise.resolve(null),
           api(wbBase()).catch(() => []),
+          WB.catalog ? Promise.resolve(WB.catalog) : api(`${wbBase()}/section-catalog`).catch(() => null),
         ]);
-        if (tenantRow) { try { WB.settings = JSON.parse(tenantRow.settings_json || "{}"); } catch { WB.settings = {}; } }
+        let tenantSettings = null;
+        if (tenantRow) { try { tenantSettings = JSON.parse(tenantRow.settings_json || "{}"); } catch { tenantSettings = {}; } }
+        if (tenantSettings && !wbIsGuild()) WB.settings = tenantSettings;
+        const siteCfg = tenantSettings && tenantSettings.site && typeof tenantSettings.site === "object" ? tenantSettings.site : {};
+        WB.renderer = wbIsGuild() && siteCfg.renderer === "legacy" ? "legacy" : "sections";
+        if (catalog && Array.isArray(catalog.types)) WB.catalog = catalog;
         if (siteSettings) WB.site = { theme: siteSettings.theme || {}, nav: siteSettings.nav || [] };
         WB.pages = asList(pageRows, "pages").filter((p) => (p.page_type || "page") !== "blog_post");
         if (pageOrNull && pageOrNull.id) {
@@ -4019,16 +4141,25 @@
           WB.page = row;
           WB.revision = row.revision ?? null;
           WB.hasDraft = !!row.has_draft;
-          let blocks = WB.hasDraft && Array.isArray(row.draft_blocks) ? row.draft_blocks : row.blocks;
+          // A section document comes back as `sections` / `draft_sections`
+          // (with `blocks` / `draft_blocks` empty); a block document the other
+          // way round. Either way the editor works on one array.
+          const draftDoc = WB.hasDraft ? (row.draft_format === "sections" ? row.draft_sections : row.draft_blocks) : null;
+          const liveDoc = row.format === "sections" ? row.sections : row.blocks;
+          let blocks = Array.isArray(draftDoc) ? draftDoc : liveDoc;
           if (!Array.isArray(blocks)) {
             try { blocks = row.blocks_json ? JSON.parse(row.blocks_json) : []; } catch { blocks = []; }
           }
           if (!Array.isArray(blocks)) blocks = [];
           if (!blocks.length) {
-            // Legacy rich-text page: seed one text block from content_json.
-            try { const html = JSON.parse(row.content_json || "{}").html; if (html) blocks = [{ type: "text", html }]; } catch {}
+            // Legacy rich-text page: seed one text block (or text section) from content_json.
+            try {
+              const html = JSON.parse(row.content_json || "{}").html;
+              if (html) blocks = wbDefaultFormat() === "sections" ? [{ ...defaultSection("rich_text"), html }] : [{ type: "text", html }];
+            } catch {}
           }
           WB.blocks = blocks;
+          WB.format = wbDocFormat(blocks);
           WB.meta = {
             title: row.title || "", slug: row.slug || "", published: !!row.published,
             show_in_nav: row.show_in_nav !== 0, nav_label: row.nav_label || "", is_members_only: !!row.is_members_only,
@@ -4037,6 +4168,7 @@
         } else {
           WB.meta = { title: "", slug: "", published: false, show_in_nav: true, nav_label: "", is_members_only: false, seo_title: "", seo_description: "", noindex: false };
           WB.blocks = [];
+          WB.format = wbDefaultFormat();
         }
       } catch (e) {
         el.innerHTML = `<p class="error">${esc(e.message)}</p><button type="button" class="secondary" onclick="WB.onBack()">← Back</button>`;
@@ -4099,14 +4231,7 @@
           <div class="wb-grid" id="wb-edit-mode">
             <aside class="wb-palette" aria-label="Add a section">
               <h4>Add a section</h4>
-              ${WB_GROUPS.map((g) => {
-                const types = g.types.filter((t) => wbTypesForTenant().includes(t));
-                if (!types.length) return "";
-                return `<h5>${esc(g.name)}</h5>${types.map((t) => `
-                  <button type="button" class="wb-chip" draggable="true" data-type="${t}" title="${esc(WB_BLOCK_META[t].hint)}">
-                    <span class="ico" aria-hidden="true">${WB_BLOCK_META[t].icon}</span><span>${esc(WB_BLOCK_META[t].label)}</span>
-                  </button>`).join("")}`;
-              }).join("")}
+              ${wbPaletteHtml()}
               <p class="muted" style="font-size:0.75rem;margin-top:0.75rem">Click to add at the end, or drag onto the page.</p>
             </aside>
             <div class="wb-canvas-wrap">
@@ -4193,6 +4318,29 @@
         note.classList.remove("hidden");
       }
       applyReadOnlyState("pages");
+    }
+
+    // Palette: the 19 section types grouped from the catalog for a section
+    // document; the classic block list for a block document.
+    function wbPaletteHtml() {
+      const chip = (type, label, icon, hint) => `
+                  <button type="button" class="wb-chip" draggable="true" data-type="${esc(type)}" title="${esc(hint || "")}">
+                    <span class="ico" aria-hidden="true">${icon}</span><span>${esc(label)}</span>
+                  </button>`;
+      if (wbIsSections()) {
+        const cat = WB.catalog;
+        if (!cat) return `<p class="muted" style="font-size:0.8rem">The section list could not be loaded. Reload the page to try again.</p>`;
+        return (cat.groups || []).map((g) => {
+          const types = cat.types.filter((t) => t.group === g);
+          if (!types.length) return "";
+          return `<h5>${esc(g)}</h5>${types.map((t) => chip(t.type, t.label, WB_SECTION_ICONS[t.type] || "▪", t.hint)).join("")}`;
+        }).join("");
+      }
+      return WB_GROUPS.map((g) => {
+        const types = g.types.filter((t) => wbTypesForTenant().includes(t));
+        if (!types.length) return "";
+        return `<h5>${esc(g.name)}</h5>${types.map((t) => chip(t, WB_BLOCK_META[t].label, WB_BLOCK_META[t].icon, WB_BLOCK_META[t].hint)).join("")}`;
+      }).join("");
     }
 
     function wbSlugPreview() {
@@ -4336,7 +4484,7 @@
       const next = wbSnapshot();
       const idx = at == null ? next.length : Math.max(0, Math.min(at, next.length));
       if (next.length >= 80) { wbShowIssues([{ path: "blocks", message: "A page can have at most 80 sections." }]); return; }
-      next.splice(idx, 0, defaultBlock(type));
+      next.splice(idx, 0, wbIsSections() ? defaultSection(type) : defaultBlock(type));
       WB.selected = idx;
       wbCommit(next);
       wbRenderProps();
@@ -4379,7 +4527,9 @@
     function wbDuplicateBlock(i) {
       const next = wbSnapshot();
       if (!next[i]) return;
-      next.splice(i + 1, 0, JSON.parse(JSON.stringify(next[i])));
+      const copy = JSON.parse(JSON.stringify(next[i]));
+      if (wbIsSectionItem(copy)) copy.id = wbSectionId(); // section ids are unique per page
+      next.splice(i + 1, 0, copy);
       WB.selected = i + 1;
       wbCommit(next);
       wbRenderProps();
@@ -4549,6 +4699,7 @@
       try {
         const res = await api(`${wbBase()}/preview`, { method: "POST", body: JSON.stringify({ blocks }) });
         if (seq !== WB.previewSeq || WB.view !== "editor") return;
+        if (res.designVars) wbApplyDesignVars(res.designVars, res.fontsHref);
         const doc = new DOMParser().parseFromString(`<div>${res.html || ""}</div>`, "text/html");
         const nodes = [...doc.body.firstElementChild.children];
         const expected = blocks.filter(wbRenders).length;
@@ -4568,6 +4719,27 @@
           }
         });
       } catch { /* keep local previews */ }
+    }
+    // Section pages are styled by --qh-* design tokens the renderer puts on
+    // :root; POST /preview hands them over so the scoped /qh-site.css in the
+    // canvas sees the tenant's real palette and type pair.
+    function wbApplyDesignVars(vars, fontsHref) {
+      const page = document.getElementById("wb-page");
+      if (!page) return;
+      if (WB.designVars !== vars) {
+        WB.designVars = vars;
+        String(vars).split(";").forEach((decl) => {
+          const at = decl.indexOf(":");
+          if (at <= 0) return;
+          const name = decl.slice(0, at).trim();
+          if (/^--qh-[a-z0-9-]+$/.test(name)) page.style.setProperty(name, decl.slice(at + 1).trim());
+        });
+      }
+      if (fontsHref && /^https:\/\/fonts\.googleapis\.com\//.test(fontsHref) && ![...document.querySelectorAll("link[data-wb-fonts]")].some((l) => l.href === fontsHref)) {
+        const link = document.createElement("link");
+        link.rel = "stylesheet"; link.href = fontsHref; link.dataset.wbFonts = "1";
+        document.head.appendChild(link);
+      }
     }
 
     /* ---------- properties panel ---------- */
@@ -4589,6 +4761,11 @@
       }
       h.textContent = `${wbLabel(b.type)} · section ${i + 1}`;
       panel.appendChild(h);
+      if (wbIsSectionItem(b)) {
+        wbRenderSectionProps(panel, i, b);
+        wbPropsActions(panel, i);
+        return;
+      }
       if (WB_BLOCK_META[b.type] && WB_BLOCK_META[b.type].hint) {
         const hint = document.createElement("p"); hint.className = "muted"; hint.style.fontSize = "0.8rem"; hint.style.margin = "0 0 0.5rem"; hint.textContent = WB_BLOCK_META[b.type].hint; panel.appendChild(hint);
       }
@@ -4686,6 +4863,9 @@
           const p = document.createElement("p"); p.className = "muted"; p.textContent = "This section has no settings."; panel.appendChild(p);
         }
       }
+      wbPropsActions(panel, i);
+    }
+    function wbPropsActions(panel, i) {
       const actions = document.createElement("div");
       actions.className = "wb-props-actions";
       const mk = (label, fn, danger) => { const btn = document.createElement("button"); btn.type = "button"; btn.className = "secondary"; if (danger) btn.style.color = "var(--danger)"; btn.textContent = label; btn.addEventListener("click", fn); actions.appendChild(btn); };
@@ -4693,6 +4873,101 @@
       mk("Hide", () => wbRemoveBlock(i, true));
       mk("Delete section", () => wbRemoveBlock(i, false), true);
       panel.appendChild(actions);
+    }
+
+    // Schema-driven settings for a section: layout (variant), every content
+    // field the catalog lists for the type, then a Style row. Reads live
+    // values from WB.blocks[i] so a second change never overwrites the first.
+    function wbRenderSectionProps(panel, i, b) {
+      const def = wbCatalogType(b.type);
+      const note = (text) => { const p = document.createElement("p"); p.className = "muted"; p.style.fontSize = "0.8rem"; p.style.margin = "0 0 0.5rem"; p.textContent = text; panel.appendChild(p); };
+      if (!def) {
+        note(WB.catalog ? "This section type is not in the section list; it will still be published as it is." : "Settings for this section could not be loaded. Reload the page to try again.");
+        return;
+      }
+      if (def.hint) note(def.hint);
+      const set = (patch, key) => wbPatchBlock(i, patch, key);
+      const live = () => WB.blocks[i] || b;
+      const variants = (def.variants || []).filter((v) => v);
+      if (variants.length > 1) {
+        panel.appendChild(wbSelectField("Layout", b.variant || variants[0], variants.map((v) => [v, wbVariantLabel(v)]), (v) => set({ variant: v })));
+      }
+      (def.fields || []).forEach((f) => {
+        const el = wbSectionField(i, b, f, set);
+        if (el) panel.appendChild(el);
+      });
+      // Style row.
+      const box = document.createElement("fieldset");
+      box.className = "wb-item";
+      const legend = document.createElement("legend"); legend.textContent = "Style"; box.appendChild(legend);
+      const styleOpts = (WB.catalog && WB.catalog.style) || WB_STYLE_FALLBACK;
+      const styleSel = (label, key) => {
+        const options = (styleOpts[key] || WB_STYLE_FALLBACK[key]).map((v) => [v, (WB_STYLE_LABELS[key] || {})[v] || wbHumanize(v)]);
+        box.appendChild(wbSelectField(label, (b.style || {})[key], options, (v) => set({ style: { ...(live().style || {}), [key]: v } })));
+      };
+      styleSel("Background", "bg");
+      styleSel("Width", "width");
+      styleSel("Spacing", "spacing");
+      styleSel("Text alignment", "align");
+      styleSel("Image side", "media");
+      box.appendChild(wbImageField("Background or side image", b.style && b.style.imageId ? wbImageUrl(b.style.imageId) : "", (url) => {
+        const style = { ...(live().style || {}) };
+        const id = wbFileIdFromUrl(url);
+        if (id) style.imageId = id; else delete style.imageId;
+        set({ style });
+      }));
+      const hint = document.createElement("p"); hint.className = "wb-hint";
+      hint.textContent = "Photo backgrounds use this image; split heroes and text-with-image sections show it beside the text.";
+      box.appendChild(hint);
+      panel.appendChild(box);
+    }
+    function wbSectionField(i, b, f, set) {
+      const name = f.name;
+      const val = b[name];
+      const opts = { maxlength: f.maxLength, textarea: !!f.multiline, altHint: name === "alt" };
+      switch (f.kind) {
+        case "html":
+          return wbRichEditor(val || "", (html) => set({ [name]: html }, name));
+        case "link":
+          return wbLinkField(f.label, val || "", (v) => set({ [name]: v }, name));
+        case "image":
+          return wbImageField(f.label, val ? wbImageUrl(val) : "", (url) => set({ [name]: wbFileIdFromUrl(url) || undefined }));
+        case "number": {
+          const dflt = f.default != null ? f.default : (f.min != null ? f.min : 0);
+          return wbTextField(f.label, val == null ? dflt : val, (v) => {
+            const n = Number(v);
+            let next = v === "" || !Number.isFinite(n) ? dflt : Math.round(n);
+            if (f.min != null) next = Math.max(f.min, next);
+            if (f.max != null) next = Math.min(f.max, next);
+            set({ [name]: next }, name);
+          }, { type: "number", min: f.min, max: f.max });
+        }
+        case "boolean": {
+          const l = document.createElement("label"); l.className = "wb-check";
+          const input = document.createElement("input"); input.type = "checkbox";
+          input.checked = val == null ? !!f.default : !!val;
+          input.addEventListener("change", () => set({ [name]: input.checked }));
+          l.appendChild(input); l.appendChild(document.createTextNode(" " + f.label));
+          return l;
+        }
+        case "select":
+          return wbSelectField(f.label, val == null ? f.default : val, (f.options || []).map((o) => [o, wbVariantLabel(o)]), (v) => set({ [name]: v }));
+        case "items": {
+          const fields = (f.itemFields || []).map((sub) => ({
+            key: sub.name, label: sub.label, maxlength: sub.maxLength, textarea: !!sub.multiline, altHint: sub.name === "alt",
+            imageId: sub.kind === "image", link: sub.kind === "link", number: sub.kind === "number",
+          }));
+          // Image ids must be a real file id or absent, so a new item leaves them out.
+          const makeNew = () => Object.fromEntries((f.itemFields || []).filter((sub) => sub.kind !== "image" && sub.kind !== "number" && sub.kind !== "boolean").map((sub) => [sub.name, sub.default != null ? sub.default : ""]));
+          return wbItemList(i, f.noun || "Item", fields, makeNew, f.maxItems || 50, { prop: name });
+        }
+        default: {
+          if (name === "formSlug") return wbFormPicker(val || "contact", (formSlug) => set({ formSlug }));
+          if (name === "projectType") return wbSelectField(f.label, val || "longarm", WB_PROJECT_TYPES, (v) => set({ projectType: v }));
+          if (name === "html") { opts.rows = 8; opts.placeholder = "<iframe src=\"https://www.youtube.com/embed/…\"></iframe>"; }
+          return wbTextField(f.label, val == null ? "" : val, (v) => set({ [name]: v }, name), opts);
+        }
+      }
     }
 
     function wbTextField(label, value, onChange, opts) {
@@ -4780,12 +5055,16 @@
       return wrap;
     }
 
-    // Repeatable item list (service cards, gallery, FAQ, testimonials).
-    function wbItemList(blockIndex, noun, fields, makeNew, max) {
+    // Repeatable item list (service cards, gallery, FAQ, testimonials; every
+    // `items` / `stats` array of a section). opts.prop names the array
+    // (default "items"). Field flags: image (URL), imageId (file id), link,
+    // textarea, maxlength, altHint.
+    function wbItemList(blockIndex, noun, fields, makeNew, max, opts) {
+      const prop = (opts && opts.prop) || "items";
       const wrap = document.createElement("div");
       wrap.className = "wb-items";
-      const items = () => WB.blocks[blockIndex].items || [];
-      const commit = (next, key) => wbPatchBlock(blockIndex, { items: next }, key);
+      const items = () => WB.blocks[blockIndex][prop] || [];
+      const commit = (next, key) => wbPatchBlock(blockIndex, { [prop]: next }, key);
       const draw = () => {
         wrap.replaceChildren();
         items().forEach((it, j) => {
@@ -4802,8 +5081,11 @@
           mk("✕", "Remove", () => { const n = items().map((x) => ({ ...x })); n.splice(j, 1); commit(n); wbRenderProps(); });
           box.appendChild(tools);
           fields.forEach((f) => {
-            const setVal = (v) => { const n = items().map((x) => ({ ...x })); n[j][f.key] = v; commit(n, `${j}.${f.key}`); };
+            const setVal = (v) => { const n = items().map((x) => ({ ...x })); n[j][f.key] = v; commit(n, `${prop}.${j}.${f.key}`); };
             if (f.image) box.appendChild(wbImageField(f.label, it[f.key] || "", (v) => { setVal(v); }));
+            else if (f.imageId) box.appendChild(wbImageField(f.label, it[f.key] ? wbImageUrl(it[f.key]) : "", (url) => setVal(wbFileIdFromUrl(url) || undefined)));
+            else if (f.link) box.appendChild(wbLinkField(f.label, it[f.key] || "", setVal));
+            else if (f.number) box.appendChild(wbTextField(f.label, it[f.key] == null ? "" : it[f.key], (v) => setVal(v === "" ? undefined : Number(v)), { type: "number" }));
             else box.appendChild(wbTextField(f.label, it[f.key] || "", setVal, f));
           });
           wrap.appendChild(box);
@@ -5153,10 +5435,16 @@
       const fieldMap = { slug: "slug", title: "title", nav_label: "nav_label", seo_title: "seo_title", seo_description: "seo_description" };
       const rest = [];
       (issues || []).forEach((is) => {
-        const key = fieldMap[String(is.path || "").split(".")[0]];
+        const path = String(is.path || "");
+        const key = fieldMap[path.split(".")[0]];
         const host = key === "title" ? document.getElementById("wb-title") : document.querySelector(`[data-field="${key}"] .wb-field-err`);
         if (host && key !== "title") { host.textContent = is.message; document.getElementById("wb-settings").open = true; }
-        else rest.push((is.path ? is.path + ": " : "") + is.message);
+        else {
+          // "sections.2.title" / "blocks.2.type" -> "Section 3 · title".
+          const m = path.match(/^(?:sections|blocks)\.(\d+)(?:\.(.+))?$/);
+          const where = m ? `Section ${Number(m[1]) + 1}${m[2] ? " · " + m[2] : ""}` : path;
+          rest.push((where ? where + ": " : "") + is.message);
+        }
       });
       // Field-level messages are shown next to their fields; the banner only
       // carries what has no field of its own.
@@ -5189,7 +5477,10 @@
       frame.style.width = w === "mobile" ? "390px" : w === "tablet" ? "768px" : "100%";
       document.querySelectorAll("#wb-preview-mode [data-width]").forEach((b) => { b.classList.toggle("on", b.dataset.width === w); b.setAttribute("aria-checked", String(b.dataset.width === w)); });
     }
-    function wbWrapSiteHtml(bodyHtml) {
+    // `design` is the POST /preview response for a section document
+    // ({ designVars, fontsHref }): its --qh-* tokens go on :root so the new
+    // renderer's stylesheet paints the page like the live site.
+    function wbWrapSiteHtml(bodyHtml, design) {
       const s = WB.settings || {};
       const theme = { ...WB_DEFAULT_THEME, ...(s.theme || {}) };
       const fonts = s.fonts || { heading: "fraunces", body: "inter" };
@@ -5199,7 +5490,9 @@
         + `;--font-display:${WB_FONT_STACKS[fonts.heading] || WB_FONT_STACKS.fraunces};--font-sans:${WB_FONT_STACKS[fonts.body] || WB_FONT_STACKS.inter}`;
       const q = [WB_FONT_QUERY[fonts.heading] || WB_FONT_QUERY.fraunces, WB_FONT_QUERY[fonts.body] || WB_FONT_QUERY.inter];
       const fontsHref = `https://fonts.googleapis.com/css2?${[...new Set(q)].map((f) => `family=${f}`).join("&")}&display=swap`;
-      return `<!DOCTYPE html><html lang="en" data-tenant-slug="${esc(tenantSlug)}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><link rel="stylesheet" href="${esc(fontsHref)}"><link rel="stylesheet" href="/qh-site.css"><style>:root{${vars}}</style></head><body class="qh-site"><main class="qh-site-main">${bodyHtml}</main><script src="/qh-site.js" defer><\/script></body></html>`;
+      const qhVars = design && design.designVars ? String(design.designVars).replace(/[<>{}]/g, "") : "";
+      const qhFonts = design && /^https:\/\/fonts\.googleapis\.com\//.test(String(design.fontsHref || "")) ? `<link rel="stylesheet" href="${esc(design.fontsHref)}">` : "";
+      return `<!DOCTYPE html><html lang="en" data-tenant-slug="${esc(tenantSlug)}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><link rel="stylesheet" href="${esc(fontsHref)}">${qhFonts}<link rel="stylesheet" href="/qh-site.css"><style>:root{${vars}${qhVars ? ";" + qhVars : ""}}</style></head><body class="qh-site"><main class="qh-site-main">${bodyHtml}</main><script src="/qh-site.js" defer><\/script></body></html>`;
     }
     async function wbRefreshPreview() {
       const frame = document.getElementById("wb-preview-frame");
@@ -5208,7 +5501,10 @@
       await wbFlushSave();
       const blocks = wbSnapshot();
       try {
-        if (wbIsGuild()) {
+        // Guilds on the classic renderer preview inside guild.html; a guild
+        // on the new renderer (and every business) previews the rendered
+        // document directly.
+        if (wbIsGuild() && WB.renderer === "legacy") {
           const res = await api(`${wbBase()}/preview`, { method: "POST", body: JSON.stringify({ blocks }) });
           if (seq !== WB.previewSeq) return;
           const page = { title: WB.meta.title || "Untitled page", html: res.html || "", slug: WB.meta.slug || "home" };
@@ -5222,13 +5518,14 @@
           frame.src = target;
         } else {
           let html;
-          if (WB.page && !WB.dirty && WB.saveState !== "error") {
+          // GET /:id/preview answers with a full document for a business only (JSON for a guild).
+          if (!wbIsGuild() && WB.page && !WB.dirty && WB.saveState !== "error") {
             const res = await fetch(`${API}${wbBase()}/${WB.page.id}/preview?source=draft`, { headers: { Authorization: `Bearer ${token}` } });
             if (res.ok) html = await res.text();
           }
           if (!html) {
             const res = await api(`${wbBase()}/preview`, { method: "POST", body: JSON.stringify({ blocks }) });
-            html = wbWrapSiteHtml(res.html || "");
+            html = wbWrapSiteHtml(res.html || "", res);
           }
           if (seq !== WB.previewSeq) return;
           html = await wbSwapImageUrls(html);

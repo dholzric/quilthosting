@@ -15,9 +15,12 @@
 // exported `pageRoutes` app with a thin stand-in for the tenantMiddleware
 // context, and a keyword-routed fake D1 that records every write.
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { Hono } from "hono";
-import { pageRoutes, KNOWN_BLOCK_TYPES, RESERVED_SLUGS } from "./pages";
+import { pageRoutes, KNOWN_BLOCK_TYPES, RESERVED_SLUGS, sectionCatalog } from "./pages";
 import { parseBlocks, BUSINESS_BLOCK_TYPES, GUILD_ONLY_BLOCK_TYPES } from "../lib/blocks";
+import { SECTION_TYPES, SECTION_VARIANTS, parseSections } from "../lib/site/sections/schema";
 import type { Env, Tenant, TenantVariables } from "../types";
 
 const TENANT_ID = "tenant-1";
@@ -1491,5 +1494,305 @@ describe("GET /:id/preview", () => {
     expect(html).toContain("Draft heading");
     expect(html).toContain("<title>Draft title");
     expect(html).toContain("Stitch Studio");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Section documents (the new site renderer). Kits and the section editor
+// store section arrays in the same blocks_json column; the API must accept,
+// validate (parseSections), store verbatim, snapshot html for content_json,
+// and read them back without ever running them through parseBlocks.
+// ---------------------------------------------------------------------------
+
+const STYLE = { bg: "none", width: "normal", spacing: "normal", align: "left", media: "right" };
+const SECTION_DOC = [
+  {
+    type: "hero",
+    variant: "minimal",
+    id: "s_hero",
+    title: "Welcome to the guild",
+    subtitle: "Guests are welcome at any meeting.",
+    ctaLabel: "Join",
+    ctaHref: "/membership",
+    style: { ...STYLE, bg: "tint", align: "center" },
+  },
+  { type: "rich_text", variant: "prose", id: "s_about", heading: "About", html: "<p>We meet monthly.</p>", style: { ...STYLE } },
+  { type: "events", variant: "list", id: "s_events", heading: "Coming up", limit: 4, style: { ...STYLE, width: "narrow" } },
+  { type: "divider", id: "s_div", style: { ...STYLE, spacing: "tight" } },
+];
+
+describe("section documents are first-class in the pages API", () => {
+  it("POST stores the section array verbatim in blocks_json and snapshots section html into content_json", async () => {
+    const state = memState([]);
+    const { app, env } = buildMemApp(state);
+    const res = await app.request("/", jsonReq("POST", { title: "Home", slug: "home", blocks: SECTION_DOC }), env);
+    expect(res.status).toBe(201);
+    expect(((await res.json()) as { format: string }).format).toBe("sections");
+    expect(state.pages).toHaveLength(1);
+    const row = state.pages[0];
+    expect(JSON.parse(String(row.blocks_json))).toEqual(SECTION_DOC);
+    const html = String(JSON.parse(String(row.content_json)).html);
+    expect(html).toContain('class="qh-s ');
+    expect(html).toContain("Welcome to the guild");
+    expect(html).toContain("<p>We meet monthly.</p>");
+    // Section html, never the legacy block markup.
+    expect(html).not.toContain("qh-block-");
+  });
+
+  it("PUT /:id/draft stores sections; GET /:id returns format, draft_format and draft_sections with blocks: []", async () => {
+    const state = memState([memPage()]);
+    const { app, env } = buildMemApp(state);
+    const put = await app.request("/page-1/draft", jsonReq("PUT", { blocks: SECTION_DOC, revision: 3 }), env);
+    expect(put.status).toBe(200);
+    expect((await put.json()) as object).toMatchObject({ ok: true, has_draft: 1, format: "sections" });
+    expect(JSON.parse(String(state.pages[0].draft_blocks_json))).toEqual(SECTION_DOC);
+    // Live is still the legacy block page.
+    expect(state.pages[0].blocks_json).toBe(JSON.stringify([{ type: "heading", text: "Live", level: 2 }]));
+
+    const get = await app.request("/page-1", { method: "GET" }, env);
+    const json = (await get.json()) as Record<string, unknown>;
+    expect(json.format).toBe("blocks");
+    expect(json.sections).toBeNull();
+    expect((json.blocks as unknown[]).length).toBe(1);
+    expect(json.draft_format).toBe("sections");
+    expect(json.draft_blocks).toEqual([]);
+    expect(json.draft_sections).toEqual(SECTION_DOC);
+  });
+
+  it("POST /:id/publish promotes a section draft verbatim and snapshots section html", async () => {
+    const state = memState([memPage({ draft_blocks_json: JSON.stringify(SECTION_DOC), draft_title: "New home" })]);
+    const { app, env } = buildMemApp(state);
+    const res = await app.request("/page-1/publish", jsonReq("POST", { revision: 3 }), env);
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as Record<string, unknown>;
+    expect(json.format).toBe("sections");
+    expect(json.blocks).toEqual([]);
+    expect(json.sections).toEqual(SECTION_DOC);
+    const row = state.pages[0];
+    expect(JSON.parse(String(row.blocks_json))).toEqual(SECTION_DOC);
+    expect(String(JSON.parse(String(row.content_json)).html)).toContain('class="qh-s ');
+    expect(row.draft_blocks_json).toBeNull();
+    expect(row.title).toBe("New home");
+    // History snapshot holds the block page that was live before.
+    expect(state.revisions).toHaveLength(1);
+    expect(state.revisions[0].blocks_json).toContain('"heading"');
+  });
+
+  it("publishing explicit sections in the body works the same way", async () => {
+    const state = memState([memPage()]);
+    const { app, env } = buildMemApp(state);
+    const res = await app.request("/page-1/publish", jsonReq("POST", { revision: 3, blocks: SECTION_DOC }), env);
+    expect(res.status).toBe(200);
+    expect(JSON.parse(String(state.pages[0].blocks_json))).toEqual(SECTION_DOC);
+  });
+
+  it("rejects an unsupported section type with a sections.N.type issue and writes nothing", async () => {
+    const state = memState([memPage()]);
+    const { app, env } = buildMemApp(state);
+    const bad = [SECTION_DOC[0], { type: "carousel", id: "s_c", style: { ...STYLE } }];
+    for (const req of [
+      app.request("/", jsonReq("POST", { title: "X", blocks: bad }), env),
+      app.request("/page-1/draft", jsonReq("PUT", { blocks: bad }), env),
+      app.request("/page-1/publish", jsonReq("POST", { blocks: bad }), env),
+      app.request("/page-1", jsonReq("PATCH", { blocks: bad }), env),
+      app.request("/preview", jsonReq("POST", { blocks: bad }), env),
+    ]) {
+      const res = await req;
+      expect(res.status).toBe(400);
+      const json = (await res.json()) as { error: string; issues: { path: string; message: string }[] };
+      expect(json.error).toBe("Invalid request body");
+      expect(json.issues).toEqual([{ path: "sections.1.type", message: 'Unsupported section type "carousel"' }]);
+    }
+    expect(state.pages).toHaveLength(1);
+    expect(state.pages[0].draft_blocks_json).toBeNull();
+    expect(state.pages[0].revision).toBe(3);
+  });
+
+  it("rejects a section that fails field validation with a sections.N.field path", async () => {
+    const { app, env } = buildMemApp(memState([memPage()]));
+    const res = await app.request(
+      "/page-1/draft",
+      jsonReq("PUT", {
+        blocks: [
+          { type: "hero", id: "s_h", style: { ...STYLE } },
+          { type: "spacer", id: "s_s", height: 9999, style: { ...STYLE } },
+        ],
+      }),
+      env
+    );
+    expect(res.status).toBe(400);
+    const json = (await res.json()) as { issues: { path: string }[] };
+    expect(json.issues.map((i) => i.path)).toEqual(["sections.0.title", "sections.1.height"]);
+  });
+
+  it("a legacy block document is unaffected: stored as blocks with blocksToHtml markup", async () => {
+    const state = memState([]);
+    const { app, env } = buildMemApp(state);
+    const res = await app.request("/", jsonReq("POST", { title: "Classic", blocks: DRAFT_BLOCKS }), env);
+    expect(res.status).toBe(201);
+    expect(((await res.json()) as { format: string }).format).toBe("blocks");
+    expect(JSON.parse(String(state.pages[0].blocks_json))).toEqual([
+      { type: "heading", text: "Draft heading", level: 2 },
+      { type: "divider" },
+    ]);
+    expect(String(JSON.parse(String(state.pages[0].content_json)).html)).toContain("qh-block-heading");
+  });
+
+  it("a mixed document (blocks and sections together) normalizes to sections", async () => {
+    const state = memState([memPage()]);
+    const { app, env } = buildMemApp(state);
+    const mixed = [{ type: "heading", text: "Hi there", level: 2 }, SECTION_DOC[0], { type: "text", html: "<p>Body</p>" }];
+    const res = await app.request("/page-1/draft", jsonReq("PUT", { blocks: mixed }), env);
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { format: string }).format).toBe("sections");
+    const stored = JSON.parse(String(state.pages[0].draft_blocks_json)) as Record<string, unknown>[];
+    expect(stored).toHaveLength(3);
+    expect(stored.every((s) => typeof s.style === "object" && typeof s.id === "string")).toBe(true);
+    expect(stored[0]).toMatchObject({ type: "rich_text", variant: "prose", html: "<h2>Hi there</h2>" });
+    expect(stored[1]).toMatchObject({ type: "hero", id: "s_hero", title: "Welcome to the guild" });
+    expect(stored[2]).toMatchObject({ type: "rich_text", html: "<p>Body</p>" });
+  });
+
+  it("POST /preview returns format for both formats, and design tokens for sections", async () => {
+    const { app, env } = buildMemApp(memState());
+    const blocks = await app.request("/preview", jsonReq("POST", { blocks: DRAFT_BLOCKS }), env);
+    expect(blocks.status).toBe(200);
+    const b = (await blocks.json()) as Record<string, unknown>;
+    expect(b.format).toBe("blocks");
+    expect(String(b.html)).toContain("qh-block-heading");
+    expect(b.designVars).toBeUndefined();
+
+    const sections = await app.request("/preview", jsonReq("POST", { blocks: SECTION_DOC }), env);
+    expect(sections.status).toBe(200);
+    const s = (await sections.json()) as Record<string, unknown>;
+    expect(s.format).toBe("sections");
+    expect(String(s.html)).toContain('class="qh-s ');
+    expect(String(s.html)).toContain("qh-hero--minimal");
+    expect(String(s.designVars)).toContain("--qh-");
+    expect(sections.headers.get("cache-control")).toBe("no-store");
+  });
+
+  it("GET list rows carry format", async () => {
+    const state = memState([memPage(), memPage({ id: "page-2", slug: "home", blocks_json: JSON.stringify(SECTION_DOC) })]);
+    const { app, env } = buildMemApp(state);
+    const res = await app.request("/", { method: "GET" }, env);
+    const rows = (await res.json()) as { id: string; format: string }[];
+    expect(rows.map((r) => [r.id, r.format])).toEqual([["page-1", "blocks"], ["page-2", "sections"]]);
+  });
+
+  it("GET /:id/preview (guild) renders a section draft standalone, never through parseBlocks", async () => {
+    const state = memState([memPage({ draft_blocks_json: JSON.stringify(SECTION_DOC), draft_title: "Sections draft" })]);
+    const { app, env } = buildMemApp(state);
+    const res = await app.request("/page-1/preview?source=draft", { method: "GET" }, env);
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as { title: string; html: string; format: string };
+    expect(json.title).toBe("Sections draft");
+    expect(json.format).toBe("sections");
+    expect(json.html).toContain('class="qh-s ');
+    expect(json.html).toContain("Welcome to the guild");
+    expect(json.html).toContain("<p>We meet monthly.</p>");
+  });
+
+  it("revisions: a section revision is returned as sections and restores into the draft intact", async () => {
+    const state = memState([
+      memPage({ blocks_json: JSON.stringify(SECTION_DOC), content_json: JSON.stringify({ html: "<section>x</section>" }) }),
+    ]);
+    const { app, env } = buildMemApp(state);
+    // Publish a block page over it so history holds the section version.
+    const pub = await app.request("/page-1/publish", jsonReq("POST", { revision: 3, blocks: DRAFT_BLOCKS }), env);
+    expect(pub.status).toBe(200);
+    expect(state.revisions).toHaveLength(1);
+    const rid = state.revisions[0].id;
+
+    const get = await app.request(`/page-1/revisions/${rid}`, { method: "GET" }, env);
+    const rev = (await get.json()) as { format: string; blocks: unknown[]; sections: unknown[] };
+    expect(rev.format).toBe("sections");
+    expect(rev.blocks).toEqual([]);
+    expect(rev.sections).toEqual(SECTION_DOC);
+
+    const restore = await app.request(`/page-1/revisions/${rid}/restore`, jsonReq("POST", { revision: 4 }), env);
+    expect(restore.status).toBe(200);
+    expect(JSON.parse(String(state.pages[0].draft_blocks_json))).toEqual(SECTION_DOC);
+    // Live stayed the block page.
+    expect(String(state.pages[0].blocks_json)).toContain('"heading"');
+  });
+});
+
+describe("GET /section-catalog", () => {
+  it("lists every section type with variants, a palette group, and its fields", async () => {
+    const { app, env } = buildMemApp(memState());
+    const res = await app.request("/section-catalog", { method: "GET" }, env);
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as {
+      groups: string[];
+      style: Record<string, string[]>;
+      types: {
+        type: string;
+        label: string;
+        group: string;
+        variants: string[];
+        fields: { name: string; kind: string; [k: string]: unknown }[];
+        defaults: Record<string, unknown>;
+      }[];
+    };
+    expect(json.types).toHaveLength(19);
+    expect(json.types.map((t) => t.type)).toEqual([...SECTION_TYPES]);
+    expect(json.groups).toEqual(["Openers", "Content", "Membership", "Events", "Community", "Business", "Layout"]);
+    for (const t of json.types) {
+      expect(json.groups).toContain(t.group);
+      expect(t.label.length).toBeGreaterThan(0);
+      expect(t.variants).toEqual([...SECTION_VARIANTS[t.type as keyof typeof SECTION_VARIANTS]]);
+    }
+    expect(json.style.bg).toEqual(["none", "tint", "brand", "dark", "image", "pattern"]);
+
+    const byName = (type: string) => {
+      const t = json.types.find((x) => x.type === type)!;
+      return Object.fromEntries(t.fields.map((f) => [f.name, f]));
+    };
+    const hero = byName("hero");
+    expect(Object.keys(hero)).toEqual(["eyebrow", "title", "subtitle", "ctaLabel", "ctaHref", "secondaryLabel", "secondaryHref", "stats"]);
+    expect(hero.title).toMatchObject({ kind: "text", required: true, maxLength: 160 });
+    expect(hero.subtitle).toMatchObject({ kind: "text", multiline: true });
+    expect(hero.ctaHref).toMatchObject({ kind: "link" });
+    expect(hero.stats).toMatchObject({ kind: "items", noun: "Number", maxItems: 6 });
+    expect((hero.stats.itemFields as { name: string }[]).map((f) => f.name)).toEqual(["value", "label"]);
+
+    expect(byName("rich_text").html).toMatchObject({ kind: "html", required: true });
+    expect(byName("embed").html).toMatchObject({ kind: "text", multiline: true });
+    expect(byName("events").limit).toMatchObject({ kind: "number", min: 1, max: 50, default: 6 });
+    expect(byName("contact").showDetails).toMatchObject({ kind: "boolean", default: true });
+    expect(byName("gallery").source).toMatchObject({ kind: "select", options: ["manual", "gallery"] });
+    expect(byName("cta").kind).toMatchObject({ kind: "select", options: ["primary", "secondary"], default: "primary" });
+    expect(byName("meeting_info").mapUrl).toMatchObject({ kind: "link" });
+    const imageItems = byName("image").items;
+    expect(imageItems.kind).toBe("items");
+    const imageItemFields = Object.fromEntries(
+      (imageItems.itemFields as { name: string; kind: string }[]).map((f) => [f.name, f.kind])
+    );
+    expect(imageItemFields).toEqual({ imageId: "image", url: "text", alt: "text", caption: "text" });
+    expect(byName("spacer").height).toMatchObject({ kind: "number", min: 8, max: 160, default: 24 });
+    expect(json.types.find((t) => t.type === "events")!.defaults).toEqual({ limit: 6 });
+  });
+
+  it("the editor's starter content for every section type validates against the schema (admin.html drift guard)", () => {
+    // Mirrors defaultSection() in public/admin.html: type + catalog defaults +
+    // WB_SECTION_DEFAULTS + first variant + id + default style.
+    const html = readFileSync(fileURLToPath(new URL("../../public/admin.html", import.meta.url)), "utf8");
+    const m = html.match(/const WB_SECTION_DEFAULTS = (\{[\s\S]*?\n {4}\});/);
+    expect(m, "WB_SECTION_DEFAULTS not found in admin.html").toBeTruthy();
+    // Evaluates a literal object from this repo's own admin.html (not user input).
+    const defaults = new Function(`return ${m![1]}`)() as Record<string, Record<string, unknown>>;
+    const cat = sectionCatalog();
+    expect(Object.keys(defaults).sort()).toEqual(cat.map((t) => t.type).sort());
+    for (const t of cat) {
+      const s: Record<string, unknown> = { type: t.type, ...t.defaults, ...defaults[t.type] };
+      const variants = t.variants.filter((v) => v);
+      if (variants.length) s.variant = variants[0];
+      s.id = "s_abc123";
+      s.style = { bg: "none", width: "normal", spacing: "normal", align: "left", media: "right" };
+      const { sections, issues } = parseSections([s]);
+      expect({ type: t.type, issues }).toEqual({ type: t.type, issues: [] });
+      expect(sections).toHaveLength(1);
+    }
   });
 });
