@@ -18,6 +18,38 @@
       --accent: var(--brand);
     }
     textarea { resize: vertical; }
+    /* Design panel (qhDesignPanel) */
+    .qh-design-section { margin: 1rem 0 0.5rem; padding-top: 0.75rem; border-top: 1px solid var(--border); }
+    .qh-design-section h3 { margin: 0 0 0.15rem; font-size: 1rem; }
+    .qh-design-section > .muted { margin: 0 0 0.5rem; font-size: 0.85rem; }
+    .qh-design-family { margin: 0.6rem 0 0.2rem; font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-3); }
+    .qh-design-row { display: flex; gap: 0.75rem 1.5rem; flex-wrap: wrap; align-items: flex-start; margin: 0.35rem 0 0.5rem; }
+    .qh-design-row > div > label { display: block; font-size: 0.8rem; font-weight: 600; margin: 0 0 0.25rem; }
+    .qh-design-row select { margin: 0; }
+    .qh-seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--r-sm); overflow: hidden; }
+    .qh-seg button { background: var(--surface); color: var(--ink); box-shadow: none; border-radius: 0; padding: 0.35rem 0.7rem; font-size: 0.85rem; border-right: 1px solid var(--border); margin: 0; }
+    .qh-seg button:last-child { border-right: none; }
+    .qh-seg button:hover { background: var(--paper); color: var(--ink); }
+    .qh-seg button.on { background: var(--brand); color: #fff; }
+    .qh-design-custom { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 0.25rem 1rem; margin: 0.5rem 0; }
+    .qh-design-custom label { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin: 0.25rem 0; font-size: 0.85rem; }
+    .qh-design-custom input[type="color"] { width: 44px; height: 28px; padding: 0; margin: 0; }
+    .qh-design-readout { list-style: none; padding: 0; margin: 0.25rem 0 0; display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; font-size: 0.8rem; }
+    .qh-design-readout li.ok { color: var(--ok); }
+    .qh-design-readout li.bad { color: var(--warn); }
+    .qh-design-chip { display: inline-block; width: 1.6rem; text-align: center; border-radius: 4px; border: 1px solid var(--border); font-weight: 600; margin-right: 0.3rem; }
+    .qh-design-sample { padding: 1.1rem 1.25rem; border: 1px solid var(--border); margin: 0.5rem 0; }
+    .qh-design-sample-title { line-height: 1.15; font-weight: 600; }
+    .qh-design-sample-body { margin: 0.35rem 0 0.7rem; }
+    .qh-design-sample-btn { display: inline-block; padding: 0.4rem 0.9rem; font-weight: 600; font-size: 0.9rem; }
+    .qh-pattern-tile { height: 60px; border-radius: 4px; border: 1px solid var(--border); background-color: var(--surface); background-size: 48px 48px; margin-bottom: 0.35rem; }
+    .qh-design-check { display: inline-flex; align-items: center; gap: 0.4rem; margin: 0.4rem 1rem 0 0; font-weight: 500; font-size: 0.85rem; }
+    .qh-design-check input { margin: 0; width: auto; }
+    .qh-design-renderer { background: var(--brand-soft); padding: 0.75rem 1rem; border-radius: var(--r-sm); margin: 0 0 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; justify-content: space-between; }
+    .qh-design-renderer p { margin: 0; flex: 1 1 22rem; font-size: 0.88rem; }
+    .qh-kit { display: flex; flex-direction: column; gap: 0.25rem; cursor: default; }
+    .qh-kit .qh-kit-character { margin: 0; font-size: 0.8rem; flex: 1; }
+    .qh-kit button { align-self: flex-start; margin-top: 0.25rem; padding: 0.3rem 0.7rem; font-size: 0.8rem; }
   </style>
 </head>
 <body class="has-fleet-footer">
@@ -3020,6 +3052,11 @@
           </div>
         </div>
         <div id="wb-list-host"></div>
+        <div class="card" id="wb-design-card">
+          <h3 style="margin:0 0 0.25rem">Design</h3>
+          <p class="muted" style="font-size:0.85rem;margin:0 0 0.5rem">Colors, fonts, shape and layout for your whole site.</p>
+          <div id="wb-design-host"></div>
+        </div>
         <div class="card" id="wb-theme-card"></div>
         <div class="card" id="wb-nav-card"></div>`;
       wbRenderPageList(document.getElementById("wb-list-host"), {
@@ -3027,8 +3064,21 @@
         onPreview: (p) => qhOpenPageEditor(p, { tenantType: "guild", mode: "preview" }),
         reload: () => navigate("pages"),
       });
-      wbRenderGuildTheme(document.getElementById("wb-theme-card"));
       wbRenderNavCard(document.getElementById("wb-nav-card"));
+      // The Design panel fetches the design library and the renderer flag;
+      // the legacy "Look & feel" card only applies while the guild is still
+      // on the classic renderer (settings.site.renderer === "legacy").
+      const designState = await qhDesignPanel(document.getElementById("wb-design-host"), {
+        tenantType: "guild",
+        onRendererChange: () => navigate("pages"),
+      });
+      const themeCard = document.getElementById("wb-theme-card");
+      if (themeCard) {
+        // Keep the classic card when the panel could not load, so a network
+        // blip never hides the only theme controls a legacy guild has.
+        if (!designState || designState.renderer === "legacy") wbRenderGuildTheme(themeCard);
+        else themeCard.remove();
+      }
       applyReadOnlyState("pages");
     }
 
@@ -3186,6 +3236,610 @@
         msg.textContent = "Saved.";
       } catch (e) { msg.textContent = e.message; }
     }
+
+    /* ---------- Design panel (shared) ----------
+       window.qhDesignPanel(host, { tenantType, showCredit, onRendererChange })
+       renders the site design controls: palette library grouped by family,
+       custom colors with a live readability readout, type pair with a sample
+       line in the pair, shape, rhythm, header, footer, pattern — and, for
+       guilds, the "Try the new design" / "Back to classic" switch. The
+       library comes from GET /api/tenants/:id/design-options so nothing is
+       hard-coded here. Save PATCHes the tenant with the merged settings
+       (settings.design, and settings.site.renderer for guilds). DOM APIs
+       only — tenant data never goes through innerHTML. */
+
+    // Client-side port of src/lib/site/design/color.ts + deriveRoles() in
+    // tokens.ts, used ONLY for the live readout and sample. The server
+    // re-derives on save and is authoritative. Keep in sync by hand.
+    const qhDesignColor = (() => {
+      const HEX_RE = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
+      function normalizeHex(v) {
+        if (typeof v !== "string") return null;
+        const m = HEX_RE.exec(v.trim());
+        if (!m) return null;
+        let h = m[1].toLowerCase();
+        if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+        return "#" + h.slice(0, 6);
+      }
+      function hexToRgb(hex) {
+        const h = normalizeHex(hex) || "#000000";
+        return [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255];
+      }
+      function rgbToHex(r, g, b) {
+        const ch = (v) => Math.round(Math.min(1, Math.max(0, v)) * 255).toString(16).padStart(2, "0");
+        return "#" + ch(r) + ch(g) + ch(b);
+      }
+      const srgbToLinear = (v) => (v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+      const linearToSrgb = (v) => (v <= 0.0031308 ? v * 12.92 : 1.055 * Math.pow(v, 1 / 2.4) - 0.055);
+      function linearToOklab(r, g, b) {
+        const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+        const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+        const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+        return [
+          0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
+          1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+          0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
+        ];
+      }
+      function oklabToLinear(L, a, b) {
+        const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+        const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+        const s_ = L - 0.0894841775 * a - 1.291485548 * b;
+        const l = l_ * l_ * l_, m = m_ * m_ * m_, s = s_ * s_ * s_;
+        return [
+          4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+          -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+          -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s,
+        ];
+      }
+      function hexToOklch(hex) {
+        const [r, g, b] = hexToRgb(hex).map(srgbToLinear);
+        const [L, a, bb] = linearToOklab(r, g, b);
+        const c = Math.sqrt(a * a + bb * bb);
+        let h = (Math.atan2(bb, a) * 180) / Math.PI;
+        if (h < 0) h += 360;
+        return { l: L, c: c < 1e-6 ? 0 : c, h: c < 1e-6 ? 0 : h };
+      }
+      const EPS = 1e-4;
+      const inGamut = (rgb) => rgb.every((v) => v >= -EPS && v <= 1 + EPS);
+      function oklchToHex(l, c, h) {
+        const L = Math.min(1, Math.max(0, l));
+        const rad = (h * Math.PI) / 180;
+        const toLinear = (chroma) => oklabToLinear(L, chroma * Math.cos(rad), chroma * Math.sin(rad));
+        let rgb = toLinear(Math.max(0, c));
+        if (!inGamut(rgb)) {
+          let lo = 0, hi = Math.max(0, c);
+          for (let i = 0; i < 24; i++) {
+            const mid = (lo + hi) / 2;
+            if (inGamut(toLinear(mid))) lo = mid; else hi = mid;
+          }
+          rgb = toLinear(lo);
+        }
+        const [r, g, b] = rgb.map(linearToSrgb);
+        return rgbToHex(r, g, b);
+      }
+      function luminance(hex) {
+        const [r, g, b] = hexToRgb(hex).map(srgbToLinear);
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      }
+      function contrastRatio(a, b) {
+        const la = luminance(a), lb = luminance(b);
+        return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+      }
+      function tint(hex, l) { const o = hexToOklch(hex); return oklchToHex(l, o.c, o.h); }
+      function bestInk(bg) { return contrastRatio("#111111", bg) >= contrastRatio("#ffffff", bg) ? "#111111" : "#ffffff"; }
+      const NUDGE_STEP = 0.02, NUDGE_MAX = 25;
+      function nudge(hex, check, direction) {
+        let cur = hex;
+        for (let i = 0; i < NUDGE_MAX && !check(cur); i++) {
+          const o = hexToOklch(cur);
+          const dir = typeof direction === "function" ? direction(cur) : direction;
+          const next = oklchToHex(o.l + dir * NUDGE_STEP, o.c, o.h);
+          if (next === cur) break;
+          cur = next;
+        }
+        return cur;
+      }
+      function fitInteractive(hex, bg, dark) {
+        const away = dark ? 1 : -1;
+        const color = nudge(
+          hex,
+          (c) => contrastRatio(c, bg) >= 3 && contrastRatio(bestInk(c), c) >= 4.5,
+          (c) => (contrastRatio(c, bg) < 3 ? away : bestInk(c) === "#ffffff" ? -1 : 1)
+        );
+        return { color, on: bestInk(color) };
+      }
+      const fitText = (hex, bg, dark) => nudge(hex, (c) => contrastRatio(c, bg) >= 4.5, dark ? 1 : -1);
+      const WASH_MAX_CHROMA = 0.06;
+      function wash(hex, l) { const o = hexToOklch(hex); return oklchToHex(l, Math.min(o.c, WASH_MAX_CHROMA), o.h); }
+      const fitTint = (hex, ink, dark) => nudge(hex, (c) => contrastRatio(ink, c) >= 4.5, dark ? -1 : 1);
+      function deriveRoles(input, dark, fb) {
+        const brand = normalizeHex(input && input.brand) || fb.brand;
+        const brandAlt = normalizeHex(input && input.brandAlt) || fb.brandAlt;
+        const accentIn = normalizeHex(input && input.accent) || fb.accent;
+        const neutral = normalizeHex(input && input.neutral) || fb.neutral;
+        const bg = tint(neutral, dark ? 0.16 : 0.985);
+        const surface = tint(neutral, dark ? 0.21 : 0.995);
+        const surfaceAlt = tint(neutral, dark ? 0.26 : 0.95);
+        const border = tint(neutral, dark ? 0.3 : 0.88);
+        const inkFloor = dark ? bg : surfaceAlt;
+        const ink = fitText(tint(neutral, dark ? 0.93 : 0.2), inkFloor, dark);
+        const inkMuted = fitText(tint(neutral, dark ? 0.7 : 0.45), inkFloor, dark);
+        const primaryFit = fitInteractive(brand, bg, dark);
+        const primary = primaryFit.color;
+        const p = hexToOklch(primary);
+        const primaryHover = nudge(
+          oklchToHex(p.l + (dark ? 0.08 : -0.08), p.c, p.h),
+          (c) => contrastRatio(primaryFit.on, c) >= 4.5,
+          primaryFit.on === "#ffffff" ? -1 : 1
+        );
+        const accentFit = fitInteractive(accentIn, bg, dark);
+        const darkRole = tint(brandAlt, 0.22);
+        const tintRole = fitTint(wash(brand, dark ? 0.3 : 0.94), ink, dark);
+        return {
+          bg, surface, surfaceAlt, ink, inkMuted, border, primary, onPrimary: primaryFit.on, primaryHover,
+          accent: accentFit.color, onAccent: accentFit.on, dark: darkRole, onDark: bestInk(darkRole), tint: tintRole,
+        };
+      }
+      return { normalizeHex, contrastRatio, deriveRoles };
+    })();
+
+    const qhDesignFontsLoaded = new Set();
+    function qhDesignEnsureFonts(href) {
+      if (!href || qhDesignFontsLoaded.has(href)) return;
+      qhDesignFontsLoaded.add(href);
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = href;
+      document.head.appendChild(link);
+    }
+
+    const QH_DESIGN_RADIUS = { sharp: "0", soft: "0.5rem", round: "1rem" };
+    const QH_DESIGN_SHADOW = {
+      none: "none",
+      subtle: "0 1px 2px rgba(0,0,0,0.06),0 4px 12px rgba(0,0,0,0.06)",
+      lifted: "0 2px 4px rgba(0,0,0,0.08),0 14px 32px rgba(0,0,0,0.14)",
+    };
+    const QH_DESIGN_PAD = { tight: "0.8rem 1rem", normal: "1.1rem 1.25rem", airy: "1.6rem 1.5rem" };
+    const QH_PATTERN_LABELS = {
+      none: "None", "nine-patch": "Nine patch", "flying-geese": "Flying geese",
+      "log-cabin": "Log cabin", "churn-dash": "Churn dash", "bear-paw": "Bear paw",
+    };
+
+    async function qhDesignPanel(host, opts) {
+      opts = opts || {};
+      const isGuild = opts.tenantType !== "business";
+      const mk = (tag, cls, text) => {
+        const n = document.createElement(tag);
+        if (cls) n.className = cls;
+        if (text != null) n.textContent = text;
+        return n;
+      };
+      host.replaceChildren();
+      const loading = mk("p", "muted", "Loading design options…");
+      host.appendChild(loading);
+
+      let options, tenantRow;
+      try {
+        [options, tenantRow] = await Promise.all([
+          api(`/api/tenants/${tenantId}/design-options`),
+          api(`/api/tenants/${tenantId}`),
+        ]);
+      } catch (e) {
+        loading.textContent = e.message;
+        loading.className = "error";
+        return null;
+      }
+      const clone = (v) => JSON.parse(JSON.stringify(v));
+      const defaults = options.defaults;
+      const design = clone(options.current || defaults);
+      let renderer = options.renderer === "legacy" ? "legacy" : "sections";
+      const paletteById = (id) => options.palettes.find((p) => p.id === id) || null;
+      const pairById = (id) => options.typePairs.find((p) => p.id === id) || options.typePairs[0];
+      const displayName = (tenantRow && tenantRow.name) || (typeof tenantName !== "undefined" && tenantName) || (isGuild ? "Your guild" : "Your business");
+      host.replaceChildren();
+
+      const refreshers = [];
+      function section(title, hint) {
+        const s = mk("div", "qh-design-section");
+        s.appendChild(mk("h3", "", title));
+        if (hint) s.appendChild(mk("p", "muted", hint));
+        host.appendChild(s);
+        return s;
+      }
+      function labelled(label, node) {
+        const w = mk("div");
+        const l = mk("label", "", label);
+        w.appendChild(l);
+        w.appendChild(node);
+        return w;
+      }
+      function seg(label, get, set, choices) {
+        const group = mk("div", "qh-seg");
+        group.setAttribute("role", "radiogroup");
+        group.setAttribute("aria-label", label);
+        choices.forEach(([v, text]) => {
+          const b = mk("button", "", text);
+          b.type = "button";
+          b.setAttribute("role", "radio");
+          b.dataset.value = v;
+          b.addEventListener("click", () => { set(v); refresh(); });
+          group.appendChild(b);
+        });
+        refreshers.push(() => {
+          const v = get();
+          group.querySelectorAll("button").forEach((b) => {
+            const on = b.dataset.value === v;
+            b.classList.toggle("on", on);
+            b.setAttribute("aria-checked", String(on));
+          });
+        });
+        return labelled(label, group);
+      }
+      function check(label, get, set) {
+        const l = mk("label", "qh-design-check");
+        const c = document.createElement("input");
+        c.type = "checkbox";
+        c.addEventListener("change", () => { set(c.checked); refresh(); });
+        l.appendChild(c);
+        l.appendChild(document.createTextNode(label));
+        refreshers.push(() => { c.checked = !!get(); });
+        return l;
+      }
+
+      // ---- Renderer switch (guilds only) ----
+      let refreshRenderer = () => {};
+      if (isGuild) {
+        const box = mk("div", "qh-design-renderer");
+        const copy = mk("p");
+        const btn = mk("button");
+        btn.type = "button";
+        btn.setAttribute("data-write", "");
+        btn.addEventListener("click", () => save(renderer === "legacy" ? "sections" : "legacy"));
+        box.appendChild(copy);
+        box.appendChild(btn);
+        host.appendChild(box);
+        refreshRenderer = () => {
+          if (renderer === "legacy") {
+            copy.textContent = "Your site uses the classic look. The new design renders every page with the colors, fonts and layout you choose below. Switching is reversible — nothing is deleted, and you can come back to classic any time.";
+            btn.textContent = "Try the new design";
+            btn.className = "";
+          } else {
+            copy.textContent = "Your site uses the new design. You can go back to the classic look any time; your pages and design choices are kept.";
+            btn.textContent = "Back to classic";
+            btn.className = "secondary";
+          }
+        };
+        refreshRenderer();
+      }
+
+      // ---- Browse designs (kits) ----
+      const kits = (options.kits || []).filter((k) => k.audience === "both" || k.audience === (isGuild ? "guild" : "business"));
+      if (kits.length) {
+        const kitSec = section("Browse designs", "A design sets the colors, fonts, shape and layout in one go. Your pages and every word on them are kept.");
+        const strip = mk("div", "wb-presets");
+        kits.forEach((k) => {
+          const card = mk("div", "wb-preset qh-kit");
+          const roles = k.design && k.design.palette && k.design.palette.id ? (paletteById(k.design.palette.id) || {}).roles : null;
+          if (roles) {
+            const sw = mk("div", "wb-preset-swatches");
+            [roles.bg, roles.primary, roles.accent, roles.ink].forEach((c) => {
+              const s = mk("span");
+              s.style.background = c;
+              s.style.border = "1px solid rgba(0,0,0,0.08)";
+              sw.appendChild(s);
+            });
+            card.appendChild(sw);
+          }
+          card.appendChild(mk("div", "wb-preset-name", k.name));
+          card.appendChild(mk("p", "muted qh-kit-character", k.character));
+          const use = mk("button", "secondary", "Use this design");
+          use.type = "button";
+          use.setAttribute("data-write", "");
+          use.setAttribute("aria-label", `Use the ${k.name} design`);
+          use.addEventListener("click", () => {
+            Object.assign(design, clone(k.design));
+            refresh();
+            save(null, k.id);
+          });
+          card.appendChild(use);
+          strip.appendChild(card);
+        });
+        kitSec.appendChild(strip);
+      }
+
+      // ---- Colors ----
+      const palSec = section("Colors", "Pick a palette. Every color on the site — backgrounds, text, buttons — is worked out from four inputs and checked so text stays readable.");
+      const tiles = [];
+      options.families.forEach((fam) => {
+        const inFam = options.palettes.filter((p) => p.family === fam.id);
+        if (!inFam.length) return;
+        palSec.appendChild(mk("h4", "qh-design-family", fam.label));
+        const grid = mk("div", "wb-presets");
+        inFam.forEach((p) => {
+          const btn = mk("button", "wb-preset");
+          btn.type = "button";
+          btn.dataset.palette = p.id;
+          btn.setAttribute("aria-label", `Use the ${p.name} palette`);
+          const sw = mk("div", "wb-preset-swatches");
+          [p.roles.bg, p.roles.primary, p.roles.accent, p.roles.ink].forEach((c) => {
+            const s = mk("span");
+            s.style.background = c;
+            s.style.border = "1px solid rgba(0,0,0,0.08)";
+            sw.appendChild(s);
+          });
+          btn.appendChild(sw);
+          btn.appendChild(mk("div", "wb-preset-name", p.name));
+          btn.addEventListener("click", () => {
+            design.palette = { id: p.id, input: { ...p.input } };
+            refresh();
+          });
+          tiles.push(btn);
+          grid.appendChild(btn);
+        });
+        palSec.appendChild(grid);
+      });
+
+      const custom = mk("details");
+      const customSummary = mk("summary", "", "Custom — choose your own four colors");
+      custom.appendChild(customSummary);
+      const customGrid = mk("div", "qh-design-custom");
+      const customInputs = {};
+      [["brand", "Main color"], ["brandAlt", "Second color"], ["accent", "Accent"], ["neutral", "Neutral (text and backgrounds)"]].forEach(([k, label]) => {
+        const l = mk("label", "", label);
+        const inp = document.createElement("input");
+        inp.type = "color";
+        inp.setAttribute("aria-label", label);
+        inp.addEventListener("input", () => {
+          const input = { ...design.palette.input };
+          input[k] = inp.value;
+          design.palette = { input };
+          refresh();
+        });
+        customInputs[k] = inp;
+        l.appendChild(inp);
+        customGrid.appendChild(l);
+      });
+      custom.appendChild(customGrid);
+      custom.appendChild(mk("p", "muted", "Custom palettes use a light background. Text and button colors are adjusted automatically until they pass the readability check."));
+      palSec.appendChild(custom);
+
+      const readoutTitle = mk("div", "qh-design-family", "Readability check");
+      const readout = mk("ul", "qh-design-readout");
+      readout.setAttribute("aria-live", "polite");
+      palSec.appendChild(readoutTitle);
+      palSec.appendChild(readout);
+      function readoutLine(label, fg, bg, min) {
+        const r = qhDesignColor.contrastRatio(fg, bg);
+        const ok = r >= min;
+        const li = mk("li", ok ? "ok" : "bad");
+        const chip = mk("span", "qh-design-chip", "Aa");
+        chip.style.background = bg;
+        chip.style.color = fg;
+        li.appendChild(chip);
+        li.appendChild(document.createTextNode(`${label} ${r.toFixed(1)}:1 ${ok ? "✓" : "✗"}`));
+        return li;
+      }
+
+      // ---- Type ----
+      const typeSec = section("Type", "A display font for headings and a body font for everything else. The sample is set in the pair you pick.");
+      const pairSel = document.createElement("select");
+      pairSel.setAttribute("aria-label", "Font pair");
+      options.typePairs.forEach((p) => {
+        const o = document.createElement("option");
+        o.value = p.id;
+        o.textContent = p.name;
+        pairSel.appendChild(o);
+      });
+      pairSel.addEventListener("change", () => { design.typePair = pairSel.value; refresh(); });
+      const typeRow = mk("div", "qh-design-row");
+      typeRow.appendChild(labelled("Font pair", pairSel));
+      typeRow.appendChild(seg("Type size", () => design.scale, (v) => { design.scale = v; },
+        [["compact", "Compact"], ["comfortable", "Comfortable"], ["editorial", "Editorial"]]));
+      typeSec.appendChild(typeRow);
+      const sample = mk("div", "qh-design-sample");
+      const sampleTitle = mk("div", "qh-design-sample-title", displayName);
+      const sampleBody = mk("p", "qh-design-sample-body");
+      const sampleBtn = mk("span", "qh-design-sample-btn");
+      sample.appendChild(sampleTitle);
+      sample.appendChild(sampleBody);
+      sample.appendChild(sampleBtn);
+      typeSec.appendChild(sample);
+
+      // ---- Shape & rhythm ----
+      const shapeSec = section("Shape and spacing", "Corners and shadows on cards and buttons; how much room sections get and how wide the page runs.");
+      const shapeRow = mk("div", "qh-design-row");
+      shapeRow.appendChild(seg("Corners", () => design.shape.radius, (v) => { design.shape.radius = v; },
+        [["sharp", "Sharp"], ["soft", "Soft"], ["round", "Round"]]));
+      shapeRow.appendChild(seg("Shadow", () => design.shape.shadow, (v) => { design.shape.shadow = v; },
+        [["none", "None"], ["subtle", "Subtle"], ["lifted", "Lifted"]]));
+      shapeRow.appendChild(seg("Section spacing", () => design.rhythm.spacing, (v) => { design.rhythm.spacing = v; },
+        [["tight", "Tight"], ["normal", "Normal"], ["airy", "Airy"]]));
+      shapeRow.appendChild(seg("Page width", () => design.rhythm.container, (v) => { design.rhythm.container = v; },
+        [["narrow", "Narrow"], ["normal", "Normal"], ["wide", "Wide"]]));
+      shapeSec.appendChild(shapeRow);
+
+      // ---- Header & footer ----
+      const chromeSec = section("Header and footer", "How the top bar and the footer are laid out.");
+      const headRow = mk("div", "qh-design-row");
+      headRow.appendChild(seg("Header layout", () => design.header.variant, (v) => { design.header.variant = v; },
+        [["left", "Logo left"], ["centered", "Centered"], ["split", "Split"]]));
+      const ctaSel = document.createElement("select");
+      ctaSel.setAttribute("aria-label", "Header button");
+      [["join", "Join"], ["quote", "Request a quote"], ["donate", "Donate"], ["none", "No button"]].forEach(([v, text]) => {
+        const o = document.createElement("option");
+        o.value = v;
+        o.textContent = text;
+        ctaSel.appendChild(o);
+      });
+      ctaSel.addEventListener("change", () => { design.header.cta = ctaSel.value; refresh(); });
+      headRow.appendChild(labelled("Header button", ctaSel));
+      headRow.appendChild(seg("Footer", () => design.footer.variant, (v) => { design.footer.variant = v; },
+        [["simple", "Simple"], ["columns", "Columns"], ["meeting", "Meeting info"]]));
+      chromeSec.appendChild(headRow);
+      const headChecks = mk("div");
+      headChecks.appendChild(check("Keep the header visible while scrolling", () => design.header.sticky, (v) => { design.header.sticky = v; }));
+      headChecks.appendChild(check("Let the home page hero run under the header", () => design.header.overlayHero, (v) => { design.header.overlayHero = v; }));
+      chromeSec.appendChild(headChecks);
+
+      // ---- Pattern ----
+      const patSec = section("Quilt pattern", "A faint block pattern behind pattern heroes and bands. Rendered in your palette's colors.");
+      const patGrid = mk("div", "wb-presets");
+      const patTiles = [];
+      options.patterns.forEach((p) => {
+        const label = QH_PATTERN_LABELS[p.id] || p.id;
+        const btn = mk("button", "wb-preset");
+        btn.type = "button";
+        btn.dataset.pattern = p.id;
+        btn.setAttribute("aria-label", `Use the ${label} pattern`);
+        const art = mk("div", "qh-pattern-tile");
+        art.style.backgroundImage = p.dataUri;
+        btn.appendChild(art);
+        btn.appendChild(mk("div", "wb-preset-name", label));
+        btn.addEventListener("click", () => { design.pattern.id = p.id; refresh(); });
+        patTiles.push(btn);
+        patGrid.appendChild(btn);
+      });
+      patSec.appendChild(patGrid);
+      const strength = document.createElement("input");
+      strength.type = "range";
+      strength.min = "0";
+      strength.max = "0.4";
+      strength.step = "0.02";
+      strength.setAttribute("aria-label", "Pattern strength");
+      strength.addEventListener("input", () => { design.pattern.opacity = Number(strength.value); refresh(); });
+      const strengthRow = mk("div", "qh-design-row");
+      strengthRow.appendChild(labelled("Pattern strength", strength));
+      patSec.appendChild(strengthRow);
+
+      // ---- Footer credit (business Appearance kept this option) ----
+      let credit = null;
+      if (opts.showCredit) {
+        let settings = {};
+        try { settings = JSON.parse(tenantRow.settings_json || "{}"); } catch { settings = {}; }
+        credit = document.createElement("input");
+        credit.type = "checkbox";
+        credit.checked = ((settings && settings.branding) || {}).show_platform_credit !== false;
+        const l = mk("label", "qh-design-check");
+        l.appendChild(credit);
+        l.appendChild(document.createTextNode("Show “Powered by QuiltHosting” in the footer"));
+        const s = section("Footer credit");
+        s.appendChild(l);
+      }
+
+      // ---- Save ----
+      const saveRow = mk("div");
+      saveRow.style.marginTop = "1rem";
+      const saveBtn = mk("button", "", "Save design");
+      saveBtn.type = "button";
+      saveBtn.setAttribute("data-write", "");
+      saveBtn.addEventListener("click", () => save(null));
+      const msg = mk("span", "muted");
+      msg.style.marginLeft = "0.5rem";
+      msg.setAttribute("aria-live", "polite");
+      saveRow.appendChild(saveBtn);
+      saveRow.appendChild(msg);
+      host.appendChild(saveRow);
+
+      async function save(nextRenderer, kitId) {
+        msg.textContent = "Saving…";
+        try {
+          // Always merge into the freshest settings so other screens' keys
+          // (twilio, branding, nav, ...) are never dropped by this PATCH.
+          const fresh = await api(`/api/tenants/${tenantId}`);
+          let base = {};
+          try { base = JSON.parse(fresh.settings_json || "{}"); } catch { base = {}; }
+          if (!base || typeof base !== "object" || Array.isArray(base)) base = {};
+          const next = { ...base, design: clone(design) };
+          const site = base.site && typeof base.site === "object" && !Array.isArray(base.site) ? base.site : {};
+          if (isGuild) next.site = { ...site, renderer: nextRenderer || renderer };
+          if (kitId) next.site = { ...(next.site || site), kit: kitId };
+          if (credit) next.branding = { ...((base.branding && typeof base.branding === "object") ? base.branding : {}), show_platform_credit: credit.checked };
+          const row = await api(`/api/tenants/${tenantId}`, { method: "PATCH", body: JSON.stringify({ settings: next }) });
+          if (nextRenderer) renderer = nextRenderer;
+          if (row && row.settings_json) {
+            try { Object.assign(next, JSON.parse(row.settings_json)); } catch {}
+            if (typeof currentTenant !== "undefined" && currentTenant) currentTenant.settings_json = row.settings_json;
+          }
+          if (next.design) Object.assign(design, clone(next.design));
+          if (typeof WB !== "undefined") {
+            WB.settings = next;
+            // The canvas and preview render through the server, so they pick
+            // up the design on their next fetch; kick one off if the editor
+            // is open.
+            if (WB.view === "editor") {
+              wbScheduleServerPreview();
+              if (document.getElementById("wb-preview-frame")) wbRefreshPreview();
+            }
+          }
+          msg.textContent = nextRenderer
+            ? (nextRenderer === "legacy" ? "Saved. Your site is back on the classic look." : "Saved. Your site now uses the new design.")
+            : kitId ? "Saved. Your site now uses this design; fine-tune it below." : "Saved. Your site now uses this design.";
+          refreshRenderer();
+          refresh();
+          if (nextRenderer && opts.onRendererChange) opts.onRendererChange(nextRenderer);
+        } catch (e) {
+          msg.textContent = e.issues && e.issues.length ? e.issues.map((i) => i.message).join(" ") : e.message;
+        }
+      }
+
+      function refresh() {
+        const lib = design.palette.id ? paletteById(design.palette.id) : null;
+        if (lib && !design.palette.input) design.palette.input = { ...lib.input };
+        const dark = !!(lib && lib.dark);
+        const roles = lib ? lib.roles : qhDesignColor.deriveRoles(design.palette.input, false, defaults.palette.input);
+        tiles.forEach((t) => {
+          const on = !!lib && t.dataset.palette === lib.id;
+          t.classList.toggle("on", on);
+          t.setAttribute("aria-pressed", String(on));
+        });
+        Object.keys(customInputs).forEach((k) => {
+          const v = qhDesignColor.normalizeHex(design.palette.input && design.palette.input[k]) || defaults.palette.input[k];
+          if (customInputs[k].value !== v) customInputs[k].value = v;
+        });
+        customSummary.textContent = lib ? "Custom — choose your own four colors" : "Custom — in use";
+        if (!lib) custom.open = true;
+        readout.replaceChildren(
+          readoutLine("Text on background", roles.ink, roles.bg, 4.5),
+          readoutLine("Muted text on panels", roles.inkMuted, roles.surfaceAlt, 4.5),
+          readoutLine("Button text", roles.onPrimary, roles.primary, 4.5),
+          readoutLine("Accent text", roles.onAccent, roles.accent, 4.5),
+          readoutLine("Text on dark band", roles.onDark, roles.dark, 4.5)
+        );
+
+        const pair = pairById(design.typePair);
+        if (pairSel.value !== pair.id) pairSel.value = pair.id;
+        qhDesignEnsureFonts(pair.fontsHref);
+        sample.style.background = roles.bg;
+        sample.style.color = roles.ink;
+        sample.style.borderColor = roles.border;
+        sample.style.borderRadius = QH_DESIGN_RADIUS[design.shape.radius] || QH_DESIGN_RADIUS.soft;
+        sample.style.boxShadow = QH_DESIGN_SHADOW[design.shape.shadow] || QH_DESIGN_SHADOW.subtle;
+        sample.style.padding = QH_DESIGN_PAD[design.rhythm.spacing] || QH_DESIGN_PAD.normal;
+        sampleTitle.style.fontFamily = pair.displayStack || "";
+        sampleTitle.style.fontSize = design.scale === "editorial" ? "1.9rem" : design.scale === "compact" ? "1.3rem" : "1.55rem";
+        sampleBody.style.fontFamily = pair.bodyStack || "";
+        sampleBody.style.color = roles.inkMuted;
+        sampleBody.textContent = pair.sample;
+        sampleBtn.style.fontFamily = pair.bodyStack || "";
+        sampleBtn.style.background = roles.primary;
+        sampleBtn.style.color = roles.onPrimary;
+        sampleBtn.style.borderRadius = QH_DESIGN_RADIUS[design.shape.radius] || QH_DESIGN_RADIUS.soft;
+        sampleBtn.textContent = design.header.cta === "quote" ? "Request a quote" : design.header.cta === "donate" ? "Donate" : "Join us";
+        if (ctaSel.value !== design.header.cta) ctaSel.value = design.header.cta;
+
+        patTiles.forEach((t) => {
+          const on = t.dataset.pattern === design.pattern.id;
+          t.classList.toggle("on", on);
+          t.setAttribute("aria-pressed", String(on));
+        });
+        if (Number(strength.value) !== design.pattern.opacity) strength.value = String(design.pattern.opacity);
+        refreshers.forEach((fn) => fn());
+      }
+      refresh();
+      return { renderer, design };
+    }
+    window.qhDesignPanel = qhDesignPanel;
 
     /* ---------- navigation editor (shared) ---------- */
     // window.qhNavEditor(container, { items, pages, linkFor(page), onChange }) -> { getItems() }

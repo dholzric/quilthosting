@@ -11,6 +11,14 @@ import {
   normalizeDomainStatus,
   type OnboardingTenant,
 } from "../lib/onboarding";
+import { DEFAULT_DESIGN, PATTERN_IDS, deriveRoles, designFontsHref, siteDesignSchema } from "../lib/site/design/tokens";
+import { PALETTES, PALETTE_FAMILIES, PALETTE_FAMILY_LABELS } from "../lib/site/design/palettes";
+import { TYPE_PAIRS } from "../lib/site/design/typePairs";
+import { patternDataUri } from "../lib/site/design/patterns";
+import { readSiteDesign } from "../lib/site/design/migrate";
+import { FONT_OPTIONS } from "../lib/site/fonts";
+import { KITS } from "../lib/site/kits/index";
+import { kitSettingsJson } from "../lib/site/kits/apply";
 
 export const tenantRoutes = new Hono<{
   Bindings: Env;
@@ -275,6 +283,110 @@ tenantRoutes.post("/:id/onboarding/dismiss", async (c) => {
   return c.json({ ok: true, dismissed: !body.undo, dismissed_at: body.undo ? null : now });
 });
 
+const SITE_RENDERERS = new Set(["legacy", "sections"]);
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return !!v && typeof v === "object" && !Array.isArray(v);
+}
+
+/** Which renderer serves the tenant's public site. Mirrors the server rule
+ * (useLegacyRenderer): only an explicit "legacy" keeps the classic shell. */
+export function siteRendererOf(settings: unknown): "legacy" | "sections" {
+  const site = isRecord(settings) ? settings.site : null;
+  return isRecord(site) && site.renderer === "legacy" ? "legacy" : "sections";
+}
+
+/**
+ * Validate the two design-system keys a tenant PATCH may carry. Returns the
+ * settings with `design` normalised (palette id resolved to its inputs,
+ * defaults filled) or the issues to send back as a 400. Every other key is
+ * passed through untouched -- the admin always sends the merged object.
+ */
+export function validateDesignSettings(
+  settings: Record<string, unknown>
+): { ok: true; settings: Record<string, unknown> } | { ok: false; issues: { path: string; message: string }[] } {
+  const out = { ...settings };
+  const issues: { path: string; message: string }[] = [];
+  if (out.design !== undefined) {
+    const r = siteDesignSchema.safeParse(out.design);
+    if (r.success) out.design = r.data;
+    else issues.push(...r.error.issues.map((i) => ({ path: ["settings", "design", ...i.path].join("."), message: i.message })));
+  }
+  if (out.site !== undefined) {
+    if (!isRecord(out.site)) {
+      issues.push({ path: "settings.site", message: "Expected an object" });
+    } else if (out.site.renderer !== undefined && !(typeof out.site.renderer === "string" && SITE_RENDERERS.has(out.site.renderer))) {
+      issues.push({ path: "settings.site.renderer", message: 'renderer must be "legacy" or "sections"' });
+    }
+  }
+  return issues.length ? { ok: false, issues } : { ok: true, settings: out };
+}
+
+const SYSTEM_STACK = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+function fontStackFor(key: string): string {
+  return key === "system" ? SYSTEM_STACK : (FONT_OPTIONS[key]?.cssStack ?? FONT_OPTIONS.inter.cssStack);
+}
+
+// GET /api/tenants/:id/design-options — the palette / type-pair / pattern
+// library for the admin Design panel, plus this tenant's current design
+// (legacy themes migrated through readSiteDesign) and renderer. Read access
+// is the same as GET /:id: any member of the tenant, or a platform admin.
+tenantRoutes.get("/:id/design-options", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const membership = await first<{ role: string }>(
+    c.env.DB.prepare("SELECT role FROM tenant_users WHERE tenant_id = ? AND user_id = ?").bind(id, user.id)
+  );
+  if (!membership) {
+    const adminRow = await first<{ is_platform_admin: number }>(
+      c.env.DB.prepare("SELECT is_platform_admin FROM users WHERE id = ?").bind(user.id)
+    );
+    if (!adminRow?.is_platform_admin) return c.json({ error: "Forbidden" }, 403);
+  }
+  const tenant = await first<Tenant>(c.env.DB.prepare("SELECT * FROM tenants WHERE id = ?").bind(id));
+  if (!tenant) return c.json({ error: "Not found" }, 404);
+
+  const current = readSiteDesign(tenant.settings_json);
+  let settings: unknown = null;
+  try { settings = JSON.parse(tenant.settings_json || "{}"); } catch { settings = null; }
+  const currentDark = !!(current.palette.id && PALETTES.find((p) => p.id === current.palette.id)?.dark);
+  const currentRoles = deriveRoles(current.palette.input, currentDark);
+  const patternColors = { a: currentRoles.primary, b: currentRoles.dark, c: currentRoles.accent };
+
+  return c.json({
+    palettes: PALETTES.map((p) => ({
+      id: p.id,
+      name: p.name,
+      family: p.family,
+      dark: !!p.dark,
+      input: p.input,
+      roles: deriveRoles(p.input, !!p.dark),
+    })),
+    families: PALETTE_FAMILIES.map((f) => ({ id: f, label: PALETTE_FAMILY_LABELS[f] })),
+    typePairs: TYPE_PAIRS.map((p) => ({
+      id: p.id,
+      name: p.name,
+      display: p.display,
+      body: p.body,
+      sample: p.sample,
+      fontsHref: designFontsHref({ ...DEFAULT_DESIGN, typePair: p.id }),
+      displayStack: fontStackFor(p.display),
+      bodyStack: fontStackFor(p.body),
+    })),
+    patterns: PATTERN_IDS.map((pid) => ({ id: pid, dataUri: patternDataUri(pid, patternColors) })),
+    kits: KITS.map((k) => ({
+      id: k.id,
+      name: k.name,
+      audience: k.audience,
+      character: k.character,
+      design: readSiteDesign(kitSettingsJson(k)),
+    })),
+    defaults: DEFAULT_DESIGN,
+    current,
+    renderer: siteRendererOf(settings),
+  });
+});
+
 // GET /api/tenants/:id — members of the guild only (platform admins: any)
 tenantRoutes.get("/:id", async (c) => {
   const user = c.get("user");
@@ -337,8 +449,16 @@ tenantRoutes.patch("/:id", async (c) => {
     params.push(body.name.trim());
   }
   if (body.settings !== undefined) {
+    if (!isRecord(body.settings)) {
+      return c.json({ error: "settings must be an object", issues: [{ path: "settings", message: "Expected an object" }] }, 400);
+    }
+    // settings.design (site design tokens) and settings.site.renderer are
+    // validated here so a bad value from the admin never reaches the
+    // renderer; everything else in settings is the tenant's own business.
+    const checked = validateDesignSettings(body.settings);
+    if (!checked.ok) return c.json({ error: "Invalid settings", issues: checked.issues }, 400);
     fields.push("settings_json = ?");
-    params.push(JSON.stringify(body.settings));
+    params.push(JSON.stringify(checked.settings));
   }
   // Deliberately NOT handled here: tenant_type. A tenant owner/admin who
   // could flip their own guild to "business" would drop their member cap

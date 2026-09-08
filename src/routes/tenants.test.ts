@@ -492,3 +492,166 @@ describe("redactSettingsForRole — provider secrets stay with owner/admin", () 
     expect(redactSettingsForRole({ settings_json: "{nope" }, "viewer").settings_json).toBe("{nope");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Design panel (site foundation Task 11): PATCH validates settings.design
+// through siteDesignSchema and settings.site.renderer against the two
+// renderer names; GET /:id/design-options hands the admin the palette /
+// type-pair / pattern library so it never hard-codes it.
+// ---------------------------------------------------------------------------
+import { DEFAULT_DESIGN } from "../lib/site/design/tokens";
+
+async function patchSettings(settings: unknown, role = "owner") {
+  const { db, writes } = fakeDb({ membershipRole: role });
+  const env = { DB: db, JWT_SECRET } as unknown as Env;
+  const headers = { ...(await authHeader()), "Content-Type": "application/json" };
+  const res = await tenantRoutes.request(
+    `/${TENANT_ID}`,
+    { method: "PATCH", headers, body: JSON.stringify({ settings }) },
+    env
+  );
+  return { res, writes, body: await res.json().catch(() => ({})) as any };
+}
+
+describe("PATCH /api/tenants/:id — settings.design and settings.site.renderer", () => {
+  it("rejects an unknown type pair with 400 and an issue path under settings.design", async () => {
+    const { res, writes, body } = await patchSettings({ design: { typePair: "comic-sans" } });
+    expect(res.status).toBe(400);
+    expect(writes).toHaveLength(0);
+    expect(body.error).toBeTruthy();
+    expect(body.issues.some((i: any) => i.path === "settings.design.typePair")).toBe(true);
+  });
+
+  it("rejects an unknown library palette id", async () => {
+    const { res, body } = await patchSettings({ design: { palette: { id: "no-such-palette" } } });
+    expect(res.status).toBe(400);
+    expect(body.issues.some((i: any) => i.path === "settings.design.palette.id")).toBe(true);
+  });
+
+  it("round-trips a valid design: palette id resolved to its inputs, defaults filled, other settings kept", async () => {
+    const { res, writes } = await patchSettings({
+      other: "keep",
+      design: { palette: { id: "heritage-indigo" }, typePair: "lora-karla", header: { cta: "donate" } },
+    });
+    expect(res.status).toBe(200);
+    expect(writes).toHaveLength(1);
+    const stored = JSON.parse(writes[0].binds[0] as string);
+    expect(stored.other).toBe("keep");
+    expect(stored.design.typePair).toBe("lora-karla");
+    expect(stored.design.palette.id).toBe("heritage-indigo");
+    expect(stored.design.palette.input.brand).toBe("#2c3e6b");
+    expect(stored.design.header.cta).toBe("donate");
+    expect(stored.design.header.sticky).toBe(DEFAULT_DESIGN.header.sticky);
+    expect(stored.design.shape).toEqual(DEFAULT_DESIGN.shape);
+    expect(stored.design.pattern).toEqual(DEFAULT_DESIGN.pattern);
+    // updated_at is bumped alongside.
+    expect(writes[0].sql).toContain("updated_at = ?");
+  });
+
+  it("accepts a custom palette given as four colours", async () => {
+    const { res, writes } = await patchSettings({
+      design: { palette: { input: { brand: "#123456", brandAlt: "#654321", accent: "#abcdef", neutral: "#222" } } },
+    });
+    expect(res.status).toBe(200);
+    const stored = JSON.parse(writes[0].binds[0] as string);
+    expect(stored.design.palette.id).toBeUndefined();
+    expect(stored.design.palette.input.neutral).toBe("#222222");
+  });
+
+  it("rejects a renderer outside {legacy, sections} and accepts both valid values", async () => {
+    const bad = await patchSettings({ site: { renderer: "wordpress" } });
+    expect(bad.res.status).toBe(400);
+    expect(bad.writes).toHaveLength(0);
+    expect(bad.body.issues.some((i: any) => i.path === "settings.site.renderer")).toBe(true);
+    for (const renderer of ["legacy", "sections"]) {
+      const ok = await patchSettings({ site: { renderer, other: 1 } });
+      expect(ok.res.status).toBe(200);
+      const stored = JSON.parse(ok.writes[0].binds[0] as string);
+      expect(stored.site).toEqual({ renderer, other: 1 });
+    }
+  });
+
+  it("rejects a non-object settings body", async () => {
+    const { res, writes } = await patchSettings("nope");
+    expect(res.status).toBe(400);
+    expect(writes).toHaveLength(0);
+  });
+});
+
+describe("GET /api/tenants/:id/design-options", () => {
+  it("returns the library plus the tenant's current design and renderer", async () => {
+    const { db } = fakeCreateDb({
+      membershipRole: "viewer",
+      tenantRow: {
+        id: TENANT_ID,
+        tenant_type: "guild",
+        settings_json: JSON.stringify({
+          design: { palette: { id: "naturals-sage" }, typePair: "manrope" },
+          site: { renderer: "legacy" },
+        }),
+      },
+    });
+    const env = { DB: db, JWT_SECRET, APP_URL } as unknown as Env;
+    const res = await tenantRoutes.request(`/${TENANT_ID}/design-options`, { headers: await authHeader() }, env);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as any;
+
+    expect(body.palettes.length).toBeGreaterThanOrEqual(24);
+    const madder = body.palettes.find((p: any) => p.id === "heritage-madder");
+    expect(madder.family).toBe("heritage");
+    expect(madder.input.brand).toBe("#9b2c2c");
+    for (const role of ["bg", "ink", "primary", "onPrimary", "accent", "dark"]) {
+      expect(madder.roles[role]).toMatch(/^#[0-9a-f]{6}$/);
+    }
+
+    expect(body.families).toHaveLength(7);
+    expect(body.families[0]).toEqual({ id: "heritage", label: "Heritage" });
+
+    expect(body.typePairs.length).toBeGreaterThanOrEqual(11);
+    const lora = body.typePairs.find((p: any) => p.id === "lora-karla");
+    expect(lora.display).toBe("lora");
+    expect(lora.body).toBe("karla");
+    expect(lora.sample).toContain("nine-patch");
+    expect(lora.fontsHref).toMatch(/^https:\/\/fonts\.googleapis\.com\/css2\?family=Lora.*family=Karla/);
+    expect(lora.displayStack).toContain("'Lora'");
+    const system = body.typePairs.find((p: any) => p.id === "system");
+    expect(system.fontsHref).toBeNull();
+
+    expect(body.patterns.map((p: any) => p.id)).toEqual(["none", "nine-patch", "flying-geese", "log-cabin", "churn-dash", "bear-paw"]);
+    expect(body.patterns[0].dataUri).toBe("none");
+    expect(body.patterns[1].dataUri).toMatch(/^url\("data:image\/svg\+xml;utf8,/);
+
+    expect(body.defaults).toEqual(DEFAULT_DESIGN);
+    // Kits ("Browse designs"): id/name/character plus the design the kit's
+    // defaults resolve to, so the admin can apply one without knowing kits.
+    expect(body.kits.length).toBeGreaterThanOrEqual(1);
+    const heritage = body.kits.find((k: any) => k.id === "heritage");
+    expect(heritage.name).toBe("Heritage");
+    expect(heritage.audience).toBe("guild");
+    expect(heritage.character.length).toBeGreaterThan(10);
+    expect(heritage.design.palette.id).toBe("heritage-madder");
+    expect(heritage.design.palette.input.brand).toBe("#9b2c2c");
+    expect(heritage.design.pattern.id).toBe("log-cabin");
+    expect(body.current.palette.id).toBe("naturals-sage");
+    expect(body.current.typePair).toBe("manrope");
+    expect(body.current.shape).toEqual(DEFAULT_DESIGN.shape);
+    expect(body.renderer).toBe("legacy");
+  });
+
+  it("defaults current to DEFAULT_DESIGN and renderer to sections when settings carry neither", async () => {
+    const { db } = fakeCreateDb({ membershipRole: "owner" });
+    const env = { DB: db, JWT_SECRET, APP_URL } as unknown as Env;
+    const res = await tenantRoutes.request(`/${TENANT_ID}/design-options`, { headers: await authHeader() }, env);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as any;
+    expect(body.current).toEqual(DEFAULT_DESIGN);
+    expect(body.renderer).toBe("sections");
+  });
+
+  it("is 403 for a stranger who is not a platform admin", async () => {
+    const { db } = fakeCreateDb({ membershipRole: null, platformAdmin: false });
+    const env = { DB: db, JWT_SECRET, APP_URL } as unknown as Env;
+    const res = await tenantRoutes.request(`/${TENANT_ID}/design-options`, { headers: await authHeader() }, env);
+    expect(res.status).toBe(403);
+  });
+});
