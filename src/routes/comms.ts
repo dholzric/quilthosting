@@ -16,6 +16,7 @@ import {
   type AudienceMember,
 } from "../lib/audience";
 import { processBlastChunk, queueFailedRetry } from "../lib/blastSend";
+import { unsubscribeUrl } from "../lib/suppression";
 
 export const commsRoutes = new Hono<{
   Bindings: Env;
@@ -24,6 +25,13 @@ export const commsRoutes = new Hono<{
 
 /** Immediate sends for tiny lists; larger lists queue for chunked delivery. */
 const SYNC_SEND_MAX = 75;
+
+/**
+ * Merged into the template for {{unsubscribe_url}} and swapped for the real
+ * per-recipient link AFTER link tracking wraps the body, so the unsubscribe
+ * link is never routed through the click tracker (same trick as blastSend).
+ */
+const UNSUB_SENTINEL = "QH_UNSUBSCRIBE_URL_SENTINEL";
 
 function memberMergeCtx(
   m: AudienceMember,
@@ -36,6 +44,7 @@ function memberMergeCtx(
     guild_name: guildName,
     level_name: m.level_name,
     end_date: m.end_date,
+    unsubscribe_url: UNSUB_SENTINEL,
   };
 }
 
@@ -195,6 +204,12 @@ commsRoutes.post("/", async (c) => {
     const results = await Promise.all(
       page.map(async (m) => {
         const logId = generateId();
+        const unsubUrl = await unsubscribeUrl(
+          c.env.APP_URL,
+          c.env.JWT_SECRET,
+          tenant.id,
+          m.email
+        );
         const ctx = memberMergeCtx(m, tenant.name);
         const personalizedBody = applyMergeFields(rawBody, ctx);
         const personalizedSubject = applyMergeFields(body.subject, ctx);
@@ -206,8 +221,9 @@ commsRoutes.post("/", async (c) => {
         const { wrapLinksForTracking } = await import("../lib/automations");
         html = wrapLinksForTracking(html, c.env.APP_URL, logId);
         html += trackingPixelHtml(c.env.APP_URL, logId);
+        html = html.split(UNSUB_SENTINEL).join(unsubUrl);
         const text = body.body_text
-          ? applyMergeFields(body.body_text, ctx)
+          ? applyMergeFields(body.body_text, ctx).split(UNSUB_SENTINEL).join(unsubUrl)
           : undefined;
         const res = await sendEmail(c.env, {
           to: m.email,
@@ -218,30 +234,68 @@ commsRoutes.post("/", async (c) => {
           // List-Unsubscribe headers + footer (lib/email).
           kind: "marketing",
           tenantId: tenant.id,
+          unsubscribeUrl: unsubUrl,
           guildName: tenant.name,
           emailLogId: logId,
+          tags: [
+            { name: "template", value: "blast" },
+            { name: "blast", value: blastId.slice(0, 32) },
+          ],
         });
         return { m, res, logId };
       })
     );
-    const logInserts = results.map(({ m, res, logId }) => {
+    // Same per-recipient outcome row the queued path writes (migration
+    // 0023): blast_id + delivery_status so the Email page and "retry
+    // failed" see small blasts too.
+    const outcomes = results.map(({ m, res, logId }) => {
       if (res.success) sent++;
       else if (res.suppressed) skipped++;
       else errors.push(`${m.email}: ${res.error}`);
-      return c.env.DB.prepare(
-        `INSERT INTO email_logs (id, tenant_id, member_id, to_email, template, resend_id, status, created_at)
-         VALUES (?, ?, ?, ?, 'blast', ?, ?, ?)`
-      ).bind(
+      return {
+        m,
         logId,
-        tenant.id,
-        m.id,
-        m.email,
-        res.id || null,
-        res.success ? "sent" : res.suppressed ? "skipped" : "failed",
-        now
-      );
+        providerId: res.id || null,
+        legacyStatus: res.success ? "sent" : res.suppressed ? "skipped" : "failed",
+        deliveryStatus: res.success ? "accepted" : res.suppressed ? "skipped" : "failed",
+        err: res.success ? null : (res.error || res.reason || "failed").slice(0, 500),
+      };
     });
-    await c.env.DB.batch(logInserts);
+    try {
+      await c.env.DB.batch(
+        outcomes.map((o) =>
+          c.env.DB.prepare(
+            `INSERT INTO email_logs
+               (id, tenant_id, member_id, to_email, template, resend_id, status, created_at,
+                blast_id, delivery_status, provider_message_id, delivery_error)
+             VALUES (?, ?, ?, ?, 'blast', ?, ?, ?, ?, ?, ?, ?)`
+          ).bind(
+            o.logId,
+            tenant.id,
+            o.m.id,
+            o.m.email,
+            o.providerId,
+            o.legacyStatus,
+            now,
+            blastId,
+            o.deliveryStatus,
+            o.providerId,
+            o.err
+          )
+        )
+      );
+    } catch (e) {
+      // Pre-migration schema (no delivery columns yet).
+      console.warn("email_logs insert with delivery columns failed; using legacy columns", e);
+      await c.env.DB.batch(
+        outcomes.map((o) =>
+          c.env.DB.prepare(
+            `INSERT INTO email_logs (id, tenant_id, member_id, to_email, template, resend_id, status, created_at)
+             VALUES (?, ?, ?, ?, 'blast', ?, ?, ?)`
+          ).bind(o.logId, tenant.id, o.m.id, o.m.email, o.providerId, o.legacyStatus, now)
+        )
+      );
+    }
     afterEmail = page[page.length - 1].email;
     if (page.length < 25) break;
   }
