@@ -5,7 +5,8 @@ import { first, all } from "../lib/db";
 import { requireAuth, type AuthVariables } from "../middleware/auth";
 import { TRIAL_DAYS } from "../lib/plans";
 import { provisionPlatformSubdomain, tenantPublicBaseUrl } from "../lib/tenantHost";
-import { starterPages, starterPageRow, starterSettingsJson } from "../lib/starterSite";
+import { kitById } from "../lib/site/kits";
+import { kitPageRows } from "../lib/site/kits/apply";
 import {
   computeOnboarding,
   normalizeDomainStatus,
@@ -152,7 +153,8 @@ tenantRoutes.post("/", async (c) => {
     slug: string;
     city?: string;
     meeting_info?: string;
-  }>();
+    kit?: string;
+}>();
   if (!body.name || !body.slug) {
     return c.json({ error: "name and slug are required" }, 400);
   }
@@ -186,14 +188,21 @@ tenantRoutes.post("/", async (c) => {
   trialEnds.setUTCDate(trialEnds.getUTCDate() + TRIAL_DAYS);
   const trialIso = trialEnds.toISOString();
 
-  const pageStmts = starterPages(name, { city, meetingInfo }).map((page) => {
-    const row = starterPageRow(page);
-    return c.env.DB.prepare(
+  // Starter site = a kit (default Heritage). Every page is a section document
+  // rendered by the new site renderer; settings carry the kit's design and
+  // `site.renderer: "sections"` so the guild starts on the new renderer.
+  const kitId = typeof body.kit === "string" && body.kit ? body.kit : "heritage";
+  const kit = kitById(kitId);
+  if (!kit || kit.audience === "business") {
+    return c.json({ error: "Unknown design kit", issues: [{ path: "kit", message: `"${kitId}" is not a guild kit` }] }, 400);
+  }
+  const pageStmts = kitPageRows(kit, { id, name, city, meetingInfo }, now).map((row) =>
+    c.env.DB.prepare(
       `INSERT INTO pages
-       (id, tenant_id, slug, title, content_json, blocks_json, page_type, show_in_nav, nav_label,
-        is_members_only, published, sort_order, seo_title, seo_description, noindex,
-        created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, 'page', 1, NULL, 0, 1, ?, NULL, NULL, 0, ?, ?)`
+       (id, tenant_id, slug, title, content_json, blocks_json, show_in_nav, nav_label,
+        is_members_only, sort_order, created_at, updated_at,
+        page_type, published, seo_title, seo_description, noindex)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'page', 1, NULL, NULL, 0)`
     ).bind(
       generateId(),
       id,
@@ -201,11 +210,14 @@ tenantRoutes.post("/", async (c) => {
       row.title,
       row.content_json,
       row.blocks_json,
+      row.show_in_nav,
+      row.nav_label,
+      row.is_members_only,
       row.sort_order,
       now,
       now
-    );
-  });
+    )
+  );
 
   // All migrations are applied in production; no pre-migration fallback.
   // If this batch fails the client gets a 500 and nothing half-created.
@@ -214,7 +226,7 @@ tenantRoutes.post("/", async (c) => {
       `INSERT INTO tenants (id, name, slug, plan, status, settings_json, trial_ends_at,
                             domain_status, domain_error, created_at, updated_at)
        VALUES (?, ?, ?, 'free', 'active', ?, ?, 'pending', NULL, ?, ?)`
-    ).bind(id, name, slug, starterSettingsJson(), trialIso, now, now),
+    ).bind(id, name, slug, kitSettingsJson(kit), trialIso, now, now),
     c.env.DB.prepare(
       `INSERT INTO tenant_users (tenant_id, user_id, role, created_at)
        VALUES (?, ?, 'owner', ?)`

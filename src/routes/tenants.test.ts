@@ -229,7 +229,7 @@ function fakeCreateDb(opts: {
 const APP_URL = "https://quilthosting.com";
 
 describe("POST /api/tenants — starter site + subdomain status", () => {
-  it("inserts tenant + owner + 5 starter pages in one batch, domain_status pending, and returns public_url", async () => {
+  it("inserts tenant + owner + the 8 Heritage kit pages in one batch, domain_status pending, and returns public_url", async () => {
     const { db, batches, runs } = fakeCreateDb();
     // No CLOUDFLARE_API_TOKEN -> provisioning records 'skipped' via run().
     const env = { DB: db, JWT_SECRET, APP_URL } as unknown as Env;
@@ -253,7 +253,7 @@ describe("POST /api/tenants — starter site + subdomain status", () => {
 
     expect(batches).toHaveLength(1);
     const batch = batches[0];
-    expect(batch).toHaveLength(7);
+    expect(batch).toHaveLength(10);
     expect(batch[0].sql).toMatch(/^INSERT INTO tenants/);
     expect(batch[0].sql).toContain("domain_status");
     expect(batch[0].sql).toContain("'pending'");
@@ -261,20 +261,24 @@ describe("POST /api/tenants — starter site + subdomain status", () => {
     // name trimmed, slug normalized, theme seeded
     expect(batch[0].binds[1]).toBe("Prairie Star");
     expect(batch[0].binds[2]).toBe("prairie-star");
-    expect(JSON.parse(String(batch[0].binds[3])).theme.primary).toMatch(/^#/);
+    // settings carry the kit design and start the guild on the new renderer
+    const seeded = JSON.parse(String(batch[0].binds[3]));
+    expect(seeded.design.palette.input.brand).toMatch(/^#/);
+    expect(seeded.site.renderer).toBe("sections");
+    expect(seeded.site.kit).toBe("heritage");
     expect(batch[1].sql).toMatch(/^INSERT INTO tenant_users/);
     expect(batch[1].binds).toEqual([batch[0].binds[0], USER_ID, expect.any(String)]);
 
     const pageInserts = batch.slice(2);
-    expect(pageInserts).toHaveLength(5);
+    expect(pageInserts).toHaveLength(8);
     const tenantId = batch[0].binds[0];
     const slugs = pageInserts.map((p) => p.binds[2]);
-    expect(slugs).toEqual(["home", "about", "why-join", "meetings", "contact"]);
+    expect(slugs).toEqual(["home", "about", "why-join", "meetings", "community", "newsletter", "gallery", "contact"]);
     for (const p of pageInserts) {
       expect(p.sql).toMatch(/^INSERT INTO pages/);
       expect(p.binds[1]).toBe(tenantId);
-      // page_type 'page', show_in_nav 1, is_members_only 0, published 1 are SQL literals
-      expect(p.sql).toContain("'page', 1, NULL, 0, 1,");
+      // page_type 'page' and published 1 are SQL literals; nav/members flags are bound
+      expect(p.sql).toContain("'page', 1, NULL, NULL, 0)");
       expect(String(p.binds[5])).toContain(SAMPLE_MARKER); // blocks_json
       expect(JSON.parse(String(p.binds[4])).html).toContain(SAMPLE_MARKER); // content_json
     }
