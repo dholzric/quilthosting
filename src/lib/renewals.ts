@@ -202,6 +202,9 @@ export async function runRenewalJob(env: Env): Promise<{
         to: row.email,
         subject,
         html,
+        kind: "marketing",
+        tenantId: row.tenant_id,
+        guildName: row.tenant_name,
         tags: [{ name: "template", value: "winback_7d" }],
       });
       try {

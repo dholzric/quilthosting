@@ -7,6 +7,8 @@ export type MergeContext = {
   guild_name?: string | null;
   level_name?: string | null;
   end_date?: string | null;
+  /** Per-recipient one-click unsubscribe link (marketing mail only). */
+  unsubscribe_url?: string | null;
 };
 
 const FIELD_ALIASES: Record<string, keyof MergeContext> = {
@@ -26,6 +28,9 @@ const FIELD_ALIASES: Record<string, keyof MergeContext> = {
   end_date: "end_date",
   renewal_date: "end_date",
   expires: "end_date",
+  unsubscribe_url: "unsubscribe_url",
+  unsubscribe: "unsubscribe_url",
+  unsubscribe_link: "unsubscribe_url",
 };
 
 function formatValue(key: keyof MergeContext, ctx: MergeContext): string {
@@ -126,6 +131,12 @@ function escapeHtml(s: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+/** Small footer appended to marketing mail whose template did not place {{unsubscribe_url}} itself. */
+export function unsubscribeFooterHtml(url: string, guildName?: string | null): string {
+  const who = guildName ? ` from ${escapeHtml(guildName)}` : "";
+  return `<p style="font-family:system-ui,sans-serif;color:#8a847a;font-size:12px;line-height:1.5;margin:20px 0 0;text-align:center">You're receiving this email${who} as a member. <a href="${escapeHtml(url)}" style="color:#8a847a">Unsubscribe</a></p>`;
 }
 
 /** Convert plain text (or light HTML) body into HTML paragraphs if needed. */

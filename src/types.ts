@@ -4,6 +4,8 @@ export type Env = {
   FILES: R2Bucket;
   KV: KVNamespace;
   ASSETS: Fetcher;
+  /** Cloudflare Rate Limiting binding (atomic per-key limiter); optional in tests. */
+  RATE_LIMITER?: RateLimit;
   /**
    * Outbound webhook dispatch queue. Optional so local dev and tests still run
    * without the binding — enqueueEvent falls back to the cron sweeper.
@@ -23,6 +25,8 @@ export type Env = {
   /** Optional: pre-created Stripe Price id for Guild plan; else ad-hoc $24/mo. */
   STRIPE_GUILD_PRICE_ID?: string;
   RESEND_API_KEY: string;
+  /** Resend webhook signing secret (Svix `whsec_...`). Webhook returns 503 when unset. */
+  RESEND_WEBHOOK_SECRET?: string;
   JWT_SECRET: string;
   /** AES-GCM key (base64, 32 bytes) for tenant_credentials. Required in production. */
   CREDENTIAL_KEY?: string;
@@ -66,6 +70,11 @@ export interface Tenant {
   stripe_subscription_id?: string | null;
   /** ISO date when free Guild trial ends (null = no trial / already converted). */
   trial_ends_at?: string | null;
+  /** {slug}.quilthosting.com provisioning: pending | active | failed | skipped (migration 0024). */
+  domain_status?: string | null;
+  domain_error?: string | null;
+  /** {"dismissed_at": ISO} for the setup checklist (migration 0024). */
+  onboarding_json?: string | null;
   plan: Plan;
   status: string;
   settings_json: string;

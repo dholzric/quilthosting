@@ -55,10 +55,18 @@ describe("renderPageHtml", () => {
   });
 
   it("renders nav links and escapes them", () => {
+    // The href was '"><script>' before the sanitizer landed; that value is
+    // now rejected by sanitizeUrl (the whole link is dropped -- see the
+    // javascript: test below), so the label-escaping property is exercised
+    // with a valid href and the attribute-breakout href is asserted separately.
     const html = renderPageHtml({
       ...args,
-      nav: [{ label: '<img src=x onerror=alert(1)>', href: '"><script>' }],
+      nav: [
+        { label: '<img src=x onerror=alert(1)>', href: "/x" },
+        { label: "Breakout", href: '"><script>' },
+      ],
     });
+    expect(html).not.toContain(">Breakout<");
     // esc() neutralizes HTML structure (&<>") — it does not strip arbitrary
     // substrings, so "onerror=alert(1)" legitimately survives as inert text
     // inside the escaped tag. The security property to assert is that the
@@ -68,6 +76,56 @@ describe("renderPageHtml", () => {
     expect(html).not.toContain("<img src=x");
     expect(html).toContain("&lt;img");
     expect(html).not.toContain('"><script>');
+  });
+
+  it("drops a nav link whose href is a javascript: URL", () => {
+    const html = renderPageHtml({
+      ...args,
+      nav: [{ label: "Bad", href: "javascript:alert(1)" }, { label: "Good", href: "/good" }],
+    });
+    expect(html).not.toContain("javascript:");
+    expect(html).not.toContain(">Bad<");
+    expect(html).toContain('<a href="/good">Good</a>');
+  });
+
+  it("adds rel=noopener noreferrer to external nav links", () => {
+    const html = renderPageHtml({
+      ...args,
+      nav: [{ label: "Shop", href: "https://shop.example", external: true }],
+    });
+    expect(html).toContain('<a href="https://shop.example" rel="noopener noreferrer">Shop</a>');
+  });
+
+  it("sanitizes rich-text blocks and legacy content_json before they reach the page", () => {
+    const payload = '<p>ok</p><img src=x onerror=alert(1)><script>alert(1)</script>';
+    const viaBlocks = renderPageHtml({
+      ...args,
+      page: { ...page, blocks_json: JSON.stringify([{ type: "text", html: payload }]) },
+    });
+    const viaLegacy = renderPageHtml({
+      ...args,
+      page: { title: "Legacy", slug: "legacy", blocks_json: null, content_json: JSON.stringify({ html: payload }) },
+    });
+    for (const html of [viaBlocks, viaLegacy]) {
+      expect(html).toContain("<p>ok</p>");
+      expect(html).not.toContain("onerror");
+      // The only <script> on the page is the platform's own qh-site.js and the JSON-LD.
+      expect(html).not.toContain("<script>alert");
+    }
+  });
+
+  it("escapes single quotes in the business name", () => {
+    const html = renderPageHtml({
+      ...args,
+      tenant: { ...tenant, settings_json: JSON.stringify({ business: { name: "Jo's Quilts" } }) },
+    });
+    expect(html).toContain("Jo&#39;s Quilts");
+  });
+
+  it("drops a javascript: logo url", () => {
+    const html = renderPageHtml({ ...args, logoUrl: "javascript:alert(1)" });
+    expect(html).not.toContain("javascript:");
+    expect(html).not.toContain("qh-site-logo");
   });
 
   it("shows the platform credit when enabled", () => {

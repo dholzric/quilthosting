@@ -266,6 +266,7 @@ export const siteGate = createMiddleware<{ Bindings: Env }>(
     // the first place (they expose no guild content and are rate limited).
     if (path.startsWith("/api/auth/")) return next();
     if (path.startsWith("/t/o/")) return next(); // open-tracking pixels
+    if (path.startsWith("/u/")) return next(); // one-click unsubscribe (HMAC-token gated)
     if (path.startsWith("/t/c/")) return next(); // click-tracking redirects
     if (path.startsWith("/api/v1/")) return next(); // public API keys (own auth)
     // Cloudflare for SaaS / ACME certificate + hostname ownership challenges

@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Unit tests
+        run: npx vitest run
+      - name: Migrations apply cleanly to a fresh local D1
+        run: npx wrangler d1 migrations apply quilthosting-db --local
+      - name: Secret scan (literal values only)
+        run: |
+          set -e
+          if git grep -nE 'GOCSPX-[A-Za-z0-9_-]{10,}|cf(ut|at)_[A-Za-z0-9]{20,}|gho_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY|sk_(live|test)_[A-Za-z0-9]{20,}|re_[A-Za-z0-9]{20,}|whsec_[A-Za-z0-9]{20,}' -- ':!package-lock.json' ':!.github/workflows/ci.yml'; then
+            echo "Possible hardcoded secret found"; exit 1
+          fi

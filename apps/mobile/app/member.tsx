@@ -306,11 +306,19 @@ export default function Member() {
               <Pressable
                 key={f.id}
                 style={s.card}
-                onPress={() =>
-                  Linking.openURL(
-                    `${apiBase()}/api/portal/${slug}/files/${f.id}?token=${encodeURIComponent(token)}`
-                  )
-                }
+                onPress={async () => {
+                  // Session tokens never go in URLs: mint a 10-minute
+                  // single-file link, then open it.
+                  try {
+                    const { url } = await api<{ url: string }>(
+                      `/api/portal/${slug}/files/${f.id}/link`,
+                      { method: "POST", token, slug }
+                    );
+                    Linking.openURL(url);
+                  } catch (e: any) {
+                    Alert.alert("Could not open document", e?.message || "");
+                  }
+                }}
               >
                 <Text style={s.itemTitle}>{f.filename}</Text>
                 <Text style={s.muted}>

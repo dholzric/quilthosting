@@ -8,6 +8,7 @@ import {
   ensurePlatformSubdomain,
   findSaasCustomHostname,
   parseCustomDomainInput,
+  provisionPlatformSubdomain,
   provisionSaasDomain,
   saasCnameTarget,
   stripWww,
@@ -49,8 +50,11 @@ domainRoutes.get("/", async (c) => {
   const platform = appHostname(c.env.APP_URL);
   const subdomain = `${tenant.slug}.${platform}`;
   const saas = await saasStatusForDomain(c.env, tenant.custom_domain);
+  const t = tenant as Tenant & { domain_status?: string | null; domain_error?: string | null };
   return c.json({
     custom_domain: tenant.custom_domain || null,
+    domain_status: t.domain_status || null,
+    domain_error: t.domain_error || null,
     platform_subdomain: subdomain,
     platform_subdomain_url: `https://${subdomain}`,
     path_url: `${c.env.APP_URL.replace(/\/$/, "")}/g/${tenant.slug}`,
@@ -205,6 +209,27 @@ domainRoutes.post("/ensure-subdomain", async (c) => {
     url: `https://${result.hostname}`,
     error: result.error || null,
     id: result.id || null,
+  });
+});
+
+/**
+ * POST /api/tenants/:tenantId/domain/retry — re-run free-subdomain
+ * provisioning and persist tenants.domain_status / domain_error. This is the
+ * onboarding checklist's "Retry" button; unlike /ensure-subdomain above it
+ * records the outcome so the status survives a page reload.
+ */
+domainRoutes.post("/retry", async (c) => {
+  const denied = await requireOwnerAdmin(c);
+  if (denied) return denied;
+  const tenant = c.get("tenant") as Tenant;
+  const result = await provisionPlatformSubdomain(c.env, tenant.id, tenant.slug);
+  return c.json({
+    ok: result.status === "active",
+    domain_status: result.status,
+    domain_error: result.error,
+    hostname: result.hostname,
+    url: `https://${result.hostname}`,
+    path_url: `${c.env.APP_URL.replace(/\/$/, "")}/g/${tenant.slug}`,
   });
 });
 

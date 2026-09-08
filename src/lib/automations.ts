@@ -163,6 +163,10 @@ export async function runAutomationJob(env: Env): Promise<{
         to: member.email,
         subject,
         html,
+        kind: "marketing",
+        tenantId: en.tenant_id,
+        guildName: tenant.name,
+        emailLogId: logId,
         tags: [
           { name: "template", value: "automation" },
           { name: "sequence", value: seq.id.slice(0, 32) },

@@ -21,6 +21,14 @@ bucket_name = "quilthosting-files"
 binding = "KV"
 id = "7eddc866d7b94b32bab6c40088f099c3"
 
+# Atomic per-key rate limiter used by src/middleware/rateLimit.ts as burst
+# protection (10 req / 60s per shard key). Keep `simple.limit` in sync with
+# RATE_LIMITER_BINDING_LIMIT in that file.
+[[ratelimits]]
+name = "RATE_LIMITER"
+namespace_id = "1001"
+simple = { limit = 10, period = 60 }
+
 [assets]
 directory = "./public"
 binding = "ASSETS"

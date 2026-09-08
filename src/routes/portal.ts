@@ -1,7 +1,8 @@
 import { Hono } from "hono";
 import type { Env, Member, MembershipLevel, Event, Tenant } from "../types";
 import { all, first } from "../lib/db";
-import { extractBearer, verifyJwt } from "../lib/auth";
+import { extractBearer, verifyJwt, signJwt, type JwtPayload } from "../lib/auth";
+import { contentFromPage } from "../lib/blocks";
 import { createCheckoutSession } from "../lib/stripe";
 import { activateMembership, portalUrl } from "../lib/memberships";
 import { assertCanActivateMember } from "../lib/plans";
@@ -17,6 +18,57 @@ async function requirePortalUser(c: any): Promise<PortalUser | null> {
   const payload = await verifyJwt(token, c.env.JWT_SECRET);
   if (!payload) return null;
   return { id: payload.sub, email: payload.email, name: payload.name };
+}
+
+/**
+ * Routes the browser opens directly (printable receipt in a new tab, plain
+ * <a> file download) cannot send an Authorization header. They used to accept
+ * the 7-day session JWT in `?token=`, which leaks a long-lived bearer into
+ * browser history, proxy/server logs, and Referer headers. Instead, the
+ * portal front-end first POSTs to `.../link` (authenticated normally) and
+ * receives a URL carrying a 10-minute, single-purpose token bound to that
+ * exact resource -- useless as a session and useless for anything else.
+ */
+const LINK_TOKEN_TTL_SECONDS = 60 * 10;
+type LinkPurpose = "receipt" | "download";
+
+function linkResource(purpose: LinkPurpose, slug: string, id: string): string {
+  return `${purpose}:${slug}:${id}`;
+}
+
+/** Session bearer in the header, OR a `?link=` token of the given purpose bound to `res`. */
+async function authSessionOrLink(
+  c: any,
+  purpose: LinkPurpose,
+  res: string
+): Promise<JwtPayload | null> {
+  const bearer = extractBearer(c.req.header("Authorization"));
+  if (bearer) return verifyJwt(bearer, c.env.JWT_SECRET);
+  const link = c.req.query("link") || "";
+  if (!link) return null;
+  const payload = await verifyJwt(link, c.env.JWT_SECRET, { purpose });
+  if (!payload || payload.res !== res) return null;
+  return payload;
+}
+
+async function mintLinkUrl(
+  c: any,
+  user: PortalUser,
+  purpose: LinkPurpose,
+  path: string,
+  res: string
+): Promise<{ url: string; expires_in: number }> {
+  const token = await signJwt(
+    { sub: user.id, email: user.email, name: user.name, res },
+    c.env.JWT_SECRET,
+    LINK_TOKEN_TTL_SECONDS,
+    purpose
+  );
+  const url = new URL(path, c.req.url);
+  url.search = "";
+  url.hash = "";
+  url.searchParams.set("link", token);
+  return { url: url.toString(), expires_in: LINK_TOKEN_TTL_SECONDS };
 }
 
 async function getTenantBySlug(db: D1Database, slug: string) {
@@ -170,14 +222,17 @@ portalRoutes.get("/:slug/invoices", async (c) => {
  * Printable receipt HTML for a payment belonging to this member.
  */
 portalRoutes.get("/:slug/receipts/:paymentId", async (c) => {
-  // Support ?token= so printable receipts open in a new tab without custom headers
-  const token =
-    extractBearer(c.req.header("Authorization")) || c.req.query("token") || "";
-  const payload = token ? await verifyJwt(token, c.env.JWT_SECRET) : null;
-  if (!payload) return c.json({ error: "Unauthorized" }, 401);
-
   const slug = c.req.param("slug");
   const paymentId = c.req.param("paymentId");
+  // Header session, or a 10-minute purpose:"receipt" link token bound to this
+  // exact receipt (minted by POST .../receipts/:paymentId/link below).
+  const payload = await authSessionOrLink(
+    c,
+    "receipt",
+    linkResource("receipt", slug, paymentId)
+  );
+  if (!payload) return c.json({ error: "Unauthorized" }, 401);
+
   const tenant = await getTenantBySlug(c.env.DB, slug);
   if (!tenant) return c.json({ error: "Guild not found" }, 404);
 
@@ -225,6 +280,42 @@ portalRoutes.get("/:slug/receipts/:paymentId", async (c) => {
       "Cache-Control": "no-store",
     },
   });
+});
+
+/**
+ * POST /api/portal/:slug/receipts/:paymentId/link
+ * Authenticated (session bearer). Returns `{ url }` -- the printable receipt
+ * URL carrying a 10-minute purpose:"receipt" token bound to this payment, so
+ * the portal can open it in a new tab without putting the session in the URL.
+ */
+portalRoutes.post("/:slug/receipts/:paymentId/link", async (c) => {
+  const user = await requirePortalUser(c);
+  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const slug = c.req.param("slug");
+  const paymentId = c.req.param("paymentId");
+  const tenant = await getTenantBySlug(c.env.DB, slug);
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  const member = await first<{ id: string }>(
+    c.env.DB.prepare(
+      "SELECT id FROM members WHERE tenant_id = ? AND email = ?"
+    ).bind(tenant.id, user.email)
+  );
+  if (!member) return c.json({ error: "Not a member" }, 403);
+  const payment = await first<{ id: string }>(
+    c.env.DB.prepare(
+      "SELECT id FROM payments WHERE id = ? AND tenant_id = ? AND member_id = ?"
+    ).bind(paymentId, tenant.id, member.id)
+  );
+  if (!payment) return c.json({ error: "Receipt not found" }, 404);
+  return c.json(
+    await mintLinkUrl(
+      c,
+      user,
+      "receipt",
+      `/api/portal/${encodeURIComponent(slug)}/receipts/${encodeURIComponent(paymentId)}`,
+      linkResource("receipt", slug, paymentId)
+    )
+  );
 });
 
 /**
@@ -857,11 +948,15 @@ portalRoutes.get("/:slug/files", async (c) => {
   return c.json(rows);
 });
 
-// GET /api/portal/:slug/files/:fileId — download (?token= supported so plain <a> links work)
+// GET /api/portal/:slug/files/:fileId — download. Header session, or a
+// 10-minute purpose:"download" link token bound to this file (minted by
+// POST .../files/:fileId/link below) so plain <a> links still work.
 portalRoutes.get("/:slug/files/:fileId", async (c) => {
-  const token =
-    extractBearer(c.req.header("Authorization")) || c.req.query("token") || "";
-  const payload = token ? await verifyJwt(token, c.env.JWT_SECRET) : null;
+  const payload = await authSessionOrLink(
+    c,
+    "download",
+    linkResource("download", c.req.param("slug"), c.req.param("fileId"))
+  );
   if (!payload) return c.json({ error: "Unauthorized" }, 401);
   const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
   if (!tenant) return c.json({ error: "Guild not found" }, 404);
@@ -899,17 +994,66 @@ portalRoutes.get("/:slug/files/:fileId", async (c) => {
   });
 });
 
-// GET /api/portal/:slug/pages — published pages incl. members-only
+// POST /api/portal/:slug/files/:fileId/link — authenticated; returns `{ url }`
+// carrying a 10-minute purpose:"download" token bound to this file.
+portalRoutes.post("/:slug/files/:fileId/link", async (c) => {
+  const user = await requirePortalUser(c);
+  if (!user) return c.json({ error: "Unauthorized" }, 401);
+  const slug = c.req.param("slug");
+  const fileId = c.req.param("fileId");
+  const tenant = await getTenantBySlug(c.env.DB, slug);
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  const member = await first<Member>(
+    c.env.DB.prepare(
+      "SELECT id FROM members WHERE tenant_id = ? AND email = ? AND status != 'cancelled'"
+    ).bind(tenant.id, user.email.toLowerCase())
+  );
+  if (!member) return c.json({ error: "Not a member of this guild" }, 403);
+  const row = await first<{ id: string }>(
+    c.env.DB.prepare(
+      "SELECT id FROM files WHERE id = ? AND tenant_id = ? AND uploaded_by IS NOT NULL"
+    ).bind(fileId, tenant.id)
+  );
+  if (!row) return c.json({ error: "File not found" }, 404);
+  return c.json(
+    await mintLinkUrl(
+      c,
+      user,
+      "download",
+      `/api/portal/${encodeURIComponent(slug)}/files/${encodeURIComponent(fileId)}`,
+      linkResource("download", slug, fileId)
+    )
+  );
+});
+
+// GET /api/portal/:slug/pages — published pages incl. members-only.
+// Selects blocks_json too and renders through contentFromPage so the member
+// portal shows exactly what the public site renders (block editor content
+// lives in blocks_json; content_json is the legacy raw-HTML fallback).
 portalRoutes.get("/:slug/pages", async (c) => {
   const ctx = await requireGuildMember(c, c.req.param("slug"));
   if ("error" in ctx) return ctx.error;
-  const rows = await all(
+  const rows = await all<{
+    slug: string;
+    title: string;
+    content_json: string | null;
+    blocks_json: string | null;
+    is_members_only: number;
+  }>(
     c.env.DB.prepare(
-      `SELECT slug, title, content_json, is_members_only FROM pages
+      `SELECT slug, title, content_json, blocks_json, is_members_only FROM pages
        WHERE tenant_id = ? AND published = 1 ORDER BY sort_order, title`
     ).bind(ctx.tenant.id)
   );
-  return c.json(rows);
+  return c.json(
+    rows.map((row) => ({
+      slug: row.slug,
+      title: row.title,
+      is_members_only: row.is_members_only,
+      // Same shape portal.html already reads (JSON.parse(content_json).html).
+      content_json: JSON.stringify({ html: contentFromPage(row).html }),
+    }))
+  );
 });
 
 // GET /api/portal/guilds — guilds where this signed-in email is a member

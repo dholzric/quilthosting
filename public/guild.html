@@ -153,6 +153,11 @@
     let onCustomHost = false;
     let siteCache = null;
     let pagesBySlug = {};
+    // Source data for membership levels / upcoming events, kept so every
+    // view (home, /membership, /events) renders fresh cards from it.
+    // Never clone rendered cards -- cloneNode drops click listeners.
+    let levelsList = [];
+    let eventsList = [];
     const API = location.origin;
     let signupAction = null;
 
@@ -229,10 +234,8 @@
       }
       if (p === "membership" || p === "join" || p === "join-renew") {
         showView("view-membership");
-        // clone levels into page view if needed
-        const src = $("levels");
-        const dst = $("levels-page");
-        if (src && dst) dst.replaceChildren(...Array.from(src.childNodes).map((n) => n.cloneNode(true)));
+        document.title = "Membership — " + ($("guild-name")?.textContent || "Guild");
+        renderLevels($("levels-page"));
         return;
       }
       if (p === "events" && subSlug) {
@@ -255,9 +258,7 @@
         showView("view-events");
         document.title = (p === "calendar" ? "Calendar" : "Events") + " \u2014 " +
           ($("guild-name")?.textContent || "Guild");
-        const src = $("events");
-        const dst = $("events-page");
-        if (src && dst) dst.replaceChildren(...Array.from(src.childNodes).map((n) => n.cloneNode(true)));
+        renderEvents($("events-page"));
         setEventsMode(p === "calendar" ? "calendar" : "list");
         return;
       }
@@ -385,6 +386,7 @@
           " \u00b7 Non-members " + (ev.non_member_price_cents ? money(ev.non_member_price_cents) : "free")));
         if (ev.registration_open) {
           const btn = el("button", "", "Register");
+          btn.type = "button";
           btn.style.marginTop = "0.75rem";
           btn.addEventListener("click", () =>
             openSignup("Register \u2014 " + ev.title, {
@@ -672,6 +674,7 @@
         right.appendChild(el("div", "badge active", "Auto-renews"));
       }
       const btn = el("button", "", "Join");
+      btn.type = "button";
       btn.addEventListener("click", () =>
         openSignup("Join — " + l.name + " (" + (l.price_cents ? money(l.price_cents) : "Free") + ")", { type: "join", levelId: l.id })
       );
@@ -699,6 +702,7 @@
       right.style.textAlign = "right";
       if (ev.registration_open) {
         const btn = el("button", "", "Register");
+        btn.type = "button";
         btn.addEventListener("click", () =>
           openSignup("Register — " + ev.title, {
             type: "event",
@@ -712,6 +716,29 @@
       }
       card.append(left, right);
       return card;
+    }
+
+    // Render membership levels / events from the module-level data into the
+    // given container (home section or dedicated route). Builds fresh cards
+    // each time so click handlers are always attached.
+    function renderLevels(container) {
+      if (!container) return;
+      container.replaceChildren();
+      if (!levelsList.length) {
+        container.appendChild(el("p", "muted", "No membership levels are open right now."));
+        return;
+      }
+      for (const l of levelsList) container.appendChild(levelCard(l));
+    }
+
+    function renderEvents(container) {
+      if (!container) return;
+      container.replaceChildren();
+      if (!eventsList.length) {
+        container.appendChild(el("p", "muted", "No upcoming events."));
+        return;
+      }
+      for (const ev of eventsList) container.appendChild(eventCard(ev));
     }
 
     function renderHero(info) {
@@ -1023,15 +1050,10 @@
           logoEl.classList.add("hidden");
         }
 
-        const lv = $("levels");
-        lv.replaceChildren();
-        if (!levelsData.levels.length) lv.appendChild(el("p", "muted", "No membership levels are open right now."));
-        for (const l of levelsData.levels) lv.appendChild(levelCard(l));
-
-        const evb = $("events");
-        evb.replaceChildren();
-        if (!eventsData.events.length) evb.appendChild(el("p", "muted", "No upcoming events."));
-        for (const ev of eventsData.events) evb.appendChild(eventCard(ev));
+        levelsList = levelsData.levels || [];
+        eventsList = eventsData.events || [];
+        renderLevels($("levels"));
+        renderEvents($("events"));
 
         // Home page CMS body (if any)
         const homePage = pagesBySlug.home;

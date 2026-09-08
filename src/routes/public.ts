@@ -3,7 +3,22 @@ import type { Env, Event, MembershipLevel, Member, Tenant } from "../types";
 import { all, first } from "../lib/db";
 import { buildIcs, icsResponse } from "../lib/ical";
 import { generateId, generateTicketCode } from "../lib/utils/id";
-import { createCheckoutSession } from "../lib/stripe";
+import {
+  createCheckoutSession,
+  retrieveCheckoutSession,
+  checkoutHoldExpiry,
+} from "../lib/stripe";
+import { extractBearer, verifyJwt } from "../lib/auth";
+import {
+  SEAT_COUNT_SQL,
+  buildReleaseSeatStatement,
+  buildReserveStockStatements,
+  buildReleaseOrderStatements,
+  normalizeOrderLines,
+  type OrderLine,
+} from "../lib/fulfillment";
+import { prepareEvent, scheduleDispatch } from "../lib/webhookOutbox";
+import type { Context } from "hono";
 import { sendEmail, welcomeEmail, eventConfirmationEmail } from "../lib/email";
 import { formatMoney } from "../lib/utils/money";
 import { activateMembership, portalUrl } from "../lib/memberships";
@@ -15,7 +30,7 @@ import {
 } from "../lib/eventQuestions";
 import { getTenantByHost, tenantPublicBaseUrl } from "../lib/tenantHost";
 import { readTenantTheme, deriveLegacyTheme } from "../lib/site/themeMigrate";
-import { escapeHtml } from "../lib/blocks";
+import { escapeHtml, contentFromPage } from "../lib/blocks";
 import { computeEstimate } from "../lib/projects/pricing";
 import { mintAccessToken, hashToken } from "../lib/projects/token";
 import { buildReference } from "../lib/projects/reference";
@@ -44,6 +59,17 @@ publicRoutes.use(
   "/:slug/projects/:projectRef/photos",
   rateLimit({ keyPrefix: "intakephoto", limit: 40, windowSeconds: 600 })
 );
+
+/** Hono throws when no ExecutionContext is attached (unit tests); treat as absent. */
+function execCtx(
+  c: Context<{ Bindings: Env }>
+): { waitUntil(p: Promise<unknown>): void } | undefined {
+  try {
+    return c.executionCtx;
+  } catch {
+    return undefined;
+  }
+}
 
 async function getTenantBySlug(db: D1Database, slug: string) {
   return first<Tenant>(
@@ -866,12 +892,13 @@ publicRoutes.post("/:slug/join", async (c) => {
 publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
   const slug = c.req.param("slug");
   const eventId = c.req.param("eventId");
+  const db = c.env.DB;
 
-  const tenant = await getTenantBySlug(c.env.DB, slug);
+  const tenant = await getTenantBySlug(db, slug);
   if (!tenant) return c.json({ error: "Guild not found" }, 404);
 
   const event = await first<Event>(
-    c.env.DB.prepare(
+    db.prepare(
       "SELECT * FROM events WHERE id = ? AND tenant_id = ? AND is_public = 1"
     ).bind(eventId, tenant.id)
   );
@@ -899,75 +926,108 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
   }
   const answersJson = JSON.stringify(validated.answers);
 
-  // Member pricing is decided server-side: only active members qualify
-  const memberRow = await first<{ id: string; status: string }>(
-    c.env.DB.prepare(
-      "SELECT id, status FROM members WHERE tenant_id = ? AND email = ?"
+  // Member pricing is decided server-side: only active members qualify.
+  // member_price_verified records HOW we know: 1 = a portal session token
+  // for this member accompanied the request; 0 = the submitted email merely
+  // matches an active member (unverified claim, visible to admins);
+  // NULL = non-member price applied.
+  const memberRow = await first<{ id: string; status: string; user_id: string | null }>(
+    db.prepare(
+      "SELECT id, status, user_id FROM members WHERE tenant_id = ? AND email = ?"
     ).bind(tenant.id, email)
   );
   const memberId = memberRow?.id ?? null;
-  const priceCents =
-    memberRow?.status === "active"
-      ? event.member_price_cents
-      : event.non_member_price_cents;
-
-  // Capacity check — hold seats for pending Stripe checkouts too
-  if (event.capacity) {
-    const countRow = await first<{ cnt: number }>(
-      c.env.DB.prepare(
-        `SELECT COUNT(*) as cnt FROM event_registrations
-         WHERE event_id = ? AND tenant_id = ? AND status IN ('registered', 'checked_in', 'pending_payment')`
-      ).bind(eventId, tenant.id)
-    );
-    const current = countRow?.cnt ?? 0;
-    if (current >= event.capacity) {
-      if (event.waitlist_enabled) {
-        // Fall through to waitlist
-      } else {
-        return c.json({ error: "Event is full" }, 400);
+  const isActiveMember = memberRow?.status === "active";
+  let memberPriceVerified: number | null = null;
+  if (isActiveMember && memberRow) {
+    memberPriceVerified = 0;
+    const token = extractBearer(c.req.header("Authorization"));
+    if (token && c.env.JWT_SECRET) {
+      const jwt = await verifyJwt(token, c.env.JWT_SECRET);
+      if (
+        jwt &&
+        (jwt.email.toLowerCase().trim() === email ||
+          (memberRow.user_id != null && jwt.sub === memberRow.user_id))
+      ) {
+        memberPriceVerified = 1;
       }
     }
   }
-
-  // Already registered?
-  const existing = await first(
-    c.env.DB.prepare(
-      `SELECT id FROM event_registrations
-       WHERE event_id = ? AND tenant_id = ? AND email = ?
-         AND status IN ('registered', 'waitlist', 'checked_in')`
-    ).bind(eventId, tenant.id, email)
-  );
-  if (existing) {
-    return c.json({ error: "Already registered for this event" }, 409);
-  }
+  const priceCents = isActiveMember
+    ? event.member_price_cents
+    : event.non_member_price_cents;
 
   const now = new Date().toISOString();
-  const regId = generateId();
-  const ticketCode = generateTicketCode("EV");
 
-  // Determine status (waitlist if full) — count pending_payment so paid seats are held
-  let status = "registered";
-  if (event.capacity) {
-    const countRow = await first<{ cnt: number }>(
-      c.env.DB.prepare(
-        `SELECT COUNT(*) as cnt FROM event_registrations
-         WHERE event_id = ? AND tenant_id = ? AND status IN ('registered', 'checked_in', 'pending_payment')`
-      ).bind(eventId, tenant.id)
-    );
-    if ((countRow?.cnt ?? 0) >= event.capacity && event.waitlist_enabled) {
-      status = "waitlist";
-    } else if ((countRow?.cnt ?? 0) >= event.capacity) {
-      return c.json({ error: "Event is full" }, 400);
+  // Retire this email's EXPIRED payment holds first, so they neither block
+  // the duplicate check below nor occupy a seat in the capacity count.
+  await db
+    .prepare(
+      `UPDATE event_registrations SET status = 'cancelled', updated_at = ?
+       WHERE event_id = ? AND tenant_id = ? AND email = ?
+         AND status = 'pending_payment' AND hold_expires_at IS NOT NULL AND hold_expires_at <= ?`
+    )
+    .bind(now, eventId, tenant.id, email, now)
+    .run();
+
+  // Already registered? A live (unexpired) payment hold counts too: hand the
+  // same Checkout back instead of taking a second seat.
+  const existing = await first<{
+    id: string;
+    status: string;
+    stripe_session_id: string | null;
+    ticket_code: string | null;
+  }>(
+    db
+      .prepare(
+        `SELECT id, status, stripe_session_id, ticket_code FROM event_registrations
+         WHERE event_id = ? AND tenant_id = ? AND email = ?
+           AND (
+             status IN ('registered', 'waitlist', 'checked_in')
+             OR (status = 'pending_payment' AND (hold_expires_at IS NULL OR hold_expires_at > ?))
+           )
+         ORDER BY created_at DESC LIMIT 1`
+      )
+      .bind(eventId, tenant.id, email, now)
+  );
+  if (existing) {
+    if (existing.status !== "pending_payment") {
+      return c.json({ error: "Already registered for this event" }, 409);
     }
+    if (existing.stripe_session_id && c.env.STRIPE_SECRET_KEY) {
+      const open = await retrieveCheckoutSession(c.env, existing.stripe_session_id);
+      if (open && open.status === "open" && open.url) {
+        return c.json({
+          status: "checkout",
+          checkout_url: open.url,
+          session_id: open.id,
+          registration_id: existing.id,
+          ticket_code: existing.ticket_code,
+          reused: true,
+        });
+      }
+    }
+    // The session is gone (expired, completed elsewhere, or unreachable):
+    // release the stale hold and take a fresh one below.
+    await buildReleaseSeatStatement(db, tenant.id, existing.id, now).run();
   }
 
-  // Free or waitlist — register immediately
-  if (priceCents === 0 || status === "waitlist") {
-    const insertRegStmt = c.env.DB.prepare(
-      `INSERT INTO event_registrations
-       (id, tenant_id, event_id, member_id, email, name, status, amount_paid_cents, ticket_code, custom_answers_json, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)`
-    ).bind(
+  const regId = generateId();
+  const ticketCode = generateTicketCode("EV");
+  const wantsPayment = priceCents > 0;
+  const guarded = !!event.capacity;
+  const hold = checkoutHoldExpiry(new Date(now));
+
+  /**
+   * The seat claim. With a capacity, the INSERT is conditional on the live
+   * seat count (confirmed + unexpired holds) still being below capacity —
+   * evaluated inside the same statement, so two concurrent requests cannot
+   * both pass a stale count. meta.changes === 0 means "full".
+   */
+  const insertRegistration = (status: string, withCapacityGuard: boolean) => {
+    const cols = `(id, tenant_id, event_id, member_id, email, name, status, amount_paid_cents,
+       ticket_code, custom_answers_json, hold_expires_at, member_price_verified, created_at, updated_at)`;
+    const binds = [
       regId,
       tenant.id,
       eventId,
@@ -977,50 +1037,82 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
       status,
       ticketCode,
       answersJson,
+      status === "pending_payment" ? hold.iso : null,
+      memberPriceVerified,
       now,
-      now
+      now,
+    ];
+    if (!withCapacityGuard) {
+      return db
+        .prepare(
+          `INSERT INTO event_registrations ${cols}
+           VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)`
+        )
+        .bind(...binds);
+    }
+    return db
+      .prepare(
+        `INSERT INTO event_registrations ${cols}
+         SELECT ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?
+         WHERE ${SEAT_COUNT_SQL} < ?`
+      )
+      .bind(...binds, eventId, tenant.id, now, event.capacity);
+  };
+
+  const registrationEvent = (status: string) =>
+    prepareEvent(c.env, tenant.id, "event.registration", {
+      registration_id: regId,
+      event_id: eventId,
+      event_title: event.title,
+      email,
+      name: body.name ?? null,
+      status,
+      amount_paid_cents: 0,
+      ticket_code: ticketCode,
+      source: "public",
+    });
+
+  const prepareFailed = () =>
+    c.json(
+      {
+        error: "Could not record the change event; nothing was saved.",
+        code: "event_prepare_failed",
+      },
+      500
     );
 
-    {
-      const { prepareEvent, scheduleDispatch } = await import("../lib/webhookOutbox");
-      const ev = prepareEvent(c.env, tenant.id, "event.registration", {
-        registration_id: regId,
-        event_id: eventId,
-        event_title: event.title,
-        email,
-        name: body.name ?? null,
-        status,
-        amount_paid_cents: 0,
-        ticket_code: ticketCode,
-        source: "public",
-      });
-      if (!ev) {
-        return c.json(
-          {
-            error: "Could not record the change event; nothing was saved.",
-            code: "event_prepare_failed",
-          },
-          500
-        );
-      }
-      try {
-        await c.env.DB.batch([insertRegStmt, ev.stmt]);
-      } catch (e) {
-        console.error(
-          "event registration: outbox batch failed, registration NOT saved",
-          e
-        );
-        return c.json(
-          {
-            error: "Could not record the change event; nothing was saved.",
-            code: "event_prepare_failed",
-          },
-          500
-        );
-      }
-      await scheduleDispatch(c.env, c.executionCtx, ev.id);
+  /**
+   * Commit a free/waitlist registration together with its outbox event.
+   * Returns "full" when the guarded INSERT claimed no seat; in that case the
+   * outbox row that rode along in the batch is removed again (the batch is
+   * atomic but not conditional as a whole).
+   */
+  const commitImmediate = async (
+    status: string,
+    withCapacityGuard: boolean
+  ): Promise<"ok" | "full" | "error"> => {
+    const ev = registrationEvent(status);
+    if (!ev) return "error";
+    let results: D1Result[];
+    try {
+      results = await db.batch([insertRegistration(status, withCapacityGuard), ev.stmt]);
+    } catch (e) {
+      console.error("event registration: outbox batch failed, registration NOT saved", e);
+      return "error";
     }
+    const claimed = !withCapacityGuard || (results[0]?.meta?.changes ?? 0) > 0;
+    if (!claimed) {
+      await db
+        .prepare(`DELETE FROM webhook_outbox WHERE id = ? AND status = 'pending'`)
+        .bind(ev.id)
+        .run();
+      return "full";
+    }
+    await scheduleDispatch(c.env, execCtx(c), ev.id);
+    return "ok";
+  };
 
+  const respondImmediate = async (status: string) => {
     if (status === "registered") {
       const eventDate = new Date(event.start_at).toLocaleString("en-US", {
         dateStyle: "full",
@@ -1036,16 +1128,24 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
       });
       await sendEmail(c.env, { to: email, subject, html });
     }
-
     return c.json({
       status,
       registration_id: regId,
       ticket_code: ticketCode,
-      message:
-        status === "waitlist"
-          ? "Added to waitlist"
-          : "Registered successfully",
+      message: status === "waitlist" ? "Added to waitlist" : "Registered successfully",
     });
+  };
+
+  // Free — register immediately (waitlist if the seat claim fails)
+  if (!wantsPayment) {
+    let outcome = await commitImmediate("registered", guarded);
+    if (outcome === "full") {
+      if (!event.waitlist_enabled) return c.json({ error: "Event is full" }, 409);
+      outcome = await commitImmediate("waitlist", false);
+      if (outcome === "ok") return respondImmediate("waitlist");
+    }
+    if (outcome !== "ok") return prepareFailed();
+    return respondImmediate("registered");
   }
 
   // Paid registration — Stripe Checkout
@@ -1053,33 +1153,14 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
     return c.json({ error: "Payments not configured" }, 503);
   }
 
-  // Drop any stale unpaid attempt for this email so retries aren't blocked
-  await c.env.DB.prepare(
-    `DELETE FROM event_registrations
-     WHERE event_id = ? AND tenant_id = ? AND email = ? AND status = 'pending_payment'`
-  )
-    .bind(eventId, tenant.id, email)
-    .run();
-
-  // Held as pending_payment until the Stripe webhook confirms payment
-  await c.env.DB.prepare(
-    `INSERT INTO event_registrations
-     (id, tenant_id, event_id, member_id, email, name, status, amount_paid_cents, ticket_code, custom_answers_json, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, 'pending_payment', 0, ?, ?, ?, ?)`
-  )
-    .bind(
-      regId,
-      tenant.id,
-      eventId,
-      memberId,
-      email,
-      body.name ?? null,
-      ticketCode,
-      answersJson,
-      now,
-      now
-    )
-    .run();
+  // Take the seat as a pending_payment hold that expires with the session.
+  const claim = await insertRegistration("pending_payment", guarded).run();
+  if (guarded && (claim.meta?.changes ?? 0) === 0) {
+    if (!event.waitlist_enabled) return c.json({ error: "Event is full" }, 409);
+    const outcome = await commitImmediate("waitlist", false);
+    if (outcome !== "ok") return prepareFailed();
+    return respondImmediate("waitlist");
+  }
 
   const baseUrl = c.env.APP_URL || "http://localhost:8787";
   let session;
@@ -1098,16 +1179,27 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
       cancelUrl: `${baseUrl}/g/${tenant.slug}?cancelled=1`,
       mode: "payment",
       stripeAccountId: tenant.stripe_account_id,
+      expiresAt: hold.unix,
     });
   } catch (err) {
-    await c.env.DB.prepare(
-      "DELETE FROM event_registrations WHERE id = ? AND tenant_id = ?"
-    )
+    // No session exists, so nothing can ever pay for this hold: drop it.
+    await db
+      .prepare(
+        "DELETE FROM event_registrations WHERE id = ? AND tenant_id = ? AND status = 'pending_payment'"
+      )
       .bind(regId, tenant.id)
       .run();
     console.error("Checkout session failed", err);
     return c.json({ error: "Payment session could not be created" }, 502);
   }
+
+  await db
+    .prepare(
+      `UPDATE event_registrations SET stripe_session_id = ?, updated_at = ?
+       WHERE id = ? AND tenant_id = ?`
+    )
+    .bind(session.id, now, regId, tenant.id)
+    .run();
 
   return c.json({
     status: "checkout",
@@ -1115,6 +1207,7 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
     session_id: session.id,
     registration_id: regId,
     ticket_code: ticketCode,
+    hold_expires_at: hold.iso,
   });
 });
 
@@ -1158,7 +1251,9 @@ publicRoutes.get("/:slug/pages", async (c) => {
       pages: rows.map((p) => ({
         slug: p.slug,
         title: p.title,
-        html: (JSON.parse(p.content_json || "{}").html as string) || "",
+        // contentFromPage sanitizes legacy content_json.html and prefers
+        // blocks_json when present (same output as the SSR renderer).
+        html: contentFromPage(p as Parameters<typeof contentFromPage>[0]).html,
       })),
     });
   }
@@ -1246,10 +1341,151 @@ publicRoutes.get("/:slug/products", async (c) => {
 /**
  * POST /public/:slug/products/:productId/buy
  */
+// ---------------------------------------------------------------------------
+// Store orders — stock is RESERVED at checkout time (PAY-2)
+// ---------------------------------------------------------------------------
+
+type StoreCartLine = {
+  product_id: string;
+  name: string;
+  quantity: number;
+  unit_cents: number;
+  taxable: boolean;
+  line_cents: number;
+  /** false when products.inventory IS NULL (untracked): nothing to reserve. */
+  tracked: boolean;
+};
+
+type ReserveOutcome = { ok: true } | { ok: false; outOfStock: string[] };
+
+/**
+ * Insert the order and reserve its stock in ONE batch of conditional
+ * decrements, then check every statement's meta.changes. If any tracked line
+ * could not be reserved, the lines that DID decrement are put back and the
+ * order is cancelled in a second (compensating) batch, and the caller gets
+ * the product ids that ran out. The order row is inside the first batch on
+ * purpose: if the compensation is interrupted, the reservation is still
+ * tracked by a pending reserved order, which sweepExpiredHolds() releases.
+ */
+async function reserveStoreOrder(
+  db: D1Database,
+  params: {
+    tenantId: string;
+    orderId: string;
+    memberId: string | null;
+    email: string;
+    lines: StoreCartLine[];
+    subtotal: number;
+    taxCents: number;
+    total: number;
+    now: string;
+    holdExpiresAt: string;
+  }
+): Promise<ReserveOutcome> {
+  const { tenantId, orderId, lines, now } = params;
+  const tracked = lines.filter((l) => l.tracked);
+  const reservations = buildReserveStockStatements(db, tenantId, tracked, now);
+  const orderInsert = db
+    .prepare(
+      `INSERT INTO store_orders
+       (id, tenant_id, member_id, email, status, subtotal_cents, tax_cents, total_cents,
+        items_json, reserved_at, hold_expires_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      orderId,
+      tenantId,
+      params.memberId,
+      params.email,
+      params.subtotal,
+      params.taxCents,
+      params.total,
+      JSON.stringify(
+        lines.map(({ tracked: _t, ...rest }) => rest)
+      ),
+      now,
+      params.holdExpiresAt,
+      now,
+      now
+    );
+
+  const results = await db.batch([orderInsert, ...reservations.map((r) => r.stmt)]);
+
+  const outOfStock: string[] = [];
+  const reserved: OrderLine[] = [];
+  reservations.forEach((r, i) => {
+    const changes = results[i + 1]?.meta?.changes ?? 0;
+    if (changes > 0) reserved.push(r.line);
+    else outOfStock.push(r.line.product_id);
+  });
+  if (!outOfStock.length) return { ok: true };
+
+  await db.batch(
+    buildReleaseOrderStatements(db, {
+      tenantId,
+      orderId,
+      lines: reserved,
+      now,
+      status: "cancelled",
+    })
+  );
+  return { ok: false, outOfStock };
+}
+
+/** Put a reserved order's stock back and cancel it (checkout could not start). */
+async function releaseStoreOrder(
+  db: D1Database,
+  tenantId: string,
+  orderId: string,
+  lines: StoreCartLine[],
+  now: string
+): Promise<void> {
+  await db.batch(
+    buildReleaseOrderStatements(db, {
+      tenantId,
+      orderId,
+      lines: lines.filter((l) => l.tracked),
+      now,
+      status: "cancelled",
+    })
+  );
+}
+
+/** Free order: flip to paid and record a $0 payment, atomically. */
+async function fulfillFreeStoreOrder(
+  db: D1Database,
+  params: {
+    tenantId: string;
+    orderId: string;
+    memberId: string | null;
+    description: string;
+    now: string;
+  }
+): Promise<void> {
+  const { tenantId, orderId, now } = params;
+  await db.batch([
+    db
+      .prepare(
+        `UPDATE store_orders SET status = 'paid', fulfilled_at = ?, updated_at = ?
+         WHERE id = ? AND tenant_id = ? AND status = 'pending'`
+      )
+      .bind(now, now, orderId, tenantId),
+    db
+      .prepare(
+        `INSERT INTO payments
+         (id, tenant_id, member_id, type, amount_cents, currency, status, description,
+          related_id, fulfilled_at, created_at, updated_at)
+         VALUES (?, ?, ?, 'store', 0, 'usd', 'succeeded', ?, ?, ?, ?, ?)`
+      )
+      .bind(generateId(), tenantId, params.memberId, params.description, orderId, now, now, now),
+  ]);
+}
+
 publicRoutes.post("/:slug/products/:productId/buy", async (c) => {
   const slug = c.req.param("slug");
   const productId = c.req.param("productId");
-  const tenant = await getTenantBySlug(c.env.DB, slug);
+  const db = c.env.DB;
+  const tenant = await getTenantBySlug(db, slug);
   if (!tenant) return c.json({ error: "Guild not found" }, 404);
 
   const product = await first<{
@@ -1259,9 +1495,7 @@ publicRoutes.post("/:slug/products/:productId/buy", async (c) => {
     inventory: number | null;
     is_active: number;
   }>(
-    c.env.DB.prepare(
-      "SELECT * FROM products WHERE id = ? AND tenant_id = ?"
-    ).bind(productId, tenant.id)
+    db.prepare("SELECT * FROM products WHERE id = ? AND tenant_id = ?").bind(productId, tenant.id)
   );
   if (!product || !product.is_active) {
     return c.json({ error: "Product not found" }, 404);
@@ -1284,64 +1518,68 @@ publicRoutes.post("/:slug/products/:productId/buy", async (c) => {
     return c.json({ error: `Only ${product.inventory} left` }, 400);
   }
 
-  if (product.price_cents === 0) {
-    // Free item — record payment-like fulfillment and decrement stock
-    const now = new Date().toISOString();
-    if (product.inventory !== null) {
-      await c.env.DB.prepare(
-        `UPDATE products SET inventory = inventory - ?, updated_at = ?
-         WHERE id = ? AND tenant_id = ? AND inventory >= ?`
-      )
-        .bind(qty, now, product.id, tenant.id, qty)
-        .run();
-    }
-    let memberId: string | null = null;
-    const member = await first<{ id: string }>(
-      c.env.DB.prepare(
-        "SELECT id FROM members WHERE tenant_id = ? AND email = ?"
-      ).bind(tenant.id, email)
-    );
-    memberId = member?.id ?? null;
-    await c.env.DB.prepare(
-      `INSERT INTO payments
-       (id, tenant_id, member_id, type, amount_cents, currency, status, description, related_id, created_at, updated_at)
-       VALUES (?, ?, ?, 'store', 0, 'usd', 'succeeded', ?, ?, ?, ?)`
-    )
-      .bind(
-        generateId(),
-        tenant.id,
-        memberId,
-        `${product.name} × ${qty} (free)`,
-        product.id,
-        now,
-        now
-      )
-      .run();
+  const amount = product.price_cents * qty;
+  if (amount > 0 && !c.env.STRIPE_SECRET_KEY) {
+    return c.json({ error: "Payments not configured" }, 503);
+  }
+
+  const member = await first<{ id: string }>(
+    db.prepare("SELECT id FROM members WHERE tenant_id = ? AND email = ?").bind(tenant.id, email)
+  );
+  const memberId = member?.id ?? null;
+
+  const now = new Date().toISOString();
+  const hold = checkoutHoldExpiry(new Date(now));
+  const orderId = generateId();
+  const lines: StoreCartLine[] = [
+    {
+      product_id: product.id,
+      name: product.name,
+      quantity: qty,
+      unit_cents: product.price_cents,
+      taxable: false,
+      line_cents: amount,
+      tracked: product.inventory !== null,
+    },
+  ];
+
+  const reserved = await reserveStoreOrder(db, {
+    tenantId: tenant.id,
+    orderId,
+    memberId,
+    email,
+    lines,
+    subtotal: amount,
+    taxCents: 0,
+    total: amount,
+    now,
+    holdExpiresAt: hold.iso,
+  });
+  if (!reserved.ok) {
+    return c.json({ error: "Sold out", out_of_stock: reserved.outOfStock }, 409);
+  }
+
+  if (amount === 0) {
+    await fulfillFreeStoreOrder(db, {
+      tenantId: tenant.id,
+      orderId,
+      memberId,
+      description: `${product.name} × ${qty} (free)`,
+      now,
+    });
     return c.json({
       status: "fulfilled",
+      order_id: orderId,
       message: `You're all set — ${product.name} is free.`,
     });
   }
 
-  if (!c.env.STRIPE_SECRET_KEY) {
-    return c.json({ error: "Payments not configured" }, 503);
-  }
-
-  let memberId: string | undefined;
-  const member = await first<{ id: string }>(
-    c.env.DB.prepare(
-      "SELECT id FROM members WHERE tenant_id = ? AND email = ?"
-    ).bind(tenant.id, email)
-  );
-  memberId = member?.id;
-
   const baseUrl = c.env.APP_URL || "http://localhost:8787";
-  const amount = product.price_cents * qty;
   try {
     const session = await createCheckoutSession(c.env, {
       tenantId: tenant.id,
       tenantSlug: tenant.slug,
-      memberId,
+      memberId: memberId ?? undefined,
       email,
       name: body.name,
       amountCents: amount,
@@ -1350,20 +1588,28 @@ publicRoutes.post("/:slug/products/:productId/buy", async (c) => {
           ? `${tenant.name} – ${product.name} × ${qty}`
           : `${tenant.name} – ${product.name}`,
       type: "store",
-      relatedId: product.id,
+      relatedId: orderId,
       quantity: qty,
+      extraMetadata: { order_id: orderId },
       successUrl: `${baseUrl}/g/${tenant.slug}?purchased=1`,
       cancelUrl: `${baseUrl}/g/${tenant.slug}?cancelled=1`,
       mode: "payment",
       stripeAccountId: tenant.stripe_account_id,
+      expiresAt: hold.unix,
     });
+    await db
+      .prepare(`UPDATE store_orders SET stripe_session_id = ?, updated_at = ? WHERE id = ?`)
+      .bind(session.id, now, orderId)
+      .run();
     return c.json({
       status: "checkout",
       checkout_url: session.url,
       session_id: session.id,
+      order_id: orderId,
     });
   } catch (err) {
     console.error("Store checkout failed", err);
+    await releaseStoreOrder(db, tenant.id, orderId, lines, now);
     return c.json({ error: "Payment session could not be created" }, 502);
   }
 });
@@ -1422,9 +1668,14 @@ publicRoutes.get("/:slug/logo", async (c) => {
   if (!row) return c.json({ error: "Not found" }, 404);
   const obj = await c.env.FILES.get(row.r2_key);
   if (!obj) return c.json({ error: "Not found" }, 404);
+  // Only raster image types are served inline: a legacy SVG logo stored
+  // before upload sniffing existed must never execute on this origin.
+  const logoType = row.content_type || "";
+  if (!ALLOWED_IMAGE_TYPES.has(logoType)) return c.json({ error: "Not found" }, 404);
   return new Response(obj.body, {
     headers: {
-      "Content-Type": row.content_type || "image/png",
+      "Content-Type": logoType,
+      "X-Content-Type-Options": "nosniff",
       "Cache-Control": "public, max-age=3600",
     },
   });
@@ -1514,9 +1765,12 @@ publicRoutes.get("/:slug/member-photo/:fileId", async (c) => {
   if (!row) return c.json({ error: "Not found" }, 404);
   const obj = await c.env.FILES.get(row.r2_key);
   if (!obj) return c.json({ error: "Not found" }, 404);
+  const photoType = row.content_type || "";
+  if (!ALLOWED_IMAGE_TYPES.has(photoType)) return c.json({ error: "Not found" }, 404);
   return new Response(obj.body, {
     headers: {
-      "Content-Type": row.content_type || "image/jpeg",
+      "Content-Type": photoType,
+      "X-Content-Type-Options": "nosniff",
       "Cache-Control": "public, max-age=86400",
     },
   });
@@ -1713,7 +1967,8 @@ publicRoutes.post("/:slug/forms/:formSlug", async (c) => {
  */
 publicRoutes.post("/:slug/cart/checkout", async (c) => {
   const slug = c.req.param("slug");
-  const tenant = await getTenantBySlug(c.env.DB, slug);
+  const db = c.env.DB;
+  const tenant = await getTenantBySlug(db, slug);
   if (!tenant) return c.json({ error: "Guild not found" }, 404);
   const body = await c.req.json<{
     email: string;
@@ -1734,16 +1989,15 @@ publicRoutes.post("/:slug/cart/checkout", async (c) => {
   } catch {}
   const taxRateBps = Math.max(0, Math.min(2500, Number(settings.store?.tax_rate_bps) || 0));
 
-  const cartLines: Array<{
-    product_id: string;
-    name: string;
-    quantity: number;
-    unit_cents: number;
-    taxable: boolean;
-    line_cents: number;
-  }> = [];
+  // Repeated SKUs are summed into one line each (max 20 per line, 20 lines)
+  // so the same unit of stock cannot pass two separate checks.
+  const wanted = normalizeOrderLines(body.items, 20).slice(0, 20);
+  if (!wanted.length) {
+    return c.json({ error: "Cart is empty" }, 400);
+  }
 
-  for (const raw of body.items.slice(0, 20)) {
+  const cartLines: StoreCartLine[] = [];
+  for (const raw of wanted) {
     const product = await first<{
       id: string;
       name: string;
@@ -1752,82 +2006,80 @@ publicRoutes.post("/:slug/cart/checkout", async (c) => {
       is_active: number;
       taxable?: number;
     }>(
-      c.env.DB.prepare(
-        `SELECT * FROM products WHERE id = ? AND tenant_id = ?`
-      ).bind(raw.product_id, tenant.id)
+      db.prepare(`SELECT * FROM products WHERE id = ? AND tenant_id = ?`).bind(
+        raw.product_id,
+        tenant.id
+      )
     );
     if (!product || !product.is_active) {
       return c.json({ error: `Product not found: ${raw.product_id}` }, 400);
     }
-    const qty = Math.min(20, Math.max(1, Math.floor(Number(raw.quantity) || 1)));
-    if (product.inventory !== null && qty > product.inventory) {
-      return c.json({ error: `Only ${product.inventory} left of ${product.name}` }, 400);
+    // Friendly early message; the reservation below is what actually decides.
+    if (product.inventory !== null && raw.quantity > product.inventory) {
+      return c.json(
+        {
+          error: `Only ${product.inventory} left of ${product.name}`,
+          out_of_stock: [product.id],
+        },
+        409
+      );
     }
     cartLines.push({
       product_id: product.id,
       name: product.name,
-      quantity: qty,
+      quantity: raw.quantity,
       unit_cents: product.price_cents,
       taxable: product.taxable !== 0,
-      line_cents: product.price_cents * qty,
+      line_cents: product.price_cents * raw.quantity,
+      tracked: product.inventory !== null,
     });
   }
 
   const subtotal = cartLines.reduce((s, l) => s + l.line_cents, 0);
-  const taxableBase = cartLines
-    .filter((l) => l.taxable)
-    .reduce((s, l) => s + l.line_cents, 0);
+  const taxableBase = cartLines.filter((l) => l.taxable).reduce((s, l) => s + l.line_cents, 0);
   const taxCents = Math.floor((taxableBase * taxRateBps) / 10000);
   const total = subtotal + taxCents;
 
-  const orderId = generateId();
-  const now = new Date().toISOString();
-  let memberId: string | undefined;
-  const member = await first<{ id: string }>(
-    c.env.DB.prepare(
-      `SELECT id FROM members WHERE tenant_id = ? AND email = ?`
-    ).bind(tenant.id, email)
-  );
-  memberId = member?.id;
-
-  await c.env.DB.prepare(
-    `INSERT INTO store_orders
-     (id, tenant_id, member_id, email, status, subtotal_cents, tax_cents, total_cents, items_json, created_at, updated_at)
-     VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?)`
-  )
-    .bind(
-      orderId,
-      tenant.id,
-      memberId ?? null,
-      email,
-      subtotal,
-      taxCents,
-      total,
-      JSON.stringify(cartLines),
-      now,
-      now
-    )
-    .run();
-
-  if (total === 0) {
-    await c.env.DB.prepare(
-      `UPDATE store_orders SET status = 'paid', updated_at = ? WHERE id = ?`
-    )
-      .bind(now, orderId)
-      .run();
-    for (const l of cartLines) {
-      await c.env.DB.prepare(
-        `UPDATE products SET inventory = inventory - ?, updated_at = ?
-         WHERE id = ? AND tenant_id = ? AND inventory IS NOT NULL AND inventory >= ?`
-      )
-        .bind(l.quantity, now, l.product_id, tenant.id, l.quantity)
-        .run();
-    }
-    return c.json({ status: "fulfilled", order_id: orderId, message: "Order complete (free)." });
+  if (total > 0 && !c.env.STRIPE_SECRET_KEY) {
+    return c.json({ error: "Payments not configured" }, 503);
   }
 
-  if (!c.env.STRIPE_SECRET_KEY) {
-    return c.json({ error: "Payments not configured" }, 503);
+  const orderId = generateId();
+  const now = new Date().toISOString();
+  const hold = checkoutHoldExpiry(new Date(now));
+  const member = await first<{ id: string }>(
+    db.prepare(`SELECT id FROM members WHERE tenant_id = ? AND email = ?`).bind(tenant.id, email)
+  );
+  const memberId = member?.id ?? null;
+
+  const reserved = await reserveStoreOrder(db, {
+    tenantId: tenant.id,
+    orderId,
+    memberId,
+    email,
+    lines: cartLines,
+    subtotal,
+    taxCents,
+    total,
+    now,
+    holdExpiresAt: hold.iso,
+  });
+  if (!reserved.ok) {
+    return c.json(
+      { error: "Some items are no longer in stock", out_of_stock: reserved.outOfStock },
+      409
+    );
+  }
+
+  if (total === 0) {
+    await fulfillFreeStoreOrder(db, {
+      tenantId: tenant.id,
+      orderId,
+      memberId,
+      description: `Store order ${orderId} (free)`,
+      now,
+    });
+    return c.json({ status: "fulfilled", order_id: orderId, message: "Order complete (free)." });
   }
 
   const baseUrl = c.env.APP_URL || "http://localhost:8787";
@@ -1848,7 +2100,7 @@ publicRoutes.post("/:slug/cart/checkout", async (c) => {
     const session = await createCheckoutSession(c.env, {
       tenantId: tenant.id,
       tenantSlug: tenant.slug,
-      memberId,
+      memberId: memberId ?? undefined,
       email,
       name: body.name,
       amountCents: total,
@@ -1865,10 +2117,10 @@ publicRoutes.post("/:slug/cart/checkout", async (c) => {
       cancelUrl: `${baseUrl}/g/${tenant.slug}?cancelled=1`,
       mode: "payment",
       stripeAccountId: tenant.stripe_account_id,
+      expiresAt: hold.unix,
     });
-    await c.env.DB.prepare(
-      `UPDATE store_orders SET stripe_session_id = ?, updated_at = ? WHERE id = ?`
-    )
+    await db
+      .prepare(`UPDATE store_orders SET stripe_session_id = ?, updated_at = ? WHERE id = ?`)
       .bind(session.id, now, orderId)
       .run();
     return c.json({
@@ -1879,13 +2131,14 @@ publicRoutes.post("/:slug/cart/checkout", async (c) => {
       subtotal_cents: subtotal,
       tax_cents: taxCents,
       total_cents: total,
+      hold_expires_at: hold.iso,
     });
   } catch (err) {
     console.error("Cart checkout failed", err);
+    await releaseStoreOrder(db, tenant.id, orderId, cartLines, now);
     return c.json({ error: "Payment session could not be created" }, 502);
   }
 });
-
 
 // ---------------------------------------------------------------------------
 // Calendar feeds (.ics) — subscribe in Google/Apple Calendar

@@ -3,6 +3,7 @@ import type { Env, TenantVariables } from "../types";
 import type { AuthVariables } from "../middleware/auth";
 import { all, first } from "../lib/db";
 import { generateId } from "../lib/utils/id";
+import { sniffImageType } from "../lib/projects/imageSniff";
 
 export const fileRoutes = new Hono<{
   Bindings: Env;
@@ -29,6 +30,48 @@ function parseSettings(json: string | null | undefined): Record<string, any> {
   }
 }
 
+/**
+ * Content types a browser will execute or render as active same-origin
+ * content if served inline: HTML, any flavour of XML (XSLT `<?xml-stylesheet?>`
+ * runs script; SVG is XML), script MIME types, and Flash. The generic document
+ * upload accepts any type, so these are normalised to `application/octet-stream`
+ * AT UPLOAD TIME -- then no serving route can ever hand them back with an
+ * active Content-Type, regardless of whether that route sets
+ * Content-Disposition. Cheaper and more robust than trusting every reader.
+ */
+// "xml" is matched as a subtype (`/xml`, `+xml`) rather than a substring so
+// Office types like application/vnd.openxmlformats-... keep their real type.
+const ACTIVE_CONTENT_TYPE_RE = /html|\/xml|\+xml|svg|javascript|ecmascript|vbscript|jscript|shockwave|x-httpd|php/i;
+
+export function normalizeStoredContentType(declared: string | null | undefined): string {
+  const ct = String(declared || "").trim();
+  if (!ct) return "application/octet-stream";
+  if (ACTIVE_CONTENT_TYPE_RE.test(ct)) return "application/octet-stream";
+  // Drop parameters like "; charset=utf-8" so the stored type is canonical,
+  // and cap the length so a hostile header can't bloat the row.
+  return ct.split(";")[0].trim().toLowerCase().slice(0, 100) || "application/octet-stream";
+}
+
+const LOGO_ALLOWED_TYPES = new Set(["image/png", "image/jpeg", "image/gif", "image/webp", "image/avif"]);
+
+/** Canonicalise the declared image type (browsers and tools disagree on jpg/jpeg, x-png, etc.). */
+function canonicalImageType(declared: string): string {
+  const base = declared.split(";")[0].trim().toLowerCase();
+  if (base === "image/jpg" || base === "image/pjpeg") return "image/jpeg";
+  if (base === "image/x-png") return "image/png";
+  return base;
+}
+
+/** Cheap belt-and-suspenders: does the leading window of bytes look like markup? */
+function looksLikeMarkup(bytes: Uint8Array): boolean {
+  const head = new TextDecoder()
+    .decode(bytes.subarray(0, 1024))
+    .replace(/^\uFEFF/, "")
+    .trimStart()
+    .toLowerCase();
+  return head.startsWith("<?xml") || head.startsWith("<svg") || head.startsWith("<!doctype") || head.startsWith("<html") || head.startsWith("<script");
+}
+
 // GET /api/tenants/:tenantId/files
 fileRoutes.get("/", async (c) => {
   const tenant = c.get("tenant");
@@ -47,7 +90,9 @@ fileRoutes.post("/", async (c) => {
   const user = c.get("user");
   const filename = (c.req.query("filename") || "").replace(/[\\/]/g, "_").trim();
   if (!filename) return c.json({ error: "filename query param is required" }, 400);
-  const contentType = c.req.header("Content-Type") || "application/octet-stream";
+  // Active content types (HTML/XML/SVG/script) are stored as octet-stream so
+  // no serving route can ever render them inline as same-origin content.
+  const contentType = normalizeStoredContentType(c.req.header("Content-Type"));
   const bytes = await c.req.arrayBuffer();
   if (!bytes.byteLength) return c.json({ error: "Empty file" }, 400);
   if (bytes.byteLength > MAX_SIZE) return c.json({ error: "File too large (25 MB max)" }, 413);
@@ -68,33 +113,58 @@ fileRoutes.post("/", async (c) => {
 });
 
 /**
- * POST /api/tenants/:tenantId/files/logo — upload guild logo (image/*, raw body)
+ * POST /api/tenants/:tenantId/files/logo — upload guild logo (raster image, raw body)
  * Registered before /:fileId so "logo" is not treated as a file id.
+ *
+ * The logo is served INLINE by GET /public/:slug/logo, so it must be a real
+ * raster image: SVG is active content (inline <script>, onload handlers) and
+ * is rejected outright, and the declared Content-Type must be backed by the
+ * file's magic bytes -- the stored content_type is the sniffed one, never the
+ * client's header.
  */
 fileRoutes.post("/logo", async (c) => {
   const tenant = c.get("tenant");
   const user = c.get("user");
-  const contentType = c.req.header("Content-Type") || "";
-  if (!contentType.startsWith("image/")) {
-    return c.json({ error: "Logo must be an image (PNG, JPEG, WebP, or SVG)" }, 400);
+  const declared = c.req.header("Content-Type") || "";
+  const declaredLower = declared.toLowerCase();
+  if (!declaredLower.startsWith("image/")) {
+    return c.json({ error: "Logo must be an image (PNG, JPEG, GIF, or WebP)" }, 400);
+  }
+  if (declaredLower.includes("svg") || declaredLower.includes("xml")) {
+    return c.json({ error: "SVG logos are not supported; upload a PNG, JPEG, GIF, or WebP" }, 415);
   }
   const bytes = await c.req.arrayBuffer();
   if (!bytes.byteLength) return c.json({ error: "Empty file" }, 400);
   if (bytes.byteLength > LOGO_MAX) {
     return c.json({ error: "Logo must be under 2 MB" }, 413);
   }
+  const view = new Uint8Array(bytes);
+  if (looksLikeMarkup(view)) {
+    return c.json({ error: "SVG logos are not supported; upload a PNG, JPEG, GIF, or WebP" }, 415);
+  }
+  const sniffed = sniffImageType(view);
+  if (!sniffed || !LOGO_ALLOWED_TYPES.has(sniffed)) {
+    return c.json({ error: "Logo must be a PNG, JPEG, GIF, or WebP image" }, 415);
+  }
+  if (canonicalImageType(declared) !== sniffed) {
+    return c.json(
+      { error: `Declared type ${canonicalImageType(declared)} does not match the file contents (${sniffed})` },
+      415
+    );
+  }
+  const contentType = sniffed;
 
   const settings = parseSettings(tenant.settings_json);
   const oldId = settings.profile?.logo_file_id as string | undefined;
 
-  const ext = contentType.includes("png")
+  const ext = contentType === "image/png"
     ? "png"
-    : contentType.includes("webp")
+    : contentType === "image/webp"
       ? "webp"
-      : contentType.includes("svg")
-        ? "svg"
-        : contentType.includes("gif")
-          ? "gif"
+      : contentType === "image/gif"
+        ? "gif"
+        : contentType === "image/avif"
+          ? "avif"
           : "jpg";
   const id = generateId();
   const filename = `logo.${ext}`;
@@ -189,8 +259,11 @@ fileRoutes.get("/:fileId/download", async (c) => {
   if (!obj) return c.json({ error: "File data missing" }, 404);
   return new Response(obj.body, {
     headers: {
-      "Content-Type": row.content_type || "application/octet-stream",
-      "Content-Disposition": `attachment; filename="${row.filename.replace(/"/g, "")}"`,
+      // Re-normalise on the way out too: rows stored before upload-time
+      // normalisation existed may still carry text/html or image/svg+xml.
+      "Content-Type": normalizeStoredContentType(row.content_type),
+      "Content-Disposition": `attachment; filename="${row.filename.replace(/["\r\n]/g, "")}"`,
+      "X-Content-Type-Options": "nosniff",
     },
   });
 });

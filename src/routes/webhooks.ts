@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import type { Context } from "hono";
 import type { Env, Member, MembershipLevel } from "../types";
 import { generateId } from "../lib/utils/id";
 import { first } from "../lib/db";
@@ -10,90 +11,107 @@ import {
   paymentReceiptEmail,
 } from "../lib/email";
 import { formatMoney } from "../lib/utils/money";
+import { portalUrl } from "../lib/memberships";
 import {
-  activateMembership,
-  extendMembership,
-  portalUrl,
-} from "../lib/memberships";
+  buildActivateMembershipStatements,
+  buildFulfillOrderStatements,
+  buildLegacyProductDecrementStatement,
+  buildReleaseOrderStatements,
+  buildReleaseSeatStatement,
+  findPaymentByStripeRef,
+  parseOrderItems,
+} from "../lib/fulfillment";
+import { prepareEvent, scheduleDispatch } from "../lib/webhookOutbox";
+import type { WebhookEventName } from "../lib/webhookEvents";
 
 export const webhookRoutes = new Hono<{ Bindings: Env }>();
 
+type StripeObject = Record<string, any>;
+type WaitUntilCtx = { waitUntil(p: Promise<unknown>): void } | undefined;
+
 /**
- * Stripe-webhook-only commit helper.
- *
- * Batches a mutation with its outbox event atomically when it can, but NEVER
- * lets an event-recording problem block the mutation itself or turn into a
- * non-2xx response. Stripe retries the whole webhook body on any non-2xx,
- * and everything in this file past `paymentAlreadyRecorded` is not safely
- * re-runnable (activating a membership twice, double-decrementing store
- * inventory, etc.) -- so on any failure here we log loudly, fall back to
- * running the mutation alone (best effort), and let the request finish 200.
- * Losing an outbound webhook event is recoverable (the outbox row can be
- * replayed manually); returning 500 and inviting Stripe to redeliver a
- * payment we already recorded is not.
- *
- * PRECONDITION: `mutationStmt` MUST be idempotent (safe to execute twice).
- * On a batch failure this helper re-runs the mutation alone as a fallback,
- * and that fallback can itself be interrupted (e.g. the client disconnects
- * after the retry commits but before we observe success) -- so a
- * non-idempotent statement such as `inventory = inventory - ?` could
- * double-apply if routed through here. Every current caller passes either
- * an INSERT bound to a single, already-`generateId()`-fixed primary key
- * (re-running it fails on the PK constraint instead of creating a second
- * row) or a status-flag UPDATE whose WHERE clause is a no-op once already
- * applied.
+ * How long a `processing` inbox row is trusted to be genuinely in flight.
+ * A concurrent redelivery inside this window is acknowledged without work
+ * (the first worker owns it; if that worker actually died, Stripe retries
+ * again later and the stale row is re-claimed then).
  */
-async function commitStripeMutationWithEvent(
-  env: Env,
-  ctx: { waitUntil(p: Promise<unknown>): void } | undefined,
-  mutationStmt: D1PreparedStatement,
-  ev: { id: string; stmt: D1PreparedStatement } | null,
-  label: string
-): Promise<void> {
-  const { scheduleDispatch } = await import("../lib/webhookOutbox");
-  if (!ev) {
-    console.error(
-      `stripe webhook: prepareEvent failed for ${label}; running the mutation without an event record`
-    );
-    try {
-      await mutationStmt.run();
-    } catch (e) {
-      console.error(`stripe webhook: mutation for ${label} failed`, e);
+const INFLIGHT_LEASE_MS = 5 * 60_000;
+
+export type StripeEventClaim = "claimed" | "done" | "in_flight";
+
+/**
+ * Stripe event inbox (PAY-1). INSERT OR IGNORE is the concurrency claim:
+ * exactly one delivery of an event id gets `meta.changes === 1`. Every other
+ * delivery reads the row and either short-circuits (done / fresh in-flight)
+ * or re-claims it (failed / stale in-flight) so the idempotent processing
+ * below can run again.
+ */
+export async function claimStripeEvent(
+  db: D1Database,
+  eventId: string,
+  type: string,
+  now: string
+): Promise<StripeEventClaim> {
+  const ins = await db
+    .prepare(
+      `INSERT OR IGNORE INTO stripe_events (id, type, status, attempts, received_at)
+       VALUES (?, ?, 'processing', 1, ?)`
+    )
+    .bind(eventId, type, now)
+    .run();
+  if ((ins.meta?.changes ?? 0) > 0) return "claimed";
+
+  const row = await first<{ status: string; received_at: string }>(
+    db.prepare(`SELECT status, received_at FROM stripe_events WHERE id = ?`).bind(eventId)
+  );
+  if (!row) return "claimed"; // vanished between insert and read; nothing to defer to
+  if (row.status === "done") return "done";
+  if (row.status === "processing") {
+    const started = Date.parse(row.received_at);
+    if (Number.isFinite(started) && Date.now() - started < INFLIGHT_LEASE_MS) {
+      return "in_flight";
     }
-    return;
   }
-  try {
-    await env.DB.batch([mutationStmt, ev.stmt]);
-    await scheduleDispatch(env, ctx, ev.id);
-  } catch (e) {
-    console.error(
-      `stripe webhook: outbox batch failed for ${label}; retrying the mutation alone so the payment side effect is not lost`,
-      e
-    );
-    try {
-      await mutationStmt.run();
-    } catch (e2) {
-      console.error(`stripe webhook: fallback mutation for ${label} also failed`, e2);
-    }
+  const re = await db
+    .prepare(
+      `UPDATE stripe_events
+       SET status = 'processing', attempts = attempts + 1, received_at = ?, last_error = NULL
+       WHERE id = ? AND status <> 'done'`
+    )
+    .bind(now, eventId)
+    .run();
+  return (re.meta?.changes ?? 0) > 0 ? "claimed" : "done";
+}
+
+async function markStripeEvent(
+  db: D1Database,
+  eventId: string,
+  status: "done" | "failed",
+  error?: string
+): Promise<void> {
+  const now = new Date().toISOString();
+  if (status === "done") {
+    await db
+      .prepare(
+        `UPDATE stripe_events SET status = 'done', processed_at = ?, last_error = NULL WHERE id = ?`
+      )
+      .bind(now, eventId)
+      .run();
+  } else {
+    await db
+      .prepare(`UPDATE stripe_events SET status = 'failed', last_error = ? WHERE id = ?`)
+      .bind((error || "unknown error").slice(0, 2000), eventId)
+      .run();
   }
 }
 
-/** Skip if we already recorded this Stripe object id (payment_intent, session, or invoice). */
-async function paymentAlreadyRecorded(
-  db: D1Database,
-  stripeRef: string | null | undefined
-): Promise<boolean> {
-  if (!stripeRef) return false;
-  const existing = await first(
-    db
-      .prepare(
-        `SELECT id FROM payments
-         WHERE stripe_payment_intent_id = ? OR stripe_invoice_id = ?
-         LIMIT 1`
-      )
-      .bind(stripeRef, stripeRef)
-  );
-  return !!existing;
+/** Hono throws when no ExecutionContext is attached (unit tests); treat as absent. */
+function execCtx(c: Context<{ Bindings: Env }>): WaitUntilCtx {
+  try {
+    return c.executionCtx;
+  } catch {
+    return undefined;
+  }
 }
 
 webhookRoutes.post("/stripe", async (c) => {
@@ -106,28 +124,110 @@ webhookRoutes.post("/stripe", async (c) => {
   }
 
   const type = event.type as string;
-  const data = event.data?.object;
+  const eventId = typeof event.id === "string" && event.id ? event.id : null;
+  console.log("Stripe webhook:", type, eventId);
 
-  console.log("Stripe webhook:", type);
+  if (eventId) {
+    const claim = await claimStripeEvent(c.env.DB, eventId, type, new Date().toISOString());
+    if (claim !== "claimed") {
+      console.log("Stripe webhook deduped", { eventId, claim });
+      return c.json({ received: true, deduped: claim });
+    }
+  }
 
-  if (type === "checkout.session.completed") {
-    const session = data;
-    const meta = session.metadata || {};
-    const tenantId = meta.tenant_id as string | undefined;
-    const memberId = meta.member_id as string | undefined;
-    const relatedId = meta.related_id as string | undefined;
-    const paymentType = meta.type as string | undefined;
-    const now = new Date().toISOString();
+  try {
+    await processStripeEvent(c.env, execCtx(c), event);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    console.error("Stripe webhook processing failed", { type, eventId, message });
+    if (eventId) {
+      try {
+        await markStripeEvent(c.env.DB, eventId, "failed", message);
+      } catch (e2) {
+        console.error("stripe_events: could not record failure", e2);
+      }
+    }
+    // Non-2xx => Stripe redelivers. Safe now: every step above is idempotent.
+    return c.json({ error: "Webhook processing failed; will retry" }, 500);
+  }
 
-    // Platform billing: guild pays QuiltHosting (not member dues)
-    if (paymentType === "platform" && tenantId) {
-      const customerId =
-        (typeof session.customer === "string" && session.customer) || null;
-      const subId =
-        (typeof session.subscription === "string" && session.subscription) ||
-        null;
-      const plan = (meta.plan as string) || "starter";
-      await c.env.DB.prepare(
+  if (eventId) {
+    try {
+      await markStripeEvent(c.env.DB, eventId, "done");
+    } catch (e) {
+      // The work is committed; a missed 'done' stamp only costs a re-claim
+      // that finds everything already fulfilled.
+      console.error("stripe_events: could not mark done", eventId, e);
+    }
+  }
+  return c.json({ received: true });
+});
+
+async function processStripeEvent(
+  env: Env,
+  ctx: WaitUntilCtx,
+  event: StripeObject
+): Promise<void> {
+  const type = event.type as string;
+  const data = (event.data?.object ?? {}) as StripeObject;
+
+  switch (type) {
+    case "checkout.session.completed":
+      return handleCheckoutCompleted(env, ctx, data);
+    case "checkout.session.expired":
+      return handleCheckoutExpired(env, data);
+    case "customer.subscription.deleted":
+    case "customer.subscription.updated":
+      return handleSubscriptionChange(env, type, data);
+    case "account.updated":
+      if (typeof data.id === "string") {
+        console.log("Connect account.updated", data.id, {
+          charges: data.charges_enabled,
+          payouts: data.payouts_enabled,
+        });
+      }
+      return;
+    case "invoice.paid":
+      return handleInvoicePaid(env, data);
+    default:
+      return;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// checkout.session.completed
+// ---------------------------------------------------------------------------
+
+/**
+ * Two idempotent steps:
+ *   1. RECORD: INSERT OR IGNORE the payments row (unique on stripe ref), then
+ *      read it back. Any retry lands on the same row.
+ *   2. FULFILL: if fulfilled_at IS NULL, apply every side effect plus the
+ *      outbox events plus `SET fulfilled_at` in ONE atomic batch. Each
+ *      statement is conditional, so a concurrent second run is a no-op.
+ * Emails are sent after the commit, best-effort, and never fail the event.
+ */
+async function handleCheckoutCompleted(
+  env: Env,
+  ctx: WaitUntilCtx,
+  session: StripeObject
+): Promise<void> {
+  const db = env.DB;
+  const meta = (session.metadata || {}) as Record<string, string | undefined>;
+  const tenantId = meta.tenant_id;
+  const memberId = meta.member_id;
+  const relatedId = meta.related_id;
+  const paymentType = meta.type;
+  const now = new Date().toISOString();
+  const sessionId = typeof session.id === "string" ? session.id : null;
+
+  // Platform billing: guild pays QuiltHosting (not member dues). Idempotent.
+  if (paymentType === "platform" && tenantId) {
+    const customerId = (typeof session.customer === "string" && session.customer) || null;
+    const subId = (typeof session.subscription === "string" && session.subscription) || null;
+    const plan = meta.plan || "starter";
+    await db
+      .prepare(
         `UPDATE tenants SET
            plan = ?,
            stripe_customer_id = coalesce(?, stripe_customer_id),
@@ -135,163 +235,195 @@ webhookRoutes.post("/stripe", async (c) => {
            updated_at = ?
          WHERE id = ?`
       )
-        .bind(plan === "pro" ? "pro" : "starter", customerId, subId, now, tenantId)
-        .run();
-      console.log("Platform plan activated", { tenantId, plan, subId });
-      return c.json({ received: true });
-    }
+      .bind(plan === "pro" ? "pro" : "starter", customerId, subId, now, tenantId)
+      .run();
+    console.log("Platform plan activated", { tenantId, plan, subId });
+    return;
+  }
 
-    // member_id is optional: non-member event registrations have none
-    if (!tenantId || (paymentType === "dues" && !memberId)) {
-      console.warn("Missing metadata on checkout session", session.id);
-      return c.json({ received: true });
-    }
+  // member_id is optional: non-member event registrations have none
+  if (!tenantId || (paymentType === "dues" && !memberId)) {
+    console.warn("Missing metadata on checkout session", sessionId);
+    return;
+  }
 
-    const stripeRef =
-      (typeof session.payment_intent === "string" && session.payment_intent) ||
-      (session.id as string);
-    if (await paymentAlreadyRecorded(c.env.DB, stripeRef)) {
-      console.log("checkout.session.completed already processed", stripeRef);
-      return c.json({ received: true });
-    }
-    // Also key off session id so retries that only have session.id don't double-insert
-    if (
-      session.id &&
-      session.id !== stripeRef &&
-      (await paymentAlreadyRecorded(c.env.DB, session.id))
-    ) {
-      return c.json({ received: true });
-    }
+  const stripeRef =
+    (typeof session.payment_intent === "string" && session.payment_intent) || sessionId;
+  if (!stripeRef) {
+    console.warn("checkout.session.completed without id or payment_intent");
+    return;
+  }
+  const amountTotal = Number(session.amount_total ?? 0) || 0;
 
-    const paymentId = generateId();
-    const insertPaymentStmt = c.env.DB.prepare(
-      `INSERT INTO payments
+  // --- Step 1: record ------------------------------------------------------
+  await db
+    .prepare(
+      `INSERT OR IGNORE INTO payments
        (id, tenant_id, member_id, type, amount_cents, currency, stripe_payment_intent_id,
         status, description, related_id, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, 'usd', ?, 'succeeded', ?, ?, ?, ?)`
-    ).bind(
-      paymentId,
+    )
+    .bind(
+      generateId(),
       tenantId,
       memberId || null,
       paymentType || "dues",
-      session.amount_total || 0,
+      amountTotal,
       stripeRef,
-      `Checkout ${session.id}`,
+      `Checkout ${sessionId ?? stripeRef}`,
       relatedId || null,
       now,
       now
-    );
+    )
+    .run();
 
-    // payment.succeeded outbound webhook — batched with the payments INSERT
-    // right above (same statement, same spot; not moved) so it cannot be
-    // permanently lost. Without this, a Worker death in the window between
-    // that INSERT committing and a separate outbox insert would leave the
-    // payment recorded; a Stripe retry then hits `paymentAlreadyRecorded`
-    // above and returns early, so the retry would never re-attempt the
-    // event — it would be gone for good, not just delayed. This runs before
-    // any of the type-specific branches below (donation/store/event/dues):
-    // those do their own independent mutations and don't need to have run
-    // first for this payload, which only needs fields already in scope here.
-    if (paymentType && session.amount_total != null) {
-      const { prepareEvent } = await import("../lib/webhookOutbox");
-      const ev = prepareEvent(c.env, tenantId, "payment.succeeded", {
-        type: paymentType,
-        amount_cents: session.amount_total,
-        // Schema requires string|null, and Stripe can hand back undefined here.
-        email: session.customer_email || session.metadata?.email || null,
-        related_id: relatedId ?? null,
-        source: "stripe",
-      });
-      await commitStripeMutationWithEvent(
-        c.env,
-        c.executionCtx,
-        insertPaymentStmt,
-        ev,
-        "payment.succeeded"
-      );
-    } else {
-      await insertPaymentStmt.run();
+  const payment = await findPaymentByStripeRef(db, [stripeRef, sessionId]);
+  if (!payment) {
+    throw new Error(`payments row missing after insert for ${stripeRef}`);
+  }
+  if (payment.fulfilled_at) {
+    console.log("checkout.session.completed already fulfilled", stripeRef);
+    return;
+  }
+  const paymentId = payment.id;
+
+  // --- Step 2: fulfill (one batch) ----------------------------------------
+  const stmts: D1PreparedStatement[] = [];
+  const outboxIds: string[] = [];
+  const afterCommit: Array<() => Promise<void>> = [];
+
+  const addEvent = (name: WebhookEventName, payload: Record<string, unknown>) => {
+    const ev = prepareEvent(env, tenantId, name, payload);
+    if (!ev) {
+      // Schema failure is a programming error, and deterministic: retrying
+      // would never help, so do not block fulfillment on it.
+      console.error(`stripe webhook: prepareEvent failed for ${name}; event dropped`);
+      return;
     }
+    stmts.push(ev.stmt);
+    outboxIds.push(ev.id);
+  };
 
-    if (paymentType === "donation" || paymentType === "store") {
-      const email =
-        (meta.email as string) ||
-        (typeof session.customer_email === "string"
-          ? session.customer_email
-          : "") ||
-        "";
-      const tenant = await first<{ name: string }>(
-        c.env.DB.prepare("SELECT name FROM tenants WHERE id = ?").bind(tenantId)
-      );
-      if (paymentType === "store" && relatedId) {
-        const qty = Math.max(1, Math.floor(Number(meta.quantity) || 1));
-        try {
-          await c.env.DB.prepare(
-            `UPDATE products SET
-               inventory = CASE
-                 WHEN inventory IS NULL THEN NULL
-                 WHEN inventory >= ? THEN inventory - ?
-                 ELSE 0
-               END,
-               updated_at = ?
-             WHERE id = ? AND tenant_id = ?`
-          )
-            .bind(qty, qty, now, relatedId, tenantId)
-            .run();
-        } catch (e) {
-          console.warn("store inventory update failed", e);
+  const customerEmail =
+    meta.email || (typeof session.customer_email === "string" ? session.customer_email : "") || "";
+
+  if (paymentType) {
+    addEvent("payment.succeeded", {
+      type: paymentType,
+      amount_cents: amountTotal,
+      email: customerEmail || null,
+      related_id: relatedId ?? null,
+      source: "stripe",
+    });
+  }
+
+  if (paymentType === "donation" || paymentType === "store") {
+    if (paymentType === "store") {
+      const orderId = meta.order_id;
+      if (orderId) {
+        const order = await first<{ items_json: string }>(
+          db
+            .prepare(`SELECT items_json FROM store_orders WHERE id = ? AND tenant_id = ?`)
+            .bind(orderId, tenantId)
+        );
+        if (order) {
+          stmts.push(
+            ...buildFulfillOrderStatements(db, {
+              tenantId,
+              orderId,
+              paymentId,
+              lines: parseOrderItems(order.items_json),
+              stripeSessionId: sessionId,
+              now,
+            })
+          );
+        } else {
+          console.warn("store order missing for checkout", { orderId, tenantId });
         }
+      } else if (relatedId) {
+        // Legacy single-product session (created before /buy used orders).
+        stmts.push(
+          buildLegacyProductDecrementStatement(db, {
+            tenantId,
+            productId: relatedId,
+            quantity: Math.max(1, Math.floor(Number(meta.quantity) || 1)),
+            paymentId,
+            now,
+          })
+        );
       }
-      if (email && tenant) {
+    }
+    if (customerEmail) {
+      afterCommit.push(async () => {
+        const tenant = await first<{ name: string }>(
+          db.prepare("SELECT name FROM tenants WHERE id = ?").bind(tenantId)
+        );
+        if (!tenant) return;
         const { subject, html } = paymentReceiptEmail({
           guildName: tenant.name,
           description:
-            paymentType === "store"
-              ? `Store order`
-              : `Donation to ${tenant.name}`,
-          amountFormatted: formatMoney(session.amount_total || 0),
+            paymentType === "store" ? `Store order` : `Donation to ${tenant.name}`,
+          amountFormatted: formatMoney(amountTotal),
           typeLabel: paymentType === "store" ? "purchase" : "donation",
         });
-        await sendEmail(c.env, { to: email, subject, html });
-      }
+        await sendEmail(env, { to: customerEmail, subject, html });
+      });
     }
+  }
 
-    if (paymentType === "event" && relatedId) {
-      // Read before the update: none of these columns (email, name,
-      // ticket_code, event_id) are touched by the UPDATE below, so reading
-      // first lets the UPDATE itself stay unexecuted until it can be batched
-      // with its outbox event further down.
-      const reg = await first<{
-        email: string;
-        name: string | null;
-        ticket_code: string | null;
-        event_id: string;
-      }>(
-        c.env.DB.prepare(
-          `SELECT email, name, ticket_code, event_id FROM event_registrations
+  if (paymentType === "event" && relatedId) {
+    const reg = await first<{
+      email: string;
+      name: string | null;
+      ticket_code: string | null;
+      event_id: string;
+      status: string;
+    }>(
+      db
+        .prepare(
+          `SELECT email, name, ticket_code, event_id, status FROM event_registrations
            WHERE id = ? AND tenant_id = ?`
-        ).bind(relatedId, tenantId)
+        )
+        .bind(relatedId, tenantId)
+    );
+    if (reg) {
+      if (reg.status === "cancelled") {
+        // The hold expired and was released before this (late) webhook
+        // arrived, but the attendee has paid: seat them anyway and let the
+        // admin sort out capacity, rather than keeping money for no seat.
+        console.warn("event registration paid after hold release; re-seating", relatedId);
+      }
+      stmts.push(
+        db
+          .prepare(
+            `UPDATE event_registrations
+             SET amount_paid_cents = ?, status = 'registered', hold_expires_at = NULL, updated_at = ?
+             WHERE id = ? AND tenant_id = ? AND status IN ('pending_payment', 'registered', 'cancelled')`
+          )
+          .bind(amountTotal, now, relatedId, tenantId)
       );
-      const updateRegStmt = c.env.DB.prepare(
-        `UPDATE event_registrations
-         SET amount_paid_cents = ?, status = 'registered', updated_at = ?
-         WHERE id = ? AND tenant_id = ? AND status IN ('pending_payment', 'registered')`
-      ).bind(session.amount_total || 0, now, relatedId, tenantId);
-
-      if (reg) {
-        const eventRow = await first<{
-          title: string;
-          start_at: string;
-          location: string | null;
-        }>(
-          c.env.DB.prepare(
-            "SELECT title, start_at, location FROM events WHERE id = ? AND tenant_id = ?"
-          ).bind(reg.event_id, tenantId)
-        );
-        const tenant = await first<{ name: string }>(
-          c.env.DB.prepare("SELECT name FROM tenants WHERE id = ?").bind(tenantId)
-        );
-        if (eventRow && tenant) {
+      const eventRow = await first<{ title: string; start_at: string; location: string | null }>(
+        db
+          .prepare("SELECT title, start_at, location FROM events WHERE id = ? AND tenant_id = ?")
+          .bind(reg.event_id, tenantId)
+      );
+      addEvent("event.registration", {
+        registration_id: relatedId,
+        event_id: reg.event_id,
+        event_title: eventRow?.title ?? "",
+        email: reg.email,
+        name: reg.name ?? null,
+        status: "registered",
+        amount_paid_cents: amountTotal,
+        ticket_code: reg.ticket_code ?? null,
+        source: "stripe",
+      });
+      if (eventRow) {
+        afterCommit.push(async () => {
+          const tenant = await first<{ name: string }>(
+            db.prepare("SELECT name FROM tenants WHERE id = ?").bind(tenantId)
+          );
+          if (!tenant) return;
           const eventDate = new Date(eventRow.start_at).toLocaleString("en-US", {
             dateStyle: "full",
             timeStyle: "short",
@@ -302,357 +434,326 @@ webhookRoutes.post("/stripe", async (c) => {
             eventTitle: eventRow.title,
             eventDate,
             eventLocation: eventRow.location ?? undefined,
-            amountFormatted: formatMoney(session.amount_total || 0),
+            amountFormatted: formatMoney(amountTotal),
             ticketCode: reg.ticket_code ?? undefined,
           });
-          await sendEmail(c.env, {
-            to: reg.email,
-            subject,
-            html,
-          });
-        }
-
-        // Emitted here, after the reg/event lookups, so the payload is complete.
-        // The seat is only real once Stripe confirms — never emit at
-        // pending_payment. At-least-once delivery means a Stripe retry can
-        // re-emit; consumers dedupe on the envelope id.
-        //
-        // Batched with updateRegStmt (prepared above, not yet run) so the
-        // 'registered' status flip and its outbox event commit together.
-        const { prepareEvent } = await import("../lib/webhookOutbox");
-        const ev = prepareEvent(c.env, tenantId, "event.registration", {
-          registration_id: relatedId,
-          event_id: reg.event_id,
-          event_title: eventRow?.title ?? "",
-          email: reg.email,
-          name: reg.name ?? null,
-          status: "registered",
-          amount_paid_cents: session.amount_total || 0,
-          ticket_code: reg.ticket_code ?? null,
-          source: "stripe",
+          await sendEmail(env, { to: reg.email, subject, html });
         });
-        await commitStripeMutationWithEvent(
-          c.env,
-          c.executionCtx,
-          updateRegStmt,
-          ev,
-          "event.registration"
-        );
       }
-    }
-
-    if (paymentType === "dues" && relatedId && memberId) {
-      const level = await first<MembershipLevel>(
-        c.env.DB.prepare(
-          "SELECT * FROM membership_levels WHERE id = ? AND tenant_id = ?"
-        ).bind(relatedId, tenantId)
-      );
-
-      if (level) {
-        await activateMembership(c.env.DB, {
-          tenantId,
-          memberId,
-          level,
-          amountPaidCents: session.amount_total || level.price_cents,
-          now,
-          stripeSubscriptionId:
-            (typeof session.subscription === "string" && session.subscription) ||
-            null,
-          autoRenew: level.renewal_type === "auto",
-        });
-
-        const member = await first<Member>(
-          c.env.DB.prepare("SELECT * FROM members WHERE id = ?").bind(memberId)
-        );
-        const tenant = await first<{ name: string; slug: string }>(
-          c.env.DB.prepare("SELECT name, slug FROM tenants WHERE id = ?").bind(
-            tenantId
-          )
-        );
-
-        if (member && tenant) {
-          const { subject, html } = welcomeEmail({
-            guildName: tenant.name,
-            firstName: member.first_name ?? undefined,
-            portalUrl: portalUrl(c.env.APP_URL, tenant.slug),
-          });
-          await sendEmail(c.env, {
-            to: member.email,
-            subject,
-            html,
-          });
-          try {
-            const { enrollMemberActivated } = await import("../lib/automations");
-            await enrollMemberActivated(c.env, tenantId, memberId);
-          } catch (e) {
-            console.warn("automation enroll failed", e);
-          }
-          // NOT atomic with the activation itself: activateMembership() above
-          // already ran and committed its own statements (expire prior
-          // actives, insert membership, flip member status) individually
-          // before we get here — same situation as the free-join path in
-          // routes/public.ts, and for the same reason: decomposing
-          // activateMembership into pre-built statements this route could
-          // batch would mean threading that change through all five of its
-          // call sites, which is bigger than this task's scope. What we CAN
-          // still guarantee is that these two events land together (both
-          // outbox rows commit or neither does), so a subscriber never sees
-          // member.activated without membership.activated or vice versa.
-          //
-          // Also never turns into a 500: this is the Stripe webhook path
-          // (see commitStripeMutationWithEvent above for why), and by this
-          // point the membership is already active regardless of whether the
-          // outbox rows land.
-          const { prepareEvent, scheduleDispatch } = await import(
-            "../lib/webhookOutbox"
-          );
-          const membershipEv = prepareEvent(c.env, tenantId, "membership.activated", {
-            member_id: memberId,
-            email: member.email,
-            level_id: level.id,
-            level_name: level.name,
-            membership_id: null,
-            source: "stripe",
-          });
-          const memberEv = prepareEvent(c.env, tenantId, "member.activated", {
-            member_id: memberId,
-            email: member.email,
-            level_id: level.id,
-            source: "stripe",
-          });
-          if (!membershipEv || !memberEv) {
-            console.error(
-              "stripe webhook: prepareEvent failed for membership/member.activated; activation already committed, events lost",
-              { hasMembershipEv: !!membershipEv, hasMemberEv: !!memberEv }
-            );
-          } else {
-            try {
-              await c.env.DB.batch([membershipEv.stmt, memberEv.stmt]);
-              await scheduleDispatch(c.env, c.executionCtx, membershipEv.id);
-              await scheduleDispatch(c.env, c.executionCtx, memberEv.id);
-            } catch (e) {
-              console.error(
-                "stripe webhook: outbox batch failed for membership/member.activated; activation already committed, events lost",
-                e
-              );
-            }
-          }
-        }
-      }
-    }
-
-    // payment.succeeded is now emitted right after the payments INSERT,
-    // above — see the comment there. (Left this marker so a future reader
-    // scanning for "payment.succeeded" from the bottom of the handler up
-    // finds a pointer instead of nothing.)
-
-    // Multi-SKU store cart orders
-    if (paymentType === "store" && session.metadata?.order_id) {
-      const orderId = session.metadata.order_id as string;
-      try {
-        await c.env.DB.prepare(
-          `UPDATE store_orders SET status = 'paid', updated_at = ?, stripe_session_id = ?
-           WHERE id = ? AND tenant_id = ?`
-        )
-          .bind(now, session.id, orderId, tenantId)
-          .run();
-        const order = await first<{ items_json: string }>(
-          c.env.DB.prepare(`SELECT items_json FROM store_orders WHERE id = ?`).bind(orderId)
-        );
-        if (order) {
-          const items = JSON.parse(order.items_json || "[]") as Array<{
-            product_id: string;
-            quantity: number;
-          }>;
-          for (const it of items) {
-            if (!it.product_id || !it.quantity) continue;
-            await c.env.DB.prepare(
-              `UPDATE products SET inventory = inventory - ?, updated_at = ?
-               WHERE id = ? AND tenant_id = ? AND inventory IS NOT NULL AND inventory >= ?`
-            )
-              .bind(it.quantity, now, it.product_id, tenantId, it.quantity)
-              .run();
-          }
-        }
-      } catch (e) {
-        console.warn("store order fulfill failed", e);
-      }
-    }
-  }
-
-  // Platform subscription ended (cancel / payment failure end)
-  if (
-    type === "customer.subscription.deleted" ||
-    type === "customer.subscription.updated"
-  ) {
-    const sub = data;
-    const subId = sub?.id as string | undefined;
-    const meta = sub?.metadata || {};
-    const tenantId = meta.tenant_id as string | undefined;
-    const now = new Date().toISOString();
-
-    if (meta.type === "platform" && tenantId) {
-      if (type === "customer.subscription.deleted" || sub.status === "canceled") {
-        await c.env.DB.prepare(
-          `UPDATE tenants SET plan = 'free', stripe_subscription_id = null, updated_at = ?
-           WHERE id = ?`
-        )
-          .bind(now, tenantId)
-          .run();
-        console.log("Platform plan cancelled", tenantId);
-      } else if (sub.status === "active" || sub.status === "trialing") {
-        await c.env.DB.prepare(
-          `UPDATE tenants SET plan = 'starter', stripe_subscription_id = ?, updated_at = ?
-           WHERE id = ?`
-        )
-          .bind(subId, now, tenantId)
-          .run();
-      }
-      return c.json({ received: true });
-    }
-  }
-
-  // Account.updated — keep stripe_account_id; status is read live from Stripe in billing API
-  if (type === "account.updated") {
-    const acctId = data?.id as string | undefined;
-    if (acctId) {
-      console.log("Connect account.updated", acctId, {
-        charges: data.charges_enabled,
-        payouts: data.payouts_enabled,
-      });
-    }
-  }
-
-  // Subscription renewals (member dues) — and first invoice if checkout webhook was missed
-  if (type === "invoice.paid") {
-    const invoice = data;
-    const invoiceId = invoice?.id as string | undefined;
-    const subscriptionId =
-      (typeof invoice?.subscription === "string" && invoice.subscription) ||
-      null;
-    const billingReason = invoice?.billing_reason as string | undefined;
-    const amountPaid = Number(invoice?.amount_paid || 0);
-    const now = new Date().toISOString();
-    const invMeta = invoice?.subscription_details?.metadata || invoice?.metadata || {};
-
-    // Platform plan invoice — keep plan active; no member payment row
-    if (invMeta.type === "platform" || invoice?.lines?.data?.[0]?.metadata?.type === "platform") {
-      const tenantId = (invMeta.tenant_id ||
-        invoice?.lines?.data?.[0]?.metadata?.tenant_id) as string | undefined;
-      if (tenantId && subscriptionId) {
-        await c.env.DB.prepare(
-          `UPDATE tenants SET plan = 'starter', stripe_subscription_id = ?, updated_at = ?
-           WHERE id = ?`
-        )
-          .bind(subscriptionId, now, tenantId)
-          .run();
-      }
-      return c.json({ received: true });
-    }
-
-    // Also match platform by tenant stripe_subscription_id
-    if (subscriptionId) {
-      const platformTenant = await first<{ id: string }>(
-        c.env.DB.prepare(
-          "SELECT id FROM tenants WHERE stripe_subscription_id = ?"
-        ).bind(subscriptionId)
-      );
-      if (platformTenant) {
-        await c.env.DB.prepare(
-          `UPDATE tenants SET plan = 'starter', updated_at = ? WHERE id = ?`
-        )
-          .bind(now, platformTenant.id)
-          .run();
-        return c.json({ received: true });
-      }
-    }
-
-    if (!invoiceId) {
-      return c.json({ received: true });
-    }
-    if (await paymentAlreadyRecorded(c.env.DB, invoiceId)) {
-      console.log("invoice.paid already processed", invoiceId);
-      return c.json({ received: true });
-    }
-
-    // First invoice is normally handled by checkout.session.completed.
-    // Only create membership if we somehow missed checkout; never double-extend.
-    if (billingReason === "subscription_create" && subscriptionId) {
-      const existing = await first<{ id: string; tenant_id: string; member_id: string }>(
-        c.env.DB.prepare(
-          `SELECT id, tenant_id, member_id FROM memberships
-           WHERE stripe_subscription_id = ? LIMIT 1`
-        ).bind(subscriptionId)
-      );
-      if (existing) {
-        // Checkout already created membership; record invoice ref if useful but skip amount double-count
-        console.log("invoice.paid subscription_create: membership exists, skip extend", invoiceId);
-        return c.json({ received: true });
-      }
-      // Recovery path: metadata on invoice/subscription lines is unreliable; skip create without context
-      console.warn("invoice.paid subscription_create with no membership — waiting for checkout handler");
-      return c.json({ received: true });
-    }
-
-    if (billingReason === "subscription_cycle" && subscriptionId) {
-      const membership = await first<{
-        id: string;
-        tenant_id: string;
-        member_id: string;
-        level_id: string;
-      }>(
-        c.env.DB.prepare(
-          `SELECT id, tenant_id, member_id, level_id FROM memberships
-           WHERE stripe_subscription_id = ?
-           ORDER BY created_at DESC LIMIT 1`
-        ).bind(subscriptionId)
-      );
-
-      if (!membership) {
-        console.warn("invoice.paid: no membership for subscription", subscriptionId);
-        return c.json({ received: true });
-      }
-
-      const level = await first<MembershipLevel>(
-        c.env.DB.prepare(
-          "SELECT * FROM membership_levels WHERE id = ? AND tenant_id = ?"
-        ).bind(membership.level_id, membership.tenant_id)
-      );
-      const duration = level?.duration_months || 12;
-
-      await extendMembership(c.env.DB, membership.id, duration, now);
-      await c.env.DB.prepare(
-        "UPDATE members SET status = 'active', updated_at = ? WHERE id = ?"
-      )
-        .bind(now, membership.member_id)
-        .run();
-
-      await c.env.DB.prepare(
-        `INSERT INTO payments
-         (id, tenant_id, member_id, type, amount_cents, currency, stripe_payment_intent_id,
-          stripe_invoice_id, status, description, related_id, created_at, updated_at)
-         VALUES (?, ?, ?, 'dues', ?, 'usd', ?, ?, 'succeeded', ?, ?, ?, ?)`
-      )
-        .bind(
-          generateId(),
-          membership.tenant_id,
-          membership.member_id,
-          amountPaid,
-          (typeof invoice.payment_intent === "string" && invoice.payment_intent) ||
-            null,
-          invoiceId,
-          `Subscription renewal ${invoiceId}`,
-          membership.level_id,
-          now,
-          now
-        )
-        .run();
-
-      console.log("invoice.paid: extended membership", membership.id);
     } else {
-      console.log("invoice.paid ignored", { billingReason, subscriptionId, invoiceId });
+      console.warn("event registration missing for checkout", { relatedId, tenantId });
     }
   }
 
-  return c.json({ received: true });
-});
+  if (paymentType === "dues" && relatedId && memberId) {
+    const level = await first<MembershipLevel>(
+      db
+        .prepare("SELECT * FROM membership_levels WHERE id = ? AND tenant_id = ?")
+        .bind(relatedId, tenantId)
+    );
+    const member = await first<Member>(
+      db.prepare("SELECT * FROM members WHERE id = ? AND tenant_id = ?").bind(memberId, tenantId)
+    );
+    if (level && member) {
+      const activation = buildActivateMembershipStatements(db, {
+        tenantId,
+        memberId,
+        level,
+        amountPaidCents: amountTotal || level.price_cents,
+        paymentId,
+        stripeSubscriptionId:
+          (typeof session.subscription === "string" && session.subscription) || null,
+        autoRenew: level.renewal_type === "auto",
+        now,
+      });
+      stmts.push(...activation.stmts);
+      addEvent("membership.activated", {
+        member_id: memberId,
+        email: member.email,
+        level_id: level.id,
+        level_name: level.name,
+        membership_id: activation.membershipId,
+        source: "stripe",
+      });
+      addEvent("member.activated", {
+        member_id: memberId,
+        email: member.email,
+        level_id: level.id,
+        source: "stripe",
+      });
+      afterCommit.push(async () => {
+        const tenant = await first<{ name: string; slug: string }>(
+          db.prepare("SELECT name, slug FROM tenants WHERE id = ?").bind(tenantId)
+        );
+        if (!tenant) return;
+        const { subject, html } = welcomeEmail({
+          guildName: tenant.name,
+          firstName: member.first_name ?? undefined,
+          portalUrl: portalUrl(env.APP_URL, tenant.slug),
+        });
+        await sendEmail(env, { to: member.email, subject, html });
+        try {
+          const { enrollMemberActivated } = await import("../lib/automations");
+          await enrollMemberActivated(env, tenantId, memberId);
+        } catch (e) {
+          console.warn("automation enroll failed", e);
+        }
+      });
+    } else {
+      console.warn("dues checkout: level or member missing", { relatedId, memberId, tenantId });
+    }
+  }
+
+  // The stamp goes LAST so its meta.changes tells us whether THIS batch won.
+  stmts.push(
+    db
+      .prepare(
+        `UPDATE payments SET fulfilled_at = ?, updated_at = ? WHERE id = ? AND fulfilled_at IS NULL`
+      )
+      .bind(now, now, paymentId)
+  );
+
+  // Any failure here propagates to the inbox catch => 500 => Stripe retries,
+  // and the retry finds fulfilled_at still NULL and runs this again.
+  const results = await db.batch(stmts);
+  const stamped = results[results.length - 1]?.meta?.changes ?? 0;
+  if (!stamped) {
+    console.log("checkout.session.completed fulfilled concurrently; no-op", stripeRef);
+    return;
+  }
+
+  for (const id of outboxIds) await scheduleDispatch(env, ctx, id);
+  for (const fn of afterCommit) {
+    try {
+      await fn();
+    } catch (e) {
+      console.error("stripe webhook: post-commit side effect failed", e);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// checkout.session.expired — release seat / stock holds
+// ---------------------------------------------------------------------------
+
+async function handleCheckoutExpired(env: Env, session: StripeObject): Promise<void> {
+  const db = env.DB;
+  const meta = (session.metadata || {}) as Record<string, string | undefined>;
+  const tenantId = meta.tenant_id;
+  if (!tenantId) return;
+  const now = new Date().toISOString();
+
+  if (meta.type === "event" && meta.related_id) {
+    const r = await buildReleaseSeatStatement(db, tenantId, meta.related_id, now).run();
+    console.log("checkout.session.expired: seat hold released", {
+      registrationId: meta.related_id,
+      changed: r.meta?.changes ?? 0,
+    });
+    return;
+  }
+
+  if (meta.type === "store" && meta.order_id) {
+    const order = await first<{ items_json: string }>(
+      db
+        .prepare(`SELECT items_json FROM store_orders WHERE id = ? AND tenant_id = ?`)
+        .bind(meta.order_id, tenantId)
+    );
+    if (!order) return;
+    const results = await db.batch(
+      buildReleaseOrderStatements(db, {
+        tenantId,
+        orderId: meta.order_id,
+        lines: parseOrderItems(order.items_json),
+        now,
+        status: "expired",
+      })
+    );
+    console.log("checkout.session.expired: order released", {
+      orderId: meta.order_id,
+      changed: results[results.length - 1]?.meta?.changes ?? 0,
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// customer.subscription.* — platform plan state (idempotent UPDATEs)
+// ---------------------------------------------------------------------------
+
+async function handleSubscriptionChange(
+  env: Env,
+  type: string,
+  sub: StripeObject
+): Promise<void> {
+  const subId = sub?.id as string | undefined;
+  const meta = (sub?.metadata || {}) as Record<string, string | undefined>;
+  const tenantId = meta.tenant_id;
+  const now = new Date().toISOString();
+
+  if (meta.type !== "platform" || !tenantId) return;
+
+  if (type === "customer.subscription.deleted" || sub.status === "canceled") {
+    await env.DB.prepare(
+      `UPDATE tenants SET plan = 'free', stripe_subscription_id = null, updated_at = ?
+       WHERE id = ?`
+    )
+      .bind(now, tenantId)
+      .run();
+    console.log("Platform plan cancelled", tenantId);
+  } else if (sub.status === "active" || sub.status === "trialing") {
+    await env.DB.prepare(
+      `UPDATE tenants SET plan = 'starter', stripe_subscription_id = ?, updated_at = ?
+       WHERE id = ?`
+    )
+      .bind(subId, now, tenantId)
+      .run();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// invoice.paid — subscription renewals (member dues)
+// ---------------------------------------------------------------------------
+
+async function handleInvoicePaid(env: Env, invoice: StripeObject): Promise<void> {
+  const db = env.DB;
+  const invoiceId = invoice?.id as string | undefined;
+  const subscriptionId =
+    (typeof invoice?.subscription === "string" && invoice.subscription) || null;
+  const billingReason = invoice?.billing_reason as string | undefined;
+  const amountPaid = Number(invoice?.amount_paid || 0);
+  const now = new Date().toISOString();
+  const invMeta = (invoice?.subscription_details?.metadata || invoice?.metadata || {}) as Record<
+    string,
+    string | undefined
+  >;
+  const firstLineMeta = (invoice?.lines?.data?.[0]?.metadata || {}) as Record<
+    string,
+    string | undefined
+  >;
+
+  // Platform plan invoice — keep plan active; no member payment row
+  if (invMeta.type === "platform" || firstLineMeta.type === "platform") {
+    const tenantId = invMeta.tenant_id || firstLineMeta.tenant_id;
+    if (tenantId && subscriptionId) {
+      await db
+        .prepare(
+          `UPDATE tenants SET plan = 'starter', stripe_subscription_id = ?, updated_at = ?
+           WHERE id = ?`
+        )
+        .bind(subscriptionId, now, tenantId)
+        .run();
+    }
+    return;
+  }
+
+  // Also match platform by tenant stripe_subscription_id
+  if (subscriptionId) {
+    const platformTenant = await first<{ id: string }>(
+      db.prepare("SELECT id FROM tenants WHERE stripe_subscription_id = ?").bind(subscriptionId)
+    );
+    if (platformTenant) {
+      await db
+        .prepare(`UPDATE tenants SET plan = 'starter', updated_at = ? WHERE id = ?`)
+        .bind(now, platformTenant.id)
+        .run();
+      return;
+    }
+  }
+
+  if (!invoiceId) return;
+  if (await findPaymentByStripeRef(db, [invoiceId])) {
+    console.log("invoice.paid already processed", invoiceId);
+    return;
+  }
+
+  // First invoice is normally handled by checkout.session.completed.
+  // Only create membership if we somehow missed checkout; never double-extend.
+  if (billingReason === "subscription_create" && subscriptionId) {
+    const existing = await first<{ id: string }>(
+      db
+        .prepare(`SELECT id FROM memberships WHERE stripe_subscription_id = ? LIMIT 1`)
+        .bind(subscriptionId)
+    );
+    if (existing) {
+      console.log("invoice.paid subscription_create: membership exists, skip extend", invoiceId);
+      return;
+    }
+    console.warn("invoice.paid subscription_create with no membership — waiting for checkout handler");
+    return;
+  }
+
+  if (billingReason !== "subscription_cycle" || !subscriptionId) {
+    console.log("invoice.paid ignored", { billingReason, subscriptionId, invoiceId });
+    return;
+  }
+
+  const membership = await first<{
+    id: string;
+    tenant_id: string;
+    member_id: string;
+    level_id: string;
+    end_date: string | null;
+  }>(
+    db
+      .prepare(
+        `SELECT id, tenant_id, member_id, level_id, end_date FROM memberships
+         WHERE stripe_subscription_id = ?
+         ORDER BY created_at DESC LIMIT 1`
+      )
+      .bind(subscriptionId)
+  );
+  if (!membership) {
+    console.warn("invoice.paid: no membership for subscription", subscriptionId);
+    return;
+  }
+
+  const level = await first<MembershipLevel>(
+    db
+      .prepare("SELECT * FROM membership_levels WHERE id = ? AND tenant_id = ?")
+      .bind(membership.level_id, membership.tenant_id)
+  );
+  const duration = level?.duration_months || 12;
+  const base =
+    membership.end_date && new Date(membership.end_date) > new Date(now)
+      ? new Date(membership.end_date)
+      : new Date(now);
+  base.setMonth(base.getMonth() + duration);
+  const newEnd = base.toISOString();
+
+  // Extend + reactivate + record, atomically. The extension is guarded by
+  // "this invoice is not yet recorded" so a retry after a partial failure
+  // can never extend twice; the INSERT is last and unique on invoice id.
+  const guard = `NOT EXISTS (SELECT 1 FROM payments WHERE stripe_invoice_id = ?)`;
+  await db.batch([
+    db
+      .prepare(
+        `UPDATE memberships SET end_date = ?, status = 'active', updated_at = ?
+         WHERE id = ? AND ${guard}`
+      )
+      .bind(newEnd, now, membership.id, invoiceId),
+    db
+      .prepare(`UPDATE members SET status = 'active', updated_at = ? WHERE id = ?`)
+      .bind(now, membership.member_id),
+    db
+      .prepare(
+        `INSERT OR IGNORE INTO payments
+         (id, tenant_id, member_id, type, amount_cents, currency, stripe_payment_intent_id,
+          stripe_invoice_id, status, description, related_id, fulfilled_at, created_at, updated_at)
+         VALUES (?, ?, ?, 'dues', ?, 'usd', ?, ?, 'succeeded', ?, ?, ?, ?, ?)`
+      )
+      .bind(
+        generateId(),
+        membership.tenant_id,
+        membership.member_id,
+        amountPaid,
+        (typeof invoice.payment_intent === "string" && invoice.payment_intent) || null,
+        invoiceId,
+        `Subscription renewal ${invoiceId}`,
+        membership.level_id,
+        now,
+        now,
+        now
+      ),
+  ]);
+
+  console.log("invoice.paid: extended membership", membership.id);
+}

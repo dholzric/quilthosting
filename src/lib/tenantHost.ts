@@ -292,6 +292,49 @@ export async function ensurePlatformSubdomain(
   return ensureZoneDnsRecord(env, host);
 }
 
+export type SubdomainProvisionResult = {
+  status: "active" | "failed" | "skipped";
+  hostname: string;
+  error: string | null;
+};
+
+/**
+ * ensurePlatformSubdomain + persist the outcome on tenants.domain_status /
+ * domain_error (migration 0024). Called from POST /api/tenants (via
+ * waitUntil) and the domain retry endpoint. Never throws: a DB write failure
+ * is swallowed so the caller's response is unaffected.
+ *
+ *   active  -- DNS record exists (created now or already there)
+ *   failed  -- Cloudflare rejected it; error carries the message
+ *   skipped -- no CLOUDFLARE_API_TOKEN on this Worker (local dev)
+ */
+export async function provisionPlatformSubdomain(
+  env: Env,
+  tenantId: string,
+  slug: string
+): Promise<SubdomainProvisionResult> {
+  const hostname = `${slug}.${appHostname(env.APP_URL)}`;
+  let result: SubdomainProvisionResult;
+  if (!env.CLOUDFLARE_API_TOKEN) {
+    result = { status: "skipped", hostname, error: null };
+  } else {
+    const r = await ensurePlatformSubdomain(env, slug);
+    result = r.ok
+      ? { status: "active", hostname: r.hostname, error: null }
+      : { status: "failed", hostname: r.hostname, error: r.error || "unknown error" };
+  }
+  try {
+    await env.DB.prepare(
+      `UPDATE tenants SET domain_status = ?, domain_error = ?, updated_at = ? WHERE id = ?`
+    )
+      .bind(result.status, result.error, new Date().toISOString(), tenantId)
+      .run();
+  } catch {
+    /* status column missing or DB hiccup: the retry endpoint recomputes */
+  }
+  return result;
+}
+
 /** CNAME target guilds point at (Cloudflare for SaaS). */
 export function saasCnameTarget(env: Env): string {
   return env.SAAS_CNAME_TARGET || `customers.${appHostname(env.APP_URL)}`;

@@ -183,6 +183,7 @@ commsRoutes.post("/", async (c) => {
 
   // Small audience: send synchronously
   let sent = 0;
+  let skipped = 0;
   const errors: string[] = [];
   let afterEmail: string | null = null;
   for (;;) {
@@ -213,12 +214,19 @@ commsRoutes.post("/", async (c) => {
           subject: personalizedSubject,
           html,
           text,
+          // Newsletters are marketing: honour opt-outs/suppressions and add
+          // List-Unsubscribe headers + footer (lib/email).
+          kind: "marketing",
+          tenantId: tenant.id,
+          guildName: tenant.name,
+          emailLogId: logId,
         });
         return { m, res, logId };
       })
     );
     const logInserts = results.map(({ m, res, logId }) => {
       if (res.success) sent++;
+      else if (res.suppressed) skipped++;
       else errors.push(`${m.email}: ${res.error}`);
       return c.env.DB.prepare(
         `INSERT INTO email_logs (id, tenant_id, member_id, to_email, template, resend_id, status, created_at)
@@ -229,7 +237,7 @@ commsRoutes.post("/", async (c) => {
         m.id,
         m.email,
         res.id || null,
-        res.success ? "sent" : "failed",
+        res.success ? "sent" : res.suppressed ? "skipped" : "failed",
         now
       );
     });
@@ -282,6 +290,8 @@ commsRoutes.post("/", async (c) => {
     layout,
     recipients: audienceMeta.count,
     sent,
+    skipped,
+    opted_out: audienceMeta.opted_out ?? 0,
     failed: errors.length,
     errors: errors.slice(0, 5),
   });

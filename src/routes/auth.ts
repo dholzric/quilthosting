@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import type { Env } from "../types";
 import { generateId } from "../lib/utils/id";
 import { first } from "../lib/db";
@@ -7,9 +8,16 @@ import {
   verifyPassword,
   signJwt,
   verifyJwt,
+  issueMagicToken,
+  consumeMagicToken,
+  revokeAuthToken,
 } from "../lib/auth";
 import { sendEmail, magicLinkEmail } from "../lib/email";
 import { rateLimit } from "../middleware/rateLimit";
+
+// Re-exported so src/index.ts can mount the browser landing for emailed
+// magic links: `app.get("/auth/verify", magicLinkLanding)`.
+export { magicLinkLanding, consumeMagicToken, sweepAuthTokens } from "../lib/auth";
 
 export const authRoutes = new Hono<{ Bindings: Env }>();
 
@@ -111,32 +119,47 @@ authRoutes.post("/magic-link", async (c) => {
     return c.json({ error: "email is required" }, 400);
   }
   const email = body.email.toLowerCase().trim();
-  let user = await first<UserRow>(
+  const existing = await first<UserRow>(
     c.env.DB.prepare(
       "SELECT id, email, password_hash, name FROM users WHERE email = ?"
     ).bind(email)
   );
-  if (!user) {
-    const id = generateId();
+  // A brand-new address gets its user row only AFTER the email actually goes
+  // out -- a failed send must not leave a half-created account behind.
+  const user: UserRow = existing ?? {
+    id: generateId(),
+    email,
+    password_hash: null,
+    name: null,
+  };
+  // Issue the one-time token (purpose "magic", jti recorded in auth_tokens)
+  // before sending so the link in the email is live the moment it lands.
+  const { token, jti } = await issueMagicToken(c.env.DB, c.env.JWT_SECRET, user);
+  const baseUrl = c.env.APP_URL || "http://localhost:8787";
+  const slug = (body.guildSlug || "").toLowerCase().replace(/[^a-z0-9-]/g, "");
+  const loginUrl = `${baseUrl}/auth/verify?token=${token}${slug ? `&slug=${encodeURIComponent(slug)}` : ""}${body.dest === "app" ? "&dest=app" : ""}`;
+  const guildName = slug || "QuiltHosting";
+  const { subject, html } = magicLinkEmail({ guildName, loginUrl });
+  const sent = await sendEmail(c.env, { to: email, subject, html });
+  if (!sent.success) {
+    // Service-wide outage (provider down / RESEND_API_KEY unset), not an
+    // account-existence signal: every address gets the same 503.
+    console.error("magic-link email failed", sent.error);
+    await revokeAuthToken(c.env.DB, jti);
+    return c.json(
+      { error: "We couldn't send email right now. Please try again in a few minutes." },
+      503
+    );
+  }
+  if (!existing) {
     const now = new Date().toISOString();
     await c.env.DB.prepare(
       `INSERT INTO users (id, email, name, created_at, updated_at)
        VALUES (?, ?, null, ?, ?)`
     )
-      .bind(id, email, now, now)
+      .bind(user.id, email, now, now)
       .run();
-    user = { id, email, password_hash: null, name: null };
   }
-  const token = await signJwt(
-    { sub: user.id, email: user.email, name: user.name ?? undefined },
-    c.env.JWT_SECRET,
-    60 * 15
-  );
-  const baseUrl = c.env.APP_URL || "http://localhost:8787";
-  const loginUrl = `${baseUrl}/auth/verify?token=${token}${body.guildSlug ? `&slug=${body.guildSlug}` : ""}${body.dest === "app" ? "&dest=app" : ""}`;
-  const guildName = body.guildSlug || "QuiltHosting";
-  const { subject, html } = magicLinkEmail({ guildName, loginUrl });
-  await sendEmail(c.env, { to: email, subject, html });
   return c.json({ message: "If that email exists, a login link has been sent." });
 });
 
@@ -145,7 +168,9 @@ authRoutes.post("/verify-magic", async (c) => {
   if (!body.token) {
     return c.json({ error: "token is required" }, 400);
   }
-  const payload = await verifyJwt(body.token, c.env.JWT_SECRET);
+  // Only a purpose:"magic" token that has never been used gets through; a
+  // session token (or a second use of the same link) is rejected here.
+  const payload = await consumeMagicToken(c.env.DB, body.token, c.env.JWT_SECRET);
   if (!payload) {
     return c.json({ error: "Invalid or expired link" }, 401);
   }
@@ -206,6 +231,31 @@ async function hmacHex(secret: string, data: string): Promise<string> {
     .join("");
 }
 
+/**
+ * OAuth login-CSRF protection. The signed `state` alone proves WE minted it,
+ * not that THIS browser started the flow -- an attacker could start a login
+ * with their own Google account and get a victim's browser to complete it,
+ * logging the victim into the attacker's account. So a random nonce is set
+ * in an HttpOnly cookie on the browser that starts the flow, signed into the
+ * state, and required to match on the callback.
+ */
+const OAUTH_COOKIE = "qh_oauth";
+const OAUTH_COOKIE_PATH = "/api/auth/google";
+const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
+
+function isLocalhost(reqUrl: string): boolean {
+  try {
+    const host = new URL(reqUrl).hostname;
+    return host === "localhost" || host === "127.0.0.1" || host === "[::1]";
+  } catch {
+    return false;
+  }
+}
+
+function oauthStateSig(secret: string, ts: string, dest: string, slug: string, nonce: string) {
+  return hmacHex(secret, `gstate:${ts}:${dest}:${slug}:${nonce}`);
+}
+
 // GET /api/auth/google — kick off the OAuth redirect
 authRoutes.get("/google", async (c) => {
   if (!c.env.GOOGLE_CLIENT_ID || !c.env.GOOGLE_CLIENT_SECRET) {
@@ -217,8 +267,16 @@ authRoutes.get("/google", async (c) => {
   const destQ = c.req.query("dest");
   const dest = destQ === "portal" ? "portal" : destQ === "app" ? "app" : "admin";
   const slug = (c.req.query("slug") || "").toLowerCase().replace(/[^a-z0-9-]/g, "");
-  const sig = await hmacHex(c.env.JWT_SECRET, `gstate:${ts}:${dest}:${slug}`);
-  const state = `${ts}.${dest}.${slug}.${sig}`;
+  const nonce = crypto.randomUUID().replace(/-/g, "");
+  const sig = await oauthStateSig(c.env.JWT_SECRET, ts, dest, slug, nonce);
+  const state = `${ts}.${dest}.${slug}.${nonce}.${sig}`;
+  setCookie(c, OAUTH_COOKIE, nonce, {
+    path: OAUTH_COOKIE_PATH,
+    httpOnly: true,
+    secure: !isLocalhost(c.req.url),
+    sameSite: "Lax",
+    maxAge: OAUTH_STATE_TTL_MS / 1000,
+  });
   const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   url.searchParams.set("client_id", c.env.GOOGLE_CLIENT_ID);
   url.searchParams.set("redirect_uri", `${c.env.APP_URL}/api/auth/google/callback`);
@@ -238,10 +296,20 @@ authRoutes.get("/google/callback", async (c) => {
   const state = c.req.query("state") || "";
   if (!code) return fail(c.req.query("error") || "Google sign-in was cancelled");
 
-  const [ts, dest, slug, sig] = state.split(".");
-  const expected = await hmacHex(c.env.JWT_SECRET, `gstate:${ts}:${dest}:${slug}`);
-  if (!ts || sig !== expected || Date.now() - Number(ts) > 10 * 60 * 1000) {
+  const [ts, dest, slug, nonce, sig] = state.split(".");
+  const cookieNonce = getCookie(c, OAUTH_COOKIE) || "";
+  // Single-use either way: clear the nonce cookie before any outcome.
+  deleteCookie(c, OAUTH_COOKIE, { path: OAUTH_COOKIE_PATH });
+  if (!ts || !nonce || !sig) {
     return fail("Sign-in expired, please try again");
+  }
+  const expected = await oauthStateSig(c.env.JWT_SECRET, ts, dest, slug, nonce);
+  if (sig !== expected || Date.now() - Number(ts) > OAUTH_STATE_TTL_MS) {
+    return fail("Sign-in expired, please try again");
+  }
+  // Login-CSRF: the browser completing the flow must be the one that started it.
+  if (!cookieNonce || cookieNonce !== nonce) {
+    return fail("Sign-in could not be verified for this browser, please try again");
   }
 
   const tokenRes = await fetch("https://oauth2.googleapis.com/token", {

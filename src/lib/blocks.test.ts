@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { parseBlocks, blocksToHtml, BUSINESS_BLOCK_TYPES, GUILD_ONLY_BLOCK_TYPES } from "./blocks";
+import {
+  parseBlocks, blocksToHtml, contentFromPage, parseNav, escapeHtml,
+  BUSINESS_BLOCK_TYPES, GUILD_ONLY_BLOCK_TYPES,
+} from "./blocks";
 
 const XSS = '<img src=x onerror=alert(1)>';
 
@@ -101,10 +104,102 @@ describe("blocksToHtml — escaping", () => {
     expect(html).toContain("&lt;img");
   });
 
-  it("still passes the raw html block through untouched", () => {
-    // Deliberate: owner-authored embed escape hatch, already length-capped.
+  // Was: "still passes the raw html block through untouched" -- that
+  // expectation WAS the stored-XSS hole (P0, 2026-09-08). The html block is
+  // still the owner's embed escape hatch, but only allowlisted embed hosts
+  // survive and script/handlers never do.
+  it("keeps a real YouTube embed in the html block but strips script", () => {
+    const html = blocksToHtml(parseBlocks([{
+      type: "html",
+      html: '<iframe src="https://www.youtube.com/embed/abc" allowfullscreen></iframe><script>alert(1)</script>',
+    }]));
+    expect(html).toContain('<iframe src="https://www.youtube.com/embed/abc" allowfullscreen></iframe>');
+    expect(html).not.toContain("<script");
+  });
+
+  it("drops an iframe on a non-allowlisted host from the html block", () => {
     const html = blocksToHtml(parseBlocks([{ type: "html", html: "<iframe src='https://youtube.com'></iframe>" }]));
-    expect(html).toContain("<iframe");
+    expect(html).not.toContain("<iframe");
+  });
+});
+
+describe("blocksToHtml — rich text sanitization", () => {
+  const PAYLOADS = [
+    XSS,
+    "<script>alert(1)</script>",
+    '<a href="javascript:alert(1)">x</a>',
+    "<svg onload=alert(1)>",
+    '<div id="localStorage" onclick="alert(1)">x</div>',
+    '<iframe srcdoc="<script>alert(1)</script>"></iframe>',
+  ];
+
+  it("renders a text block with a payload inert (parse + render)", () => {
+    for (const p of PAYLOADS) {
+      const html = blocksToHtml(parseBlocks([{ type: "text", html: `<p>hi</p>${p}` }]));
+      expect(html, p).toContain("<p>hi</p>");
+      expect(html, p).not.toMatch(/<script|<svg|<iframe|onerror|onload|onclick|javascript:|srcdoc|id=/i);
+    }
+  });
+
+  it("sanitizes at parse time so the stored block is already clean", () => {
+    const [b] = parseBlocks([{ type: "text", html: XSS + "<b>ok</b>" }]) as { type: "text"; html: string }[];
+    // onerror is gone; the bare relative src "x" is dropped too (only /, #, ?, ./, ../ or http(s) survive).
+    expect(b.html).toBe("<img><b>ok</b>");
+  });
+
+  it("sanitizes at render time even when a legacy block object bypassed parseBlocks", () => {
+    const html = blocksToHtml([{ type: "text", html: XSS }, { type: "html", html: "<script>alert(1)</script><p>x</p>" }]);
+    expect(html).not.toContain("onerror");
+    expect(html).not.toContain("<script");
+    expect(html).toContain("<p>x</p>");
+  });
+
+  it("drops unknown attributes from rich text", () => {
+    const html = blocksToHtml(parseBlocks([
+      { type: "text", html: '<p data-x="1" style="color:red" contenteditable onmouseover="alert(1)">t</p>' },
+    ]));
+    expect(html).toContain("<p>t</p>");
+  });
+
+  it("keeps legitimate rich text", () => {
+    const rich = '<h2>Title</h2><p>Hello <strong>world</strong>, <a href="https://example.com" target="_blank">link</a></p><ul><li>a</li></ul>';
+    const html = blocksToHtml(parseBlocks([{ type: "text", html: rich }]));
+    expect(html).toContain('<h2>Title</h2><p>Hello <strong>world</strong>, <a href="https://example.com" target="_blank" rel="noopener noreferrer">link</a></p><ul><li>a</li></ul>');
+  });
+
+  it("renders legacy content_json.html with a payload inert", () => {
+    const { html, blocks } = contentFromPage({
+      content_json: JSON.stringify({ html: `<p>Welcome</p>${XSS}<script>alert(1)</script>` }),
+      blocks_json: null,
+    });
+    expect(blocks).toHaveLength(0);
+    expect(html).toContain("<p>Welcome</p>");
+    expect(html).not.toContain("onerror");
+    expect(html).not.toContain("<script");
+  });
+
+  it("rejects javascript: and data: URLs in image, gallery and hero image fields", () => {
+    const html = blocksToHtml(parseBlocks([
+      { type: "image", url: "javascript:alert(1)", alt: "a" },
+      { type: "gallery_grid", items: [{ url: "data:text/html,<script>alert(1)</script>" }] },
+      { type: "hero", title: "T", imageUrl: "javascript:alert(1)" },
+    ]));
+    expect(html).not.toContain("javascript:");
+    expect(html).not.toContain("data:");
+    expect(html).not.toContain("<img");
+  });
+
+  it("neutralizes a javascript: nav href in parseNav", () => {
+    const nav = parseNav(JSON.stringify({
+      nav: [{ label: "Bad", href: "javascript:alert(1)" }, { label: "Good", href: "/about" }],
+    }));
+    expect(nav).toEqual([{ label: "Good", href: "/about", external: false }]);
+  });
+});
+
+describe("escapeHtml", () => {
+  it("encodes & < > \" and '", () => {
+    expect(escapeHtml(`&<>"'`)).toBe("&amp;&lt;&gt;&quot;&#39;");
   });
 });
 
@@ -122,15 +217,21 @@ describe("block type lists", () => {
 });
 
 describe("blocksToHtml — href scheme safety", () => {
-  it("neutralizes a javascript: hero CTA href to #", () => {
+  // Previously these asserted href="#": parseBlocks now rejects the URL
+  // outright, so the hero CTA is omitted entirely (no link is safer than an
+  // inert one). A block object that bypassed parseBlocks still collapses to #.
+  it("drops a hero CTA whose href is javascript:", () => {
     const html = blocksToHtml(parseBlocks([
       { type: "hero", title: "T", ctaLabel: "Go", ctaHref: "javascript:alert(1)" },
     ]));
-    expect(html).toContain('href="#"');
-    expect(html).not.toContain("javascript:alert(1)");
+    expect(html).not.toContain("javascript:");
+    expect(html).not.toContain("qh-hero-cta");
+    const bypass = blocksToHtml([{ type: "hero", title: "T", ctaLabel: "Go", ctaHref: "javascript:alert(1)" }]);
+    expect(bypass).toContain('href="#"');
+    expect(bypass).not.toContain("javascript:");
   });
 
-  it("neutralizes obfuscated javascript: variants in a hero CTA href", () => {
+  it("drops obfuscated javascript: variants in a hero CTA href", () => {
     const variants = [
       "  javascript:alert(1)",
       "java\tscript:alert(1)",
@@ -139,7 +240,8 @@ describe("blocksToHtml — href scheme safety", () => {
     ];
     for (const ctaHref of variants) {
       const html = blocksToHtml(parseBlocks([{ type: "hero", title: "T", ctaLabel: "Go", ctaHref }]));
-      expect(html, ctaHref).toContain('href="#"');
+      expect(html, ctaHref).not.toMatch(/javascript/i);
+      expect(html, ctaHref).not.toContain("qh-hero-cta");
     }
   });
 

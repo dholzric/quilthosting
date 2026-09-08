@@ -62,6 +62,13 @@
       <p style="font-size:0.8rem;color:var(--muted);margin-top:0.25rem">
         Lowercase letters, numbers and dashes. Used in your public links.
       </p>
+      <label>City / State <span style="color:var(--muted);font-weight:normal">(optional)</span></label>
+      <input type="text" id="guild-city" placeholder="Lincoln, NE" maxlength="120" autocomplete="address-level2" />
+      <label>Meeting schedule <span style="color:var(--muted);font-weight:normal">(optional)</span></label>
+      <input type="text" id="guild-meeting" placeholder="2nd Tuesday of the month, 6:30 pm, at the library" maxlength="300" />
+      <p style="font-size:0.8rem;color:var(--muted);margin-top:0.25rem">
+        We use these to fill in your starter website — you can change everything later.
+      </p>
       <button onclick="createGuild()" style="width:100%;margin-top:0.75rem">Create Guild</button>
     </div>
     <p style="text-align:center;margin-top:1rem">
@@ -125,6 +132,10 @@
     let tenantRole = localStorage.getItem("gb_tenant_role") || "admin";
     let isPlatformAdmin = localStorage.getItem("gb_platform_admin") === "1";
     let currentTenant = null;
+    // Set by createGuild() for the very first dashboard render so it can show
+    // the "your starter site is live" welcome; checklist progress itself is
+    // computed server-side (GET /api/tenants/:id/onboarding), not stored here.
+    let justCreatedGuild = null;
 
     async function api(path, opts = {}) {
       const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
@@ -187,7 +198,8 @@
       localStorage.setItem("gb_tenant_slug", t.slug);
       localStorage.setItem("gb_tenant_name", t.name);
       localStorage.setItem("gb_tenant_role", tenantRole);
-      if (isNew) localStorage.setItem("gb_onboarding", tenantId);
+      localStorage.removeItem("gb_onboarding"); // legacy per-device flag; state now lives server-side
+      if (!isNew) justCreatedGuild = null;
       hide(document.getElementById("guild-view"));
       applyRoleNav();
       initApp();
@@ -313,16 +325,25 @@
       hide(errEl);
       const name = document.getElementById("guild-name").value.trim();
       const slug = document.getElementById("guild-slug").value.trim();
+      const city = (document.getElementById("guild-city")?.value || "").trim();
+      const meeting_info = (document.getElementById("guild-meeting")?.value || "").trim();
       if (!name || !slug) {
         errEl.textContent = "Name and web address are required.";
+        show(errEl);
+        return;
+      }
+      if (city.length > 120 || meeting_info.length > 300) {
+        errEl.textContent = "City is limited to 120 characters and the meeting schedule to 300.";
         show(errEl);
         return;
       }
       try {
         const t = await api("/api/tenants", {
           method: "POST",
-          body: JSON.stringify({ name, slug }),
+          body: JSON.stringify({ name, slug, city, meeting_info }),
         });
+        // Dashboard shows the welcome + "Preview your site" from this.
+        justCreatedGuild = { id: t.id, public_url: t.public_url || `/g/${t.slug}` };
         selectGuild({ ...t, role: "owner" }, true);
       } catch (e) {
         errEl.textContent = e.message;
@@ -548,44 +569,115 @@
       selectGuild({ id, slug, name, role: "platform" });
     }
 
-    async function renderDashboard(el) {
-      const [stats, events, levels, billing] = await Promise.all([
-        api(`/api/tenants/${tenantId}/stats`),
-        api(`/api/tenants/${tenantId}/events?upcoming=1`),
-        api(`/api/tenants/${tenantId}/levels`).catch(() => []),
-        api(`/api/tenants/${tenantId}/billing`).catch(() => null),
-      ]);
-      const m = stats.members;
-      const steps = [
-        { done: levels.length > 0, label: "Add a membership level", page: "levels" },
-        { done: (m.total || 0) > 0, label: "Add or import members", page: "members" },
-        { done: true, label: "Share your public guild page", href: `/g/${tenantSlug}` },
-        { done: !!(billing && billing.connect && billing.connect.charges_enabled), label: "Connect Stripe for dues payouts", page: "settings" },
-        { done: localStorage.getItem("gb_onboarding") !== tenantId, label: "You're ready — explore the rest", page: null },
-      ];
-      // last step done when others done
-      const coreDone = steps[0].done && steps[1].done;
-      if (coreDone) localStorage.removeItem("gb_onboarding");
-      const showWizard = localStorage.getItem("gb_onboarding") === tenantId || !coreDone;
-      el.innerHTML = `
-        <h2>Dashboard</h2>
-        ${showWizard ? `
+    // --- Onboarding checklist (server-computed; see src/lib/onboarding.ts) ---
+    // Every step's done/undone state comes from real rows, so it is truthful
+    // and follows the admin to any device. The only stored preference is the
+    // dismissal flag, which the "Setup" link can undo.
+    function onboardingGo(href) {
+      if (!href) return;
+      if (href.startsWith("#")) navigate(href.slice(1));
+      else window.open(href, "_blank", "noopener");
+    }
+    async function dismissOnboarding(undo) {
+      try {
+        await api(`/api/tenants/${tenantId}/onboarding/dismiss`, {
+          method: "POST",
+          body: JSON.stringify(undo ? { undo: true } : {}),
+        });
+      } catch (e) {
+        alert(e.message);
+      }
+      justCreatedGuild = null;
+      navigate("dashboard");
+    }
+    async function retrySubdomain(btn) {
+      if (btn) { btn.disabled = true; btn.textContent = "Checking…"; }
+      try {
+        const r = await api(`/api/tenants/${tenantId}/domain/retry`, { method: "POST" });
+        if (r.domain_status === "failed") alert("Subdomain setup failed: " + (r.domain_error || "unknown error"));
+      } catch (e) {
+        alert(e.message);
+      }
+      navigate("dashboard");
+    }
+    function renderOnboardingCard(ob) {
+      if (!ob || !Array.isArray(ob.steps)) return "";
+      const publicUrl = ob.public_url || `/g/${tenantSlug}`;
+      const isNew = !!(justCreatedGuild && justCreatedGuild.id === tenantId);
+      if (ob.dismissed && !isNew) {
+        return `
+        <p class="muted" style="font-size:0.85rem;margin:-0.25rem 0 1rem">
+          <a href="#" onclick="dismissOnboarding(true);return false">Setup checklist</a>
+          &nbsp;·&nbsp; <a href="${esc(publicUrl)}" target="_blank" rel="noopener">View your site ↗</a>
+        </p>`;
+      }
+      const canManageDomain = ["owner", "admin", "platform"].includes(tenantRole);
+      const doneCount = ob.steps.filter((s) => s.done).length;
+      const domainStatus = ob.domain_status || null;
+      const domainBadge = ob.custom_domain
+        ? `<span class="badge active">custom domain</span>`
+        : domainStatus === "active"
+          ? `<span class="badge active">subdomain live</span>`
+          : domainStatus === "failed"
+            ? `<span class="badge cancelled">subdomain failed</span>`
+            : domainStatus === "pending"
+              ? `<span class="badge pending">subdomain pending</span>`
+              : domainStatus === "skipped"
+                ? `<span class="badge">subdomain not set up</span>`
+                : "";
+      const showRetry = canManageDomain && !ob.custom_domain && domainStatus !== "active";
+      const retryLabel = domainStatus === "failed" ? "Retry" : "Check again";
+      return `
         <div class="card" style="border-color:var(--brand);background:var(--brand-soft)">
-          <h3 style="margin-bottom:0.5rem">Get your guild ready</h3>
-          <p class="muted" style="font-size:0.9rem;margin-bottom:0.75rem">A short checklist — most guilds finish before their next meeting.</p>
-          <ol style="margin:0;padding-left:1.2rem;line-height:1.8">
-            ${steps.slice(0, 4).map((s) => `
-              <li style="${s.done ? "color:var(--ok)" : ""}">
-                ${s.done ? "✓ " : ""}${esc(s.label)}
-                ${!s.done && s.page ? ` — <a href="#" onclick="navigate('${s.page}');return false">do this</a>` : ""}
-                ${s.href ? ` — <a href="${esc(s.href)}" target="_blank">open page</a>` : ""}
+          ${isNew ? `
+          <div style="background:var(--ok-soft);border:1px solid var(--ok);border-radius:8px;padding:0.6rem 0.8rem;margin-bottom:0.75rem">
+            <strong>Your starter website is live.</strong>
+            <span class="muted" style="font-size:0.9rem">We added Home, About, Why Join, Meetings and Contact pages with sample text for you to edit.</span>
+            <a href="${esc(publicUrl)}" target="_blank" rel="noopener" style="white-space:nowrap;margin-left:0.35rem">Preview your site ↗</a>
+          </div>` : ""}
+          <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:0.5rem">
+            <h3 style="margin-bottom:0.25rem">Get your guild ready</h3>
+            <span class="muted" style="font-size:0.85rem">${doneCount} of ${ob.steps.length} done</span>
+          </div>
+          <p class="muted" style="font-size:0.9rem;margin-bottom:0.75rem">
+            ${ob.ready_for_members
+              ? `<span style="color:var(--ok)">✓ You're ready to accept members.</span> Finish the rest whenever you like.`
+              : "A short checklist — most guilds finish before their next meeting."}
+          </p>
+          <p style="font-size:0.9rem;margin:0 0 0.75rem">
+            Your site: <a href="${esc(publicUrl)}" target="_blank" rel="noopener">${esc(publicUrl.replace(/^https?:\/\//, ""))} ↗</a>
+            ${domainBadge ? ` &nbsp;${domainBadge}` : ""}
+            ${showRetry ? ` <button class="secondary" style="padding:0.15rem 0.6rem;font-size:0.8rem;margin-left:0.35rem" onclick="retrySubdomain(this)">${retryLabel}</button>` : ""}
+          </p>
+          <ol style="margin:0;padding-left:1.2rem;line-height:1.6">
+            ${ob.steps.map((s) => `
+              <li style="${s.done ? "color:var(--ok)" : ""}${s.optional && !s.done ? "opacity:0.85" : ""};margin-bottom:0.3rem">
+                ${s.done ? "✓ " : ""}${esc(s.label)}${s.optional && !s.done ? ` <span class="muted" style="font-size:0.8rem">(optional)</span>` : ""}
+                ${!s.done && s.href ? ` — <a href="#" onclick="onboardingGo(${JSON.stringify(s.href)});return false">do this</a>` : ""}
+                ${s.hint ? `<div class="muted" style="font-size:0.82rem;color:var(--muted)">${esc(s.hint)}</div>` : ""}
               </li>
             `).join("")}
           </ol>
           <p style="margin-top:0.75rem">
-            <button class="secondary" onclick="localStorage.removeItem('gb_onboarding');navigate('dashboard')">Dismiss checklist</button>
+            <button class="secondary" onclick="dismissOnboarding(false)">Dismiss checklist</button>
+            <span class="muted" style="font-size:0.8rem;margin-left:0.5rem">You can reopen it from the dashboard any time.</span>
           </p>
-        </div>` : ""}
+        </div>`;
+    }
+
+    async function renderDashboard(el) {
+      const [stats, events, onboarding] = await Promise.all([
+        api(`/api/tenants/${tenantId}/stats`),
+        api(`/api/tenants/${tenantId}/events?upcoming=1`),
+        api(`/api/tenants/${tenantId}/onboarding`).catch(() => null),
+      ]);
+      const m = stats.members;
+      const onboardingHtml = renderOnboardingCard(onboarding);
+      // The welcome banner shows once; the checklist itself persists server-side.
+      if (justCreatedGuild && justCreatedGuild.id === tenantId) justCreatedGuild = null;
+      el.innerHTML = `
+        <h2>Dashboard</h2>
+        ${onboardingHtml}
         <div class="stats">
           <div class="stat"><div class="label">Active Members</div><div class="value">${m.active}</div></div>
           <div class="stat"><div class="label">New This Month</div><div class="value">${m.new_this_month}</div></div>

@@ -1,7 +1,8 @@
 // Server-rendered page shell for business tenants. Replaces guild.html's
 // client-side paint so pages are indexable and paint on first byte.
 
-import { contentFromPage } from "../blocks";
+import { contentFromPage, escapeHtml } from "../blocks";
+import { sanitizeUrl } from "../sanitize";
 import { buildRootVars } from "./theme";
 import { buildFontsHref } from "./fonts";
 import { readTenantTheme } from "./themeMigrate";
@@ -19,13 +20,10 @@ export type RenderArgs = {
   showPlatformCredit: boolean;
 };
 
-function esc(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+// Encodes & < > " ' -- every interpolation below is either a text node or a
+// double-quoted attribute, and the single quote is covered so a future
+// single-quoted attribute cannot become a hole.
+const esc = escapeHtml;
 
 function parseSettings(settingsJson: string | null | undefined): Record<string, unknown> {
   try {
@@ -72,12 +70,20 @@ export function renderPageHtml(args: RenderArgs): string {
   const seoHead = buildSeoHead({ page, siteName, baseUrl, bodyHtml, ogImageUrl });
   const jsonLd = buildLocalBusinessJsonLd({ ...identity, name: siteName }, baseUrl);
 
+  // Nav hrefs are tenant-controlled (settings.nav / page slugs). Escaping
+  // alone leaves a `javascript:` href clickable, so validate the scheme too.
   const navHtml = nav
+    .map((n) => ({ ...n, href: sanitizeUrl(n.href, "link") }))
+    .filter((n) => n.href !== null)
     .map(
       (n) =>
-        `<a href="${esc(n.href)}"${n.external ? ' rel="noopener"' : ""}>${esc(n.label)}</a>`
+        `<a href="${esc(n.href as string)}"${n.external ? ' rel="noopener noreferrer"' : ""}>${esc(n.label)}</a>`
     )
     .join("");
+
+  // The logo/og URLs are built by the caller from a file id, but validate the
+  // scheme anyway so a future caller cannot hand us a javascript: value.
+  const safeLogoUrl = logoUrl ? sanitizeUrl(logoUrl, "image") : null;
 
   return `<!DOCTYPE html>
 <html lang="en" data-tenant-slug="${esc(tenant.slug)}">
@@ -101,8 +107,8 @@ ${jsonLd}
       // wordmark is what most shops upload. The explicit height attribute
       // still gives the browser something to reserve, so this does not
       // reintroduce layout shift. Width is capped in CSS, not here.
-      logoUrl
-        ? `<img class="qh-site-logo" src="${esc(logoUrl)}" alt="" height="44">`
+      safeLogoUrl
+        ? `<img class="qh-site-logo" src="${esc(safeLogoUrl)}" alt="" height="44">`
         : ""
     }<span>${esc(siteName)}</span></a>
     <nav class="qh-site-nav">${navHtml}</nav>

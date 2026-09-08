@@ -26,10 +26,11 @@ npm run db:create           # create the D1 database (one-time; paste ID into wr
 npm run db:migrate:local    # apply D1 migrations locally
 npm run db:migrate:remote   # apply D1 migrations to production
 npm run cf-typegen          # regenerate Worker env types from wrangler.toml
-npx tsc --noEmit            # typecheck (no test runner or linter configured)
+npx tsc --noEmit            # typecheck
+npm test                    # vitest unit tests (src/**/*.test.ts); scripts/verify-*.mjs need a running Worker + local D1
 ```
 
-The D1 `database_id` and KV `id` in `wrangler.toml` are still `REPLACE_WITH_YOUR_...` placeholders — dev/deploy fail until real resources are created and the IDs filled in.
+Production D1/KV/R2/Queue IDs are real and committed in `wrangler.toml`. CI (`.github/workflows/ci.yml`) runs typecheck, unit tests, a fresh local migration apply, and a literal-secret scan on every push.
 
 ## Architecture
 
@@ -44,15 +45,20 @@ Single Worker entry point `src/index.ts` exports `fetch` (Hono app) and `schedul
 - `/api/portal` — member self-service (`portal.ts`)
 - `/api/webhooks` — Stripe webhooks (`webhooks.ts`)
 - `/public` — unauthenticated tenant pages (`public.ts`)
+- `/api/webhooks/resend`, `/u/:token` — email delivery events and one-click unsubscribe (`emailWebhooks.ts`, `unsubscribe.ts`)
 
-**Auth**: HS256 JWTs hand-rolled on WebCrypto (`src/lib/auth/jwt.ts`), PBKDF2 password hashing (`password.ts`). `requireAuth` / `optionalAuth` middleware in `src/middleware/auth.ts` attach `user` to context. Roles per tenant live in `tenant_users` (`owner|admin|membership|events|viewer`).
+**Tenant content is untrusted HTML.** Every rich-text/HTML block and legacy `content_json.html` goes through the allowlist sanitizer in `src/lib/sanitize.ts` at parse and render time. Never add a new output path that emits tenant strings without `escapeHtml`/`sanitizeHtml`.
 
-**Database**: D1/SQLite, schema in `migrations/0001_initial.sql`. Tables: tenants, users, tenant_users, membership_levels, members, memberships, events, event_registrations, payments, pages, files, email_logs. Query helpers `first`/`all` in `src/lib/db/`. JSON columns are TEXT with `_json` suffix; booleans are INTEGER 0/1; money is integer cents (`formatMoney` in `src/lib/utils/money.ts`); timestamps are ISO strings.
+**Stripe fulfillment is a two-step idempotent state machine** (`src/routes/webhooks.ts` + `src/lib/fulfillment.ts`): events are claimed in `stripe_events`, the payment row is recorded (unique on the Stripe ref), then fulfillment runs in one D1 batch guarded by `payments.fulfilled_at`. Seats/stock are reserved atomically at checkout with `hold_expires_at`; the minute cron releases expired holds.
+
+**Auth**: HS256 JWTs hand-rolled on WebCrypto (`src/lib/auth/jwt.ts`) carry a `purpose` claim (`session|magic|receipt|download`); `verifyJwt` defaults to `session`, magic links are one-time rows in `auth_tokens` (`src/lib/auth/magic.ts`). PBKDF2 password hashing (`password.ts`). `requireAuth` / `optionalAuth` middleware in `src/middleware/auth.ts` attach `user` to context. Roles per tenant live in `tenant_users` (`owner|admin|membership|events|viewer`) and are enforced for every `/api/tenants/:tenantId/*` route by `src/middleware/permissions.ts` using the matrix in `src/lib/permissions.ts` (route-level checks may be stricter, never looser).
+
+**Database**: D1/SQLite, schema in `migrations/` (0001 initial through 0024; apply in order). Keep `src/version.ts` in sync with `package.json` when bumping. Tables: tenants, users, tenant_users, membership_levels, members, memberships, events, event_registrations, payments, pages, files, email_logs. Query helpers `first`/`all` in `src/lib/db/`. JSON columns are TEXT with `_json` suffix; booleans are INTEGER 0/1; money is integer cents (`formatMoney` in `src/lib/utils/money.ts`); timestamps are ISO strings.
 
 ## Configuration & secrets
 
 - Env vars: `ENVIRONMENT`, `APP_URL` in `wrangler.toml` `[vars]` (production `APP_URL` = https://quilthosting.com).
-- Secrets (never in the repo): `JWT_SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `RESEND_API_KEY`, `SITE_ACCESS_PASSWORD`. Locally in `.dev.vars` (gitignored); production via `wrangler secret put`.
+- Secrets (never in the repo): `JWT_SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`, `SITE_ACCESS_PASSWORD`. Locally in `.dev.vars` (gitignored); production via `wrangler secret put`.
 Optional vars: `STRIPE_PLATFORM_FEE_BPS` (Connect application fee in basis points; default 0), `STRIPE_GUILD_PRICE_ID` (Stripe Price for $24 Guild plan; else ad-hoc price_data).
 
 **Billing:** Free plan ≤30 active members (`src/lib/plans.ts`). Guild plan = `plan=starter` via platform Stripe subscription. Guild payouts use Stripe Connect Express (`tenants.stripe_account_id`); Checkout uses destination charges when connected.

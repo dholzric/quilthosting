@@ -97,6 +97,23 @@
       // Will show after load
     }
 
+    // Open a receipt/document in a new tab via a short-lived signed link.
+    // The window is opened synchronously so popup blockers allow it.
+    async function openSignedLink(mintPath) {
+      const w = window.open("", "_blank");
+      try {
+        const { url } = await api(mintPath, { method: "POST" });
+        if (w) w.location = url; else location.href = url;
+      } catch (e) {
+        if (w) w.close();
+        const msg = document.createElement("p");
+        msg.className = "error";
+        msg.textContent = e.message || "Could not open link";
+        document.body.prepend(msg);
+        setTimeout(() => msg.remove(), 5000);
+      }
+    }
+
     async function api(path, opts = {}) {
       const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
       if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -264,7 +281,13 @@
           const tr = elBuild("tr");
           const tdName = elBuild("td");
           const a = elBuild("a", "", f.filename);
-          a.href = `${API}/api/portal/${slug}/files/${f.id}?token=${encodeURIComponent(token)}`;
+          // Session tokens never go in URLs: mint a 10-minute single-file
+          // link on click (see portal.ts /files/:fileId/link).
+          a.href = "#";
+          a.addEventListener("click", (ev) => {
+            ev.preventDefault();
+            openSignedLink(`/api/portal/${slug}/files/${f.id}/link`);
+          });
           tdName.appendChild(a);
           tr.appendChild(tdName);
           tr.appendChild(elBuild("td", "", f.size ? (f.size / 1024).toFixed(0) + " KB" : "—"));
@@ -649,7 +672,7 @@
                     <td>${esc(i.type)}</td>
                     <td>${money(i.amount_cents)}</td>
                     <td><span class="badge ${i.status === "succeeded" ? "active" : "pending"}">${i.status}</span></td>
-                    <td><a href="/api/portal/${esc(slug)}/receipts/${esc(i.id)}?token=${encodeURIComponent(token)}" target="_blank" rel="noopener">Receipt</a></td>
+                    <td><a href="#" onclick="openSignedLink('/api/portal/${esc(slug)}/receipts/${esc(i.id)}/link');return false;">Receipt</a></td>
                   </tr>
                 `).join("")}
               </tbody>

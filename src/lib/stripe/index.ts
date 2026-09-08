@@ -91,7 +91,38 @@ export type CreateCheckoutParams = {
   stripeAccountId?: string | null;
   /** Existing Stripe customer (card update / renewals). */
   customerId?: string | null;
+  /**
+   * Unix seconds at which the Checkout session expires. Stripe requires at
+   * least 30 minutes and at most 24 hours from creation. Used so a seat /
+   * stock hold in D1 and the Stripe session die at the same moment.
+   */
+  expiresAt?: number;
 };
+
+/** Hold duration for pending_payment seats and reserved store stock. */
+export const CHECKOUT_HOLD_MINUTES = 30;
+/**
+ * Padding added on top of CHECKOUT_HOLD_MINUTES so the value we send Stripe
+ * is never rejected as "less than 30 minutes in the future" because of the
+ * network hop / clock skew between computing it and Stripe validating it.
+ */
+const CHECKOUT_EXPIRY_PAD_SECONDS = 60;
+
+/**
+ * The single expiry used for BOTH the D1 hold (hold_expires_at, ISO) and the
+ * Stripe Checkout session (expires_at, unix seconds). Deriving both from one
+ * timestamp is what makes "the hold outlives the session" impossible.
+ */
+export function checkoutHoldExpiry(now: Date = new Date()): {
+  iso: string;
+  unix: number;
+} {
+  const ms =
+    now.getTime() +
+    CHECKOUT_HOLD_MINUTES * 60_000 +
+    CHECKOUT_EXPIRY_PAD_SECONDS * 1000;
+  return { iso: new Date(ms).toISOString(), unix: Math.floor(ms / 1000) };
+}
 
 export async function createCheckoutSession(
   env: Env,
@@ -112,6 +143,9 @@ export async function createCheckoutSession(
     body.customer = params.customerId;
   } else {
     body.customer_email = params.email;
+  }
+  if (params.expiresAt != null && Number.isFinite(params.expiresAt)) {
+    body.expires_at = Math.floor(params.expiresAt);
   }
 
   if (params.lineItems?.length) {
@@ -192,6 +226,28 @@ export async function createCheckoutSession(
     id: session.id,
     url: session.url,
   };
+}
+
+/**
+ * Retrieve a Checkout session (used to hand an open session back to a
+ * returning customer instead of taking a second seat/stock hold).
+ * Returns null when the session cannot be retrieved.
+ */
+export async function retrieveCheckoutSession(
+  env: Env,
+  sessionId: string
+): Promise<{ id: string; url: string | null; status: string | null } | null> {
+  try {
+    const s = await stripeRequest(env, "GET", `/checkout/sessions/${sessionId}`);
+    return {
+      id: s.id as string,
+      url: (typeof s.url === "string" && s.url) || null,
+      status: (typeof s.status === "string" && s.status) || null,
+    };
+  } catch (e) {
+    console.warn("retrieveCheckoutSession failed", sessionId, e);
+    return null;
+  }
 }
 
 /**

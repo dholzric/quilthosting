@@ -4,8 +4,11 @@ import { logger } from "hono/logger";
 import type { Env } from "./types";
 import { APP_VERSION } from "./version";
 import { tenantMiddleware } from "./middleware/tenant";
-import { verifyJwt, signJwt } from "./lib/auth";
+import { magicLinkLanding, sweepAuthTokens } from "./lib/auth";
 import { requireAuth, requireTenantAccess } from "./middleware/auth";
+import { requirePermission } from "./middleware/permissions";
+import { securityHeaders } from "./middleware/securityHeaders";
+import { allowedOrigin } from "./lib/corsPolicy";
 import { siteGate } from "./middleware/siteGate";
 import { runRenewalJob } from "./lib/renewals";
 import { runEventReminderJob } from "./lib/eventReminders";
@@ -23,6 +26,8 @@ import { galleryRoutes } from "./routes/galleries";
 import { fileRoutes } from "./routes/files";
 import { publicRoutes } from "./routes/public";
 import { webhookRoutes } from "./routes/webhooks";
+import { emailWebhookRoutes } from "./routes/emailWebhooks";
+import { unsubscribeRoutes } from "./routes/unsubscribe";
 import { portalRoutes } from "./routes/portal";
 import { billingRoutes } from "./routes/billing";
 import { groupRoutes } from "./routes/groups";
@@ -50,17 +55,23 @@ import { serveBusinessSite } from "./routes/site";
 import { handleWebhookQueue } from "./consumers/webhookConsumer";
 import { sweepOutbox } from "./lib/webhookOutbox";
 import { sweepExpired } from "./lib/idempotency";
+import { sweepExpiredHolds } from "./lib/fulfillment";
 
 const app = new Hono<{ Bindings: Env }>();
 
 app.use("*", logger());
+app.use("*", securityHeaders);
+// Explicit origin policy (see lib/corsPolicy.ts). Auth is bearer-token based
+// so credentials (cookies) are never shared cross-origin.
 app.use(
   "*",
   cors({
-    origin: (origin) => origin || "*",
-    allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    origin: (origin, c) =>
+      allowedOrigin(origin, c.env.APP_URL, c.env.ENVIRONMENT) ?? "",
+    allowMethods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization", "X-Tenant-Slug"],
-    credentials: true,
+    credentials: false,
+    maxAge: 600,
   })
 );
 
@@ -186,34 +197,9 @@ app.get("/", (c) => {
   });
 });
 
-// Magic-link landing: exchange the short-lived emailed token for a
-// session and hand it to the portal via the URL hash.
-app.get("/auth/verify", async (c) => {
-  const token = c.req.query("token") || "";
-  const slug = c.req.query("slug") || "";
-  const payload = await verifyJwt(token, c.env.JWT_SECRET);
-  if (!payload) {
-    return c.html(
-      `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Link expired</title>
-<style>body{font-family:system-ui;max-width:480px;margin:4rem auto;padding:0 1rem;text-align:center}</style></head>
-<body><h2>This sign-in link has expired</h2><p>Please request a new one from the member portal.</p>
-<p><a href="/portal${slug ? `?slug=${encodeURIComponent(slug)}` : ""}">Back to the portal</a></p></body></html>`,
-      401
-    );
-  }
-  const session = await signJwt(
-    { sub: payload.sub, email: payload.email, name: payload.name },
-    c.env.JWT_SECRET
-  );
-  // Native app magic links come back with ?dest=app and hand off via URL scheme
-  if (c.req.query("dest") === "app") {
-    return c.redirect(
-      `quilthosting://auth?token=${session}${slug ? `&slug=${encodeURIComponent(slug)}` : ""}`
-    );
-  }
-  const dest = `/portal${slug ? `?slug=${encodeURIComponent(slug)}` : ""}#ptoken=${session}`;
-  return c.redirect(dest);
-});
+// Magic-link landing: consume the one-time emailed token (purpose "magic")
+// and hand a session to the portal via the URL hash. See lib/auth/magic.ts.
+app.get("/auth/verify", magicLinkLanding);
 
 // Public guild multi-page site: /g/:slug and /g/:slug/:pageSlug…
 app.get("/g/:slug", (c) => {
@@ -267,7 +253,9 @@ app.get("/embed/:slug/store", (c) => {
 });
 
 app.get("/api/version", (c) => c.json({ version: APP_VERSION }));
-app.route("/api/webhooks", webhookRoutes);
+app.route("/api/webhooks", webhookRoutes); // Stripe: POST /api/webhooks/stripe
+app.route("/api/webhooks", emailWebhookRoutes); // Resend: POST /api/webhooks/resend
+app.route("/u", unsubscribeRoutes); // one-click unsubscribe (HMAC token gated)
 
 // Email open tracking pixel (1×1 GIF) — exempt from site gate via path check below
 const PIXEL_GIF = Uint8Array.from(
@@ -345,6 +333,9 @@ const tenantApp = new Hono<{ Bindings: Env }>();
 tenantApp.use("*", requireAuth);
 tenantApp.use("*", tenantMiddleware);
 tenantApp.use("*", requireTenantAccess);
+// Role matrix (lib/permissions.ts): viewers read, chairs write their area,
+// owner/admin everything. Individual routes may be stricter, never looser.
+tenantApp.use("*", requirePermission);
 tenantApp.route("/levels", levelRoutes);
 tenantApp.route("/members", memberRoutes);
 tenantApp.route("/events", eventRoutes);
@@ -417,7 +408,9 @@ async function runDailyJobs(env: Env) {
     if (r.deleted < IDEM_SWEEP_BATCH) break;
   }
   const idempotency = { deleted: idemDeleted };
+  const authTokens = await sweepAuthTokens(env.DB);
   return {
+    authTokens,
     renewals,
     events,
     blasts,
@@ -472,6 +465,24 @@ export default {
         sweepOutbox(env).then((r) => {
           if (r.swept) console.log("outbox sweep", r);
         })
+      );
+      // Release expired seat/stock holds from abandoned checkouts.
+      ctx.waitUntil(
+        sweepExpiredHolds(env).then((r) => {
+          if (r.registrations_released || r.orders_released || r.errors.length) {
+            console.log("hold sweep", r);
+          }
+        })
+      );
+      // Scheduled campaigns start within a minute of their send time instead
+      // of waiting for the 08:00 daily job. Both calls claim work with
+      // conditional updates/leases, so overlapping ticks cannot double-send.
+      ctx.waitUntil(
+        (async () => {
+          const due = await runScheduledBlasts(env);
+          const sent = await processQueuedBlasts(env);
+          if (due.sent_blasts || sent.emails) console.log("blast tick", { due, sent });
+        })().catch((e) => console.error("blast tick failed", e))
       );
       return;
     }

@@ -1,5 +1,7 @@
 /** Simple block-based page content for the website builder. */
 
+import { sanitizeHtml, sanitizeUrl } from "./sanitize";
+
 export type PageBlock =
   | { type: "heading"; text: string; level?: 1 | 2 | 3 }
   | { type: "text"; html: string }
@@ -49,12 +51,12 @@ export function parseBlocks(raw: unknown): PageBlock[] {
         });
         break;
       case "text":
-        out.push({ type: "text", html: String(b.html || b.text || "").slice(0, 20000) });
+        out.push({ type: "text", html: sanitizeHtml(String(b.html || b.text || "").slice(0, 20000)) });
         break;
       case "image":
         out.push({
           type: "image",
-          url: String(b.url || "").slice(0, 2000),
+          url: sanitizeUrl(String(b.url || "").slice(0, 2000), "image") || "",
           alt: String(b.alt || "").slice(0, 200),
           caption: String(b.caption || "").slice(0, 300),
         });
@@ -63,7 +65,7 @@ export function parseBlocks(raw: unknown): PageBlock[] {
         out.push({
           type: "button",
           label: String(b.label || "Learn more").slice(0, 80),
-          href: String(b.href || "#").slice(0, 2000),
+          href: sanitizeUrl(String(b.href || "#").slice(0, 2000), "link") || "#",
           style: b.style === "secondary" ? "secondary" : "primary",
         });
         break;
@@ -71,7 +73,10 @@ export function parseBlocks(raw: unknown): PageBlock[] {
         out.push({ type: "divider" });
         break;
       case "html":
-        out.push({ type: "html", html: String(b.html || "").slice(0, 50000) });
+        // "Custom code" block: embeds (YouTube/Vimeo/Maps iframes) are kept,
+        // but <script>/<style> and every event handler are stripped -- tenant
+        // script can never run on the application origin.
+        out.push({ type: "html", html: sanitizeHtml(String(b.html || "").slice(0, 50000), { allowEmbeds: true }) });
         break;
       case "join_cta":
         out.push({
@@ -95,9 +100,9 @@ export function parseBlocks(raw: unknown): PageBlock[] {
           eyebrow: String(b.eyebrow || "").slice(0, 80),
           title: String(b.title || "").slice(0, 160),
           subtitle: String(b.subtitle || "").slice(0, 300),
-          imageUrl: String(b.imageUrl || "").slice(0, 2000),
+          imageUrl: sanitizeUrl(String(b.imageUrl || "").slice(0, 2000), "image") || "",
           ctaLabel: String(b.ctaLabel || "").slice(0, 60),
-          ctaHref: String(b.ctaHref || "").slice(0, 2000),
+          ctaHref: sanitizeUrl(String(b.ctaHref || "").slice(0, 2000), "link") || "",
         });
         break;
       case "service_cards":
@@ -119,7 +124,7 @@ export function parseBlocks(raw: unknown): PageBlock[] {
           items: (Array.isArray(b.items) ? b.items : []).slice(0, 40).map((raw) => {
             const it = (raw || {}) as Record<string, unknown>;
             return {
-              url: String(it.url || "").slice(0, 2000),
+              url: sanitizeUrl(String(it.url || "").slice(0, 2000), "image") || "",
               alt: String(it.alt || "").slice(0, 200),
               caption: String(it.caption || "").slice(0, 300),
             };
@@ -169,7 +174,13 @@ export function parseBlocks(raw: unknown): PageBlock[] {
   return out;
 }
 
-/** Render blocks to safe-ish HTML (admin-authored). */
+/**
+ * Render blocks to HTML. Every tenant-controlled string is escaped, every
+ * URL is validated, and rich-text blocks are sanitized AGAIN here even though
+ * parseBlocks already did -- rows written before the sanitizer existed were
+ * never cleaned, so render time is the guarantee, parse time is the
+ * optimisation.
+ */
 export function blocksToHtml(blocks: PageBlock[]): string {
   const parts: string[] = [];
   for (const b of blocks) {
@@ -180,16 +191,18 @@ export function blocksToHtml(blocks: PageBlock[]): string {
         break;
       }
       case "text":
-        parts.push(`<div class="qh-block-text">${b.html}</div>`);
+        parts.push(`<div class="qh-block-text">${sanitizeHtml(b.html)}</div>`);
         break;
-      case "image":
-        if (!b.url) break;
+      case "image": {
+        const imgUrl = sanitizeUrl(b.url, "image");
+        if (!imgUrl) break;
         parts.push(
-          `<figure class="qh-block-image"><img src="${escapeAttr(b.url)}" alt="${escapeAttr(b.alt || "")}" loading="lazy" />${
+          `<figure class="qh-block-image"><img src="${escapeAttr(imgUrl)}" alt="${escapeAttr(b.alt || "")}" loading="lazy" />${
             b.caption ? `<figcaption>${escapeHtml(b.caption)}</figcaption>` : ""
           }</figure>`
         );
         break;
+      }
       case "button":
         parts.push(
           `<p class="qh-block-button"><a class="btn ${b.style === "secondary" ? "secondary" : ""}" href="${escapeAttr(safeHref(b.href))}">${escapeHtml(b.label)}</a></p>`
@@ -199,7 +212,7 @@ export function blocksToHtml(blocks: PageBlock[]): string {
         parts.push(`<hr class="qh-block-divider" />`);
         break;
       case "html":
-        parts.push(`<div class="qh-block-html">${b.html}</div>`);
+        parts.push(`<div class="qh-block-html">${sanitizeHtml(b.html, { allowEmbeds: true })}</div>`);
         break;
       case "join_cta":
         parts.push(
@@ -218,8 +231,8 @@ export function blocksToHtml(blocks: PageBlock[]): string {
         parts.push(`<div class="qh-block-spacer" style="height:${b.height || 24}px"></div>`);
         break;
       case "hero": {
-        const heroImageUrl = b.imageUrl ? safeHref(b.imageUrl) : "";
-        const heroImageOk = !!heroImageUrl && heroImageUrl !== "#" && isCssUrlSafe(heroImageUrl);
+        const heroImageUrl = b.imageUrl ? sanitizeUrl(b.imageUrl, "image") || "" : "";
+        const heroImageOk = !!heroImageUrl && isCssUrlSafe(heroImageUrl);
         parts.push(
           `<section class="qh-block-hero"${
             heroImageOk ? ` style="background-image:url('${escapeAttr(heroImageUrl)}')"` : ""
@@ -252,6 +265,8 @@ export function blocksToHtml(blocks: PageBlock[]): string {
       case "gallery_grid":
         parts.push(
           `<div class="qh-block-gallery">${b.items
+            .map((it) => ({ ...it, url: sanitizeUrl(it.url, "image") || "" }))
+            .filter((it) => it.url)
             .map(
               (it) =>
                 `<figure class="qh-gallery-item"><img src="${escapeAttr(it.url)}" alt="${escapeAttr(
@@ -330,7 +345,9 @@ export function contentFromPage(row: {
   }
   try {
     const c = JSON.parse(row.content_json || "{}");
-    return { html: String(c.html || ""), blocks: [] };
+    // Legacy rich-text pages (pre-block editor) were stored verbatim and
+    // never sanitized; clean on every read.
+    return { html: sanitizeHtml(String(c.html || ""), { allowEmbeds: true }), blocks: [] };
   } catch {
     return { html: "", blocks: [] };
   }
@@ -353,7 +370,7 @@ export function parseNav(settingsJson: string | null | undefined): NavItem[] {
     return nav
       .map((n: any) => ({
         label: String(n.label || "").slice(0, 60),
-        href: String(n.href || "").slice(0, 500),
+        href: sanitizeUrl(String(n.href || "").slice(0, 500), "link") || "",
         external: !!n.external,
       }))
       .filter((n: NavItem) => n.label && n.href)
@@ -363,61 +380,30 @@ export function parseNav(settingsJson: string | null | undefined): NavItem[] {
   }
 }
 
+/** Escapes `& < > " '` -- safe for text nodes and for double- or single-quoted attributes. */
 export function escapeHtml(s: string): string {
-  return s
+  return String(s ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function escapeAttr(s: string): string {
-  return escapeHtml(s).replace(/'/g, "&#39;");
+  return escapeHtml(s);
 }
 
 /**
- * Schemes allowed through {@link safeHref}. Allowlist, never blocklist a dangerous scheme.
- * Criterion for adding a scheme here: it must be inert (cannot execute script) AND be
- * commonly used by a small business on a public site (e.g. a "Text us" CTA). Do not add
- * app-launcher schemes (`geo:`, `whatsapp:`, `skype:`, `market:`, `intent:`, `ftp:`, ...)
- * just because they're inert — they still fail the "commonly used by a small business"
- * half of the test.
- */
-const SAFE_HREF_SCHEMES = new Set(["http:", "https:", "mailto:", "tel:", "sms:"]);
-
-/** Removes ASCII C0 and C1 control characters (defeats `java\tscript:`-style scheme obfuscation). */
-function stripControlChars(input: string): string {
-  const s = String(input || "");
-  let out = "";
-  for (let i = 0; i < s.length; i++) {
-    const code = s.charCodeAt(i);
-    if (code <= 31 || code === 127) continue; // C0 controls + DEL
-    if (code >= 128 && code <= 159) continue; // C1 controls
-    out += s[i];
-  }
-  return out;
-}
-
-/**
- * Neutralizes script-executing href values (e.g. `javascript:`) before they reach an
- * `href`/CSS-url attribute. Strips control characters (defeats `java\tscript:`-style
- * obfuscation) and trims whitespace before matching a leading scheme case-insensitively
- * (defeats `JaVaScRiPt:`). Root-relative (`/...`), anchor (`#...`), and scheme-less
- * relative values are passed through untouched. Anything else — including any scheme
- * not on the allowlist — collapses to `"#"`. Does not perform attribute/HTML escaping;
- * callers should still route the result through `escapeAttr`.
+ * Link-context URL guard for block fields (button href, hero CTA). Delegates
+ * to {@link sanitizeUrl}: http/https/mailto/tel/sms and `/`, `#`, `?`, `./`,
+ * `../` relative references pass through with control characters stripped;
+ * anything else (javascript:, data:, vbscript:, protocol-relative, bare
+ * relative) collapses to `"#"`. Does not HTML-escape; callers still route the
+ * result through `escapeAttr`.
  */
 function safeHref(raw: string): string {
-  const cleaned = stripControlChars(raw).trim();
-  if (!cleaned) return "#";
-  if (cleaned.startsWith("/") || cleaned.startsWith("#")) return cleaned;
-  const schemeMatch = cleaned.match(/^([a-zA-Z][a-zA-Z0-9+.-]*):/);
-  if (schemeMatch) {
-    const scheme = schemeMatch[1].toLowerCase() + ":";
-    return SAFE_HREF_SCHEMES.has(scheme) ? cleaned : "#";
-  }
-  // No scheme at all -- scheme-less relative path, safe to pass through.
-  return cleaned;
+  return sanitizeUrl(raw, "link") ?? "#";
 }
 
 /** CSS-injection guard for values interpolated into a `'`-delimited `url(...)` declaration. */

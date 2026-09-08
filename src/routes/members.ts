@@ -1883,8 +1883,10 @@ memberRoutes.post("/import", async (c) => {
         byEmail.set(email, memberId);
         stmts.push(
           c.env.DB.prepare(
-            `INSERT INTO members (id, tenant_id, email, first_name, last_name, phone, notes, status, custom_fields_json, joined_at, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            `INSERT INTO members (id, tenant_id, email, first_name, last_name, phone, notes, status, custom_fields_json, joined_at, created_at, updated_at, email_opt_out_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+               (SELECT MIN(created_at) FROM email_suppressions
+                 WHERE tenant_id = ? AND email = ? AND reason IN ('unsubscribe', 'complaint')))`
           ).bind(
             memberId,
             tenant.id,
@@ -1897,7 +1899,12 @@ memberRoutes.post("/import", async (c) => {
             hasCustom ? JSON.stringify(rowCustom) : "{}",
             row.joined_at || now,
             now,
-            now
+            now,
+            // A re-imported (deleted + re-created) member keeps a prior
+            // unsubscribe: the suppression row already blocks sends, this
+            // keeps the admin-visible flag honest.
+            tenant.id,
+            email
           )
         );
         created++;

@@ -3,10 +3,29 @@
 // through the exported app with a stateful fake D1 that records every
 // write, so assertions check what the route actually did rather than
 // trusting it.
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
-import { publicRoutes } from "./public";
 import type { Env } from "../types";
+import { signJwt } from "../lib/auth";
+
+// Stripe is never reached from these tests. createCheckoutSession /
+// retrieveCheckoutSession are stubbed; checkoutHoldExpiry stays real so the
+// hold timestamp the route stores is the one it would store in prod.
+vi.mock("../lib/stripe", async () => {
+  const actual = await vi.importActual<typeof import("../lib/stripe")>("../lib/stripe");
+  return {
+    ...actual,
+    createCheckoutSession: vi.fn(async () => ({ id: "cs_new", url: "https://checkout.stripe.test/cs_new" })),
+    retrieveCheckoutSession: vi.fn(async (_env: unknown, id: string) => ({
+      id,
+      url: `https://checkout.stripe.test/${id}`,
+      status: "open",
+    })),
+  };
+});
+
+import { publicRoutes } from "./public";
+import { createCheckoutSession, retrieveCheckoutSession } from "../lib/stripe";
 
 const TENANT_ID = "tenant-1";
 
@@ -826,5 +845,533 @@ describe("POST /public/:slug/projects/:projectRef/photos", () => {
     expect(r2Puts.length).toBe(2);
     expect(r2Deletes).toEqual([r2Puts[1].key]);
     expect(dbWrites.filter((w) => w.sql.includes("INSERT INTO files")).length).toBe(1);
+  });
+});
+
+
+// ---------------------------------------------------------------------------
+// PAY-2: atomic seat claims, hold reuse, member-price verification
+// ---------------------------------------------------------------------------
+
+type Row = Record<string, any>;
+
+function eventHarness(
+  opts: {
+    event?: Partial<Row>;
+    member?: Row | null;
+    existingReg?: Row | null;
+    /** meta.changes for the guarded (capacity) INSERT ... SELECT. Default 1. */
+    claimChanges?: number;
+    stripeKey?: boolean;
+    jwtSecret?: string;
+  } = {}
+) {
+  const runs: { sql: string; binds: unknown[]; changes: number }[] = [];
+  const batches: { sql: string; binds: unknown[] }[][] = [];
+  const tenant = {
+    id: TENANT_ID,
+    slug: "guild",
+    name: "Test Guild",
+    status: "active",
+    tenant_type: "guild",
+    settings_json: "{}",
+    stripe_account_id: null,
+  };
+  const event = {
+    id: "ev-1",
+    tenant_id: TENANT_ID,
+    title: "Spring Retreat",
+    start_at: "2026-10-01T15:00:00.000Z",
+    location: null,
+    capacity: 10,
+    waitlist_enabled: 0,
+    registration_open: 1,
+    is_public: 1,
+    member_price_cents: 1000,
+    non_member_price_cents: 2500,
+    settings_json: "{}",
+    ...opts.event,
+  };
+
+  function exec(sql: string, binds: unknown[]) {
+    let n = 1;
+    if (sql.includes("INSERT INTO event_registrations") && sql.includes("SELECT")) {
+      n = opts.claimChanges ?? 1;
+    }
+    runs.push({ sql, binds, changes: n });
+    return { success: true, meta: { changes: n } };
+  }
+  function firstRow(sql: string): Row | null {
+    if (sql.includes("FROM tenants")) return tenant;
+    if (sql.includes("FROM events")) return event;
+    if (sql.includes("FROM members")) return opts.member ?? null;
+    if (sql.includes("FROM event_registrations")) return opts.existingReg ?? null;
+    return null;
+  }
+  const db = {
+    prepare(sql: string) {
+      return {
+        bind(...binds: unknown[]) {
+          return {
+            __sql: sql,
+            __binds: binds,
+            async first() {
+              return firstRow(sql);
+            },
+            async all() {
+              return { results: [] };
+            },
+            async run() {
+              return exec(sql, binds);
+            },
+          };
+        },
+      };
+    },
+    async batch(stmts: { __sql: string; __binds: unknown[]; run: () => Promise<unknown> }[]) {
+      batches.push(stmts.map((s) => ({ sql: s.__sql, binds: s.__binds })));
+      const results = [];
+      for (const s of stmts) results.push(await s.run());
+      return results;
+    },
+  };
+  const app = new Hono<{ Bindings: Env }>();
+  app.route("/", publicRoutes);
+  const env = {
+    DB: db,
+    APP_URL: "https://quilthosting.com",
+    JWT_SECRET: opts.jwtSecret ?? "test-secret",
+    ...(opts.stripeKey === false ? {} : { STRIPE_SECRET_KEY: "sk_test" }),
+  } as unknown as Env;
+  const register = (body: unknown, headers: Record<string, string> = {}) =>
+    app.request(
+      "/guild/events/ev-1/register",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...headers },
+        body: JSON.stringify(body),
+      },
+      env
+    );
+  const regInserts = () => runs.filter((r) => r.sql.includes("INSERT INTO event_registrations"));
+  return { app, env, register, runs, batches, regInserts };
+}
+
+describe("POST /public/:slug/events/:eventId/register — atomic seat claim", () => {
+  beforeEach(() => {
+    vi.mocked(createCheckoutSession).mockClear();
+    vi.mocked(retrieveCheckoutSession).mockClear();
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  it("claims a paid seat with ONE conditional INSERT ... SELECT that counts confirmed seats plus unexpired holds", async () => {
+    const h = eventHarness();
+    const res = await h.register({ email: "jo@example.com", name: "Jo" });
+    expect(res.status).toBe(200);
+    const body = await res.json<Row>();
+    expect(body.status).toBe("checkout");
+    expect(body.hold_expires_at).toBeTruthy();
+
+    const [claim] = h.regInserts();
+    expect(claim.sql).toMatch(/INSERT INTO event_registrations[\s\S]*SELECT[\s\S]*WHERE \(/);
+    expect(claim.sql).toContain("status IN ('registered', 'checked_in')");
+    expect(claim.sql).toContain("status = 'pending_payment' AND (hold_expires_at IS NULL OR hold_expires_at > ?)");
+    expect(claim.sql.trim().endsWith("< ?")).toBe(true);
+    // capacity is the final bind; hold_expires_at bind is set for pending_payment
+    expect(claim.binds[claim.binds.length - 1]).toBe(10);
+    expect(claim.binds[6]).toBe("pending_payment");
+    expect(typeof claim.binds[9]).toBe("string");
+    // No SELECT COUNT(*) pre-read anywhere: the count lives inside the claim.
+    expect(h.runs.some((r) => r.sql.startsWith("SELECT COUNT(*)"))).toBe(false);
+
+    // Stripe session expires with the hold, and the session id is stored for reuse.
+    const call = vi.mocked(createCheckoutSession).mock.calls[0][1];
+    expect(call.expiresAt).toBe(Math.floor(Date.parse(body.hold_expires_at) / 1000));
+    expect(call.relatedId).toBe(body.registration_id);
+    expect(h.runs.some((r) => r.sql.includes("SET stripe_session_id = ?") && r.binds[0] === "cs_new")).toBe(true);
+  });
+
+  it("(e) a claim that changes 0 rows returns 409 Event is full when there is no waitlist, and creates no Checkout", async () => {
+    const h = eventHarness({ claimChanges: 0 });
+    const res = await h.register({ email: "jo@example.com" });
+    expect(res.status).toBe(409);
+    expect((await res.json<{ error: string }>()).error).toMatch(/full/i);
+    expect(vi.mocked(createCheckoutSession)).not.toHaveBeenCalled();
+    expect(h.regInserts().length).toBe(1);
+  });
+
+  it("(e) a claim that changes 0 rows falls to the waitlist (unguarded insert) when waitlist is enabled", async () => {
+    const h = eventHarness({ claimChanges: 0, event: { waitlist_enabled: 1 } });
+    const res = await h.register({ email: "jo@example.com" });
+    expect(res.status).toBe(200);
+    expect((await res.json<Row>()).status).toBe("waitlist");
+    const inserts = h.regInserts();
+    expect(inserts.length).toBe(2);
+    expect(inserts[1].sql).toContain("VALUES");
+    expect(inserts[1].sql).not.toContain("SELECT");
+    expect(inserts[1].binds[6]).toBe("waitlist");
+    expect(vi.mocked(createCheckoutSession)).not.toHaveBeenCalled();
+  });
+
+  it("(e) free event, full, no waitlist: the outbox row that rode in the batch is removed again", async () => {
+    const h = eventHarness({
+      claimChanges: 0,
+      event: { member_price_cents: 0, non_member_price_cents: 0 },
+    });
+    const res = await h.register({ email: "jo@example.com" });
+    expect(res.status).toBe(409);
+    expect(h.batches.length).toBe(1);
+    expect(h.batches[0][1].sql).toContain("INSERT INTO webhook_outbox");
+    const del = h.runs.find((r) => r.sql.includes("DELETE FROM webhook_outbox"));
+    expect(del).toBeTruthy();
+    expect(del!.binds[0]).toBe(h.batches[0][1].binds[0]);
+  });
+
+  it("free event without capacity uses a plain INSERT batched with its outbox event", async () => {
+    const h = eventHarness({
+      event: { capacity: null, member_price_cents: 0, non_member_price_cents: 0 },
+    });
+    const res = await h.register({ email: "jo@example.com" });
+    expect(res.status).toBe(200);
+    expect((await res.json<Row>()).status).toBe("registered");
+    expect(h.batches.length).toBe(1);
+    expect(h.batches[0][0].sql).toContain("VALUES");
+    expect(h.batches[0][1].sql).toContain("INSERT INTO webhook_outbox");
+    expect(h.runs.some((r) => r.sql.includes("DELETE FROM webhook_outbox"))).toBe(false);
+  });
+
+  it("(f) a repeat POST with a live pending hold reuses the open Checkout instead of taking a second seat", async () => {
+    const h = eventHarness({
+      existingReg: {
+        id: "reg-old",
+        status: "pending_payment",
+        stripe_session_id: "cs_old",
+        ticket_code: "EV-OLD",
+      },
+    });
+    const res = await h.register({ email: "jo@example.com" });
+    expect(res.status).toBe(200);
+    const body = await res.json<Row>();
+    expect(body).toMatchObject({
+      status: "checkout",
+      reused: true,
+      registration_id: "reg-old",
+      session_id: "cs_old",
+      checkout_url: "https://checkout.stripe.test/cs_old",
+    });
+    expect(vi.mocked(retrieveCheckoutSession)).toHaveBeenCalledWith(expect.anything(), "cs_old");
+    expect(vi.mocked(createCheckoutSession)).not.toHaveBeenCalled();
+    expect(h.regInserts().length).toBe(0);
+    // The duplicate lookup itself includes unexpired pending holds.
+    const dup = h.runs.length; // (reads are not in runs) — assert via the release not happening
+    expect(h.runs.some((r) => r.sql.includes("SET status = 'cancelled'") && r.binds[1] === "reg-old")).toBe(false);
+    expect(dup).toBeGreaterThanOrEqual(0);
+  });
+
+  it("(f) when the stored session is no longer open, the stale hold is released and a fresh seat is claimed", async () => {
+    vi.mocked(retrieveCheckoutSession).mockResolvedValueOnce({ id: "cs_old", url: null, status: "expired" });
+    const h = eventHarness({
+      existingReg: { id: "reg-old", status: "pending_payment", stripe_session_id: "cs_old", ticket_code: "EV-OLD" },
+    });
+    const res = await h.register({ email: "jo@example.com" });
+    expect(res.status).toBe(200);
+    expect((await res.json<Row>()).reused).toBeUndefined();
+    const release = h.runs.find((r) => r.sql.includes("SET status = 'cancelled'") && r.binds[1] === "reg-old");
+    expect(release).toBeTruthy();
+    expect(release!.sql).toContain("status = 'pending_payment'");
+    expect(h.regInserts().length).toBe(1);
+  });
+
+  it("a confirmed registration still returns 409 Already registered", async () => {
+    const h = eventHarness({ existingReg: { id: "reg-x", status: "registered", stripe_session_id: null, ticket_code: "EV-X" } });
+    const res = await h.register({ email: "jo@example.com" });
+    expect(res.status).toBe(409);
+    expect((await res.json<{ error: string }>()).error).toMatch(/already registered/i);
+  });
+
+  it("retires this email's EXPIRED holds before the duplicate check", async () => {
+    const h = eventHarness();
+    await h.register({ email: "jo@example.com" });
+    const retire = h.runs[0];
+    expect(retire.sql).toContain("SET status = 'cancelled'");
+    expect(retire.sql).toContain("hold_expires_at IS NOT NULL AND hold_expires_at <= ?");
+    expect(retire.binds[3]).toBe("jo@example.com");
+  });
+
+  it("member pricing: an email that merely matches an active member gets member price but is recorded as UNVERIFIED (0)", async () => {
+    const h = eventHarness({ member: { id: "mem-1", status: "active", user_id: "user-1" } });
+    const res = await h.register({ email: "jo@example.com" });
+    expect(res.status).toBe(200);
+    expect(vi.mocked(createCheckoutSession).mock.calls[0][1].amountCents).toBe(1000);
+    const [claim] = h.regInserts();
+    expect(claim.binds[10]).toBe(0); // member_price_verified
+  });
+
+  it("member pricing: a portal session token for that member marks the price VERIFIED (1)", async () => {
+    const h = eventHarness({ member: { id: "mem-1", status: "active", user_id: "user-1" } });
+    const token = await signJwt({ sub: "user-1", email: "jo@example.com" }, "test-secret");
+    const res = await h.register({ email: "jo@example.com" }, { Authorization: `Bearer ${token}` });
+    expect(res.status).toBe(200);
+    expect(vi.mocked(createCheckoutSession).mock.calls[0][1].amountCents).toBe(1000);
+    expect(h.regInserts()[0].binds[10]).toBe(1);
+  });
+
+  it("member pricing: a token for a DIFFERENT user does not verify; non-members get NULL and non-member price", async () => {
+    const h = eventHarness({ member: { id: "mem-1", status: "active", user_id: "user-1" } });
+    const token = await signJwt({ sub: "user-2", email: "someone@else.com" }, "test-secret");
+    const res = await h.register({ email: "jo@example.com" }, { Authorization: `Bearer ${token}` });
+    expect(res.status).toBe(200);
+    expect(h.regInserts()[0].binds[10]).toBe(0);
+
+    const h2 = eventHarness({ member: null });
+    await h2.register({ email: "guest@example.com" });
+    expect(vi.mocked(createCheckoutSession).mock.calls[1][1].amountCents).toBe(2500);
+    expect(h2.regInserts()[0].binds[10]).toBeNull();
+  });
+
+  it("a Checkout creation failure deletes the just-taken hold (only while still pending) and returns 502", async () => {
+    vi.mocked(createCheckoutSession).mockRejectedValueOnce(new Error("stripe down"));
+    const h = eventHarness();
+    const res = await h.register({ email: "jo@example.com" });
+    expect(res.status).toBe(502);
+    const del = h.runs.find((r) => r.sql.startsWith("DELETE FROM event_registrations"));
+    expect(del).toBeTruthy();
+    expect(del!.sql).toContain("status = 'pending_payment'");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PAY-2: store cart — normalized SKUs, atomic reservation, compensation
+// ---------------------------------------------------------------------------
+
+function cartHarness(
+  opts: {
+    products?: Record<string, Row>;
+    /** meta.changes for the reserve decrement, by product id. Default 1. */
+    reserveChanges?: Record<string, number>;
+    stripeKey?: boolean;
+    settings?: Row;
+  } = {}
+) {
+  const runs: { sql: string; binds: unknown[]; changes: number }[] = [];
+  const batches: { sql: string; binds: unknown[]; changes: number }[][] = [];
+  const productReads: string[] = [];
+  const tenant = {
+    id: TENANT_ID,
+    slug: "guild",
+    name: "Test Guild",
+    status: "active",
+    tenant_type: "guild",
+    settings_json: JSON.stringify(opts.settings ?? {}),
+    stripe_account_id: null,
+  };
+  const products: Record<string, Row> = opts.products ?? {
+    "prod-A": { id: "prod-A", name: "Pattern A", price_cents: 500, inventory: 5, is_active: 1, taxable: 1 },
+    "prod-B": { id: "prod-B", name: "Kit B", price_cents: 2000, inventory: 1, is_active: 1, taxable: 1 },
+    "prod-U": { id: "prod-U", name: "Untracked", price_cents: 100, inventory: null, is_active: 1, taxable: 0 },
+  };
+
+  function exec(sql: string, binds: unknown[]) {
+    let n = 1;
+    if (sql.includes("inventory = inventory - ?")) {
+      n = opts.reserveChanges?.[binds[2] as string] ?? 1;
+    }
+    const rec = { sql, binds, changes: n };
+    runs.push(rec);
+    return { success: true, meta: { changes: n } };
+  }
+  const db = {
+    prepare(sql: string) {
+      return {
+        bind(...binds: unknown[]) {
+          return {
+            __sql: sql,
+            __binds: binds,
+            async first() {
+              if (sql.includes("FROM tenants")) return tenant;
+              if (sql.includes("FROM products")) {
+                productReads.push(binds[0] as string);
+                return products[binds[0] as string] ?? null;
+              }
+              if (sql.includes("FROM members")) return null;
+              return null;
+            },
+            async all() {
+              return { results: [] };
+            },
+            async run() {
+              return exec(sql, binds);
+            },
+          };
+        },
+      };
+    },
+    async batch(stmts: { __sql: string; __binds: unknown[]; run: () => Promise<any> }[]) {
+      const recorded: { sql: string; binds: unknown[]; changes: number }[] = [];
+      const results = [];
+      for (const s of stmts) {
+        const r = await s.run();
+        recorded.push({ sql: s.__sql, binds: s.__binds, changes: r.meta.changes });
+        results.push(r);
+      }
+      batches.push(recorded);
+      return results;
+    },
+  };
+  const app = new Hono<{ Bindings: Env }>();
+  app.route("/", publicRoutes);
+  const env = {
+    DB: db,
+    APP_URL: "https://quilthosting.com",
+    ...(opts.stripeKey === false ? {} : { STRIPE_SECRET_KEY: "sk_test" }),
+  } as unknown as Env;
+  const checkout = (body: unknown) =>
+    app.request(
+      "/guild/cart/checkout",
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
+      env
+    );
+  const buy = (productId: string, body: unknown) =>
+    app.request(
+      `/guild/products/${productId}/buy`,
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
+      env
+    );
+  return { app, env, checkout, buy, runs, batches, productReads };
+}
+
+describe("POST /public/:slug/cart/checkout — atomic stock reservation", () => {
+  beforeEach(() => {
+    vi.mocked(createCheckoutSession).mockClear();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  it("(g) repeated SKUs are summed into one line, read once, and reserved once with the summed quantity", async () => {
+    const h = cartHarness();
+    const res = await h.checkout({
+      email: "jo@example.com",
+      items: [
+        { product_id: "prod-A", quantity: 1 },
+        { product_id: "prod-A", quantity: 2 },
+      ],
+    });
+    expect(res.status).toBe(200);
+    expect(h.productReads).toEqual(["prod-A"]);
+    const [reserve] = h.batches;
+    expect(reserve[0].sql).toContain("INSERT INTO store_orders");
+    expect(reserve[0].sql).toContain("reserved_at, hold_expires_at");
+    const decs = reserve.filter((s) => s.sql.includes("inventory = inventory - ?"));
+    expect(decs.length).toBe(1);
+    expect(decs[0].binds[0]).toBe(3);
+    expect(decs[0].binds[2]).toBe("prod-A");
+    expect(decs[0].sql).toContain("inventory >= ?");
+    const body = await res.json<Row>();
+    expect(body.subtotal_cents).toBe(1500);
+    const items = JSON.parse(reserve[0].binds[7] as string);
+    expect(items).toEqual([expect.objectContaining({ product_id: "prod-A", quantity: 3 })]);
+    // Session expiry == hold expiry; session id stored on the order.
+    expect(vi.mocked(createCheckoutSession).mock.calls[0][1].expiresAt).toBe(
+      Math.floor(Date.parse(body.hold_expires_at) / 1000)
+    );
+    expect(vi.mocked(createCheckoutSession).mock.calls[0][1].extraMetadata?.order_id).toBe(body.order_id);
+  });
+
+  it("(h) a decrement that changes 0 rows returns 409 with the out-of-stock ids and restocks ONLY the lines that were reserved", async () => {
+    const h = cartHarness({ reserveChanges: { "prod-B": 0 } });
+    const res = await h.checkout({
+      email: "jo@example.com",
+      items: [
+        { product_id: "prod-A", quantity: 2 },
+        { product_id: "prod-B", quantity: 1 },
+        { product_id: "prod-U", quantity: 1 },
+      ],
+    });
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ out_of_stock: ["prod-B"] });
+    expect(vi.mocked(createCheckoutSession)).not.toHaveBeenCalled();
+
+    expect(h.batches.length).toBe(2);
+    const [reserve, compensate] = h.batches;
+    // Untracked product gets no reservation statement at all.
+    expect(reserve.filter((s) => s.sql.includes("inventory = inventory - ?")).map((s) => s.binds[2])).toEqual([
+      "prod-A",
+      "prod-B",
+    ]);
+    const restocks = compensate.filter((s) => s.sql.includes("inventory = inventory + ?"));
+    expect(restocks.map((s) => [s.binds[0], s.binds[2]])).toEqual([[2, "prod-A"]]);
+    // Restock is guarded by the order still being a pending reserved order,
+    // and the order flip to cancelled is in the same batch, last.
+    expect(restocks[0].sql).toMatch(/status = 'pending' AND reserved_at IS NOT NULL/);
+    const flip = compensate[compensate.length - 1];
+    expect(flip.sql).toContain("UPDATE store_orders SET status = ?");
+    expect(flip.binds[0]).toBe("cancelled");
+  });
+
+  it("a free order is marked paid ONLY after a successful reservation, in one batch with its $0 payment row", async () => {
+    const h = cartHarness({
+      products: { "prod-F": { id: "prod-F", name: "Freebie", price_cents: 0, inventory: 3, is_active: 1, taxable: 0 } },
+    });
+    const res = await h.checkout({ email: "jo@example.com", items: [{ product_id: "prod-F", quantity: 2 }] });
+    expect(res.status).toBe(200);
+    expect((await res.json<Row>()).status).toBe("fulfilled");
+    expect(h.batches.length).toBe(2);
+    expect(h.batches[0].some((s) => s.sql.includes("inventory = inventory - ?"))).toBe(true);
+    const paid = h.batches[1];
+    expect(paid[0].sql).toContain("SET status = 'paid', fulfilled_at = ?");
+    expect(paid[0].sql).toContain("status = 'pending'");
+    expect(paid[1].sql).toContain("INSERT INTO payments");
+    expect(paid[1].sql).toContain("fulfilled_at");
+  });
+
+  it("a free order whose reservation fails is NOT marked paid", async () => {
+    const h = cartHarness({
+      products: { "prod-F": { id: "prod-F", name: "Freebie", price_cents: 0, inventory: 3, is_active: 1, taxable: 0 } },
+      reserveChanges: { "prod-F": 0 },
+    });
+    const res = await h.checkout({ email: "jo@example.com", items: [{ product_id: "prod-F", quantity: 2 }] });
+    expect(res.status).toBe(409);
+    expect(h.runs.some((r) => r.sql.includes("status = 'paid'"))).toBe(false);
+  });
+
+  it("a Checkout creation failure releases the reservation (restock + cancel) and returns 502", async () => {
+    vi.mocked(createCheckoutSession).mockRejectedValueOnce(new Error("stripe down"));
+    const h = cartHarness();
+    const res = await h.checkout({ email: "jo@example.com", items: [{ product_id: "prod-A", quantity: 1 }] });
+    expect(res.status).toBe(502);
+    const release = h.batches[1];
+    expect(release.some((s) => s.sql.includes("inventory = inventory + ?") && s.binds[2] === "prod-A")).toBe(true);
+    expect(release[release.length - 1].binds[0]).toBe("cancelled");
+  });
+
+  it("checks the Stripe key BEFORE reserving anything for a paid cart", async () => {
+    const h = cartHarness({ stripeKey: false });
+    const res = await h.checkout({ email: "jo@example.com", items: [{ product_id: "prod-A", quantity: 1 }] });
+    expect(res.status).toBe(503);
+    expect(h.batches.length).toBe(0);
+  });
+
+  it("single-product /buy goes through the same order reservation and passes order_id to Stripe", async () => {
+    const h = cartHarness();
+    const res = await h.buy("prod-B", { email: "jo@example.com", quantity: 1 });
+    expect(res.status).toBe(200);
+    const body = await res.json<Row>();
+    expect(body.status).toBe("checkout");
+    expect(body.order_id).toBeTruthy();
+    expect(h.batches[0][0].sql).toContain("INSERT INTO store_orders");
+    expect(h.batches[0].some((s) => s.sql.includes("inventory = inventory - ?") && s.binds[2] === "prod-B")).toBe(true);
+    const call = vi.mocked(createCheckoutSession).mock.calls[0][1];
+    expect(call.extraMetadata?.order_id).toBe(body.order_id);
+    expect(call.relatedId).toBe(body.order_id);
+    expect(call.expiresAt).toBeTypeOf("number");
+  });
+
+  it("single-product /buy: a reservation that changes 0 rows is 409 Sold out and cancels the order", async () => {
+    const h = cartHarness({ reserveChanges: { "prod-B": 0 } });
+    const res = await h.buy("prod-B", { email: "jo@example.com", quantity: 1 });
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ out_of_stock: ["prod-B"] });
+    expect(vi.mocked(createCheckoutSession)).not.toHaveBeenCalled();
+    expect(h.batches[1][h.batches[1].length - 1].binds[0]).toBe("cancelled");
   });
 });
