@@ -120,13 +120,17 @@ button,input,select,textarea{font:inherit;color:inherit}
 .qh-brand__logo,.qh-site-logo{height:44px;width:auto;max-width:240px;object-fit:contain;display:block}
 .qh-header__cta{margin-left:.5rem;flex:0 0 auto}
 .qh-header--left .qh-nav{margin-left:auto}
-.qh-header--centered .qh-header__inner{flex-direction:column;justify-content:center;gap:.5rem;padding-top:1rem}
-.qh-header--centered .qh-nav{justify-content:center}
-.qh-header--centered .qh-header__cta{margin-left:0}
-.qh-header--split .qh-header__inner{display:grid;grid-template-columns:1fr auto 1fr;align-items:center}
-.qh-header--split .qh-nav--start{justify-content:flex-end}
+.qh-header--centered .qh-header__inner{display:grid;grid-template-columns:1fr auto 1fr;grid-template-areas:"brand brand brand" "cta-l nav cta";align-items:center;row-gap:.5rem;padding-top:1rem}
+.qh-header--centered .qh-brand{grid-area:brand;justify-self:center}
+.qh-header--centered .qh-nav{grid-area:nav;justify-content:center}
+.qh-header--centered .qh-header__cta{grid-area:cta;justify-self:end;margin-left:0}
+.qh-header--centered .qh-nav-toggle{grid-area:cta;justify-self:end}
+.qh-header--split .qh-header__inner{display:grid;grid-template-columns:1fr auto 1fr auto;align-items:center;column-gap:1rem}
+.qh-header--split .qh-nav--start{grid-column:1;justify-content:flex-end}
 .qh-header--split .qh-brand{grid-column:2;justify-self:center}
-.qh-header--split .qh-nav--end{justify-content:flex-start}
+.qh-header--split .qh-nav--end{grid-column:3;justify-content:flex-start}
+.qh-header--split .qh-header__cta{grid-column:4;margin-left:0}
+.qh-header--split .qh-nav-toggle{grid-column:4}
 .qh-header--sticky{position:sticky;top:0}
 html{scroll-padding-top:calc(var(--_header-h) + 1rem)}
 /* Overlay: transparent over an image hero; ink switches to the on-dark role. */
@@ -184,7 +188,7 @@ html{scroll-padding-top:calc(var(--_header-h) + 1rem)}
 .qh-s--w-narrow{padding-inline:max(var(--_gutter),calc((100% - var(--_w-narrow))/2))}
 .qh-s--w-normal{padding-inline:max(var(--_gutter),calc((100% - var(--_container))/2))}
 .qh-s--w-wide{padding-inline:max(var(--_gutter),calc((100% - var(--_w-wide))/2))}
-.qh-s--w-full{padding-inline:0}
+.qh-s--w-full{padding-inline:var(--_gutter)} /* content keeps a gutter; the section background already spans the viewport */
 .qh-s--sp-tight{padding-block:calc(var(--_section-y)*.5)}
 .qh-s--sp-normal{padding-block:var(--_section-y)}
 .qh-s--sp-airy{padding-block:calc(var(--_section-y)*1.5)}
