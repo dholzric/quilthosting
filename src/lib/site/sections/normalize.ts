@@ -205,7 +205,16 @@ export function sectionsFromPage(row: {
     if (sections.length) return sections;
   }
   const content = parseJson(row.content_json);
-  const html = isPlainObject(content) && typeof content.html === "string" ? sanitizeHtml(content.html) : "";
+  const raw = isPlainObject(content) && typeof content.html === "string" ? content.html : "";
+  if (!raw.trim()) return [];
+  // Pre-block pages could carry an allowlisted YouTube/Vimeo/Maps iframe in
+  // raw HTML (contentFromPage sanitized them with allowEmbeds). Keep those as
+  // an `embed` section so migration never drops a working embed.
+  const withEmbeds = sanitizeHtml(raw, { allowEmbeds: true });
+  if (withEmbeds.toLowerCase().includes("<iframe")) {
+    return [{ type: "embed", html: withEmbeds, style: { ...DEFAULT_STYLE }, id: "s_0" }];
+  }
+  const html = sanitizeHtml(raw);
   if (!html) return [];
   return [{ type: "rich_text", variant: "prose", html, style: { ...DEFAULT_STYLE }, id: "s_0" }];
 }

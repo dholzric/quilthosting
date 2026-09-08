@@ -306,3 +306,19 @@ describe("isSectionDocument", () => {
     expect(isSectionDocument(null)).toBe(false);
   });
 });
+
+describe("sectionsFromPage keeps legacy embeds", () => {
+  it("emits an embed section when legacy content_json.html holds an allowed iframe", async () => {
+    const { sectionsFromPage } = await import("./normalize");
+    const html = '<p>Watch</p><iframe src="https://www.youtube.com/embed/abc123" allowfullscreen></iframe>';
+    const out = sectionsFromPage({ content_json: JSON.stringify({ html }) });
+    expect(out).toHaveLength(1);
+    expect(out[0].type).toBe("embed");
+    expect((out[0] as { html: string }).html).toContain("youtube.com/embed/abc123");
+  });
+  it("still returns rich_text for plain legacy html", async () => {
+    const { sectionsFromPage } = await import("./normalize");
+    const out = sectionsFromPage({ content_json: JSON.stringify({ html: "<p>Hello</p>" }) });
+    expect(out[0].type).toBe("rich_text");
+  });
+});
