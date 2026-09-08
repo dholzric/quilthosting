@@ -9,6 +9,7 @@ import {
   welcomeEmail,
   eventConfirmationEmail,
   paymentReceiptEmail,
+  paymentFailedEmail,
 } from "../lib/email";
 import { formatMoney } from "../lib/utils/money";
 import { portalUrl } from "../lib/memberships";
@@ -189,6 +190,8 @@ async function processStripeEvent(
       return;
     case "invoice.paid":
       return handleInvoicePaid(env, data);
+    case "invoice.payment_failed":
+      return handleInvoicePaymentFailed(env, data);
     default:
       return;
   }
@@ -660,7 +663,13 @@ async function handleInvoicePaid(env: Env, invoice: StripeObject): Promise<void>
   }
 
   if (!invoiceId) return;
-  if (await findPaymentByStripeRef(db, [invoiceId])) {
+  // A 'failed' row for this invoice (from invoice.payment_failed) is NOT
+  // "already processed": Stripe retries the same invoice, and when the retry
+  // collects, this handler flips that row to succeeded and extends.
+  const existingPayment = await first<{ id: string; status: string }>(
+    db.prepare(`SELECT id, status FROM payments WHERE stripe_invoice_id = ? LIMIT 1`).bind(invoiceId)
+  );
+  if (existingPayment && existingPayment.status !== "failed") {
     console.log("invoice.paid already processed", invoiceId);
     return;
   }
@@ -720,9 +729,13 @@ async function handleInvoicePaid(env: Env, invoice: StripeObject): Promise<void>
   const newEnd = base.toISOString();
 
   // Extend + reactivate + record, atomically. The extension is guarded by
-  // "this invoice is not yet recorded" so a retry after a partial failure
-  // can never extend twice; the INSERT is last and unique on invoice id.
-  const guard = `NOT EXISTS (SELECT 1 FROM payments WHERE stripe_invoice_id = ?)`;
+  // "this invoice is not yet recorded as anything but failed" so a retry
+  // after a partial failure can never extend twice; the INSERT is unique on
+  // invoice id, and the trailing UPDATE promotes a prior 'failed' row (the
+  // INSERT is ignored in that case) to the successful payment.
+  const paymentIntentId =
+    (typeof invoice.payment_intent === "string" && invoice.payment_intent) || null;
+  const guard = `NOT EXISTS (SELECT 1 FROM payments WHERE stripe_invoice_id = ? AND status <> 'failed')`;
   await db.batch([
     db
       .prepare(
@@ -745,7 +758,7 @@ async function handleInvoicePaid(env: Env, invoice: StripeObject): Promise<void>
         membership.tenant_id,
         membership.member_id,
         amountPaid,
-        (typeof invoice.payment_intent === "string" && invoice.payment_intent) || null,
+        paymentIntentId,
         invoiceId,
         `Subscription renewal ${invoiceId}`,
         membership.level_id,
@@ -753,7 +766,156 @@ async function handleInvoicePaid(env: Env, invoice: StripeObject): Promise<void>
         now,
         now
       ),
+    db
+      .prepare(
+        `UPDATE payments SET status = 'succeeded', amount_cents = ?,
+           stripe_payment_intent_id = coalesce(?, stripe_payment_intent_id),
+           description = ?, fulfilled_at = ?, updated_at = ?
+         WHERE stripe_invoice_id = ? AND status = 'failed'`
+      )
+      .bind(amountPaid, paymentIntentId, `Subscription renewal ${invoiceId}`, now, now, invoiceId),
   ]);
 
   console.log("invoice.paid: extended membership", membership.id);
+}
+
+// ---------------------------------------------------------------------------
+// invoice.payment_failed — auto-renew charge declined (member dues)
+// ---------------------------------------------------------------------------
+
+/**
+ * Records one `payments` row with status='failed' per invoice (INSERT OR
+ * IGNORE against the unique stripe_invoice_id index) and, only when that
+ * insert won, emails the member a transactional "update your card" notice.
+ * A redelivery — or Stripe's next failed retry of the same invoice — finds
+ * the row and does nothing, so the member is told once per invoice. The
+ * membership itself is left alone: Stripe keeps retrying, and the daily
+ * renewal job lapses it if the end date passes unpaid.
+ */
+async function handleInvoicePaymentFailed(env: Env, invoice: StripeObject): Promise<void> {
+  const db = env.DB;
+  const invoiceId = invoice?.id as string | undefined;
+  const subscriptionId =
+    (typeof invoice?.subscription === "string" && invoice.subscription) || null;
+  const invMeta = (invoice?.subscription_details?.metadata || invoice?.metadata || {}) as Record<
+    string,
+    string | undefined
+  >;
+  const firstLineMeta = (invoice?.lines?.data?.[0]?.metadata || {}) as Record<
+    string,
+    string | undefined
+  >;
+  if (!invoiceId || !subscriptionId) return;
+
+  // Platform (guild -> QuiltHosting) invoices are not member dues.
+  if (invMeta.type === "platform" || firstLineMeta.type === "platform") {
+    console.warn("invoice.payment_failed: platform subscription", { invoiceId, subscriptionId });
+    return;
+  }
+  const platformTenant = await first<{ id: string }>(
+    db.prepare("SELECT id FROM tenants WHERE stripe_subscription_id = ?").bind(subscriptionId)
+  );
+  if (platformTenant) {
+    console.warn("invoice.payment_failed: platform subscription", {
+      invoiceId,
+      tenantId: platformTenant.id,
+    });
+    return;
+  }
+
+  const membership = await first<{
+    id: string;
+    tenant_id: string;
+    member_id: string;
+    level_id: string;
+  }>(
+    db
+      .prepare(
+        `SELECT id, tenant_id, member_id, level_id FROM memberships
+         WHERE stripe_subscription_id = ?
+         ORDER BY created_at DESC LIMIT 1`
+      )
+      .bind(subscriptionId)
+  );
+  if (!membership) {
+    console.warn("invoice.payment_failed: no membership for subscription", subscriptionId);
+    return;
+  }
+
+  const amountDue = Number(invoice?.amount_due ?? invoice?.amount_remaining ?? 0) || 0;
+  const now = new Date().toISOString();
+  // Bind order matters for the unique-ref idiom: stripe_payment_intent_id is
+  // left NULL so the failed attempt never collides with the PI a later
+  // successful charge records.
+  const ins = await db
+    .prepare(
+      `INSERT OR IGNORE INTO payments
+       (id, tenant_id, member_id, type, amount_cents, currency, stripe_payment_intent_id,
+        stripe_invoice_id, status, description, related_id, created_at, updated_at)
+       VALUES (?, ?, ?, 'dues', ?, 'usd', ?, ?, 'failed', ?, ?, ?, ?)`
+    )
+    .bind(
+      generateId(),
+      membership.tenant_id,
+      membership.member_id,
+      amountDue,
+      null,
+      invoiceId,
+      `Subscription renewal failed ${invoiceId}`,
+      membership.level_id,
+      now,
+      now
+    )
+    .run();
+  if ((ins.meta?.changes ?? 0) === 0) {
+    console.log("invoice.payment_failed already recorded", invoiceId);
+    return;
+  }
+
+  // Post-record side effect: best-effort, never fails the event.
+  try {
+    const member = await first<{ email: string; first_name: string | null }>(
+      db
+        .prepare("SELECT email, first_name FROM members WHERE id = ? AND tenant_id = ?")
+        .bind(membership.member_id, membership.tenant_id)
+    );
+    const tenant = await first<{ name: string; slug: string }>(
+      db.prepare("SELECT name, slug FROM tenants WHERE id = ?").bind(membership.tenant_id)
+    );
+    if (!member?.email || !tenant) return;
+    const { subject, html } = paymentFailedEmail({
+      guildName: tenant.name,
+      firstName: member.first_name ?? undefined,
+      amountFormatted: formatMoney(amountDue),
+      renewUrl: portalUrl(env.APP_URL, tenant.slug, { renew: "1" }),
+    });
+    const sent = await sendEmail(env, {
+      to: member.email,
+      subject,
+      html,
+      tenantId: membership.tenant_id,
+      tags: [{ name: "template", value: "payment_failed" }],
+    });
+    try {
+      await db
+        .prepare(
+          `INSERT INTO email_logs (id, tenant_id, member_id, to_email, template, resend_id, status, created_at)
+           VALUES (?, ?, ?, ?, 'payment_failed', ?, ?, ?)`
+        )
+        .bind(
+          generateId(),
+          membership.tenant_id,
+          membership.member_id,
+          member.email,
+          sent.id || null,
+          sent.success ? "sent" : "failed",
+          now
+        )
+        .run();
+    } catch (e) {
+      console.warn("email_logs insert failed", e);
+    }
+  } catch (e) {
+    console.error("invoice.payment_failed: notice failed", e);
+  }
 }

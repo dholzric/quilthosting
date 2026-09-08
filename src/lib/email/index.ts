@@ -277,6 +277,71 @@ export function renewalReminderEmail(opts: {
   };
 }
 
+/**
+ * Transactional notice for an auto-renew charge Stripe could not collect
+ * (invoice.payment_failed). Points at the portal renew page so the member
+ * can pay with a new card before the membership lapses.
+ */
+export function paymentFailedEmail(opts: {
+  guildName: string;
+  firstName?: string;
+  amountFormatted: string;
+  renewUrl: string;
+}): { subject: string; html: string } {
+  const name = opts.firstName || "there";
+  return {
+    subject: `Action needed: your ${opts.guildName} membership payment failed`,
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 560px; margin: 0 auto;">
+        <h1 style="color: #1a1a1a;">We couldn't process your renewal</h1>
+        <p>Hi ${name},</p>
+        <p>The automatic renewal payment of <strong>${opts.amountFormatted}</strong> for your membership with <strong>${opts.guildName}</strong> did not go through. This usually means the card on file has expired or was declined.</p>
+        <p>Please update your card or pay your dues so your membership stays active:</p>
+        <p style="margin: 24px 0;">
+          <a href="${opts.renewUrl}"
+             style="background: #c45c26; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+            Update payment
+          </a>
+        </p>
+        <p style="color: #666; font-size: 14px;">If you have already paid, you can ignore this email.</p>
+        <p style="color: #666; font-size: 14px;">— ${opts.guildName}</p>
+      </div>
+    `,
+  };
+}
+
+/**
+ * Lighter renewal notice for auto-renew members: no "renew now" button, just
+ * the date and amount the card on file will be charged.
+ */
+export function autoRenewNoticeEmail(opts: {
+  guildName: string;
+  firstName?: string;
+  renewDate: string;
+  amountFormatted: string;
+  portalUrl: string;
+}): { subject: string; html: string } {
+  const name = opts.firstName || "there";
+  return {
+    subject: `Your ${opts.guildName} membership renews automatically on ${opts.renewDate}`,
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 560px; margin: 0 auto;">
+        <h1 style="color: #1a1a1a;">Your membership renews soon</h1>
+        <p>Hi ${name},</p>
+        <p>Your membership with <strong>${opts.guildName}</strong> will renew automatically on <strong>${opts.renewDate}</strong>. The card on file will be charged <strong>${opts.amountFormatted}</strong>.</p>
+        <p>Nothing to do — this is just a heads-up. To update your card or change your membership, visit the member portal:</p>
+        <p style="margin: 24px 0;">
+          <a href="${opts.portalUrl}"
+             style="background: #c45c26; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+            Member Portal
+          </a>
+        </p>
+        <p style="color: #666; font-size: 14px;">Thank you for being part of our guild.</p>
+      </div>
+    `,
+  };
+}
+
 export function eventConfirmationEmail(opts: {
   guildName: string;
   firstName?: string;

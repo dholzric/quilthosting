@@ -14,6 +14,16 @@ vi.mock("../lib/stripe", () => ({
   constructWebhookEvent: vi.fn(async (_env: unknown, payload: string) => JSON.parse(payload)),
 }));
 
+// Templates are the real ones; only the provider call is stubbed so tests
+// can count notices without RESEND_API_KEY.
+const email = vi.hoisted(() => ({
+  sendEmail: vi.fn(async () => ({ id: "msg_1", success: true })),
+}));
+vi.mock("../lib/email", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../lib/email")>()),
+  sendEmail: email.sendEmail,
+}));
+
 import { webhookRoutes } from "./webhooks";
 
 const TENANT_ID = "tenant-1";
@@ -30,12 +40,17 @@ function harness(
     orders?: Record<string, Row>;
     level?: Row | null;
     member?: Row | null;
+    /** memberships row matched by stripe_subscription_id (invoice.* handlers). */
+    membership?: Row | null;
     /** Throw when a batch containing these SQL fragments runs; fires once per fragment. */
     failBatchOnce?: string[];
   } = {}
 ) {
   const stripeEvents = new Map(Object.entries(opts.stripeEvents ?? {}));
-  const payments = new Map<string, { id: string; fulfilled_at: string | null }>();
+  const payments = new Map<
+    string,
+    { id: string; fulfilled_at: string | null; status: string; amount_cents?: unknown }
+  >();
   const registrations = new Map(Object.entries(opts.registrations ?? {}));
   const orders = new Map(Object.entries(opts.orders ?? {}));
   const runs: { sql: string; binds: unknown[]; changes: number }[] = [];
@@ -65,9 +80,30 @@ function harness(
       if (row) row.status = "failed";
       else n = 0;
     } else if (sql.startsWith("INSERT OR IGNORE INTO payments")) {
+      // binds[5] is the unique Stripe ref in every INSERT the handler issues
+      // (payment_intent / session id for checkout, invoice id for invoice.*).
       const ref = binds[5] as string;
       if (payments.has(ref)) n = 0;
-      else payments.set(ref, { id: binds[0] as string, fulfilled_at: null });
+      else {
+        payments.set(ref, {
+          id: binds[0] as string,
+          fulfilled_at: sql.includes("fulfilled_at") ? "stamped" : null,
+          status: sql.includes("'failed'") ? "failed" : "succeeded",
+          amount_cents: binds[3],
+        });
+      }
+    } else if (sql.includes("UPDATE payments SET status = 'succeeded'")) {
+      const p = payments.get(binds[5] as string);
+      if (p && p.status === "failed") {
+        p.status = "succeeded";
+        p.amount_cents = binds[0];
+        p.fulfilled_at = binds[3] as string;
+      } else n = 0;
+    } else if (sql.includes("UPDATE memberships SET end_date")) {
+      const invoiceId = binds[3] as string;
+      const p = payments.get(invoiceId);
+      if (p && p.status !== "failed") n = 0;
+      else if (opts.membership) (opts.membership as Row).end_date = binds[0];
     } else if (sql.includes("UPDATE payments SET fulfilled_at")) {
       const id = binds[2] as string;
       const p = [...payments.values()].find((x) => x.id === id);
@@ -103,7 +139,7 @@ function harness(
     if (sql.includes("FROM payments")) {
       for (const b of binds as string[]) {
         const p = payments.get(b);
-        if (p) return { id: p.id, fulfilled_at: p.fulfilled_at };
+        if (p) return { id: p.id, fulfilled_at: p.fulfilled_at, status: p.status };
       }
       return null;
     }
@@ -111,6 +147,13 @@ function harness(
     if (sql.includes("FROM events")) {
       return { title: "Spring Retreat", start_at: "2026-10-01T15:00:00.000Z", location: null };
     }
+    if (sql.includes("FROM memberships")) {
+      return opts.membership && opts.membership.stripe_subscription_id === binds[0]
+        ? opts.membership
+        : null;
+    }
+    // Platform-plan lookup by subscription: no tenant pays through these tests.
+    if (sql.includes("FROM tenants") && sql.includes("stripe_subscription_id")) return null;
     if (sql.includes("FROM tenants")) return { name: "Test Guild", slug: "testguild" };
     if (sql.includes("FROM store_orders")) return orders.get(binds[0] as string) ?? null;
     if (sql.includes("FROM membership_levels")) return opts.level ?? null;
@@ -201,6 +244,28 @@ function checkoutCompleted(over: Partial<Row> = {}, meta: Row = {}): Row {
   };
 }
 
+function invoiceEvent(
+  type: "invoice.paid" | "invoice.payment_failed",
+  over: { eventId?: string; metadata?: Row } = {}
+): Row {
+  return {
+    id: over.eventId ?? "evt_inv",
+    type,
+    data: {
+      object: {
+        id: "in_1",
+        subscription: "sub_1",
+        billing_reason: "subscription_cycle",
+        amount_due: 3500,
+        amount_paid: type === "invoice.paid" ? 3500 : 0,
+        payment_intent: "pi_inv_1",
+        metadata: over.metadata ?? {},
+        lines: { data: [{ metadata: {} }] },
+      },
+    },
+  };
+}
+
 const pendingReg = () => ({
   "reg-1": {
     id: "reg-1",
@@ -214,6 +279,7 @@ const pendingReg = () => ({
 
 describe("POST /api/webhooks/stripe — inbox + idempotent fulfillment", () => {
   beforeEach(() => {
+    email.sendEmail.mockClear();
     vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
@@ -416,6 +482,69 @@ describe("POST /api/webhooks/stripe — inbox + idempotent fulfillment", () => {
     expect(ins.sql).toMatch(/SELECT[\s\S]*WHERE EXISTS \(SELECT 1 FROM payments WHERE id = \? AND fulfilled_at IS NULL\)/);
     expect(batch.filter((s) => s.sql.startsWith("INSERT INTO webhook_outbox")).length).toBe(3);
     expect(batch[batch.length - 1].sql).toContain("UPDATE payments SET fulfilled_at");
+  });
+
+  it("(e) invoice.payment_failed records ONE failed payment and sends ONE notice across redelivery and a second failed attempt", async () => {
+    const h = harness({
+      membership: { id: "ms-1", tenant_id: TENANT_ID, member_id: "mem-1", level_id: "lvl-1", stripe_subscription_id: "sub_1" },
+      member: { id: "mem-1", email: "jo@example.com", first_name: "Jo" },
+    });
+    // Same event id twice (Stripe redelivery), then Stripe's next retry of
+    // the same invoice under a new event id.
+    expect((await h.deliver(invoiceEvent("invoice.payment_failed", { eventId: "evt_f1" }))).status).toBe(200);
+    expect((await h.deliver(invoiceEvent("invoice.payment_failed", { eventId: "evt_f1" }))).status).toBe(200);
+    expect((await h.deliver(invoiceEvent("invoice.payment_failed", { eventId: "evt_f2" }))).status).toBe(200);
+
+    const inserts = h.runs.filter((r) => r.sql.startsWith("INSERT OR IGNORE INTO payments"));
+    expect(inserts.length).toBe(2); // second attempt tried and was ignored
+    expect(inserts.filter((r) => r.changes === 1).length).toBe(1);
+    expect(h.payments.get("in_1")).toMatchObject({ status: "failed", amount_cents: 3500 });
+    expect(inserts[0].sql).toContain("'failed'");
+    // Keyed by invoice id, never by a payment intent (no PI collision later).
+    expect(inserts[0].binds[4]).toBeNull();
+    expect(inserts[0].binds[5]).toBe("in_1");
+
+    expect(email.sendEmail).toHaveBeenCalledTimes(1);
+    const params = email.sendEmail.mock.calls[0][1] as Row;
+    expect(params.to).toBe("jo@example.com");
+    expect(params.subject).toMatch(/payment failed/i);
+    expect(params.html).toContain("https://quilthosting.com/portal?slug=testguild&renew=1");
+    expect(h.runs.filter((r) => r.sql.includes("INSERT INTO email_logs")).length).toBe(1);
+    // The membership itself is untouched: Stripe keeps retrying.
+    expect(h.runs.some((r) => r.sql.includes("UPDATE memberships"))).toBe(false);
+  });
+
+  it("(e) invoice.paid after a failed attempt promotes the failed row to succeeded and extends the membership once", async () => {
+    const membership = { id: "ms-1", tenant_id: TENANT_ID, member_id: "mem-1", level_id: "lvl-1", stripe_subscription_id: "sub_1", end_date: "2026-12-31T00:00:00.000Z" };
+    const h = harness({
+      membership,
+      member: { id: "mem-1", email: "jo@example.com", first_name: "Jo" },
+      level: { id: "lvl-1", duration_months: 12 },
+    });
+    await h.deliver(invoiceEvent("invoice.payment_failed", { eventId: "evt_f1" }));
+    expect((await h.deliver(invoiceEvent("invoice.paid", { eventId: "evt_p1" }))).status).toBe(200);
+
+    expect(h.payments.size).toBe(1);
+    expect(h.payments.get("in_1")).toMatchObject({ status: "succeeded", amount_cents: 3500 });
+    expect(membership.end_date.slice(0, 10)).toBe("2027-12-31");
+    const batch = h.batches.find((b) => b.some((s) => s.sql.includes("UPDATE memberships SET end_date")))!;
+    expect(batch[0].sql).toContain("status <> 'failed'");
+    expect(batch[batch.length - 1].sql).toContain("UPDATE payments SET status = 'succeeded'");
+
+    // Redelivery of the paid event: nothing extends twice.
+    await h.deliver(invoiceEvent("invoice.paid", { eventId: "evt_p2" }));
+    expect(membership.end_date.slice(0, 10)).toBe("2027-12-31");
+    expect(h.batches.filter((b) => b.some((s) => s.sql.includes("UPDATE memberships SET end_date"))).length).toBe(1);
+  });
+
+  it("(e) invoice.payment_failed for a platform subscription records nothing and emails nobody", async () => {
+    const h = harness({ membership: null });
+    const r = await h.deliver(
+      invoiceEvent("invoice.payment_failed", { eventId: "evt_f3", metadata: { type: "platform", tenant_id: TENANT_ID } })
+    );
+    expect(r.status).toBe(200);
+    expect(h.payments.size).toBe(0);
+    expect(email.sendEmail).not.toHaveBeenCalled();
   });
 
   it("rejects an unverifiable payload with 400 and never touches the inbox", async () => {
