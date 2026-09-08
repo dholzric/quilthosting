@@ -2,7 +2,7 @@
 
 **Audience:** an AI model or designer producing one or more complete website designs ("kits") for QuiltHosting, a membership + events + website platform for quilt guilds and small quilting businesses (long-arm quilters, quilt shops, teachers). Kits compete with Wild Apricot, whose sites users describe as dated and rigid, and with Squarespace-class templates, which look good but have no membership features.
 
-**What you deliver:** one JSON file per kit under `src/lib/site/kits/<kit-id>.json`, plus (optional) pattern-free imagery under `public/kit-assets/<kit-id>/` with a license note, plus (optional) new palette proposals. The validator (`npm run kits:validate`) is the gate; the preview (`npm run kits:preview`) renders every page of your kit at desktop and phone widths so a human can judge it.
+**What you deliver:** one JSON file per kit under `src/lib/site/kits/<kit-id>.json` (engineers: `docs/KIT-AUTHORING.md` is a pointer back to this file), plus (optional) pattern-free imagery under `public/kit-assets/<kit-id>/` with a license note, plus (optional) new palette proposals. The validator (`npm run kits:validate`) is the gate; the preview (`npm run kits:preview`) renders every page of your kit at desktop and phone widths so a human can judge it.
 
 You do not write HTML, CSS, or JavaScript. A kit is data: a design (palette, type pair, shape, rhythm, header, footer, pattern) plus pages made of sections with real sample copy. The platform renders it.
 
@@ -49,7 +49,7 @@ A proposed kit needs a one-line character statement that is distinguishable from
   "character": "Bold sans, high-contrast brand band, flying-geese geometry, tight rhythm.",
   "defaults": {
     "palette": "modern-indigo-mustard", // a palette id from §5, or a proposal (see §5)
-    "typePair": "manrope",              // a type pair id from §6
+    "typePair": "manrope",              // a type pair id from §6 (exact ids; e.g. "cormorantgaramond-sourcesans")
     "scale": "comfortable",            // "compact" | "comfortable" | "editorial"
     "shape": { "radius": "sharp", "shadow": "none" },          // radius: sharp|soft|round · shadow: none|subtle|lifted
     "rhythm": { "spacing": "tight", "container": "normal" },   // spacing: tight|normal|airy · container: narrow|normal|wide
@@ -79,10 +79,13 @@ A proposed kit needs a one-line character statement that is distinguishable from
 
 Rules the validator enforces:
 
-- `id` unique; page slugs unique within the kit and not reserved (`home` is allowed and means the home page; reserved: `membership, join, join-renew, events, calendar, galleries, photos, portal, admin, api, docs, embed, auth, site-access, privacy, terms, g, guild, assets, t, public, sites, u, img, blog`). Those reserved paths are **system pages** the platform renders itself (membership levels with a working Join, events with registration, calendar, galleries, blog); your kit links to them, it does not recreate them.
-- Every section `type` and `variant` exists in §4; every field is the right type; rich text contains only the allowed HTML tags (`p, br, h2, h3, h4, strong, em, ul, ol, li, blockquote, a`).
-- Every `imageId` referenced by a section exists in `imagery`; every `photo` has an `src` file present and a `LICENSE.txt` next to it naming the source and license (only CC0, CC-BY with attribution text, or your own work).
-- No "lorem", no "ipsum", no "[placeholder]"; copy may use placeholders `{{guild_name}}`, `{{city}}`, `{{meeting_info}}`, which the platform substitutes.
+- `id` kebab-case and equal to the file name; a page with slug `home` is required; page slugs are kebab-case, unique within the kit, and not reserved (reserved: `membership, join, join-renew, events, calendar, galleries, photos, admin, portal, docs, embed, sites, api, t, public, g, guild, auth, assets, site-access, privacy, terms` — the exact set is `RESERVED_SLUGS` in `src/routes/pages.ts`). The first seven are **system pages** the platform renders itself (membership levels with a working Join, events with registration, calendar, galleries), alongside `/blog` and the member portal `/portal`; your kit links to them, it does not recreate them.
+- Every internal link (`ctaHref`, `secondaryHref`, `href`, menu items) that starts with `/` must point at a page in the kit or a system page (`/membership, /join, /events, /calendar, /galleries, /photos, /blog, /portal`). External `https:` links, `mailto:`, and `#anchors` are not checked.
+- Navigation: at most seven top-level items (an explicit `menu`, or the pages with `nav: true` when there is no menu); nest the rest as `children`.
+- Every section `type` and `variant` exists in §4; every field is the right type; legacy block types (`text`, `heading`, `join_cta`, …) are rejected. Rich text is sanitized the same way the page editor sanitizes it (`p, br, h2–h4, strong, em, ul, ol, li, blockquote, a` and a few more; scripts, styles, and event handlers are removed). Section `id`s, when given, are kebab-case and unique within the page.
+- Every `imageId` referenced by a section (`style.imageId`, `image`/`gallery` items) exists in `imagery`; imagery ids are unique; every `photo` has non-empty `alt`, an `src` under `public/kit-assets/<kit-id>/` that exists, and a `LICENSE.txt` next to it naming the source and license (only CC0, CC-BY with attribution text, or your own work). `style.bg: "image"` and `hero` variant `image` require `style.imageId`.
+- No "lorem", no "ipsum", no "[placeholder]", no superlatives ("world-class", "premier", …), and no exclamation marks anywhere in copy. Copy may use the placeholders `{{guild_name}}`, `{{city}}`, `{{meeting_info}}`, which the platform substitutes when the kit is applied (HTML-escaped inside `html` fields; when the guild has not supplied a city or meeting schedule they become `your town` and `on the second Tuesday of every month at 6:30 pm`, so write sentences that still read with those values, e.g. `We meet {{meeting_info}}.`).
+- Every page carries the sample marker `Sample text — replace me:` at least once, on the copy the officer must replace (as `<em>Sample text — replace me:</em>` at the start of a rich-text paragraph, or as a plain prefix in a subtitle or body field). The onboarding checklist counts pages that still contain it.
 - The default palette passes the platform's contrast derivation (the platform nudges colors to pass WCAG AA; if it cannot, the palette is rejected).
 
 ## 4. Section catalogue (schema v1)
@@ -106,11 +109,11 @@ Every section has `type`, an optional `variant`, an optional `id` (kebab-case, u
 | `hero` | `image`, `split`, `pattern`, `minimal`, `stats` | `eyebrow?`, `title`, `subtitle?`, `ctaLabel?`, `ctaHref?`, `secondaryLabel?`, `secondaryHref?`, `stats?: [{value,label}]` (stats variant, 3–4 items) | Page opener. `image` = full-bleed photo with scrim (needs `style.imageId`); `split` = text beside image or pattern; `pattern` = quilt-block band; `minimal` = centered type; `stats` = headline plus big numbers |
 | `rich_text` | `prose`, `two_column`, `with_image` | `heading?`, `html` | Body copy (≤ 70-character measure). `with_image` uses `style.imageId` and `style.media` |
 | `image` | `single`, `full_bleed`, `duo` | `items: [{imageId, alt, caption?}]` (1 or 2) | Photo with optional caption |
-| `feature_grid` | `cards`, `icons`, `numbered` | `heading?`, `items: [{icon?, title, body?, href?, price?}]` (3–6) | Activities, services (with `price`), benefits |
+| `feature_grid` | `cards`, `icons`, `numbered` | `heading?`, `items: [{icon?, title, body?, href?, price?}]` (3–6 recommended, 12 max; `icon` is an emoji or short glyph, ≤ 8 characters) | Activities, services (with `price`), benefits |
 | `faq` | — | `heading?`, `items: [{q, a}]` | Accordion |
 | `testimonials` | `grid`, `single` | `items: [{quote, author?}]` | Member or customer quotes |
 | `gallery` | `grid`, `masonry` | `source: "manual"` with `items: [{imageId, alt?, caption?}]`, or `source: "gallery"` with `gallerySlug` (uses the guild's real photo galleries) | Photo grid with lightbox |
-| `events` | `cards`, `list`, `calendar`, `next_up` | `heading?`, `limit` (1–12) | The guild's real upcoming events; `next_up` shows one |
+| `events` | `cards`, `list`, `calendar`, `next_up` | `heading?`, `limit` (1–50; keep it ≤ 12 on a home page) | The guild's real upcoming events; `next_up` shows one |
 | `membership_levels` | `cards`, `compact` | `heading?` | The guild's real levels with working Join buttons |
 | `join_band` | — | `title`, `body?`, `ctaLabel` | Full-width call-to-action band |
 | `meeting_info` | — | `heading?`, `when`, `where`, `address?`, `mapUrl?`, `note?` | When/where block with map link |
@@ -139,7 +142,7 @@ Use an id from the library, or propose a new one as four hex inputs. The platfor
 | seasonal | `seasonal-harvest`, `seasonal-winter`, `seasonal-spring`, `seasonal-summer` |
 | dark | `dark-charcoal-gold`, `dark-ink-rose`, `dark-forest-cream` |
 
-Proposal format (put it in your PR description and set `defaults.palette` to the new id):
+Proposal format (add it to `PALETTES` in `src/lib/site/design/palettes.ts` in the same PR — the validator only accepts library ids — and describe it in the PR):
 
 ```json
 { "id": "jewel-teal-copper", "name": "Teal & Copper", "family": "jewel", "input": { "brand": "#0f6b6b", "brandAlt": "#134e4a", "accent": "#b87333", "neutral": "#1f2a2a" } }
@@ -149,7 +152,7 @@ Proposal format (put it in your PR description and set `defaults.palette` to the
 
 ## 6. Type pairs
 
-`fraunces-inter`, `cormorant-source`, `playfair-lato`, `dmserif-dmsans`, `lora-karla`, `baskerville-nunito`, `manrope`, `spacegrotesk-work`, `bitter-opensans`, `newsreader-plex`, `system`. Choose for the audience: a heritage guild reads as serif display; a modern guild as heavy sans; a business as a confident serif over a neutral sans. Never more than the pair (the platform loads exactly two families).
+`fraunces-inter`, `cormorantgaramond-sourcesans`, `playfair-lato`, `dmserif-dmsans`, `lora-karla`, `librebaskerville-nunitosans`, `manrope`, `spacegrotesk-worksans`, `bitter-opensans`, `newsreader-ibmplexsans`, `nunito`, `system` (exact ids from `src/lib/site/design/typePairs.ts`; the validator rejects anything else). Choose for the audience: a heritage guild reads as serif display; a modern guild as heavy sans; a business as a confident serif over a neutral sans. Never more than the pair (the platform loads exactly two families).
 
 ## 7. Page and section guidance from real guild sites
 
@@ -165,9 +168,9 @@ A good home page for a guild: `hero` → `meeting_info` or `join_band` → `even
 
 ## 9. Deliverable and review
 
-1. `src/lib/site/kits/<id>.json` (+ `public/kit-assets/<id>/` with `LICENSE.txt` if you ship photos).
-2. Run `npm run kits:validate` → zero issues.
-3. Run `npm run kits:preview` → screenshots in `docs/kit-gallery/<id>/`; include them in the PR.
+1. `src/lib/site/kits/<id>.json` (+ `public/kit-assets/<id>/` with `LICENSE.txt` if you ship photos), registered in `KITS` in `src/lib/site/kits/index.ts`. The reference kit is `src/lib/site/kits/heritage.json`; copy its shape.
+2. Run `npm run kits:validate` → zero issues (it validates every kit file and then runs `vitest run src/lib/site/kits`).
+3. Run `npm run kits:preview` → screenshots in `docs/kit-gallery/<id>/` at 1366 and 390 px; include them in the PR. It needs a local Worker and a Playwright install pointed to by `PLAYWRIGHT_PATH` — see the header of `scripts/kits-preview.mjs`.
 4. PR description: the kit's one-line character, the audience, any palette proposals, and which phase-2 sections you would add if available.
 
 Review rubric (a kit ships when all are yes): thesis above the fold · rhythm across the page · five-to-seven-item menu with one CTA · phone layout clean at 390 px · copy specific to quilters and free of filler · pair and palette chosen for the audience, not defaults · no two adjacent sections with the same background · every dynamic section (events, levels, gallery) placed where real data will look good and empty states won't embarrass a new guild.

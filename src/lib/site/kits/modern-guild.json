@@ -1,0 +1,158 @@
+{
+  "id": "modern-guild",
+  "name": "Modern Guild",
+  "audience": "guild",
+  "character": "Bold sans, high-contrast brand band, flying-geese geometry, tight rhythm.",
+  "defaults": {
+    "palette": "modern-indigo-mustard",
+    "typePair": "spacegrotesk-worksans",
+    "scale": "compact",
+    "shape": { "radius": "sharp", "shadow": "none" },
+    "rhythm": { "spacing": "tight", "container": "wide" },
+    "header": { "variant": "split", "sticky": true, "cta": "join", "overlayHero": true },
+    "footer": { "variant": "columns" },
+    "pattern": { "id": "flying-geese", "opacity": 0.12 }
+  },
+  "imagery": [{ "id": "hero-art", "kind": "pattern", "alt": "" }],
+  "previewSeed": { "guildName": "Austin Modern Quilt Guild", "city": "Austin, Texas" },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero", "id": "welcome", "variant": "split",
+          "eyebrow": "Modern quilters in {{city}}",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: Solids, negative space, and improvisation. We meet {{meeting_info}}.",
+          "ctaLabel": "Join", "ctaHref": "/membership",
+          "secondaryLabel": "Show and tell", "secondaryHref": "/show-and-tell",
+          "style": { "bg": "dark", "width": "full", "spacing": "airy", "media": "right", "imageId": "hero-art" }
+        },
+        {
+          "type": "feature_grid", "id": "pillars", "variant": "icons",
+          "heading": "How this guild runs",
+          "items": [
+            { "title": "Design wall", "body": "Bring a top in progress. Critique is optional; looking is required.", "href": "/show-and-tell" },
+            { "title": "Bees", "body": "Four to eight people, a standing sew night, and a shared BOM in solids.", "href": "/bees" },
+            { "title": "Workshops", "body": "Improv curves, wonky stars, and walking-foot quilting on a domestic machine.", "href": "/meetings" },
+            { "title": "Swap", "body": "Fat-quarter and half-yard swaps twice a year. Solids and low-volume prints only." }
+          ],
+          "style": { "bg": "none", "width": "wide" }
+        },
+        { "type": "events", "id": "next", "variant": "next_up", "heading": "Next gathering", "limit": 1, "style": { "bg": "tint" } },
+        { "type": "gallery", "id": "home-gallery", "variant": "masonry", "source": "gallery", "gallerySlug": "show-and-tell", "style": { "bg": "none", "width": "wide" } },
+        {
+          "type": "join_band", "id": "join-home", "title": "Membership is open",
+          "body": "Dues cover meetings, bees, and member pricing on workshops.",
+          "ctaLabel": "See levels",
+          "style": { "bg": "brand", "width": "full", "align": "center" }
+        }
+      ]
+    },
+    {
+      "slug": "about", "title": "About", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "about-hero", "variant": "minimal",
+          "title": "A modern quilt guild",
+          "subtitle": "Sample text — replace me: {{guild_name}} is for makers who like high contrast, improvisation, and a short business meeting.",
+          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+        },
+        {
+          "type": "rich_text", "id": "about-body", "variant": "two_column",
+          "html": "<p>We follow the usual modern-guild habits: a speaker or demo, a timed show and tell, and a design-wall hour after the meeting. Traditional blocks are welcome if you are willing to crop them, rotate them, or put them on a grey ground.</p><p>Officers rotate every two years. Committees are small on purpose.</p>",
+          "style": { "bg": "tint" }
+        },
+        {
+          "type": "testimonials", "id": "about-quotes", "variant": "single",
+          "items": [{ "quote": "I came for the solids stash. I stayed because someone always has a 60-degree triangle ruler I can borrow.", "author": "Jordan P." }],
+          "style": { "bg": "none" }
+        }
+      ]
+    },
+    {
+      "slug": "why-join", "title": "Join", "nav": true, "navLabel": "Join",
+      "sections": [
+        {
+          "type": "hero", "id": "join-hero", "variant": "pattern",
+          "title": "Join {{guild_name}}",
+          "subtitle": "Sample text — replace me: Individual and student levels. Pay online and you are on the roster the same day.",
+          "ctaLabel": "Open membership", "ctaHref": "/membership",
+          "style": { "bg": "pattern", "align": "center", "imageId": "hero-art" }
+        },
+        { "type": "membership_levels", "id": "levels", "variant": "compact", "heading": "Levels", "style": { "bg": "none", "width": "wide" } },
+        {
+          "type": "faq", "id": "join-faq",
+          "items": [
+            { "q": "Do you only accept modern work?", "a": "No. The guild is modern in how it meets and how it looks at quilts. Bring what you are making." },
+            { "q": "Are bees required?", "a": "No. Bees form when four people want the same night. The membership chair keeps a waiting list." }
+          ],
+          "style": { "bg": "tint", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "meetings", "title": "Events", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "events-hero", "variant": "minimal",
+          "title": "Meetings and workshops",
+          "subtitle": "Sample text — replace me: {{meeting_info}} in {{city}}. Workshops sit on Saturdays.",
+          "ctaLabel": "Calendar", "ctaHref": "/calendar",
+          "style": { "bg": "brand", "align": "center" }
+        },
+        { "type": "meeting_info", "id": "when", "when": "{{meeting_info}}", "where": "{{city}}", "note": "Street parking. The room is on the second floor with an elevator.", "style": { "bg": "none" } },
+        { "type": "events", "id": "list", "variant": "list", "heading": "Upcoming", "limit": 8, "style": { "bg": "tint", "width": "wide" } }
+      ]
+    },
+    {
+      "slug": "show-and-tell", "title": "Show & Tell", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "st-hero", "variant": "minimal",
+          "title": "Show and tell",
+          "subtitle": "Sample text — replace me: Two minutes at the microphone. Hang the quilt on the design wall if you want notes.",
+          "style": { "bg": "none", "align": "center" }
+        },
+        { "type": "gallery", "id": "st-grid", "variant": "masonry", "source": "gallery", "gallerySlug": "show-and-tell", "style": { "bg": "tint", "width": "wide" } },
+        { "type": "cta", "id": "st-all", "label": "All photo albums", "href": "/galleries", "kind": "secondary", "style": { "bg": "none", "align": "center" } }
+      ]
+    },
+    {
+      "slug": "bees", "title": "Bees & BOM", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "bees-hero", "variant": "split",
+          "title": "Bees and the block of the month",
+          "subtitle": "Sample text — replace me: Small groups, a shared palette, and a twelve-block sampler in solids.",
+          "style": { "bg": "dark", "media": "left", "imageId": "hero-art" }
+        },
+        {
+          "type": "feature_grid", "id": "bee-kinds", "variant": "cards",
+          "items": [
+            { "title": "Weeknight bee", "body": "Tuesday evenings, four to six people, domestic machines. Host rotates." },
+            { "title": "Handwork bee", "body": "English paper piecing and binding. Meets in a cafe before the monthly meeting." },
+            { "title": "Block of the month", "body": "One modern block a month, posted in the newsletter with cutting numbers for two palette options." }
+          ],
+          "style": { "bg": "none", "width": "wide" }
+        },
+        { "type": "join_band", "id": "bees-join", "title": "Ask for a bee seat", "body": "Members can join a bee after their second meeting.", "ctaLabel": "Join first", "style": { "bg": "brand", "align": "center" } }
+      ]
+    },
+    {
+      "slug": "contact", "title": "Contact", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "contact-hero", "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Speakers, workshop seats, and new-member questions.",
+          "style": { "bg": "none", "align": "center" }
+        },
+        { "type": "contact", "id": "form", "heading": "Write to us", "showDetails": true, "style": { "bg": "tint" } },
+        { "type": "meeting_info", "id": "contact-when", "when": "{{meeting_info}}", "where": "{{city}}", "style": { "bg": "dark" } }
+      ]
+    }
+  ]
+}

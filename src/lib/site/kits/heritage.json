@@ -1,0 +1,375 @@
+{
+  "id": "heritage",
+  "name": "Heritage",
+  "audience": "guild",
+  "character": "Warm paper, serif display, log-cabin pattern band, generous spacing. For traditional guilds.",
+  "defaults": {
+    "palette": "heritage-madder",
+    "typePair": "cormorantgaramond-sourcesans",
+    "scale": "comfortable",
+    "shape": { "radius": "soft", "shadow": "subtle" },
+    "rhythm": { "spacing": "normal", "container": "normal" },
+    "header": { "variant": "left", "sticky": true, "cta": "join", "overlayHero": false },
+    "footer": { "variant": "meeting" },
+    "pattern": { "id": "log-cabin", "opacity": 0.14 }
+  },
+  "imagery": [
+    { "id": "hero-log-cabin", "kind": "pattern", "alt": "" }
+  ],
+  "previewSeed": { "guildName": "Bluebonnet Quilt Guild", "city": "Round Rock, Texas" },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "split",
+          "id": "welcome",
+          "eyebrow": "A quilt guild in {{city}}",
+          "title": "Welcome to {{guild_name}}",
+          "subtitle": "Sample text — replace me: {{guild_name}} is a community of quilters in {{city}} who share a love of fabric, color, and craft. Whether you have been quilting for decades or are threading your first needle, you are welcome here.",
+          "ctaLabel": "Become a member",
+          "ctaHref": "/membership",
+          "secondaryLabel": "Visit a meeting",
+          "secondaryHref": "/meetings",
+          "style": { "bg": "pattern", "width": "normal", "spacing": "airy", "align": "left", "media": "right", "imageId": "hero-log-cabin" }
+        },
+        {
+          "type": "meeting_info",
+          "id": "guild-night",
+          "heading": "Guild night",
+          "when": "{{meeting_info}}",
+          "where": "Sample text — replace me: the community center in {{city}}",
+          "note": "Guests are welcome at their first meeting, no dues required. Doors open thirty minutes early for show and tell setup.",
+          "style": { "bg": "none", "width": "normal", "spacing": "normal", "align": "left", "media": "right" }
+        },
+        {
+          "type": "events",
+          "variant": "cards",
+          "id": "coming-up",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": { "bg": "tint", "width": "normal", "spacing": "normal", "align": "left", "media": "right" }
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "id": "what-we-do",
+          "heading": "What we do",
+          "items": [
+            { "title": "Bees", "body": "Small groups that meet between guild nights to sew together, swap fabric, and finish what we started. Day bees, evening bees, and a hand-work bee.", "href": "/community" },
+            { "title": "Block of the month", "body": "One block, one set of instructions, and a drawing at the meeting for the finished set. A gentle way to try a new technique every month.", "href": "/meetings" },
+            { "title": "Charity quilts", "body": "Comfort quilts for the children's hospital in Austin, foster families, and veterans in our county. Kits are ready to pick up at every meeting.", "href": "/community" },
+            { "title": "Workshops", "body": "Hands-on classes with visiting teachers, from foundation paper piecing to free-motion quilting, at member rates.", "href": "/events" }
+          ],
+          "style": { "bg": "none", "width": "normal", "spacing": "normal", "align": "left", "media": "right" }
+        },
+        {
+          "type": "blog_teaser",
+          "id": "news",
+          "heading": "News from the guild",
+          "limit": 3,
+          "style": { "bg": "tint", "width": "normal", "spacing": "normal", "align": "left", "media": "right" }
+        },
+        {
+          "type": "join_band",
+          "id": "join",
+          "title": "Join {{guild_name}}",
+          "body": "Sample text — replace me: Dues are collected once a year and include monthly programs, the newsletter, the lending library, and a place in the annual show.",
+          "ctaLabel": "See membership levels",
+          "style": { "bg": "brand", "width": "normal", "spacing": "normal", "align": "center", "media": "right" }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About & History",
+      "nav": true,
+      "navLabel": "About",
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: Quilters in {{city}} and the surrounding Hill Country, meeting since 1984 to share the craft.",
+          "style": { "bg": "none", "width": "normal", "spacing": "normal", "align": "center", "media": "right" }
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Our story",
+          "html": "<p><em>Sample text — replace me:</em> Tell your story here. When was the guild founded, and by whom? Many Central Texas guilds started as a handful of friends trading patterns at a kitchen table; others grew out of a county extension class or a church sewing circle. Say what kinds of quilting members enjoy: traditional piecing, hand appliqué, modern, art quilts, hand quilting.</p><p>{{guild_name}} welcomes every skill level. Beginners learn from members who have been quilting for fifty years, and long-time members pick up new techniques from people who started last spring.</p>",
+          "style": { "bg": "tint", "width": "narrow", "spacing": "normal", "align": "left", "media": "right" }
+        },
+        {
+          "type": "feature_grid",
+          "variant": "numbered",
+          "heading": "What a year looks like",
+          "items": [
+            { "title": "Monthly programs", "body": "Guest speakers, trunk shows, and demonstrations at every guild night." },
+            { "title": "Workshops and retreats", "body": "Weekend retreats in the Hill Country and hands-on classes with visiting teachers." },
+            { "title": "The annual show", "body": "Members' quilts judged and displayed each spring, with a viewer's choice ribbon." },
+            { "title": "Community projects", "body": "Comfort quilts, pillowcases, and Quilts of Valor delivered across the county." }
+          ],
+          "style": { "bg": "none", "width": "normal", "spacing": "normal", "align": "left", "media": "right" }
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Our leadership",
+          "html": "<p><em>Sample text — replace me:</em> List your officers and committee chairs here so members know who to contact: president, vice president and programs, secretary, treasurer, membership, newsletter, community projects, and show chair.</p>",
+          "style": { "bg": "tint", "width": "narrow", "spacing": "normal", "align": "left", "media": "right" }
+        },
+        {
+          "type": "cta",
+          "label": "Come to a meeting",
+          "href": "/meetings",
+          "kind": "secondary",
+          "style": { "bg": "none", "width": "normal", "spacing": "tight", "align": "center", "media": "right" }
+        }
+      ]
+    },
+    {
+      "slug": "why-join",
+      "title": "Membership",
+      "nav": true,
+      "navLabel": "Join",
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Why join {{guild_name}}",
+          "subtitle": "Sample text — replace me: Membership is open to anyone who quilts or wants to learn. Dues are collected once a year.",
+          "style": { "bg": "none", "width": "normal", "spacing": "normal", "align": "center", "media": "right" }
+        },
+        {
+          "type": "feature_grid",
+          "variant": "icons",
+          "heading": "What members get",
+          "items": [
+            { "icon": "🧵", "title": "Monthly programs", "body": "Guild night every month with a speaker, trunk show, or demonstration." },
+            { "icon": "✂️", "title": "Workshops at member rates", "body": "Classes with visiting teachers, first pick of seats, and a discount on every one." },
+            { "icon": "📚", "title": "Lending library", "body": "Books, rulers, and templates to borrow between meetings." },
+            { "icon": "✉️", "title": "The newsletter", "body": "Monthly by email, with the program, bee reports, and block of the month instructions." },
+            { "icon": "🐝", "title": "Bees", "body": "Small groups that meet between guild nights, by day or evening." },
+            { "icon": "🏅", "title": "A place in the show", "body": "Enter your quilts in the annual show and the county fair exhibit." }
+          ],
+          "style": { "bg": "tint", "width": "normal", "spacing": "normal", "align": "left", "media": "right" }
+        },
+        {
+          "type": "faq",
+          "heading": "Questions",
+          "items": [
+            { "q": "Do I need to be an experienced quilter?", "a": "No. Members range from first-time quilters to teachers. Beginners are paired with a mentor on request." },
+            { "q": "Can I visit before joining?", "a": "Yes. Guests are welcome at their first meeting at no charge." },
+            { "q": "When are dues collected?", "a": "<em>Sample text — replace me:</em> Dues are due each January and cover the calendar year. Join after July and pay half." },
+            { "q": "How do I pay?", "a": "Online with a card on the <a href=\"/membership\">membership page</a>, or by check at a meeting." }
+          ],
+          "style": { "bg": "none", "width": "narrow", "spacing": "normal", "align": "left", "media": "right" }
+        },
+        {
+          "type": "join_band",
+          "title": "Ready to join",
+          "body": "Pick a membership level and you will be on the roster in minutes. You will receive a welcome email with the newsletter and the members-only calendar.",
+          "ctaLabel": "Choose a level",
+          "style": { "bg": "brand", "width": "normal", "spacing": "normal", "align": "center", "media": "right" }
+        }
+      ]
+    },
+    {
+      "slug": "meetings",
+      "title": "Meetings & Events",
+      "nav": true,
+      "navLabel": "Meetings",
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Meetings and events",
+          "subtitle": "Sample text — replace me: Monthly guild nights, workshops, retreats, and the annual show.",
+          "style": { "bg": "none", "width": "normal", "spacing": "normal", "align": "center", "media": "right" }
+        },
+        {
+          "type": "meeting_info",
+          "heading": "Guild night",
+          "when": "{{meeting_info}}",
+          "where": "Sample text — replace me: the community center in {{city}}",
+          "note": "Doors open thirty minutes early for show and tell setup and socializing. Parking is free in the lot behind the building.",
+          "style": { "bg": "tint", "width": "normal", "spacing": "normal", "align": "left", "media": "right" }
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "A typical meeting",
+          "html": "<p><em>Sample text — replace me:</em> We meet {{meeting_info}}. A meeting runs about two hours: a short business session, a program or guest speaker, show and tell, and door prizes. Bring a finished quilt or a work in progress for show and tell.</p><p>Describe parking, accessibility, and what to bring. Add a note about summer or holiday schedule changes here.</p>",
+          "style": { "bg": "none", "width": "narrow", "spacing": "normal", "align": "left", "media": "right" }
+        },
+        {
+          "type": "events",
+          "variant": "list",
+          "heading": "Upcoming",
+          "limit": 6,
+          "style": { "bg": "tint", "width": "normal", "spacing": "normal", "align": "left", "media": "right" }
+        },
+        {
+          "type": "cta",
+          "label": "See the full calendar",
+          "href": "/calendar",
+          "kind": "secondary",
+          "style": { "bg": "none", "width": "normal", "spacing": "tight", "align": "center", "media": "right" }
+        }
+      ]
+    },
+    {
+      "slug": "community",
+      "title": "Community Projects",
+      "nav": true,
+      "navLabel": "Community",
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "stats",
+          "title": "Quilts that leave the guild",
+          "subtitle": "Sample text — replace me: Every year members sew comfort quilts for neighbors who need one.",
+          "stats": [
+            { "value": "120", "label": "comfort quilts last year" },
+            { "value": "3", "label": "partner charities" },
+            { "value": "400", "label": "pillowcases for foster kids" }
+          ],
+          "style": { "bg": "tint", "width": "normal", "spacing": "airy", "align": "center", "media": "right" }
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Where our quilts go",
+          "items": [
+            { "title": "Children's hospital", "body": "Crib and lap quilts for the NICU and pediatric units in Austin." },
+            { "title": "Quilts of Valor", "body": "Presented to veterans in our county at a ceremony each November." },
+            { "title": "Foster families", "body": "Pillowcases and twin quilts through the county child welfare office." },
+            { "title": "Memory care", "body": "Lap quilts and fidget quilts for residents of local nursing homes." }
+          ],
+          "style": { "bg": "none", "width": "normal", "spacing": "normal", "align": "left", "media": "right" }
+        },
+        {
+          "type": "rich_text",
+          "variant": "two_column",
+          "heading": "How to help",
+          "html": "<p><em>Sample text — replace me:</em> Pick up a kit at any meeting, sew the top at home, and bring it back. Longarm members quilt the tops; a binding bee finishes them. Donations of cotton fabric and batting are always welcome.</p><p>Charity sew days happen on the second Saturday of the month at the community center. Bring your machine, a cutting mat, and a lunch.</p>",
+          "style": { "bg": "tint", "width": "normal", "spacing": "normal", "align": "left", "media": "right" }
+        },
+        {
+          "type": "join_band",
+          "title": "Sew with us",
+          "body": "You do not have to be a member to sew a comfort quilt, but members get the kits first.",
+          "ctaLabel": "Join the guild",
+          "style": { "bg": "brand", "width": "normal", "spacing": "normal", "align": "center", "media": "right" }
+        }
+      ]
+    },
+    {
+      "slug": "newsletter",
+      "title": "Newsletter",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "The newsletter",
+          "subtitle": "Sample text — replace me: Published monthly and emailed to members the week before guild night.",
+          "style": { "bg": "none", "width": "normal", "spacing": "normal", "align": "center", "media": "right" }
+        },
+        {
+          "type": "blog_teaser",
+          "heading": "Latest issues and news",
+          "limit": 6,
+          "style": { "bg": "tint", "width": "normal", "spacing": "normal", "align": "left", "media": "right" }
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "What is in it",
+          "html": "<p><em>Sample text — replace me:</em> The president's letter, the program for next month, bee reports, block of the month instructions, birthdays, and classified ads for members. Back issues are in the members' area.</p>",
+          "style": { "bg": "none", "width": "narrow", "spacing": "normal", "align": "left", "media": "right" }
+        },
+        {
+          "type": "cta",
+          "label": "Join to receive the newsletter",
+          "href": "/membership",
+          "kind": "primary",
+          "style": { "bg": "tint", "width": "normal", "spacing": "tight", "align": "center", "media": "right" }
+        }
+      ]
+    },
+    {
+      "slug": "gallery",
+      "title": "Gallery",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Gallery",
+          "subtitle": "Sample text — replace me: Show and tell from guild night, the annual show, and finished charity quilts.",
+          "style": { "bg": "none", "width": "normal", "spacing": "normal", "align": "center", "media": "right" }
+        },
+        {
+          "type": "gallery",
+          "variant": "grid",
+          "source": "gallery",
+          "items": [],
+          "style": { "bg": "tint", "width": "wide", "spacing": "normal", "align": "left", "media": "right" }
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Share your quilts",
+          "html": "<p><em>Sample text — replace me:</em> Photos from show and tell are posted after each meeting; tell the photographer if you would rather not be included. Members can add photos of their own work from the member portal.</p>",
+          "style": { "bg": "none", "width": "narrow", "spacing": "normal", "align": "left", "media": "right" }
+        },
+        {
+          "type": "cta",
+          "label": "Browse all galleries",
+          "href": "/galleries",
+          "kind": "secondary",
+          "style": { "bg": "tint", "width": "normal", "spacing": "tight", "align": "center", "media": "right" }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Contact us",
+          "subtitle": "Sample text — replace me: Questions about membership, programs, or donating fabric? Send a note or come to a meeting.",
+          "style": { "bg": "none", "width": "normal", "spacing": "normal", "align": "center", "media": "right" }
+        },
+        {
+          "type": "contact",
+          "heading": "Send a message",
+          "showDetails": true,
+          "style": { "bg": "tint", "width": "narrow", "spacing": "normal", "align": "left", "media": "right" }
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Other ways to reach us",
+          "html": "<p><em>Sample text — replace me:</em> Email <a href=\"mailto:hello@example.com\">hello@example.com</a> or come say hello at our next meeting in {{city}}.</p><p>Mailing address: {{guild_name}}, P.O. Box 000, {{city}}.</p><p>Follow us on Facebook and Instagram. Add your links here.</p>",
+          "style": { "bg": "none", "width": "narrow", "spacing": "normal", "align": "left", "media": "right" }
+        },
+        {
+          "type": "meeting_info",
+          "heading": "Find us on guild night",
+          "when": "{{meeting_info}}",
+          "where": "Sample text — replace me: the community center in {{city}}",
+          "style": { "bg": "tint", "width": "normal", "spacing": "normal", "align": "left", "media": "right" }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,146 @@
+{
+  "id": "applique-bloom",
+  "name": "Applique Bloom",
+  "audience": "guild",
+  "character": "Soft florals, rounded shapes, light pastel palette.",
+  "defaults": {
+    "palette": "soft-blush",
+    "typePair": "lora-karla",
+    "scale": "comfortable",
+    "shape": { "radius": "round", "shadow": "subtle" },
+    "rhythm": { "spacing": "airy", "container": "normal" },
+    "header": { "variant": "centered", "sticky": true, "cta": "join", "overlayHero": false },
+    "footer": { "variant": "columns" },
+    "pattern": { "id": "bear-paw", "opacity": 0.11 }
+  },
+  "imagery": [{ "id": "hero-art", "kind": "pattern", "alt": "" }],
+  "previewSeed": { "guildName": "Baltimore Rose Quilt Guild", "city": "Richmond, Virginia" },
+  "pages": [
+    {
+      "slug": "home", "title": "Home", "nav": false,
+      "sections": [
+        {
+          "type": "hero", "id": "welcome", "variant": "split",
+          "eyebrow": "Needleturn, Broderie Perse, and Baltimore Album",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: Traditional and applique quilters in {{city}}, meeting {{meeting_info}}.",
+          "ctaLabel": "Become a member", "ctaHref": "/membership",
+          "secondaryLabel": "Programs", "secondaryHref": "/programs",
+          "style": { "bg": "pattern", "width": "wide", "spacing": "airy", "media": "left", "imageId": "hero-art" }
+        },
+        { "type": "meeting_info", "id": "when", "when": "{{meeting_info}}", "where": "{{city}}", "note": "Bring a portable light if you are working needleturn during the program.", "style": { "bg": "none" } },
+        { "type": "events", "id": "next", "variant": "cards", "heading": "Programs and sew days", "limit": 3, "style": { "bg": "tint", "width": "wide" } },
+        {
+          "type": "feature_grid", "id": "home-grid", "variant": "cards",
+          "items": [
+            { "title": "Needleturn circle", "body": "A slow bee for Baltimore-style blocks. Templates are in the newsletter." },
+            { "title": "Block of the month", "body": "A floral wreath or basket each month, finished as a sampler at the holiday tea." },
+            { "title": "Show", "body": "A judged show every other year. Applique has its own category." }
+          ],
+          "style": { "bg": "none", "width": "wide" }
+        },
+        { "type": "blog_teaser", "id": "news", "heading": "From the newsletter", "limit": 3, "style": { "bg": "tint" } },
+        { "type": "join_band", "id": "join", "title": "Bring a block, or just bring yourself", "body": "Guests are welcome at their first meeting.", "ctaLabel": "See membership", "style": { "bg": "brand", "align": "center" } }
+      ]
+    },
+    {
+      "slug": "about", "title": "About", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "a-hero", "variant": "minimal",
+          "title": "A guild for applique and traditional piecing",
+          "subtitle": "Sample text — replace me: {{guild_name}} formed so needleturn would have a regular table, not just a corner of the larger guild.",
+          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+        },
+        {
+          "type": "rich_text", "id": "a-body", "variant": "two_column",
+          "html": "<p>Meetings open with a short business session and a program on a technique: prepared-edge, reverse applique, Broderie Perse, or the setting of a Baltimore Album. Show and tell is untimed.</p><p>The library holds out-of-print Baltimore books and a box of freezer-paper templates members may copy.</p>",
+          "style": { "bg": "tint" }
+        },
+        {
+          "type": "testimonials", "id": "a-quotes", "variant": "grid",
+          "items": [
+            { "quote": "I had never turned a needle in my life. Someone sat next to me and showed me the hitch stitch on a leaf.", "author": "Clara W." },
+            { "quote": "The holiday tea is worth the dues by itself. Every wreath block from the year is on the wall.", "author": "Margaret L." }
+          ],
+          "style": { "bg": "none" }
+        }
+      ]
+    },
+    {
+      "slug": "why-join", "title": "Membership", "nav": true, "navLabel": "Join",
+      "sections": [
+        {
+          "type": "hero", "id": "j-hero", "variant": "pattern",
+          "title": "Membership",
+          "subtitle": "Sample text — replace me: Individual, household, and a snowbird level for members who leave for the winter.",
+          "ctaLabel": "Choose a level", "ctaHref": "/membership",
+          "style": { "bg": "pattern", "align": "center", "imageId": "hero-art" }
+        },
+        { "type": "membership_levels", "id": "levels", "variant": "cards", "style": { "bg": "none", "width": "wide" } },
+        {
+          "type": "faq", "id": "faq",
+          "items": [
+            { "q": "Do I have to applique?", "a": "No. Plenty of members piece traditionally and only applique a border. The table is mixed on purpose." },
+            { "q": "Are kits provided for the block of the month?", "a": "Cutting numbers and a template PDF go in the newsletter. Fabric is your own, or take a kit from the library closet." }
+          ],
+          "style": { "bg": "tint", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "programs", "title": "Programs", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "p-hero", "variant": "minimal",
+          "title": "Programs and sew days",
+          "subtitle": "Sample text — replace me: A technique each month, plus Saturday sew days for anyone who wants a quiet table.",
+          "ctaLabel": "Calendar", "ctaHref": "/calendar",
+          "style": { "bg": "dark", "align": "center" }
+        },
+        { "type": "events", "id": "p-events", "variant": "list", "limit": 8, "style": { "bg": "none", "width": "wide" } },
+        { "type": "meeting_info", "id": "p-when", "when": "{{meeting_info}}", "where": "{{city}}", "style": { "bg": "tint" } }
+      ]
+    },
+    {
+      "slug": "gallery", "title": "Gallery", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "g-hero", "variant": "minimal",
+          "title": "Finished work",
+          "subtitle": "Sample text — replace me: Album blocks, wreaths, and the occasional pieced sampler.",
+          "ctaLabel": "All albums", "ctaHref": "/galleries",
+          "style": { "bg": "none", "align": "center" }
+        },
+        { "type": "gallery", "id": "g-grid", "variant": "grid", "source": "gallery", "gallerySlug": "applique", "style": { "bg": "tint", "width": "wide" } },
+        { "type": "cta", "id": "g-all", "label": "Browse galleries", "href": "/galleries", "kind": "secondary", "style": { "bg": "none", "align": "center" } }
+      ]
+    },
+    {
+      "slug": "newsletter", "title": "Newsletter", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "n-hero", "variant": "minimal",
+          "title": "The monthly letter",
+          "subtitle": "Sample text — replace me: Templates, supply lists, and whose block landed on the design wall.",
+          "style": { "bg": "none", "align": "center" }
+        },
+        { "type": "blog_teaser", "id": "n-posts", "limit": 6, "style": { "bg": "tint" } },
+        { "type": "cta", "id": "n-blog", "label": "Newsletter archive", "href": "/blog", "kind": "secondary", "style": { "bg": "none", "align": "center" } }
+      ]
+    },
+    {
+      "slug": "contact", "title": "Contact", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "c-hero", "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Teachers, donations of silk and wool, and new-member questions.",
+          "style": { "bg": "none", "align": "center" }
+        },
+        { "type": "contact", "id": "form", "showDetails": true, "style": { "bg": "tint" } },
+        { "type": "meeting_info", "id": "c-when", "when": "{{meeting_info}}", "where": "{{city}}", "style": { "bg": "brand" } }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,106 @@
+{
+  "id": "minimal",
+  "name": "Minimal",
+  "audience": "guild",
+  "character": "White space, one accent, editorial type, no cards.",
+  "defaults": {
+    "palette": "naturals-linen",
+    "typePair": "newsreader-ibmplexsans",
+    "scale": "editorial",
+    "shape": { "radius": "sharp", "shadow": "none" },
+    "rhythm": { "spacing": "airy", "container": "narrow" },
+    "header": { "variant": "split", "sticky": true, "cta": "join", "overlayHero": false },
+    "footer": { "variant": "simple" },
+    "pattern": { "id": "none", "opacity": 0 }
+  },
+  "menu": [
+    { "label": "About", "href": "/about" },
+    { "label": "Join", "href": "/membership" },
+    { "label": "Calendar", "href": "/calendar" },
+    { "label": "Events", "href": "/events" },
+    { "label": "Contact", "href": "/contact" }
+  ],
+  "imagery": [{ "id": "hero-art", "kind": "pattern", "alt": "" }],
+  "previewSeed": { "guildName": "Plain Cloth Guild", "city": "Portland, Oregon" },
+  "pages": [
+    {
+      "slug": "home", "title": "Home", "nav": false,
+      "sections": [
+        {
+          "type": "hero", "id": "welcome", "variant": "minimal",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: A small guild in {{city}}. We meet {{meeting_info}}.",
+          "ctaLabel": "Membership", "ctaHref": "/membership",
+          "style": { "bg": "none", "width": "narrow", "spacing": "airy", "align": "center" }
+        },
+        {
+          "type": "rich_text", "id": "home-lede", "variant": "prose",
+          "html": "<p>One meeting a month. A program, show and tell, and coffee. No boutique, no raffle quilt unless someone asks to make one.</p>",
+          "style": { "bg": "tint", "width": "narrow" }
+        },
+        { "type": "events", "id": "home-events", "variant": "list", "heading": "Upcoming", "limit": 3, "style": { "bg": "none", "width": "narrow" } },
+        { "type": "divider", "id": "home-rule", "style": { "bg": "tint", "width": "narrow" } },
+        {
+          "type": "cta", "id": "home-join", "label": "Join the guild", "href": "/why-join", "kind": "primary",
+          "style": { "bg": "none", "align": "center" }
+        }
+      ]
+    },
+    {
+      "slug": "about", "title": "About", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "about-hero", "variant": "minimal",
+          "title": "About the guild",
+          "subtitle": "Sample text — replace me: Founded as a sew circle. Still small enough that everyone fits in one room.",
+          "style": { "bg": "none", "width": "narrow", "align": "center" }
+        },
+        {
+          "type": "rich_text", "id": "about-body", "variant": "prose",
+          "html": "<p>{{guild_name}} keeps a library of books and rulers, a running charity pile, and a members list that is not published. Officers serve two years. Minutes are in the members area.</p>",
+          "style": { "bg": "tint", "width": "narrow" }
+        },
+        {
+          "type": "feature_grid", "id": "about-list", "variant": "numbered",
+          "items": [
+            { "title": "Meet", "body": "{{meeting_info}}." },
+            { "title": "Sew", "body": "A Saturday sew day in odd-numbered months." },
+            { "title": "Give", "body": "Lap quilts for the county hospital, collected in December." }
+          ],
+          "style": { "bg": "none", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "why-join", "title": "Join", "nav": false, "navLabel": "Join",
+      "sections": [
+        {
+          "type": "hero", "id": "join-hero", "variant": "minimal",
+          "title": "Membership",
+          "subtitle": "Sample text — replace me: One level. Dues once a year. Pay on the membership page.",
+          "ctaLabel": "Pay dues", "ctaHref": "/membership",
+          "style": { "bg": "none", "width": "narrow", "align": "center" }
+        },
+        { "type": "membership_levels", "id": "levels", "variant": "compact", "style": { "bg": "tint", "width": "narrow" } },
+        {
+          "type": "rich_text", "id": "join-note", "variant": "prose",
+          "html": "<p>Guests may come to one meeting. After that, <a href=\"/membership\">join here</a>.</p>",
+          "style": { "bg": "none", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "contact", "title": "Contact", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "contact-hero", "variant": "minimal",
+          "title": "Contact",
+          "subtitle": "Sample text — replace me: Write with a question about meetings in {{city}}.",
+          "style": { "bg": "none", "width": "narrow", "align": "center" }
+        },
+        { "type": "contact", "id": "form", "showDetails": true, "style": { "bg": "tint", "width": "narrow" } },
+        { "type": "meeting_info", "id": "when", "when": "{{meeting_info}}", "where": "{{city}}", "style": { "bg": "none", "width": "narrow" } }
+      ]
+    }
+  ]
+}

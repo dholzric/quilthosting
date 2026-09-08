@@ -1,0 +1,76 @@
+{
+  "id": "one-pager",
+  "name": "One-pager",
+  "audience": "guild",
+  "character": "One home page with anchored sections and a compact sticky menu.",
+  "defaults": {
+    "palette": "seasonal-spring",
+    "typePair": "nunito",
+    "scale": "compact",
+    "shape": { "radius": "round", "shadow": "subtle" },
+    "rhythm": { "spacing": "tight", "container": "normal" },
+    "header": { "variant": "left", "sticky": true, "cta": "join", "overlayHero": false },
+    "footer": { "variant": "meeting" },
+    "pattern": { "id": "flying-geese", "opacity": 0.1 }
+  },
+  "menu": [
+    { "label": "About", "href": "/#about" },
+    { "label": "Meetings", "href": "/#meetings" },
+    { "label": "Join", "href": "/membership" },
+    { "label": "Events", "href": "/events" },
+    { "label": "Contact", "href": "/#contact" }
+  ],
+  "imagery": [{ "id": "hero-art", "kind": "pattern", "alt": "" }],
+  "previewSeed": { "guildName": "Creek Bend Quilt Guild", "city": "Stillwater, Oklahoma" },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero", "id": "welcome", "variant": "pattern",
+          "eyebrow": "{{city}}",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: A small guild. We meet {{meeting_info}}. Guests sit in on the first meeting.",
+          "ctaLabel": "Join", "ctaHref": "/membership",
+          "secondaryLabel": "When we meet", "secondaryHref": "/#meetings",
+          "style": { "bg": "pattern", "width": "wide", "align": "center", "imageId": "hero-art" }
+        },
+        {
+          "type": "rich_text", "id": "about", "variant": "prose",
+          "heading": "About us",
+          "html": "<p>We sew charity quilts, keep a modest library, and run a block of the month that anyone can finish at their own pace. Officers take two-year turns. There is no quilt show unless the membership votes one in.</p>",
+          "style": { "bg": "none", "width": "narrow" }
+        },
+        {
+          "type": "meeting_info", "id": "meetings", "heading": "Meetings",
+          "when": "{{meeting_info}}", "where": "{{city}}",
+          "note": "Bring a project and a mug. Coffee is on the back table.",
+          "style": { "bg": "tint" }
+        },
+        { "type": "events", "id": "upcoming", "variant": "list", "heading": "Coming up", "limit": 3, "style": { "bg": "none" } },
+        {
+          "type": "membership_levels", "id": "join", "variant": "compact", "heading": "Dues",
+          "style": { "bg": "brand", "width": "wide" }
+        },
+        {
+          "type": "feature_grid", "id": "what", "variant": "icons",
+          "items": [
+            { "title": "Show and tell", "body": "Every meeting. Unfinished work is welcome." },
+            { "title": "Charity", "body": "Crib quilts for the county hospital, collected twice a year." },
+            { "title": "Library", "body": "Books and rulers signed out on the honor system." }
+          ],
+          "style": { "bg": "none", "width": "wide" }
+        },
+        { "type": "contact", "id": "contact", "heading": "Write to the guild", "showDetails": true, "style": { "bg": "tint" } },
+        {
+          "type": "join_band", "id": "footer-join", "title": "Come to the next meeting",
+          "body": "Your first visit is free. Join when you are ready.",
+          "ctaLabel": "Membership levels",
+          "style": { "bg": "dark", "width": "full", "align": "center" }
+        }
+      ]
+    }
+  ]
+}

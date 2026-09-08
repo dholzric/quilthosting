@@ -1,0 +1,156 @@
+{
+  "id": "community-threads",
+  "name": "Community Threads",
+  "audience": "guild",
+  "character": "Projects-led, impact numbers, volunteer calls.",
+  "defaults": {
+    "palette": "jewel-emerald",
+    "typePair": "bitter-opensans",
+    "scale": "comfortable",
+    "shape": { "radius": "round", "shadow": "subtle" },
+    "rhythm": { "spacing": "normal", "container": "normal" },
+    "header": { "variant": "left", "sticky": true, "cta": "donate", "overlayHero": false },
+    "footer": { "variant": "columns" },
+    "pattern": { "id": "nine-patch", "opacity": 0.12 }
+  },
+  "imagery": [{ "id": "hero-art", "kind": "pattern", "alt": "" }],
+  "previewSeed": { "guildName": "Community Threads Guild", "city": "Minneapolis, Minnesota" },
+  "pages": [
+    {
+      "slug": "home", "title": "Home", "nav": false,
+      "sections": [
+        {
+          "type": "hero", "id": "welcome", "variant": "stats",
+          "eyebrow": "{{city}}",
+          "title": "Quilts that leave the building",
+          "subtitle": "Sample text — replace me: {{guild_name}} sews for hospitals, shelters, and first responders. Meetings are {{meeting_info}}.",
+          "ctaLabel": "Get involved", "ctaHref": "/involved",
+          "secondaryLabel": "Join", "secondaryHref": "/membership",
+          "stats": [
+            { "value": "240", "label": "quilts delivered last year" },
+            { "value": "18", "label": "partner organizations" },
+            { "value": "60", "label": "active sewers" }
+          ],
+          "style": { "bg": "brand", "width": "wide", "align": "center", "spacing": "airy" }
+        },
+        {
+          "type": "feature_grid", "id": "home-projects", "variant": "cards",
+          "heading": "Current projects",
+          "items": [
+            { "title": "Hospital cribs", "body": "36 by 45, washed, labeled, dropped off quarterly.", "href": "/projects" },
+            { "title": "Shelter laps", "body": "Sturdy cotton, no white grounds, kits in the closet.", "href": "/projects" },
+            { "title": "Fidget quilts", "body": "Small textured pieces for the memory-care unit.", "href": "/projects" },
+            { "title": "First-responder throws", "body": "Fire and EMS stations request a stack each winter.", "href": "/projects" }
+          ],
+          "style": { "bg": "none", "width": "wide" }
+        },
+        { "type": "events", "id": "home-events", "variant": "list", "heading": "Sew days", "limit": 3, "style": { "bg": "tint" } },
+        { "type": "join_band", "id": "join", "title": "You do not have to attend meetings to sew", "body": "Take a kit home. Bring it back finished. Membership is optional for volunteers, required to vote.", "ctaLabel": "Volunteer", "style": { "bg": "dark", "align": "center" } }
+      ]
+    },
+    {
+      "slug": "projects", "title": "Our Projects", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "p-hero", "variant": "pattern",
+          "title": "Where the quilts go",
+          "subtitle": "Sample text — replace me: Named partners, sizes, and how a finished top gets from your machine to a bed.",
+          "style": { "bg": "pattern", "align": "center", "imageId": "hero-art" }
+        },
+        {
+          "type": "feature_grid", "id": "p-grid", "variant": "numbered",
+          "items": [
+            { "title": "Children's hospital", "body": "Crib and toddler sizes. No buttons, no three-dimensional applique, no wool." },
+            { "title": "Family shelter", "body": "Twin throws. Darker palettes hold up better in the wash." },
+            { "title": "Memory care", "body": "Fidget quilts, 18 inches square, with zippers, ribbon, and large buttons sewn on hard." },
+            { "title": "Opportunity quilt", "body": "One guild-pieced quilt a year, ticketed to fund batting and labels." }
+          ],
+          "style": { "bg": "none", "width": "wide" }
+        },
+        { "type": "gallery", "id": "p-gal", "variant": "grid", "source": "gallery", "gallerySlug": "charity", "style": { "bg": "tint", "width": "wide" } },
+        { "type": "cta", "id": "p-help", "label": "Take a kit", "href": "/involved", "kind": "primary", "style": { "bg": "none", "align": "center" } }
+      ]
+    },
+    {
+      "slug": "involved", "title": "Get Involved", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "i-hero", "variant": "minimal",
+          "title": "How to help this month",
+          "subtitle": "Sample text — replace me: Sew, longarm, bind, drive, or buy batting. None of those require a title.",
+          "style": { "bg": "none", "align": "center" }
+        },
+        {
+          "type": "feature_grid", "id": "i-ways", "variant": "icons",
+          "items": [
+            { "title": "Take a kit", "body": "Tops are bagged with batting, backing, and a label. Sign the clipboard." },
+            { "title": "Longarm a stack", "body": "Charity chair will send pressed, pinned tops. Edge-to-edge is fine." },
+            { "title": "Bind at sew day", "body": "Second Saturday, 10 to 3. Machines provided if you do not want to bring yours." },
+            { "title": "Deliver", "body": "Quarterly drop-offs. Mileage is not reimbursed; coffee is." }
+          ],
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        { "type": "events", "id": "i-days", "variant": "cards", "heading": "Upcoming sew days", "limit": 4, "style": { "bg": "none" } },
+        { "type": "contact", "id": "i-form", "heading": "Tell us what you can do", "showDetails": false, "style": { "bg": "brand" } }
+      ]
+    },
+    {
+      "slug": "why-join", "title": "Membership", "nav": true, "navLabel": "Join",
+      "sections": [
+        {
+          "type": "hero", "id": "j-hero", "variant": "minimal",
+          "title": "Membership",
+          "subtitle": "Sample text — replace me: Volunteers can sew without joining. Members vote, borrow from the library, and get the newsletter.",
+          "ctaLabel": "Levels", "ctaHref": "/membership",
+          "style": { "bg": "dark", "align": "center" }
+        },
+        { "type": "membership_levels", "id": "levels", "variant": "cards", "style": { "bg": "none", "width": "wide" } },
+        {
+          "type": "rich_text", "id": "j-note", "variant": "prose",
+          "html": "<p>A portion of every dues payment buys batting and labels. If you only want to sew, skip this page and <a href=\"/involved\">take a kit</a>.</p>",
+          "style": { "bg": "tint", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "meetings", "title": "Events", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "e-hero", "variant": "minimal",
+          "title": "Meetings and sew days",
+          "subtitle": "Sample text — replace me: A short meeting, then sewing. Workshops are rare and cheap.",
+          "ctaLabel": "Calendar", "ctaHref": "/calendar",
+          "style": { "bg": "none", "align": "center" }
+        },
+        { "type": "meeting_info", "id": "e-when", "when": "{{meeting_info}}", "where": "{{city}}", "note": "The charity closet is open thirty minutes before the meeting.", "style": { "bg": "tint" } },
+        { "type": "events", "id": "e-list", "variant": "list", "limit": 8, "style": { "bg": "none", "width": "wide" } }
+      ]
+    },
+    {
+      "slug": "gallery", "title": "Gallery", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "g-hero", "variant": "minimal",
+          "title": "Quilts that went out",
+          "subtitle": "Sample text — replace me: We photograph every delivery. Names of recipients are not published.",
+          "ctaLabel": "Albums", "ctaHref": "/galleries",
+          "style": { "bg": "none", "align": "center" }
+        },
+        { "type": "gallery", "id": "g-grid", "variant": "grid", "source": "gallery", "gallerySlug": "charity", "style": { "bg": "tint", "width": "wide" } }
+      ]
+    },
+    {
+      "slug": "contact", "title": "Contact", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "c-hero", "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Partner agencies, fabric donations, and new volunteers.",
+          "style": { "bg": "none", "align": "center" }
+        },
+        { "type": "contact", "id": "form", "showDetails": true, "style": { "bg": "tint" } },
+        { "type": "meeting_info", "id": "c-when", "when": "{{meeting_info}}", "where": "{{city}}", "style": { "bg": "brand" } }
+      ]
+    }
+  ]
+}
