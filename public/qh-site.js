@@ -407,8 +407,8 @@
       var host = node.querySelector(".qh-cal-host");
       if (!host) {
         host = el("div", "qh-cal-host");
-        var empty = node.querySelector(".qh-empty");
-        if (empty) empty.replaceWith(host);
+        var fallback = node.querySelector(".qh-events__list") || node.querySelector(".qh-empty");
+        if (fallback) fallback.replaceWith(host);
         else (node.querySelector(".qh-container") || node).appendChild(host);
       }
       var m = /^(\d{4})-(\d{2})$/.exec(node.getAttribute("data-month") || "");
@@ -421,7 +421,7 @@
         Promise.all([loadCalLib(), api("/events?month=" + monthStr)]).then(function (r) {
           var events = (r[1].ok && r[1].data.events) || [];
           r[0].render(host, events, function (ev) { openEventSignup(ev); }, {
-            year: cursor.y, month: cursor.m,
+            year: cursor.y, month: cursor.m, timeZone: node.getAttribute("data-timezone") || "",
             onMonthChange: function (y, mo) { cursor = { y: y, m: mo }; draw(); },
           });
         }).catch(function () {

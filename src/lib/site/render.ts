@@ -228,6 +228,30 @@ export function buildMenu(
   return out;
 }
 
+/**
+ * The Events page is a system page, not a row in `pages`, so buildMenu never
+ * had anything to list it from: a guild could add an event and find no way to
+ * reach it from its own site. When the guild has an upcoming event and the
+ * menu does not already point at /events or /calendar, one is appended.
+ *
+ * An explicit menu (settings.nav) is the officer's own list and is left alone
+ * — if they removed Events, it stays removed.
+ */
+export function withEventsLink(
+  menu: SiteMenuItem[],
+  baseUrl: string,
+  opts: { hasEvents: boolean; explicitMenu: boolean; label?: string }
+): SiteMenuItem[] {
+  if (!opts.hasEvents || opts.explicitMenu) return menu;
+  const base = trimBase(baseUrl);
+  const already = menu.some((m) => {
+    const href = m.href || "";
+    return /\/(events|calendar)(\/|$|\?)/.test(href) || (m.children ?? []).some((c) => /\/(events|calendar)(\/|$|\?)/.test(c.href || ""));
+  });
+  if (already) return menu;
+  return [...menu, { label: opts.label || "Events", href: `${base}/events` }];
+}
+
 function menuLink(item: SiteMenuItem, current?: string): string {
   const attrs = [`href="${esc(item.href)}"`];
   if (item.external) attrs.push('rel="noopener noreferrer"');
@@ -446,6 +470,20 @@ function firstImageHero(sections: Section[]): boolean {
   return !!s && s.type === "hero" && (s.style?.bg === "image" || s.variant === "image") && !!s.style?.imageId;
 }
 
+/**
+ * `settings.timezone`, the IANA zone a guild's event times are shown in.
+ * Absent means UTC — right only for a guild that has not said otherwise,
+ * which is why the Settings screen asks for it.
+ */
+export function readTimeZone(settingsJson: string | null | undefined): string {
+  try {
+    const tz = (JSON.parse(settingsJson || "{}") || {}).timezone;
+    return typeof tz === "string" && tz.trim() ? tz.trim() : "UTC";
+  } catch {
+    return "UTC";
+  }
+}
+
 /** Full document for one page on one host. */
 export function renderSitePage(args: SitePageArgs): string {
   const { tenant, page, baseUrl, design } = args;
@@ -466,6 +504,7 @@ export function renderSitePage(args: SitePageArgs): string {
     data: args.data,
     imgUrl: args.imgUrl,
     imgMeta: args.imgMeta,
+    timeZone: readTimeZone(settings),
   };
   let bodyHtml = renderSections(sections, ctx);
   const overlay = !!design.header.overlayHero && firstImageHero(sections);

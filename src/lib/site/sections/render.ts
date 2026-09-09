@@ -53,6 +53,14 @@ export type RenderContext = {
   /** Turns a files.id into an image URL; provided by the caller, never computed here. */
   imgUrl: (fileId: string, w?: number) => string;
   /**
+   * The guild's IANA time zone (`settings.timezone`). Event times are stored
+   * as UTC — the admin converts the officer's local entry with toISOString()
+   * — so a page that prints the stored digits shows the wrong hour to
+   * everyone. Absent means UTC, which is only right for a guild that has not
+   * said otherwise.
+   */
+  timeZone?: string;
+  /**
    * Intrinsic size and focal point of an uploaded image, when the caller
    * looked them up. Absent for previews and for files uploaded before the
    * variant pipeline; `srcset` is emitted either way (a file with no stored
@@ -250,13 +258,43 @@ function clock(w: Wall): string {
   return `${h12}:${String(w.mm).padStart(2, "0")} ${w.hh < 12 ? "AM" : "PM"}`;
 }
 
-/** "Sat, Sep 12 · 9:00 AM" (or "Sat, Sep 12" without a time). Unparseable input is returned as-is. */
-export function formatEventDate(iso: string): string {
+/** A timestamp that names its offset ("…Z" or "…+02:00") — a real instant. */
+const HAS_ZONE_RE = /(?:Z|[+-]\d{2}:?\d{2})$/i;
+
+/**
+ * "Sat, Sep 12 · 9:00 AM" (or "Sat, Sep 12" without a time). Unparseable
+ * input is returned as-is.
+ *
+ * A timestamp that carries a zone is a real instant and is converted into
+ * `timeZone` (the guild's). One without a zone is already a wall-clock time —
+ * that is what a kit's sample data and a naive import contain — and its
+ * digits are used as they stand. Getting this wrong published an event five
+ * hours late: the admin stores UTC, and printing those digits made 12:25 PM
+ * read as 5:25 PM.
+ */
+export function formatEventDate(iso: string, timeZone?: string): string {
+  if (timeZone && HAS_ZONE_RE.test(String(iso ?? "").trim())) {
+    const zoned = zonedParts(iso, timeZone);
+    if (zoned) return zoned;
+  }
   const w = wallTime(iso);
   if (!w) return iso;
   const day = `${weekday(w)}, ${MON[w.m - 1]} ${w.d}`;
   const t = clock(w);
   return t ? `${day} · ${t}` : day;
+}
+
+/** The same shape as the wall-time path, formatted in `timeZone`. */
+function zonedParts(iso: string, timeZone: string): string | null {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  try {
+    const day = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone }).format(d);
+    const time = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone }).format(d);
+    return `${day} · ${time}`;
+  } catch {
+    return null; // an unknown zone falls back to the wall-clock reading
+  }
 }
 
 /** "Sep 1, 2026" for blog post dates. */
@@ -477,7 +515,7 @@ function priceLine(ev: SiteEvent): string {
 
 function eventArticle(ev: SiteEvent, ctx: RenderContext, layout: "cards" | "list" | "next_up"): string {
   const url = internal(`/events/${encodeURIComponent(ev.id)}`, ctx);
-  const date = `<p class="qh-event__date"><time datetime="${esc(ev.start_at)}">${esc(formatEventDate(ev.start_at))}</time></p>`;
+  const date = `<p class="qh-event__date"><time datetime="${esc(ev.start_at)}">${esc(formatEventDate(ev.start_at, ctx.timeZone))}</time></p>`;
   const meta = [ev.location ? esc(ev.location) : "", esc(priceLine(ev))].filter(Boolean).join(" · ");
   const body = `<h3 class="qh-event__title"><a href="${url}">${esc(ev.title)}</a></h3><p class="qh-event__meta">${meta}</p>`;
   const actions =
@@ -499,7 +537,10 @@ function renderEvents(s: Sec<"events">, ctx: RenderContext): string {
     // The calendar island replaces this fallback list with a month grid; it
     // reads `data-month` (YYYY-MM of the first listed event, "" = current month).
     const inner = heading(s.heading) + (list.length ? `<div class="qh-events__list">${list.map((ev) => eventArticle(ev, ctx, "list")).join("")}</div>` : none);
-    return wrap(s, inner, { extraClass: cls, ctx, attrs: `data-month="${esc(monthOf(all[0]?.start_at))}"` });
+    // data-timezone: the grid must show the guild's clock, not the visitor's.
+    // Without it a member in Denver saw a Texas meeting an hour early.
+    const tzAttr = ctx.timeZone ? ` data-timezone="${esc(ctx.timeZone)}"` : "";
+    return wrap(s, inner, { extraClass: cls, ctx, attrs: `data-month="${esc(monthOf(all[0]?.start_at))}"${tzAttr}` });
   }
   let body: string;
   if (!list.length) body = none;
@@ -722,7 +763,7 @@ function renderSpotlight(s: Sec<"event_spotlight">, ctx: RenderContext): string 
   const inner =
     heading(s.heading) +
     `<article class="qh-spotlight__event">` +
-    `<p class="qh-event__date"><time datetime="${esc(ev.start_at)}">${esc(formatEventDate(ev.start_at))}</time></p>` +
+    `<p class="qh-event__date"><time datetime="${esc(ev.start_at)}">${esc(formatEventDate(ev.start_at, ctx.timeZone))}</time></p>` +
     `<h3 class="qh-spotlight__title"><a href="${url}">${esc(ev.title)}</a></h3>` +
     `<p class="qh-event__meta">${meta}</p>` +
     (ev.description ? `<p class="qh-spotlight__body">${esc(ev.description)}</p>` : "") +

@@ -12,6 +12,7 @@ import { all, first } from "../lib/db";
 import {
   renderSitePage,
   buildMenu,
+  withEventsLink,
   readSettingsMenu,
   readBranding,
   type RenderArgs,
@@ -549,7 +550,20 @@ export async function serveSite(
        ORDER BY sort_order, title`
     ).bind(tenant.id)
   );
-  const menu = buildMenu(navRows, readSettingsMenu(settings), baseUrl);
+  const settingsMenu = readSettingsMenu(settings);
+  // "I added an event, but I don't see the calendar on the site": /events and
+  // /calendar are system pages, so nothing in `pages` ever linked to them.
+  // One indexed COUNT (idx_events_public) decides whether the guild has
+  // anything to show there.
+  const eventCount = await first<{ n: number }>(
+    c.env.DB.prepare(
+      `SELECT count(*) AS n FROM events WHERE tenant_id = ? AND is_public = 1 AND datetime(start_at) >= datetime('now', '-1 day')`
+    ).bind(tenant.id)
+  );
+  const menu = withEventsLink(buildMenu(navRows, settingsMenu, baseUrl), baseUrl, {
+    hasEvents: (eventCount?.n ?? 0) > 0,
+    explicitMenu: settingsMenu.length > 0,
+  });
   const { showPlatformCredit } = readBranding(settings);
   const q = (w?: number) => (w ? `?w=${w}` : "");
   const imgUrl: SitePageArgs["imgUrl"] = onTenantHost

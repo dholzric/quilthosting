@@ -21,8 +21,42 @@
     return n;
   }
 
+  /**
+   * The guild's clock, not the visitor's.
+   *
+   * Event times are stored as UTC instants, so `new Date(iso).getHours()`
+   * answers in whatever zone the reader happens to be sitting in: a Denver
+   * member saw a Texas meeting an hour early, and the page disagreed with the
+   * list rendered beside it. These read the parts out in an explicit zone,
+   * falling back to the browser's when the guild has not set one.
+   */
+  function zoneParts(iso, timeZone) {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return null;
+    let parts;
+    try {
+      parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: timeZone || undefined,
+        year: "numeric", month: "numeric", day: "numeric",
+        hour: "numeric", minute: "numeric", hour12: false,
+      }).formatToParts(d);
+    } catch (e) {
+      return { y: d.getFullYear(), m: d.getMonth() + 1, d: d.getDate(), hh: d.getHours(), mm: d.getMinutes() };
+    }
+    const at = (t) => Number((parts.find((p) => p.type === t) || {}).value);
+    const hh = at("hour");
+    return { y: at("year"), m: at("month"), d: at("day"), hh: hh === 24 ? 0 : hh, mm: at("minute") };
+  }
+
+  function chipLabel(iso, timeZone, title) {
+    const p = zoneParts(iso, timeZone);
+    if (!p) return title;
+    const hh = p.hh % 12 || 12;
+    return hh + (p.mm ? ":" + String(p.mm).padStart(2, "0") : "") + (p.hh >= 12 ? "p" : "a") + " " + title;
+  }
+
   window.qhRenderCalendar = function (container, opts) {
-    const { year, month, events = [], onEventClick, onMonthChange } = opts;
+    const { year, month, events = [], onEventClick, onMonthChange, timeZone } = opts;
     container.replaceChildren();
     container.classList.add("qh-cal");
 
@@ -46,13 +80,14 @@
     head.append(title, nav);
     container.appendChild(head);
 
-    // Events bucketed by local calendar day
+    // Bucketed by the GUILD's calendar day: a 7 pm Texas meeting is already
+    // tomorrow in UTC, so bucketing by the reader's day drops it in the wrong
+    // cell — or out of the month entirely.
     const byDay = {};
     for (const ev of events) {
-      const d = new Date(ev.start_at);
-      if (isNaN(d)) continue;
-      if (d.getFullYear() !== year || d.getMonth() + 1 !== month) continue;
-      (byDay[d.getDate()] = byDay[d.getDate()] || []).push(ev);
+      const p = zoneParts(ev.start_at, timeZone);
+      if (!p || p.y !== year || p.m !== month) continue;
+      (byDay[p.d] = byDay[p.d] || []).push(ev);
     }
 
     const grid = elc("div", "qh-cal-grid");
@@ -71,11 +106,7 @@
       cell.appendChild(elc("div", "qh-cal-date", String(day)));
       for (const ev of byDay[day] || []) {
         const chip = elc("button", "qh-cal-ev");
-        const t = new Date(ev.start_at);
-        const hh = t.getHours() % 12 || 12;
-        const mm = t.getMinutes();
-        const ampm = t.getHours() >= 12 ? "p" : "a";
-        chip.textContent = hh + (mm ? ":" + String(mm).padStart(2, "0") : "") + ampm + " " + ev.title;
+        chip.textContent = chipLabel(ev.start_at, timeZone, ev.title);
         chip.title = ev.title;
         if (onEventClick) chip.addEventListener("click", () => onEventClick(ev));
         cell.appendChild(chip);
@@ -106,6 +137,7 @@
     events = Array.isArray(events) ? events : [];
     opts = opts || {};
     let year = opts.year, month = opts.month;
+    const tz = opts.timeZone || "";
     if (!year || !month) {
       const seed = events.length ? new Date(events[0].start_at) : new Date();
       const d = isNaN(seed) ? new Date() : seed;
@@ -136,9 +168,9 @@
 
     const byDay = {};
     for (const ev of events) {
-      const d = new Date(ev.start_at);
-      if (isNaN(d) || d.getFullYear() !== year || d.getMonth() + 1 !== month) continue;
-      (byDay[d.getDate()] = byDay[d.getDate()] || []).push(ev);
+      const p = zoneParts(ev.start_at, tz);
+      if (!p || p.y !== year || p.m !== month) continue;
+      (byDay[p.d] = byDay[p.d] || []).push(ev);
     }
 
     const grid = elc("div", "qh-cal");
@@ -160,11 +192,7 @@
       if (isThisMonth && day === now.getDate()) cell.classList.add("qh-cal__day--today");
       cell.appendChild(elc("span", "qh-cal__num", String(day)));
       for (const ev of byDay[day] || []) {
-        const t = new Date(ev.start_at);
-        const hh = t.getHours() % 12 || 12;
-        const mm = t.getMinutes();
-        const label = hh + (mm ? ":" + String(mm).padStart(2, "0") : "") +
-          (t.getHours() >= 12 ? "p" : "a") + " " + ev.title;
+        const label = chipLabel(ev.start_at, tz, ev.title);
         const chip = elc(onClick ? "button" : "span", "qh-cal__event", label);
         if (onClick) { chip.type = "button"; chip.addEventListener("click", () => onClick(ev)); }
         chip.title = ev.title;

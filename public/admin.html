@@ -8213,6 +8213,15 @@
           <input id="set-name" value="${esc(tenantName || "")}" style="max-width:320px" />
           <button onclick="saveTenantName()" style="margin-top:0.5rem">Save</button>
           <span id="set-saved" class="hidden" style="color:var(--success);margin-left:0.5rem">Saved ✓</span>
+          <hr style="border:0;border-top:1px solid var(--border);margin:1rem 0">
+          <label for="set-tz">Time zone</label>
+          <select id="set-tz" style="max-width:320px"></select>
+          <p class="muted" style="font-size:0.85rem;margin:0.35rem 0 0">
+            Event times on your website are shown in this zone. You enter times in your own
+            clock; this is how your members read them.
+          </p>
+          <button onclick="saveTimezone()" style="margin-top:0.5rem">Save time zone</button>
+          <span id="set-tz-msg" class="muted" style="margin-left:0.5rem" aria-live="polite"></span>
         </div>
         <div class="card admin-only-area" id="domain-card" data-area="domain">
           <h3 style="margin-bottom:0.75rem">Custom domain</h3>
@@ -8366,6 +8375,7 @@
       `;
       renderCustomFieldList();
       renderAdvancedCard();
+      fillTimezones(typeof settings.timezone === "string" ? settings.timezone : "");
       // Prefill tax from tenant settings if store card not open
       try {
         const st = settings.store || {};
@@ -8769,6 +8779,55 @@
       show(document.getElementById("prof-saved"));
       setTimeout(() => hide(document.getElementById("prof-saved")), 2000);
     }
+    /**
+     * Time zone control. Event times are stored as UTC instants, so the public
+     * site needs to know which clock to show them in — without this the site
+     * printed UTC and a 12:25 pm meeting read as 5:25 pm.
+     */
+    function fillTimezones(current) {
+      const sel = document.getElementById("set-tz");
+      if (!sel) return;
+      let zones = [];
+      try { zones = typeof Intl.supportedValuesOf === "function" ? Intl.supportedValuesOf("timeZone") : []; } catch { zones = []; }
+      if (!zones.length) {
+        zones = ["America/New_York", "America/Chicago", "America/Denver", "America/Phoenix",
+          "America/Los_Angeles", "America/Anchorage", "Pacific/Honolulu", "UTC"];
+      }
+      const guess = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch { return ""; } })();
+      const chosen = current || guess || "UTC";
+      if (!zones.includes(chosen)) zones = [chosen, ...zones];
+      sel.replaceChildren();
+      for (const z of zones) {
+        const o = document.createElement("option");
+        o.value = z;
+        o.textContent = z.replace(/_/g, " ");
+        if (z === chosen) o.selected = true;
+        sel.appendChild(o);
+      }
+      const msg = document.getElementById("set-tz-msg");
+      if (msg && !current) msg.textContent = `Not set yet — we suggest ${chosen.replace(/_/g, " ")}, from this computer.`;
+    }
+
+    async function saveTimezone() {
+      const sel = document.getElementById("set-tz");
+      const msg = document.getElementById("set-tz-msg");
+      if (!sel) return;
+      if (msg) msg.textContent = "Saving…";
+      try {
+        const fresh = await api(`/api/tenants/${tenantId}`);
+        let base = {};
+        try { base = JSON.parse(fresh.settings_json || "{}"); } catch { base = {}; }
+        if (!base || typeof base !== "object" || Array.isArray(base)) base = {};
+        await api(`/api/tenants/${tenantId}`, {
+          method: "PATCH",
+          body: JSON.stringify({ settings: { ...base, timezone: sel.value } }),
+        });
+        if (msg) msg.textContent = "Saved ✓";
+      } catch (e) {
+        if (msg) msg.textContent = e.message;
+      }
+    }
+
     async function uploadGuildLogo() {
       const input = document.getElementById("logo-input");
       const msg = document.getElementById("logo-msg");

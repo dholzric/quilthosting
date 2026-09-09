@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { renderPageHtml, renderSitePage, buildMenu, readBranding, readBusinessIdentity, readSettingsMenu } from "./render";
+import { renderPageHtml, renderSitePage, buildMenu, readBranding, readBusinessIdentity, readSettingsMenu, withEventsLink } from "./render";
 import type { SitePageArgs } from "./render";
 import { DEFAULT_DESIGN } from "./design/tokens";
 import type { SiteDesign } from "./design/tokens";
@@ -489,5 +489,49 @@ describe("readBusinessIdentity", () => {
 
   it("returns an empty name for missing settings", () => {
     expect(readBusinessIdentity("{}").name).toBe("");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The Events link
+//
+// /events and /calendar are system pages, not rows in `pages`, so buildMenu
+// had nothing to list them from: a guild could add an event and find no way
+// to reach it from its own site ("I added an event, but I don't see the
+// calendar on the site").
+// ---------------------------------------------------------------------------
+
+describe("withEventsLink", () => {
+  const menu = [
+    { label: "About", href: "/g/x/about" },
+    { label: "Contact", href: "/g/x/contact" },
+  ];
+
+  it("appends Events when the guild has events and nothing links there", () => {
+    const out = withEventsLink(menu, "/g/x", { hasEvents: true, explicitMenu: false });
+    expect(out).toHaveLength(3);
+    expect(out[2]).toEqual({ label: "Events", href: "/g/x/events" });
+  });
+
+  it("adds nothing when there are no events", () => {
+    expect(withEventsLink(menu, "/g/x", { hasEvents: false, explicitMenu: false })).toEqual(menu);
+  });
+
+  it("leaves an officer's own menu alone — a removed Events link stays removed", () => {
+    expect(withEventsLink(menu, "/g/x", { hasEvents: true, explicitMenu: true })).toEqual(menu);
+  });
+
+  it("does not duplicate a link that already points at events or the calendar", () => {
+    for (const href of ["/g/x/events", "/g/x/calendar", "https://x.test/events"]) {
+      const withOne = [...menu, { label: "What's on", href }];
+      expect(withEventsLink(withOne, "/g/x", { hasEvents: true, explicitMenu: false })).toEqual(withOne);
+    }
+    const nested = [{ label: "More", href: "/g/x/more", children: [{ label: "Diary", href: "/g/x/calendar" }] }];
+    expect(withEventsLink(nested, "/g/x", { hasEvents: true, explicitMenu: false })).toEqual(nested);
+  });
+
+  it("works on a tenant host, where the base is an absolute URL", () => {
+    const out = withEventsLink([], "https://guild.test", { hasEvents: true, explicitMenu: false });
+    expect(out[0].href).toBe("https://guild.test/events");
   });
 });

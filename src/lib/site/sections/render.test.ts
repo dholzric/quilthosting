@@ -774,3 +774,42 @@ describe("pattern media references (kits)", () => {
     expect(html).not.toContain("/img/pattern:");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Event times and the guild's clock
+//
+// The admin converts the officer's local entry with toISOString(), so
+// events.start_at is a UTC instant. Printing its digits as if they were wall
+// time published a 12:25 pm meeting as 5:25 pm — reported from a live guild.
+// A stamp that names a zone is converted into the guild's; one that does not
+// (kit samples, naive imports) is already wall time and is left alone.
+// ---------------------------------------------------------------------------
+
+describe("formatEventDate with a guild time zone", () => {
+  const UTC_NOON = "2026-09-25T17:25:00.000Z";
+
+  it("converts a zoned stamp into the guild's clock", () => {
+    expect(formatEventDate(UTC_NOON, "America/Chicago")).toBe("Fri, Sep 25 · 12:25 PM");
+    expect(formatEventDate(UTC_NOON, "America/New_York")).toBe("Fri, Sep 25 · 1:25 PM");
+    expect(formatEventDate(UTC_NOON, "America/Los_Angeles")).toBe("Fri, Sep 25 · 10:25 AM");
+    expect(formatEventDate(UTC_NOON, "UTC")).toBe("Fri, Sep 25 · 5:25 PM");
+  });
+
+  it("rolls the date when the zone crosses midnight", () => {
+    // 1:00 am UTC on the 26th is still the evening of the 25th in Chicago.
+    expect(formatEventDate("2026-09-26T01:00:00Z", "America/Chicago")).toBe("Fri, Sep 25 · 8:00 PM");
+  });
+
+  it("leaves a stamp with no zone as the wall time it already is", () => {
+    expect(formatEventDate("2026-09-12T09:00:00", "America/Chicago")).toBe("Sat, Sep 12 · 9:00 AM");
+    expect(formatEventDate("2026-09-12", "America/Chicago")).toBe("Sat, Sep 12");
+  });
+
+  it("falls back to the wall-clock reading for a zone it does not know", () => {
+    expect(formatEventDate(UTC_NOON, "Mars/Olympus")).toBe("Fri, Sep 25 · 5:25 PM");
+  });
+
+  it("without a zone, behaves exactly as before", () => {
+    expect(formatEventDate(UTC_NOON)).toBe("Fri, Sep 25 · 5:25 PM");
+  });
+});
