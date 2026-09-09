@@ -1,0 +1,311 @@
+{
+  "id": "climate-vault",
+  "name": "Climate Vault",
+  "audience": "business",
+  "character": "Charcoal, gold, and a hygrometer: quilt storage in the dark, at a humidity we actually measure.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "tight",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "split",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "none",
+      "opacity": 0
+    },
+    "palette": "dark-charcoal-gold",
+    "typePair": "spacegrotesk-worksans"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "North Room Storage",
+    "city": "Rochester, New York"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Quilt storage in {{city}}",
+          "title": "Dark, dry enough, and not your attic.",
+          "subtitle": "Sample text — replace me: {{guild_name}} stores quilts. Rolled or folded with tissue, in the dark, with a log of humidity. This is not a self-storage hallway with a padlock.",
+          "ctaLabel": "Ask for a shelf",
+          "ctaHref": "/request-a-quote",
+          "secondaryLabel": "Rates",
+          "secondaryHref": "/rates",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "home-offer",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "A shelf",
+              "body": "Up to four quilts, checked twice a year.",
+              "price": "$18 / mo",
+              "href": "/rates"
+            },
+            {
+              "title": "A box",
+              "body": "One quilt, museum fold, your name on the outside in pencil.",
+              "price": "$12 / mo"
+            },
+            {
+              "title": "Intake",
+              "body": "I look for pests and wet. I will send a quilt home if it is not ready for the dark.",
+              "price": "$25"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "home-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "My attic was cheaper. My attic also had the squirrel. I pay the shelf now.",
+              "author": "A person who learned"
+            }
+          ],
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "home-cta",
+          "projectType": "custom_quilt",
+          "heading": "How many quilts, rolled or folded, and whether any are silk or wool",
+          "submitLabel": "Ask for a shelf",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "rates",
+      "title": "Shelves",
+      "nav": true,
+      "navLabel": "Rates",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "Shelves",
+          "subtitle": "Sample text — replace me: What a month buys, and what it does not.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "r-grid",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Includes",
+              "body": "Dark, a logged room, tissue, two inspections a year, a call if something is wrong."
+            },
+            {
+              "title": "Does not include",
+              "body": "Insurance of your own policy, restoration, or me loving a quilt more than you do."
+            },
+            {
+              "title": "Out",
+              "body": "Forty-eight hours' notice. I will not meet you at midnight unless the building is on fire."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "visit",
+      "title": "The Room",
+      "nav": true,
+      "navLabel": "Visit",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "The Room",
+          "subtitle": "Sample text — replace me: Intake is by appointment, {{meeting_info}}.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "v-hours",
+          "heading": "Intake hours",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "note": "No street shoes in the room. Paper booties at the door. This is not theatre. It is dirt.",
+          "style": {
+            "bg": "tint"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "request-a-quote",
+      "title": "Request a Quote",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "q-hero",
+          "variant": "minimal",
+          "title": "Request a quote",
+          "subtitle": "Sample text — replace me: I do not store a wet quilt. I do not store food, paint, or a wedding dress unless we talk first.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "q-form",
+          "projectType": "custom_quilt",
+          "heading": "How many quilts, rolled or folded, and whether any are silk or wool",
+          "submitLabel": "Ask for a shelf",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "cta",
+          "id": "q-more",
+          "label": "Or write first",
+          "href": "/contact",
+          "kind": "secondary",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A room, not a warehouse that also has boxes of Christmas.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "The work",
+          "html": "<p><em>Sample text — replace me:</em> Attics cook. Basements sweat. {{guild_name}} is a small climate I can actually name. I used to volunteer at a documentation day and watch people cry over damage that was only heat. This is the boring fix.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "a-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "My attic was cheaper. My attic also had the squirrel. I pay the shelf now.",
+              "author": "A person who learned"
+            }
+          ],
+          "style": {
+            "bg": "none"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Dates, deposits, and work already in the shop.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-hours",
+          "heading": "Hours",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    }
+  ]
+}

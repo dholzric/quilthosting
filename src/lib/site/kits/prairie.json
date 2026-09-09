@@ -2,7 +2,7 @@
   "id": "prairie",
   "name": "Prairie",
   "audience": "guild",
-  "character": "Landscape-photo hero, earthy naturals, big friendly type.",
+  "character": "Wide split hero, earthy clay naturals, big friendly serif, carpool-and-county-fair copy, meeting footer.",
   "defaults": {
     "palette": "naturals-clay",
     "typePair": "librebaskerville-nunitosans",
@@ -21,7 +21,7 @@
       "sections": [
         {
           "type": "hero", "id": "welcome", "variant": "split",
-          "eyebrow": "{{city}}",
+          "eyebrow": "Quilters around {{city}}",
           "title": "{{guild_name}}",
           "subtitle": "Sample text — replace me: Rural and town quilters, a long drive apart, who still fill the hall {{meeting_info}}.",
           "ctaLabel": "Join us", "ctaHref": "/membership",

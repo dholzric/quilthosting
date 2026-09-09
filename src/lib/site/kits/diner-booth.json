@@ -1,0 +1,352 @@
+{
+  "id": "diner-booth",
+  "name": "Diner Booth",
+  "audience": "guild",
+  "character": "Harvest light and a pie case: a guild that sews in a 24-hour diner because the booths already have outlets.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "soft",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "split",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "meeting"
+    },
+    "pattern": {
+      "id": "churn-dash",
+      "opacity": 0.1
+    },
+    "palette": "seasonal-harvest",
+    "typePair": "playfair-lato"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Booth 7 Quilt Guild",
+    "city": "Harrisburg, Pennsylvania"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Diner quilting in {{city}}",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: {{guild_name}} meets {{meeting_info}} in a diner that does not close. Pie is not the program. The booth is.",
+          "ctaLabel": "Join",
+          "ctaHref": "/membership",
+          "secondaryLabel": "The booth",
+          "secondaryHref": "/booth",
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "spacing": "airy",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "when",
+          "heading": "Booth night",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "note": "We tip well. Cutting happens on mats, not on the laminate. The cook has asked us twice; there will not be a third time.",
+          "style": {
+            "bg": "none"
+          }
+        },
+        {
+          "type": "events",
+          "id": "upcoming",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "life",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "The booths",
+              "body": "We take the back row. Four people per booth, machines on towels, cords to the wall.",
+              "href": "/booth"
+            },
+            {
+              "title": "The menu",
+              "body": "Order something. We are customers who happen to sew, not a private hall."
+            },
+            {
+              "title": "The late ones",
+              "body": "Night-shift members arrive after nine. We leave a booth held with a stack of mats."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "join_band",
+          "id": "join",
+          "title": "Order something",
+          "body": "Dues are low because the diner is the rent. You still pay for your food.",
+          "ctaLabel": "See dues",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A guild without a rental because the diner already had the light.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "How we started",
+          "html": "<p><em>Sample text — replace me:</em> Halls close. This diner does not. {{guild_name}} asked once, promised mats, promised tips, and kept both promises. The waitress knows who drinks decaf. The quilt talk happens between the grilled cheese and the check.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "a-year",
+          "variant": "numbered",
+          "items": [
+            {
+              "title": "January freeze",
+              "body": "We still come. The lot is salted. Machines hate the door blast; we sit inward."
+            },
+            {
+              "title": "Summer tourists",
+              "body": "We sew earlier so the back row is ours before the weekend crowd."
+            },
+            {
+              "title": "Anniversary pie",
+              "body": "The diner's pie, our treat, once a year. Still no cutting on the laminate."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          },
+          "heading": "A year with us"
+        }
+      ]
+    },
+    {
+      "slug": "booth",
+      "title": "Diner Rules",
+      "nav": true,
+      "navLabel": "The booth",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "s-hero",
+          "variant": "minimal",
+          "title": "Diner Rules",
+          "subtitle": "Sample text — replace me: How to sew in a restaurant without becoming a problem.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "b-grid",
+          "variant": "numbered",
+          "items": [
+            {
+              "title": "Mats",
+              "body": "Always. Rotary blades stay covered until the mat is down."
+            },
+            {
+              "title": "Volume",
+              "body": "A machine is fine. Six machines on full stitch is a fight with the radio. We take turns on free-motion."
+            },
+            {
+              "title": "The check",
+              "body": "Separate checks if you want. Nobody lives here for the price of coffee."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "b-when",
+          "heading": "The diner",
+          "when": "{{meeting_info}}",
+          "where": "the back row in {{city}}",
+          "note": "Park behind the building. The front lot is for people who are only eating.",
+          "style": {
+            "bg": "none"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "why-join",
+      "title": "Join",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "j-hero",
+          "variant": "minimal",
+          "title": "Membership",
+          "subtitle": "Sample text — replace me: If you only drink water for three hours we will hear about it from the night manager.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "membership_levels",
+          "id": "levels",
+          "variant": "cards",
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "j-faq",
+          "items": [
+            {
+              "q": "Is this a 24-hour sew?",
+              "a": "The diner is 24 hours. The guild block is four hours. A few of us stay and piece into the night as regular customers."
+            },
+            {
+              "q": "Can I bring a longarm?",
+              "a": "No. This is a booth. Domestic machines only."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "meetings",
+      "title": "Meetings",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "m-hero",
+          "variant": "minimal",
+          "title": "Meetings",
+          "subtitle": "Sample text — replace me: We meet {{meeting_info}} in {{city}}.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "m-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "events",
+          "id": "m-list",
+          "variant": "list",
+          "heading": "On the calendar",
+          "limit": 8,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Programs, dues, and the door.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "dark"
+          }
+        }
+      ]
+    }
+  ]
+}

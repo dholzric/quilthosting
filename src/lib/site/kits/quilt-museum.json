@@ -1,0 +1,303 @@
+{
+  "id": "quilt-museum",
+  "name": "Quilt Museum",
+  "audience": "both",
+  "character": "Quiet institutional serif on heritage indigo: collection-led, visiting information up front, supporter levels instead of guild dues.",
+  "defaults": {
+    "palette": "heritage-indigo",
+    "typePair": "newsreader-ibmplexsans",
+    "scale": "editorial",
+    "shape": { "radius": "sharp", "shadow": "none" },
+    "rhythm": { "spacing": "airy", "container": "normal" },
+    "header": { "variant": "left", "sticky": true, "cta": "join", "overlayHero": false },
+    "footer": { "variant": "columns" },
+    "pattern": { "id": "nine-patch", "opacity": 0.06 }
+  },
+  "imagery": [
+    { "id": "hero-art", "kind": "pattern", "alt": "" }
+  ],
+  "previewSeed": { "guildName": "Heritage Quilt Study Center", "city": "Hudson, New York" },
+  "menu": [
+    { "label": "Exhibitions", "href": "/exhibitions" },
+    { "label": "Collection", "href": "/collection" },
+    { "label": "Visit", "href": "/visit" },
+    { "label": "Support", "href": "/support" },
+    { "label": "About", "href": "/about" },
+    { "label": "Contact", "href": "/contact" }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "minimal",
+          "eyebrow": "Open Tuesday through Sunday",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: Four centuries of American quilts, three exhibitions a year, and a study room open to any researcher with a question.",
+          "ctaLabel": "Plan a visit",
+          "ctaHref": "/visit",
+          "secondaryLabel": "Current exhibitions",
+          "secondaryHref": "/exhibitions",
+          "style": { "bg": "none", "width": "narrow", "spacing": "airy", "align": "center" }
+        },
+        {
+          "type": "meeting_info",
+          "id": "visit-block",
+          "heading": "Visit",
+          "when": "Tuesday to Saturday, 10 to 5; Sunday, 12 to 4",
+          "where": "{{city}}",
+          "address": "128 Warren Street",
+          "mapUrl": "https://maps.google.com/?q=Hudson,+New+York",
+          "note": "Admission is free on first Fridays. The study room is open by appointment for close looking.",
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "events",
+          "id": "upcoming",
+          "variant": "cards",
+          "heading": "Exhibitions and programs",
+          "limit": 3,
+          "style": { "bg": "none", "width": "wide" }
+        },
+        {
+          "type": "gallery",
+          "id": "collection-teaser",
+          "variant": "grid",
+          "source": "gallery",
+          "gallerySlug": "collection",
+          "heading": "From the collection",
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "rich_text",
+          "id": "why-museum",
+          "variant": "two_column",
+          "heading": "Why quilts belong in a museum",
+          "html": "<p>A quilt is a document. It records the cloth that was available, the hours a family could spare, and the hands that held the needle. Collected and cared for, it outlasts the drawer it was folded into.</p><p>The center holds six hundred quilts, dated 1790 to the present, in a climate-controlled vault. Conservation is ongoing and visible: the workroom window looks onto the framing bench.</p>",
+          "style": { "bg": "dark", "width": "wide" }
+        },
+        {
+          "type": "join_band",
+          "id": "support-home",
+          "title": "Become a supporter",
+          "body": "Supporter levels fund conservation framing and the school program. Members visit free all year.",
+          "ctaLabel": "See supporter levels",
+          "style": { "bg": "brand", "width": "full", "align": "center" }
+        }
+      ]
+    },
+    {
+      "slug": "collection",
+      "title": "The Collection",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "collection-hero",
+          "variant": "minimal",
+          "title": "The collection",
+          "subtitle": "Sample text — replace me: Six hundred quilts and four generations of generous donors, from whole-cloth linseys to art quilts of the last decade.",
+          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+        },
+        {
+          "type": "gallery",
+          "id": "collection-grid",
+          "variant": "grid",
+          "source": "gallery",
+          "gallerySlug": "collection",
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "rich_text",
+          "id": "collection-note",
+          "variant": "prose",
+          "heading": "Studying a quilt up close",
+          "html": "<p>The study room seats twelve and any quilt in the vault can be requested by catalog number. Appointments are Tuesday and Thursday mornings; bring pencils only, and cotton gloves are provided.</p>",
+          "style": { "bg": "none", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "exhibitions",
+      "title": "Exhibitions",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "exhibitions-hero",
+          "variant": "minimal",
+          "title": "Exhibitions",
+          "subtitle": "Sample text — replace me: Three curated shows a year, plus one open-wall weekend when any quilt in the county may hang.",
+          "style": { "bg": "tint", "width": "narrow", "align": "center", "spacing": "airy" }
+        },
+        {
+          "type": "events",
+          "id": "exhibitions-list",
+          "variant": "list",
+          "heading": "On view and coming",
+          "limit": 6,
+          "style": { "bg": "none", "width": "wide" }
+        },
+        {
+          "type": "rich_text",
+          "id": "exhibitions-past",
+          "variant": "prose",
+          "heading": "The archive",
+          "html": "<p>Past exhibitions stay on view as online albums, with the curator's notes and the label copy for every quilt. Ten years of catalogs are available in the reading room.</p>",
+          "style": { "bg": "tint", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "visit",
+      "title": "Visit",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "visit-hero",
+          "variant": "minimal",
+          "title": "Plan your visit",
+          "subtitle": "Sample text — replace me: Hours, directions, parking, and what to expect in the galleries.",
+          "style": { "bg": "none", "width": "narrow", "align": "center" }
+        },
+        {
+          "type": "meeting_info",
+          "id": "visit-details",
+          "heading": "Hours and directions",
+          "when": "Tuesday to Saturday, 10 to 5; Sunday, 12 to 4",
+          "where": "{{city}}",
+          "address": "128 Warren Street",
+          "mapUrl": "https://maps.google.com/?q=Hudson,+New+York",
+          "note": "Two hours from New York by Amtrak; the station is a ten-minute walk.",
+          "style": { "bg": "tint", "width": "normal" }
+        },
+        {
+          "type": "rich_text",
+          "id": "visit-groups",
+          "variant": "two_column",
+          "heading": "Groups and accessibility",
+          "html": "<p>Guild bus trips and school groups are welcome, with a docent if booked two weeks ahead. The galleries are on one level, wheelchairs are available at the desk, and the reading room has a large-print catalog.</p><p>Photography without flash is encouraged, except where a label asks otherwise; loans from private collectors sometimes travel with that condition.</p>",
+          "style": { "bg": "none", "width": "normal" }
+        },
+        {
+          "type": "faq",
+          "id": "visit-faq",
+          "heading": "Before you come",
+          "items": [
+            { "q": "Is the museum suitable for children?", "a": "Yes. The scavenger hunt card keeps young visitors moving, and the hands-on quilting frame in the lobby is for everyone." },
+            { "q": "How long does a visit take?", "a": "About an hour for the galleries. The study room appointment is separate and lasts as long as your questions do." },
+            { "q": "Can I donate a quilt to the collection?", "a": "Please write first with photographs and what you know of its history. The collections committee meets quarterly." }
+          ],
+          "style": { "bg": "tint", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "support",
+      "title": "Support",
+      "nav": false,
+      "navLabel": "Support",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "support-hero",
+          "variant": "minimal",
+          "title": "Support the center",
+          "subtitle": "Sample text — replace me: Supporter memberships, conservation adoption, and the autumn benefit auction keep the vault cool and the lights on.",
+          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+        },
+        {
+          "type": "membership_levels",
+          "id": "support-levels",
+          "variant": "cards",
+          "heading": "Supporter levels",
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "rich_text",
+          "id": "support-where",
+          "variant": "prose",
+          "heading": "Where the money goes",
+          "html": "<p>Membership underwrites the school program, which brings every fourth-grade class in the county through the galleries each spring. Conservation adoption covers the exact cost of stabilizing one quilt: batting, cloth, a conservator's hours, and a frame that will outlast us.</p>",
+          "style": { "bg": "none", "width": "narrow" }
+        },
+        {
+          "type": "join_band",
+          "id": "support-join",
+          "title": "Members visit free, all year",
+          "body": "Join today and your first exhibition opening invitation arrives this month.",
+          "ctaLabel": "Choose a level",
+          "style": { "bg": "brand", "width": "full", "align": "center" }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "about-hero",
+          "variant": "minimal",
+          "eyebrow": "Since 1998",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: Founded by two collectors and a borrowed exhibition wall, now the caretaker of six hundred quilts.",
+          "style": { "bg": "none", "width": "narrow", "align": "center" }
+        },
+        {
+          "type": "rich_text",
+          "id": "about-body",
+          "variant": "two_column",
+          "heading": "How the center began",
+          "html": "<p>The first exhibition hung in a bank lobby that stood empty after a merger: forty quilts, borrowed from attics, with hand-lettered labels. The lobby is a gallery now, the attic quilts mostly came back with thank-you notes, and a few never left.</p><p>The center is a not-for-profit governed by a board of nine, staffed by four full-time and a rotation of volunteers who know where the tissue paper lives.</p>",
+          "style": { "bg": "tint", "width": "normal" }
+        },
+        {
+          "type": "testimonials",
+          "id": "about-quote",
+          "variant": "single",
+          "items": [
+            { "quote": "I came to see one log cabin and left having read every label in the room.", "author": "A visitor's comment card" }
+          ],
+          "style": { "bg": "none", "width": "normal" }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "contact-hero",
+          "variant": "minimal",
+          "title": "Write to the center",
+          "subtitle": "Sample text — replace me: Research requests, donation offers, image licensing, and press all begin here.",
+          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+        },
+        {
+          "type": "contact",
+          "id": "contact-form",
+          "heading": "Send a message",
+          "showDetails": true,
+          "style": { "bg": "none", "width": "normal" }
+        },
+        {
+          "type": "rich_text",
+          "id": "contact-departments",
+          "variant": "prose",
+          "heading": "Who answers",
+          "html": "<p>Research and study-room requests reach the registrar, image licensing the collections manager, and everything else the front desk, which has never once lost a question.</p>",
+          "style": { "bg": "tint", "width": "narrow" }
+        }
+      ]
+    }
+  ]
+}

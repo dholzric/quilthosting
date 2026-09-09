@@ -24,7 +24,7 @@
           "eyebrow": "Longarm quilting in {{city}}",
           "title": "Edge-to-edge and custom, quoted by the square inch",
           "subtitle": "Sample text — replace me: {{guild_name}} quilts tops for guilds, shops, and makers who would rather not load a frame at home.",
-          "ctaLabel": "Request a quote", "ctaHref": "/quote",
+          "ctaLabel": "Request a quote", "ctaHref": "/request-a-quote",
           "secondaryLabel": "Services", "secondaryHref": "/services",
           "style": { "bg": "dark", "width": "wide", "spacing": "airy", "media": "right", "imageId": "hero-art" }
         },
@@ -74,7 +74,7 @@
           "html": "<p>Press seams. Stay-stitch the edges if they wobble. Clip threads on the back. Do not pin or baste. Fold, do not hang, for the drive over. If the backing is pieced, press that seam open.</p>",
           "style": { "bg": "none", "width": "narrow" }
         },
-        { "type": "cta", "id": "s-quote", "label": "Request a quote", "href": "/quote", "kind": "primary", "style": { "bg": "brand", "align": "center" } }
+        { "type": "cta", "id": "s-quote", "label": "Request a quote", "href": "/request-a-quote", "kind": "primary", "style": { "bg": "brand", "align": "center" } }
       ]
     },
     {
@@ -88,7 +88,7 @@
           "style": { "bg": "dark", "align": "center" }
         },
         { "type": "gallery", "id": "p-grid", "variant": "masonry", "source": "gallery", "gallerySlug": "portfolio", "style": { "bg": "none", "width": "wide" } },
-        { "type": "cta", "id": "p-quote", "label": "Start a quote", "href": "/quote", "kind": "secondary", "style": { "bg": "tint", "align": "center" } }
+        { "type": "cta", "id": "p-quote", "label": "Start a quote", "href": "/request-a-quote", "kind": "secondary", "style": { "bg": "tint", "align": "center" } }
       ]
     },
     {
@@ -115,7 +115,7 @@
       ]
     },
     {
-      "slug": "quote", "title": "Request a Quote", "nav": true,
+      "slug": "request-a-quote", "title": "Request a Quote", "nav": true,
       "sections": [
         {
           "type": "hero", "id": "q-hero", "variant": "minimal",
@@ -153,7 +153,7 @@
           ],
           "style": { "bg": "tint", "width": "narrow" }
         },
-        { "type": "cta", "id": "f-quote", "label": "Request a quote", "href": "/quote", "kind": "primary", "style": { "bg": "none", "align": "center" } }
+        { "type": "cta", "id": "f-quote", "label": "Request a quote", "href": "/request-a-quote", "kind": "primary", "style": { "bg": "none", "align": "center" } }
       ]
     }
   ]

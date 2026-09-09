@@ -1,0 +1,311 @@
+{
+  "id": "thread-room",
+  "name": "Thread Room",
+  "audience": "business",
+  "character": "A garnet room of spools and no bolts: thread by weight, by fiber, by the color you thought you could not find.",
+  "defaults": {
+    "scale": "editorial",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "narrow"
+    },
+    "header": {
+      "variant": "split",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "none",
+      "opacity": 0
+    },
+    "palette": "jewel-garnet",
+    "typePair": "newsreader-ibmplexsans"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "The Spool Wall",
+    "city": "Winston-Salem, North Carolina"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Thread only, in {{city}}",
+          "title": "No fabric. On purpose.",
+          "subtitle": "Sample text — replace me: {{guild_name}} sells thread. Cotton, silk, wool, the heavy stuff for big stitch, the fine stuff for a contest quilt. If you want a fat quarter, the shop next door is very good.",
+          "ctaLabel": "Ask for a match",
+          "ctaHref": "/request-a-quote",
+          "secondaryLabel": "Spools",
+          "secondaryHref": "/spools",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "home-offer",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "By the spool",
+              "body": "Walls of it. Sit in the chair if matching a binding is going to take a while.",
+              "price": "tagged",
+              "href": "/spools"
+            },
+            {
+              "title": "By the cone",
+              "body": "Longarm cones I will wind off if you only need a bobbin's worth of a rare color.",
+              "price": "tagged"
+            },
+            {
+              "title": "Match",
+              "body": "Bring the cloth. We do it in daylight by the window, not under the spot.",
+              "price": "$0"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "home-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "I had the quilt. I did not have the 28wt in that ugly perfect green. They had three.",
+              "author": "A hand quilter"
+            }
+          ],
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "home-cta",
+          "projectType": "custom_quilt",
+          "heading": "Fiber, weight, and a swatch if you cannot come in",
+          "submitLabel": "Ask for a match",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "spools",
+      "title": "The Wall",
+      "nav": true,
+      "navLabel": "Spools",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "The Wall",
+          "subtitle": "Sample text — replace me: What is in the room, and what I special-order.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "sp-grid",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Cotton",
+              "body": "28, 40, 50. The 12wt lives on a lower shelf because it falls on people."
+            },
+            {
+              "title": "Silk",
+              "body": "In a closed cabinet. Ask. It snags on a wool coat if you browse like a raccoon."
+            },
+            {
+              "title": "Variegated",
+              "body": "A short wall. I will talk you out of it for a show quilt if you let me."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "visit",
+      "title": "The Chair",
+      "nav": true,
+      "navLabel": "Visit",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "The Chair",
+          "subtitle": "Sample text — replace me: Daylight matching, {{meeting_info}}, in {{city}}.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "v-hours",
+          "heading": "Hours",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "note": "The chair by the window is for matching. The stool is for paying. Do not mix them up when there is a line.",
+          "style": {
+            "bg": "tint"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "request-a-quote",
+      "title": "Request a Quote",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "q-hero",
+          "variant": "minimal",
+          "title": "Request a quote",
+          "subtitle": "Sample text — replace me: I will not match from a night-time phone photo. Daylight, or a posted swatch.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "q-form",
+          "projectType": "custom_quilt",
+          "heading": "Fiber, weight, and a swatch if you cannot come in",
+          "submitLabel": "Ask for a match",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "cta",
+          "id": "q-more",
+          "label": "Or write first",
+          "href": "/contact",
+          "kind": "secondary",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A thread shop, not a fabric shop that also has thread.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "The work",
+          "html": "<p><em>Sample text — replace me:</em> Every fabric shop has a spinning rack. This room is the other way around. {{guild_name}} exists because matching a binding should not require buying a bolt you do not want.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "a-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "I had the quilt. I did not have the 28wt in that ugly perfect green. They had three.",
+              "author": "A hand quilter"
+            }
+          ],
+          "style": {
+            "bg": "none"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Dates, deposits, and work already in the shop.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-hours",
+          "heading": "Hours",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    }
+  ]
+}

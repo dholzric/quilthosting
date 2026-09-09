@@ -1,0 +1,331 @@
+{
+  "id": "atlas-quilt",
+  "name": "Atlas Quilt",
+  "audience": "business",
+  "character": "Wheat maps and a street index: custom quilts of a town, a farm, or the block you grew up on.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "soft",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "log-cabin",
+      "opacity": 0.08
+    },
+    "palette": "heritage-wheat",
+    "typePair": "librebaskerville-nunitosans"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "The Street Index",
+    "city": "Iowa City, Iowa"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Map quilts in {{city}}",
+          "title": "Your town, in seams.",
+          "subtitle": "Sample text — replace me: {{guild_name}} pieces maps. Rivers as bias. Rail as a running stitch. The house is a square you can point to.",
+          "ctaLabel": "Request a quote",
+          "ctaHref": "/request-a-quote",
+          "secondaryLabel": "Maps",
+          "secondaryHref": "/maps",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "home-offer",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "A town",
+              "body": "Streets, water, the one highway. Labels embroidered, not printed.",
+              "price": "from $380",
+              "href": "/maps"
+            },
+            {
+              "title": "A farm",
+              "body": "Fields as solids, the creek as it actually bends, the barn oversized on purpose.",
+              "price": "from $320"
+            },
+            {
+              "title": "A block",
+              "body": "Childhood scale. The corner store larger than true. Memory is allowed to lie a little."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "home-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "She put the alley in. Nobody puts the alley in. That was the whole town.",
+              "author": "Someone from the third street over"
+            }
+          ],
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "home-cta",
+          "projectType": "custom_quilt",
+          "heading": "Place, year if it matters, and which buildings must be findable",
+          "submitLabel": "Request a quote",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "maps",
+      "title": "What a Map Can Hold",
+      "nav": true,
+      "navLabel": "Maps",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "What a Map Can Hold",
+          "subtitle": "Sample text — replace me: Scale, labels, and the lies memory wants.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "mp-body",
+          "variant": "prose",
+          "heading": "Scale",
+          "html": "<p><em>Sample text — replace me:</em> A whole county on a throw will lose the house. A single block on a queen will invent streets. I will say which size tells the truth you asked for.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "mp-faq",
+          "items": [
+            {
+              "q": "Can you copy a Google map?",
+              "a": "I can look. I will not applique their labels. The quilt is a drawing, not a screenshot."
+            },
+            {
+              "q": "Do you do fictional places?",
+              "a": "Yes, if you can describe them. Invented towns still need a legend."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "legend",
+      "title": "Legend",
+      "nav": true,
+      "navLabel": "Legend",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "Legend",
+          "subtitle": "Sample text — replace me: How to read one of these from the foot of the bed.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "lg-grid",
+          "variant": "icons",
+          "items": [
+            {
+              "icon": "~",
+              "title": "Water",
+              "body": "Bias strip, often a grey-blue solid."
+            },
+            {
+              "icon": "=",
+              "title": "Rail",
+              "body": "A running stitch in a darker thread, not a print of tracks."
+            },
+            {
+              "icon": "+",
+              "title": "The house",
+              "body": "A square, slightly too big, because that is how you remember it."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "request-a-quote",
+      "title": "Request a Quote",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "q-hero",
+          "variant": "minimal",
+          "title": "Request a quote",
+          "subtitle": "Sample text — replace me: A plat map helps. A napkin sketch is a start. A wrong river is a fight I would like to have on paper first.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "q-form",
+          "projectType": "custom_quilt",
+          "heading": "Place, year if it matters, and which buildings must be findable",
+          "submitLabel": "Send details",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "cta",
+          "id": "q-more",
+          "label": "Or write first",
+          "href": "/contact",
+          "kind": "secondary",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A mapmaker who switched to cloth.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "The work",
+          "html": "<p><em>Sample text — replace me:</em> I used to draw plats. People kept asking if the drawing could live on a bed. {{guild_name}} is that stubborn idea: geography you can wash.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "a-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "She put the alley in. Nobody puts the alley in. That was the whole town.",
+              "author": "Someone from the third street over"
+            }
+          ],
+          "style": {
+            "bg": "none"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Dates, deposits, and work already in the shop.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-hours",
+          "heading": "Hours",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    }
+  ]
+}

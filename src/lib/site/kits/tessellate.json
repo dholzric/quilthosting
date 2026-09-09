@@ -1,0 +1,347 @@
+{
+  "id": "tessellate",
+  "name": "Tessellate",
+  "audience": "guild",
+  "character": "Slate, lime, and graph paper: a guild that treats tiling as the quilt, and the quilt as a proof.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "tight",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "flying-geese",
+      "opacity": 0.08
+    },
+    "palette": "modern-slate-lime",
+    "typePair": "spacegrotesk-worksans"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Proof & Patch",
+    "city": "Cambridge, Massachusetts"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Tiling quilts in {{city}}",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: {{guild_name}} sews tessellations. We meet {{meeting_info}} with graph paper, a stubborn angle, and no interest in a novelty print that breaks the repeat.",
+          "ctaLabel": "Join",
+          "ctaHref": "/membership",
+          "secondaryLabel": "Proofs",
+          "secondaryHref": "/proofs",
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "spacing": "airy",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "when",
+          "heading": "Proof night",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "note": "Sketch first. Cut second. If the tiling does not close, we do not sew it anyway and hope.",
+          "style": {
+            "bg": "none"
+          }
+        },
+        {
+          "type": "events",
+          "id": "upcoming",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "life",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "The sketch",
+              "body": "A closed tiling on paper, or you do not get the rotary cutter yet.",
+              "href": "/proofs"
+            },
+            {
+              "title": "The ugly beautiful",
+              "body": "Penrose, hex, Cairo, tumbling blocks. Pretty is a side effect."
+            },
+            {
+              "title": "The guest",
+              "body": "Once a year a mathematician who cannot sew. We translate. They stay for pie."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "join_band",
+          "id": "join",
+          "title": "Bring graph paper",
+          "body": "Dues cover the room. The guest mathematician is paid in pie and transit.",
+          "ctaLabel": "See dues",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A geometry guild that happens to use cloth.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "How we started",
+          "html": "<p><em>Sample text — replace me:</em> Some of us came from math departments. Some of us came from being annoyed that a star would not repeat. {{guild_name}} is the overlap: cloth that tiles, and a room that will say so when it does not.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "a-year",
+          "variant": "numbered",
+          "items": [
+            {
+              "title": "Fall hex",
+              "body": "A group hexagon field. Color by rule, not by mood, unless the rule is mood."
+            },
+            {
+              "title": "Winter Penrose",
+              "body": "Optional. It will humble you."
+            },
+            {
+              "title": "Spring hang",
+              "body": "Quilts photographed on a grid so the repeat is the point."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          },
+          "heading": "A year with us"
+        }
+      ]
+    },
+    {
+      "slug": "proofs",
+      "title": "Proofs",
+      "nav": true,
+      "navLabel": "Proofs",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "s-hero",
+          "variant": "minimal",
+          "title": "Proofs",
+          "subtitle": "Sample text — replace me: When a tiling is closed, and when it is just a pretty drawing.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "p-body",
+          "variant": "prose",
+          "heading": "Close it",
+          "html": "<p><em>Sample text — replace me:</em> If the edges do not meet when you wrap the plane, it is a motif, not a tessellation. Motifs are allowed at other guilds. Here we close it, or we call it a study and put it in a notebook.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "p-faq",
+          "items": [
+            {
+              "q": "May I use a computer?",
+              "a": "Yes. Bring a printout. The rest of us will still check it with a pencil."
+            },
+            {
+              "q": "Are fussy-cut hexes cheating?",
+              "a": "They are a delight. The tiling still has to close."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "why-join",
+      "title": "Join",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "j-hero",
+          "variant": "minimal",
+          "title": "Membership",
+          "subtitle": "Sample text — replace me: You do not need a degree. You need patience with an angle.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "membership_levels",
+          "id": "levels",
+          "variant": "cards",
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "j-faq",
+          "items": [
+            {
+              "q": "I just like hexies.",
+              "a": "Come. Hexies tile. We will not make you prove Penrose on night one."
+            },
+            {
+              "q": "Do you sew curves?",
+              "a": "If they tile. Wavy edges that do not repeat are a different table."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "meetings",
+      "title": "Meetings",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "m-hero",
+          "variant": "minimal",
+          "title": "Meetings",
+          "subtitle": "Sample text — replace me: We meet {{meeting_info}} in {{city}}.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "m-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "events",
+          "id": "m-list",
+          "variant": "list",
+          "heading": "On the calendar",
+          "limit": 8,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Programs, dues, and the door.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "dark"
+          }
+        }
+      ]
+    }
+  ]
+}

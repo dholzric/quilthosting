@@ -1,0 +1,311 @@
+{
+  "id": "class-bench",
+  "name": "Class Bench",
+  "audience": "business",
+  "character": "Blush and a classroom grid: in-person lessons at a real bench, homework that is a block, not a PDF.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "round",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "centered",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "none",
+      "opacity": 0
+    },
+    "palette": "soft-blush",
+    "typePair": "lora-karla"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "The Class Bench",
+    "city": "Columbus, Ohio"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Quilting classes in {{city}}",
+          "title": "Learn at a bench, not in a livestream.",
+          "subtitle": "Sample text — replace me: {{guild_name}} teaches adults in a room with irons, design walls, and a teacher who can see your seam from the next chair.",
+          "ctaLabel": "Request a quote",
+          "ctaHref": "/request-a-quote",
+          "secondaryLabel": "Classes",
+          "secondaryHref": "/classes",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "home-offer",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "First quarter-inch",
+              "body": "Four Wednesday evenings. You leave with a nine-patch pillow.",
+              "price": "$120",
+              "href": "/classes"
+            },
+            {
+              "title": "Free-motion",
+              "body": "A domestic machine, a sandwich, and three hours of noise.",
+              "price": "$85"
+            },
+            {
+              "title": "Guild booking",
+              "body": "I come to your hall with a project that fits two hours and a folding table.",
+              "price": "from $250"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          },
+          "heading": "What we teach"
+        },
+        {
+          "type": "testimonials",
+          "id": "home-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "She stood behind me, did not take the fabric out of my hands, and the next seam was straight.",
+              "author": "Wednesday cohort"
+            }
+          ],
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "home-cta",
+          "projectType": "custom_quilt",
+          "heading": "Class name, dates, and whether you have a machine",
+          "submitLabel": "Ask about a seat",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "classes",
+      "title": "Classes",
+      "nav": true,
+      "navLabel": "Classes",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "Classes",
+          "subtitle": "Sample text — replace me: Public seats, what to bring, and how we handle a missed week.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "events",
+          "id": "cl-list",
+          "variant": "cards",
+          "heading": "Upcoming",
+          "limit": 8,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "cl-bring",
+          "variant": "prose",
+          "heading": "Bring",
+          "html": "<p><em>Sample text — replace me:</em> Machine if you have one, or say so and use a house machine. Fabric lists go out a week ahead. We do not sell kits for the joy of leftover packs. We sell them when the supply run would otherwise stall the class.</p>",
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "studio",
+      "title": "The Room",
+      "nav": true,
+      "navLabel": "The room",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "The Room",
+          "subtitle": "Sample text — replace me: A storefront classroom in {{city}}, not a basement that floods.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "st-hours",
+          "heading": "Class hours",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "note": "Street parking after 6. The door is on the alley if the front is blocked by the cafe line.",
+          "style": {
+            "bg": "tint"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "request-a-quote",
+      "title": "Request a Quote",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "q-hero",
+          "variant": "minimal",
+          "title": "Request a quote",
+          "subtitle": "Sample text — replace me: Public classes list on the calendar. Private and guild dates go through this form.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "q-form",
+          "projectType": "custom_quilt",
+          "heading": "Class name, dates, and whether you have a machine",
+          "submitLabel": "Ask about a seat",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "cta",
+          "id": "q-more",
+          "label": "Or email first",
+          "href": "/contact",
+          "kind": "secondary",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A teacher with a room, not a personality with a PDF shop.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "The work",
+          "html": "<p><em>Sample text — replace me:</em> I taught in quilt shops until the shops needed me to sell fat quarters more than they needed me to watch a seam. {{guild_name}} is the room I rented so the watching could be the job.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "a-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "She stood behind me, did not take the fabric out of my hands, and the next seam was straight.",
+              "author": "Wednesday cohort"
+            }
+          ],
+          "style": {
+            "bg": "none"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Seats, guild bookings, and missed-class makeups.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-hours",
+          "heading": "Hours",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    }
+  ]
+}

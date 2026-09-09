@@ -1,0 +1,280 @@
+{
+  "id": "state-association",
+  "name": "State Association",
+  "audience": "guild",
+  "character": "An umbrella organization: steady governance voice in forest green for a state's worth of chapters, one big spring gathering, and a teaching-grant fund.",
+  "defaults": {
+    "palette": "naturals-moss",
+    "typePair": "bitter-opensans",
+    "scale": "comfortable",
+    "shape": { "radius": "soft", "shadow": "subtle" },
+    "rhythm": { "spacing": "normal", "container": "normal" },
+    "header": { "variant": "left", "sticky": true, "cta": "join", "overlayHero": false },
+    "footer": { "variant": "columns" },
+    "pattern": { "id": "churn-dash", "opacity": 0.1 }
+  },
+  "imagery": [
+    { "id": "hero-art", "kind": "pattern", "alt": "" }
+  ],
+  "previewSeed": { "guildName": "Prairie State Quilters Association", "city": "Springfield, Illinois" },
+  "menu": [
+    { "label": "Chapters", "href": "/chapters" },
+    { "label": "Programs", "href": "/programs" },
+    { "label": "Events", "href": "/events" },
+    { "label": "Join", "href": "/why-join" },
+    { "label": "About", "href": "/about" },
+    { "label": "Contact", "href": "/contact" }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "stats",
+          "eyebrow": "Since 1987",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: Twenty-six chapters, one annual gathering, and a small grant fund that sends teachers to towns that cannot otherwise afford them.",
+          "stats": [
+            { "value": "26", "label": "member chapters" },
+            { "value": "900", "label": "quilters statewide" },
+            { "value": "$4,200", "label": "in teaching grants last year" }
+          ],
+          "ctaLabel": "Join the association",
+          "ctaHref": "/why-join",
+          "style": { "bg": "brand", "width": "wide", "spacing": "airy", "align": "center" }
+        },
+        {
+          "type": "events",
+          "id": "home-events",
+          "variant": "cards",
+          "heading": "Around the state",
+          "limit": 3,
+          "style": { "bg": "none", "width": "wide" }
+        },
+        {
+          "type": "feature_grid",
+          "id": "home-includes",
+          "variant": "cards",
+          "heading": "What membership includes",
+          "items": [
+            { "title": "The spring gathering", "body": "A weekend of classes, the chapter challenge, and the not-for-profit boutique.", "href": "/programs" },
+            { "title": "Traveling teachers", "body": "The grant fund co-pays a teacher's fee and mileage for small chapters.", "href": "/programs" },
+            { "title": "The monthly letter", "body": "Chapter news, the grant deadlines, and one pattern from the archive.", "href": "/why-join" },
+            { "title": "A louder voice", "body": "The association answers press and state fair questions so no chapter answers alone.", "href": "/about" }
+          ],
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "rich_text",
+          "id": "home-how",
+          "variant": "two_column",
+          "heading": "How the association works",
+          "html": "<p>Every chapter holds one seat on the board, and the board meets on the second Wednesday in {{city}} or by video when the roads are bad. Dues are split three ways: half stays with programs, a quarter funds the grants, and a quarter keeps the insurance and the post office box.</p><p>The bylaws fit on eleven pages and have survived thirty years of amendments, mostly about the raffle table.</p>",
+          "style": { "bg": "none", "width": "normal" }
+        },
+        {
+          "type": "gallery",
+          "id": "home-gallery",
+          "variant": "grid",
+          "source": "gallery",
+          "gallerySlug": "gathering",
+          "heading": "The gathering, last spring",
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "join_band",
+          "id": "home-join",
+          "title": "Join through your chapter, or as a member at large",
+          "body": "Dues are twenty-five dollars a year, and membership travels with you if you move across the state.",
+          "ctaLabel": "Join the association",
+          "style": { "bg": "dark", "width": "full", "align": "center" }
+        }
+      ]
+    },
+    {
+      "slug": "chapters",
+      "title": "Chapters",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "chapters-hero",
+          "variant": "minimal",
+          "title": "Twenty-six chapters",
+          "subtitle": "Sample text — replace me: From the river towns to the lakefront, each with its own meeting night and its own idea of a good program.",
+          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+        },
+        {
+          "type": "feature_grid",
+          "id": "chapters-list",
+          "variant": "cards",
+          "heading": "Find one near you",
+          "items": [
+            { "title": "Northside Piecemakers", "body": "Second Mondays at the community center. Strong on machine piecing, weak on ending on time." },
+            { "title": "Riverbend Quilters", "body": "First Thursdays, lower level of the bank building. The hand-quilting frame never leaves." },
+            { "title": "Prairie Points", "body": "Third Saturdays in the morning, because the farms come first." },
+            { "title": "Lakefront Modern", "body": "Weeknight meetings with a design-wall challenge every other month." },
+            { "title": "Sew-N-Sews", "body": "Small, loud, and the current keeper of the traveling trophy." },
+            { "title": "Your six friends", "body": "Six members and a set of bylaws is all a new chapter needs for its charter." }
+          ],
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "rich_text",
+          "id": "chapters-charter",
+          "variant": "prose",
+          "heading": "Starting a chapter",
+          "html": "<p>A chapter charter takes six members, a name nobody else has used, and a one-page application to the board. New chapters pay no association dues for their first year, and the grants committee visits any chapter that asks for help planning programs.</p>",
+          "style": { "bg": "none", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "programs",
+      "title": "Programs",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "programs-hero",
+          "variant": "minimal",
+          "title": "Programs",
+          "subtitle": "Sample text — replace me: The things a state-wide group can do that no single chapter can.",
+          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+        },
+        {
+          "type": "feature_grid",
+          "id": "programs-list",
+          "variant": "cards",
+          "heading": "The four programs",
+          "items": [
+            { "title": "Teaching grants", "body": "Up to $400 toward a teacher's fee and mileage. Small chapters get first claim on the fund.", "href": "/why-join" },
+            { "title": "The spring gathering", "body": "Two days of classes, a judged chapter challenge, and the vendor mall that pays for the hall.", "href": "/events" },
+            { "title": "The archive project", "body": "Documenting quilts made in the state, one documentation day at a time.", "href": "/about" },
+            { "title": "The speaker bureau", "body": "A roster of members who lecture for the cost of gas and a casserole dinner." }
+          ],
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "rich_text",
+          "id": "programs-gathering",
+          "variant": "prose",
+          "heading": "The gathering, in short",
+          "html": "<p>Held the third weekend of April in a building with bad carpet and wonderful light. Registration opens in January, fills by the end of February, and the challenge quilts go up before the coffee does. <a href=\"/events\">The full schedule lives on the events page.</a></p>",
+          "style": { "bg": "none", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "why-join",
+      "title": "Membership",
+      "nav": false,
+      "navLabel": "Join",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "join-hero",
+          "variant": "pattern",
+          "title": "Membership in the association",
+          "subtitle": "Sample text — replace me: For quilters, for chapters, and for the shops that keep every one of us in backing fabric.",
+          "style": { "bg": "pattern", "width": "wide", "align": "center", "imageId": "hero-art" }
+        },
+        {
+          "type": "membership_levels",
+          "id": "join-levels",
+          "variant": "cards",
+          "heading": "Levels",
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "rich_text",
+          "id": "join-dues",
+          "variant": "prose",
+          "heading": "Where the twenty-five dollars goes",
+          "html": "<p>Half funds programs, a quarter funds the teaching grants, and the rest pays the liability insurance that every chapter borrows for its shows. <a href=\"/membership\">Open the membership form</a> and choose individual, chapter, or business membership.</p>",
+          "style": { "bg": "none", "width": "narrow" }
+        },
+        {
+          "type": "faq",
+          "id": "join-faq",
+          "heading": "Membership questions",
+          "items": [
+            { "q": "My guild is small. Can we affiliate?", "a": "Yes. Chapter dues scale with size, and a chapter of eight has the same board seat as a chapter of eighty." },
+            { "q": "Can I join without a chapter?", "a": "Member at large is a real category, and members at large get first pick of gathering classes because they have no chapter waiting list to negotiate." },
+            { "q": "When are dues due?", "a": "January first, pro-rated after June. The membership chair sends two reminders and one polite postcard." }
+          ],
+          "style": { "bg": "tint", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "about-hero",
+          "variant": "minimal",
+          "eyebrow": "Since 1987",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: Founded when five guilds met at a county fairground and decided the state needed one calendar.",
+          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+        },
+        {
+          "type": "rich_text",
+          "id": "about-body",
+          "variant": "two_column",
+          "heading": "Thirty years of calendars",
+          "html": "<p>The founding complaint, preserved in the first minutes, was that five guilds scheduled shows on the same three weekends every year and nobody could attend anybody else's. The association began as a shared calendar and grew the programs the calendar made possible.</p><p>It is a not-for-profit run by a board of chapter representatives. The records live in four archival boxes at the historical society, and the traveling trophy for the chapter challenge lives wherever it was last won, which has caused disputes of the friendly kind.</p>",
+          "style": { "bg": "tint", "width": "normal" }
+        },
+        {
+          "type": "testimonials",
+          "id": "about-quotes",
+          "variant": "grid",
+          "items": [
+            { "quote": "The grant brought a teacher to us for the first time in eleven years. Fourteen members, one evening, all curves.", "author": "A chapter treasurer" },
+            { "quote": "When the paper called about the fair, I sent them to the association and went back to my binding.", "author": "A chapter president" }
+          ],
+          "style": { "bg": "none", "width": "normal" }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "contact-hero",
+          "variant": "minimal",
+          "title": "Contact the association",
+          "subtitle": "Sample text — replace me: Charter applications, grant deadlines, press questions, and shops that would like to be in the directory.",
+          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+        },
+        {
+          "type": "contact",
+          "id": "contact-form",
+          "heading": "Send a message",
+          "showDetails": true,
+          "style": { "bg": "none", "width": "normal" }
+        },
+        {
+          "type": "meeting_info",
+          "id": "contact-board",
+          "heading": "Board meetings are open",
+          "when": "Second Wednesday of the month, 7 pm",
+          "where": "{{city}}",
+          "note": "Any member may sit in. Bring your chapter's news; it goes in the letter even if nobody can attend.",
+          "style": { "bg": "brand", "width": "wide" }
+        }
+      ]
+    }
+  ]
+}

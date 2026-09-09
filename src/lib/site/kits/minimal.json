@@ -63,7 +63,7 @@
         {
           "type": "feature_grid", "id": "about-list", "variant": "numbered",
           "items": [
-            { "title": "Meet", "body": "{{meeting_info}}." },
+            { "title": "Meet", "body": "We meet {{meeting_info}}." },
             { "title": "Sew", "body": "A Saturday sew day in odd-numbered months." },
             { "title": "Give", "body": "Lap quilts for the county hospital, collected in December." }
           ],

@@ -1,0 +1,278 @@
+{
+  "id": "barn-quilt-trail",
+  "name": "Barn Quilt Trail",
+  "audience": "both",
+  "character": "Barn quilts, back roads, and a map worth driving: golden prairie palette, big friendly signage type, volunteer-painted blocks.",
+  "defaults": {
+    "palette": "heritage-wheat",
+    "typePair": "librebaskerville-nunitosans",
+    "scale": "comfortable",
+    "shape": { "radius": "soft", "shadow": "none" },
+    "rhythm": { "spacing": "normal", "container": "normal" },
+    "header": { "variant": "left", "sticky": true, "cta": "join", "overlayHero": false },
+    "footer": { "variant": "meeting" },
+    "pattern": { "id": "bear-paw", "opacity": 0.12 }
+  },
+  "imagery": [
+    { "id": "hero-art", "kind": "pattern", "alt": "" }
+  ],
+  "previewSeed": { "guildName": "Bluestem Barn Quilt Trail", "city": "Salina, Kansas" },
+  "menu": [
+    { "label": "The Trail", "href": "/the-trail" },
+    { "label": "The Barns", "href": "/barns" },
+    { "label": "Events", "href": "/events" },
+    { "label": "Join", "href": "/why-join" },
+    { "label": "About", "href": "/about" },
+    { "label": "Contact", "href": "/contact" }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "pattern",
+          "eyebrow": "A driving trail of painted barn quilts",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: Forty-one eight-foot blocks across four counties, painted by volunteers and hung where the corn can see them.",
+          "ctaLabel": "Get the trail map",
+          "ctaHref": "/the-trail",
+          "secondaryLabel": "See the barns",
+          "secondaryHref": "/barns",
+          "style": { "bg": "pattern", "width": "wide", "spacing": "airy", "imageId": "hero-art" }
+        },
+        {
+          "type": "feature_grid",
+          "id": "home-plan",
+          "variant": "cards",
+          "heading": "Plan a day on the trail",
+          "items": [
+            { "title": "The full loop", "body": "Ninety miles, about six hours with stops. Two segments are gravel; the map says where.", "href": "/the-trail" },
+            { "title": "The season", "body": "Blocks read best April through October, and the morning light is kindest to the paint.", "href": "/the-trail" },
+            { "title": "Stop-and-shop farms", "body": "Five farms sell eggs, honey, and small quilts at the gate. Bring cash and a cooler.", "href": "/barns" },
+            { "title": "Photo points", "body": "The map marks three pull-offs wide enough to stop safely. Please keep it to those.", "href": "/the-trail" }
+          ],
+          "style": { "bg": "none", "width": "wide" }
+        },
+        {
+          "type": "gallery",
+          "id": "home-gallery",
+          "variant": "grid",
+          "source": "gallery",
+          "gallerySlug": "trail",
+          "heading": "Blocks from the trail",
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "events",
+          "id": "home-next",
+          "variant": "next_up",
+          "heading": "Next event",
+          "limit": 1,
+          "style": { "bg": "none", "width": "normal" }
+        },
+        {
+          "type": "join_band",
+          "id": "home-join",
+          "title": "Paint the next block",
+          "body": "Membership funds paint, primer, and the bucket-truck rental. Members vote on the next routes.",
+          "ctaLabel": "Join the association",
+          "style": { "bg": "dark", "width": "full", "align": "center" }
+        }
+      ]
+    },
+    {
+      "slug": "the-trail",
+      "title": "The Trail",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "trail-hero",
+          "variant": "minimal",
+          "title": "The trail",
+          "subtitle": "Sample text — replace me: Maps, gravel warnings, and where the pavement ends. Take the brochure; the barns do not have addresses.",
+          "style": { "bg": "none", "width": "narrow", "align": "center" }
+        },
+        {
+          "type": "rich_text",
+          "id": "trail-how",
+          "variant": "two_column",
+          "heading": "How the trail works",
+          "html": "<p>Every block is numbered and named for its farm or its painter. The brochure groups them by county color so a wrong turn becomes a different loop instead of a lost afternoon. Printed maps live at the visitor center, the grain elevator office, and the diner on Route 24.</p><p>The trail is on working farms. Stay at the road, close the gate you opened, and wave; most farmers wave back and a few come out to talk about the pattern.</p>",
+          "style": { "bg": "tint", "width": "normal" }
+        },
+        {
+          "type": "feature_grid",
+          "id": "trail-loops",
+          "variant": "numbered",
+          "heading": "Three loops",
+          "items": [
+            { "title": "The north loop", "body": "Thirty-eight miles and fourteen blocks, mostly pavement, one covered bridge." },
+            { "title": "The river loop", "body": "Fifty-four miles along the bottom roads. Watch for combines in September." },
+            { "title": "The town loop", "body": "Twelve blocks in town, walkable in an afternoon, ends at the quilt shop." }
+          ],
+          "style": { "bg": "none", "width": "wide" }
+        },
+        {
+          "type": "meeting_info",
+          "id": "trail-visitor",
+          "heading": "Visitor center",
+          "when": "Weekdays 9 to 4, weekends 10 to 2",
+          "where": "{{city}}",
+          "mapUrl": "https://maps.google.com/?q=Salina,+Kansas",
+          "note": "Free maps, cold water, and the volunteer who painted block 17 is usually around on Saturdays.",
+          "style": { "bg": "brand", "width": "wide" }
+        }
+      ]
+    },
+    {
+      "slug": "barns",
+      "title": "The Barns",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "barns-hero",
+          "variant": "pattern",
+          "title": "Forty-one blocks and counting",
+          "subtitle": "Sample text — replace me: Each block names its farm, its pattern, and the volunteer who painted it.",
+          "ctaLabel": "Join the association",
+          "ctaHref": "/why-join",
+          "style": { "bg": "pattern", "width": "wide", "align": "center", "imageId": "hero-art" }
+        },
+        {
+          "type": "feature_grid",
+          "id": "barns-featured",
+          "variant": "cards",
+          "heading": "Featured stops",
+          "items": [
+            { "title": "Blazing Star, Hoxie farm", "body": "Block 1 and the reason the trail exists. Painted on the barn door, visible from half a mile." },
+            { "title": "Churn Dash, the grange hall", "body": "The only block on a public building, and the easiest photo stop on the trail." },
+            { "title": "Mariner's Compass, church camp", "body": "Painted by the confirmation class of 2022, eight feet of perfect points." },
+            { "title": "Flying Geese, Kessler dairy", "body": "Best seen at dusk, when the geese on the pond under it line up with the block." },
+            { "title": "Log Cabin, the old schoolhouse", "body": "Built from lumber salvaged out of the gym floor when the school consolidated. The block went up in 2021." },
+            { "title": "Honeybee, the apiary", "body": "Stop inside for honey. The block was the beekeeper's first attempt at geometry." }
+          ],
+          "style": { "bg": "none", "width": "wide" }
+        },
+        {
+          "type": "cta",
+          "id": "barns-host",
+          "label": "Host a block on your barn",
+          "href": "/why-join",
+          "kind": "secondary",
+          "style": { "bg": "tint", "align": "center" }
+        }
+      ]
+    },
+    {
+      "slug": "why-join",
+      "title": "Join",
+      "nav": false,
+      "navLabel": "Join",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "join-hero",
+          "variant": "minimal",
+          "title": "Join the trail association",
+          "subtitle": "Sample text — replace me: Thirty dollars a year, a member's yard sign, and a vote on the next route.",
+          "style": { "bg": "tint", "width": "narrow", "align": "center", "spacing": "airy" }
+        },
+        {
+          "type": "rich_text",
+          "id": "join-dues",
+          "variant": "prose",
+          "heading": "What dues do",
+          "html": "<p>Dues buy exterior paint, primer, the bucket-truck rental two weekends a year, and the brochure printing. The association is all volunteers; nobody has ever been paid, though the paint crew eats well at the fish fry.</p>",
+          "style": { "bg": "none", "width": "narrow" }
+        },
+        {
+          "type": "membership_levels",
+          "id": "join-levels",
+          "variant": "cards",
+          "heading": "Levels",
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "faq",
+          "id": "join-faq",
+          "heading": "Joining questions",
+          "items": [
+            { "q": "Who paints the blocks?", "a": "Members, the 4-H club, and anyone who shows up to a paint day. Stencils and pattern help come free with the lumber." },
+            { "q": "How does a barn get picked?", "a": "Members nominate sites, the property owner signs an agreement, and the route vote decides which nominations are next." },
+            { "q": "Can a business join?", "a": "Yes. Business members are listed on the map legend and get a small block for the storefront." }
+          ],
+          "style": { "bg": "none", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "about-hero",
+          "variant": "minimal",
+          "eyebrow": "Since 2019",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: Started with a community-education class, four sheets of plywood, and more pattern books than sense.",
+          "style": { "bg": "none", "width": "narrow", "align": "center" }
+        },
+        {
+          "type": "rich_text",
+          "id": "about-body",
+          "variant": "two_column",
+          "heading": "From one class to four counties",
+          "html": "<p>The first block went up on the Hoxie farm in 2019 after a library class on barn quilts ran out of chairs. Neighbors asked for blocks of their own faster than the class could paint them, so the class became an association.</p><p>Now the trail keeps a MapGallery of finished blocks, a lumber stash behind the grange hall, and a waiting list that moves in the order the routes were voted. The paint is donated by the hardware store, which has never once let us pay.</p>",
+          "style": { "bg": "tint", "width": "normal" }
+        },
+        {
+          "type": "testimonials",
+          "id": "about-quote",
+          "variant": "single",
+          "items": [
+            { "quote": "We drove the river loop on our anniversary. Somewhere around block 33 we started planning which barn we would hang one on.", "author": "Visitors from Topeka" }
+          ],
+          "style": { "bg": "none", "width": "normal" }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "contact-hero",
+          "variant": "minimal",
+          "title": "Contact the association",
+          "subtitle": "Sample text — replace me: Route suggestions, press requests, tour buses with questions, and landowners curious about a block.",
+          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+        },
+        {
+          "type": "contact",
+          "id": "contact-form",
+          "heading": "Send a message",
+          "showDetails": true,
+          "style": { "bg": "none", "width": "normal" }
+        },
+        {
+          "type": "rich_text",
+          "id": "contact-note",
+          "variant": "prose",
+          "heading": "Tour operators",
+          "html": "<p>Bus groups are welcome on the paved loops. Write two weeks ahead and a volunteer meets the bus at the grange hall with maps and, if the season is right, honey.</p>",
+          "style": { "bg": "tint", "width": "narrow" }
+        }
+      ]
+    }
+  ]
+}

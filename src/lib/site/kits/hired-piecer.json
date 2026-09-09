@@ -1,0 +1,331 @@
+{
+  "id": "hired-piecer",
+  "name": "Hired Piecer",
+  "audience": "business",
+  "character": "Clay and a design wall: tops only, sewn to your pattern, folded and returned, no quilting, no binding.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "churn-dash",
+      "opacity": 0.08
+    },
+    "palette": "naturals-clay",
+    "typePair": "bitter-opensans"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Tops Only Studio",
+    "city": "Kansas City, Missouri"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Piecing for hire in {{city}}",
+          "title": "You pick the pattern. I sew the top.",
+          "subtitle": "Sample text — replace me: {{guild_name}} pieces tops. I do not quilt, bind, or choose your fabric unless you pay for that hour separately.",
+          "ctaLabel": "Request a quote",
+          "ctaHref": "/request-a-quote",
+          "secondaryLabel": "Rates",
+          "secondaryHref": "/rates",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "home-offer",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Your pattern, your cloth",
+              "body": "You send a pattern and kits. I sew. Accuracy is the product.",
+              "price": "from $18 / hr",
+              "href": "/rates"
+            },
+            {
+              "title": "BOM catch-up",
+              "body": "A year of blocks in a box, still in plastic. I will make them a top.",
+              "price": "quote"
+            },
+            {
+              "title": "Guild backlog",
+              "body": "Charity kits a guild cannot finish. Flat rate per top once I have sewn one sample."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "home-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "She sent a photo of the first four blocks. The points met. I stopped unpicking my own.",
+              "author": "A customer with a day job"
+            }
+          ],
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "home-cta",
+          "projectType": "custom_quilt",
+          "heading": "Pattern name, unfinished block count, and a photo of the kit",
+          "submitLabel": "Request a quote",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "rates",
+      "title": "Rates",
+      "nav": true,
+      "navLabel": "Rates",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "Rates",
+          "subtitle": "Sample text — replace me: Hourly for odd work. Flat for a pattern I have already sewn once.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "r-grid",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Hourly",
+              "body": "Odd blocks, repairs, wonky kits. I clock in when the iron is hot.",
+              "price": "$18 / hr"
+            },
+            {
+              "title": "Known pattern",
+              "body": "If I have sewn it before, a flat rate. Ask.",
+              "price": "flat"
+            },
+            {
+              "title": "Rush",
+              "body": "A wedding date is not a reason to skip pressing. Rush means I decline other work.",
+              "price": "+40%"
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "r-not",
+          "variant": "prose",
+          "heading": "What I will not do",
+          "html": "<p><em>Sample text — replace me:</em> I will not quilt. I will not bind. I will not pick fabric from my stash to save a kit that is short. I will tell you what to buy.</p>",
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "process",
+      "title": "How to Send a Kit",
+      "nav": true,
+      "navLabel": "Kits",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "How to Send a Kit",
+          "subtitle": "Sample text — replace me: Pressed, complete, and honest about missing pieces.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "k-faq",
+          "items": [
+            {
+              "q": "Do you cut?",
+              "a": "I can. That is hourly, and I will say if the fabric is short before I cut."
+            },
+            {
+              "q": "Do you fix a bad kit?",
+              "a": "I will try. I will also send it back if the pieces were rotary-cut by a child with a grudge."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "request-a-quote",
+      "title": "Request a Quote",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "q-hero",
+          "variant": "minimal",
+          "title": "Request a quote",
+          "subtitle": "Sample text — replace me: I quote after I see whether the kit was cut accurately.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "q-form",
+          "projectType": "custom_quilt",
+          "heading": "Pattern name, unfinished block count, and a photo of the kit",
+          "submitLabel": "Send details",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "cta",
+          "id": "q-more",
+          "label": "Or email first",
+          "href": "/contact",
+          "kind": "secondary",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A piecer, not a longarm, not a shop.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "The work",
+          "html": "<p><em>Sample text — replace me:</em> I like the part before the sandwich. {{guild_name}} exists because people buy kits, lose a month, and then hate the top. I do not hate the top. I press it and return it folded, with the leftover bits in a bag.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "a-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "She sent a photo of the first four blocks. The points met. I stopped unpicking my own.",
+              "author": "A customer with a day job"
+            }
+          ],
+          "style": {
+            "bg": "none"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Dates, deposits, and work already in the shop.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-hours",
+          "heading": "Hours",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    }
+  ]
+}

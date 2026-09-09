@@ -1,0 +1,351 @@
+{
+  "id": "two-color",
+  "name": "Two Color",
+  "audience": "guild",
+  "character": "High contrast, two fabrics, no extras: a guild that treats a third print as a moral failure.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "tight",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "split",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "flying-geese",
+      "opacity": 0.1
+    },
+    "palette": "modern-charcoal-coral",
+    "typePair": "spacegrotesk-worksans"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Only Two",
+    "city": "Cleveland, Ohio"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Two-fabric quilts in {{city}}",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: {{guild_name}} sews quilts from two fabrics. Binding may match. A third print is a different guild.",
+          "ctaLabel": "Join",
+          "ctaHref": "/membership",
+          "secondaryLabel": "The rule",
+          "secondaryHref": "/rule",
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "spacing": "airy",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "when",
+          "heading": "Two-fabric night",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "note": "Put both bolts on the table at the start. If a third sneaks out of the bag we will laugh, then ask you to put it back.",
+          "style": {
+            "bg": "none"
+          }
+        },
+        {
+          "type": "events",
+          "id": "upcoming",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "life",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "The rule",
+              "body": "Two cloths. Background and figure. Solids count. A tone-on-tone is still one cloth.",
+              "href": "/rule"
+            },
+            {
+              "title": "The exception",
+              "body": "Thread may contrast. Labels may be a third. Batting is not a fabric for this purpose."
+            },
+            {
+              "title": "The dare",
+              "body": "One meeting a year we allow a third. People get messy. Then we go back."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "join_band",
+          "id": "join",
+          "title": "Pick two",
+          "body": "Dues cover the room and the black drape for the November hang.",
+          "ctaLabel": "See dues",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A constraint guild, not a taste police for the rest of your life.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "How we started",
+          "html": "<p><em>Sample text — replace me:</em> You may sew scrappy rainbows at home. In this room the pleasure is the limit. Two fabrics make the block louder. {{guild_name}} is the night for that volume.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "a-year",
+          "variant": "numbered",
+          "items": [
+            {
+              "title": "January pair",
+              "body": "You name your two for the year. You may change once."
+            },
+            {
+              "title": "June third",
+              "body": "The messy meeting. Photograph it. Do not get used to it."
+            },
+            {
+              "title": "November hang",
+              "body": "Two-color quilts on a black wall. They read from the street."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          },
+          "heading": "A year with us"
+        }
+      ]
+    },
+    {
+      "slug": "rule",
+      "title": "The Two-Fabric Rule",
+      "nav": true,
+      "navLabel": "The rule",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "s-hero",
+          "variant": "minimal",
+          "title": "The Two-Fabric Rule",
+          "subtitle": "Sample text — replace me: What counts as a fabric, and what we pretend does not.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "r-faq",
+          "items": [
+            {
+              "q": "Is a selvedge a third fabric?",
+              "a": "If it shows, yes. Hide it or own the crime."
+            },
+            {
+              "q": "May the back be different?",
+              "a": "The back may be a third. The front is the religion."
+            },
+            {
+              "q": "What about a pieced binding?",
+              "a": "Binding from the two. A pieced binding from a third is how we start arguments."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "r-body",
+          "variant": "prose",
+          "heading": "Why",
+          "html": "<p><em>Sample text — replace me:</em> Constraint is a teacher. If you want a stash diet, this is a sharper one than a destash table.</p>",
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "why-join",
+      "title": "Join",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "j-hero",
+          "variant": "minimal",
+          "title": "Membership",
+          "subtitle": "Sample text — replace me: Bring two cuts you are willing to stare at for a year.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "membership_levels",
+          "id": "levels",
+          "variant": "cards",
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "j-faq",
+          "items": [
+            {
+              "q": "I already cut a scrappy top.",
+              "a": "Finish it at another guild. Start two-color here."
+            },
+            {
+              "q": "Are prints allowed?",
+              "a": "Yes. Two prints, or a print and a solid. Not a third."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "meetings",
+      "title": "Meetings",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "m-hero",
+          "variant": "minimal",
+          "title": "Meetings",
+          "subtitle": "Sample text — replace me: We meet {{meeting_info}} in {{city}}.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "m-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "events",
+          "id": "m-list",
+          "variant": "list",
+          "heading": "On the calendar",
+          "limit": 8,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Programs, dues, and the door.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "dark"
+          }
+        }
+      ]
+    }
+  ]
+}

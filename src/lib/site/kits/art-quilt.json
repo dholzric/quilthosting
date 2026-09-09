@@ -21,14 +21,13 @@
       "sections": [
         {
           "type": "hero", "id": "welcome", "variant": "minimal",
-          "eyebrow": "{{city}}",
+          "eyebrow": "Fiber artists in {{city}}",
           "title": "{{guild_name}}",
           "subtitle": "Sample text — replace me: Art quilts, fiber sculpture, and surface design. A small membership, a serious hanging committee.",
           "ctaLabel": "Current exhibition", "ctaHref": "/exhibitions",
           "secondaryLabel": "Join", "secondaryHref": "/membership",
           "style": { "bg": "none", "width": "narrow", "spacing": "airy", "align": "center" }
         },
-        { "type": "gallery", "id": "home-work", "variant": "masonry", "source": "gallery", "gallerySlug": "members", "style": { "bg": "tint", "width": "full" } },
         {
           "type": "feature_grid", "id": "home-now", "variant": "numbered",
           "items": [
@@ -36,9 +35,10 @@
             { "title": "Critique", "body": "A seated critique after every meeting. Bring work in progress or a finished piece." },
             { "title": "Studio visits", "body": "Three visits a year to members who dye, print, or quilt on a longarm." }
           ],
-          "style": { "bg": "none", "width": "wide" }
+          "style": { "bg": "tint", "width": "wide" }
         },
-        { "type": "join_band", "id": "join", "title": "Membership is limited", "body": "We keep the roster small so critique stays useful. Apply below.", "ctaLabel": "Apply", "style": { "bg": "brand", "align": "center" } }
+        { "type": "gallery", "id": "home-work", "variant": "masonry", "source": "gallery", "gallerySlug": "members", "style": { "bg": "none", "width": "full" } },
+        { "type": "join_band", "id": "join", "title": "Membership is limited", "body": "We keep the roster small so critique stays useful. Apply on the membership page.", "ctaLabel": "Apply", "style": { "bg": "brand", "align": "center" } }
       ]
     },
     {

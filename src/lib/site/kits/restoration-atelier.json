@@ -1,0 +1,138 @@
+{
+  "id": "restoration-atelier",
+  "name": "Restoration Atelier",
+  "audience": "business",
+  "character": "Quiet indigo serif for mending: worn bindings, split seams, and honest talk about what can be saved.",
+  "defaults": {
+    "palette": "heritage-indigo",
+    "typePair": "cormorantgaramond-sourcesans",
+    "scale": "editorial",
+    "shape": { "radius": "soft", "shadow": "none" },
+    "rhythm": { "spacing": "airy", "container": "narrow" },
+    "header": { "variant": "centered", "sticky": true, "cta": "quote", "overlayHero": false },
+    "footer": { "variant": "simple" },
+    "pattern": { "id": "log-cabin", "opacity": 0.08 }
+  },
+  "imagery": [{ "id": "hero-art", "kind": "pattern", "alt": "" }],
+  "previewSeed": { "guildName": "Selvedge Restoration", "city": "Providence, Rhode Island" },
+  "pages": [
+    {
+      "slug": "home", "title": "Home", "nav": false,
+      "sections": [
+        {
+          "type": "hero", "id": "welcome", "variant": "minimal",
+          "eyebrow": "Quilt repair in {{city}}",
+          "title": "Mend what can be mended. Leave what should stay worn.",
+          "subtitle": "Sample text — replace me: {{guild_name}} restabilizes, patches, and rebinds antique and family quilts. Not every tear should disappear.",
+          "ctaLabel": "Request a consult", "ctaHref": "/quote",
+          "secondaryLabel": "What I do", "secondaryHref": "/services",
+          "style": { "bg": "none", "width": "narrow", "spacing": "airy", "align": "center" }
+        },
+        {
+          "type": "feature_grid", "id": "home-work", "variant": "numbered",
+          "items": [
+            { "title": "Stabilize", "body": "Loose seams, shattered silk, and batting that has migrated. The quilt has to survive a fold.", "href": "/services" },
+            { "title": "Patch", "body": "Period-sympathetic cloth where a block is gone. I will not reprint a missing signature block." },
+            { "title": "Rebind", "body": "Worn edges, new binding in a matching cotton, old binding kept in an envelope if you want it." }
+          ],
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "testimonials", "id": "home-quote", "variant": "single",
+          "items": [{ "quote": "She told me the silk triangles should stay shattered. The repair is in the batting, not the show face. That was the right call.", "author": "A client with an 1890s crazy quilt" }],
+          "style": { "bg": "none" }
+        },
+        { "type": "quote_cta", "id": "home-cta", "projectType": "custom_quilt", "heading": "Send photographs of the damage, both sides", "submitLabel": "Request a consult", "style": { "bg": "brand" } }
+      ]
+    },
+    {
+      "slug": "services", "title": "Services", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "s-hero", "variant": "minimal",
+          "title": "What restoration includes",
+          "subtitle": "Sample text — replace me: A written plan before any needle goes in. You approve each kind of stitch.",
+          "style": { "bg": "none", "align": "center" }
+        },
+        {
+          "type": "feature_grid", "id": "s-grid", "variant": "cards",
+          "items": [
+            { "title": "Condition report", "body": "A page of notes and photographs. This is the plan, not an appraisal.", "price": "$75" },
+            { "title": "Stabilizing", "body": "Net overlay, resewn seams, batting patches. Billed by the hour after the report.", "price": "$55 / hr" },
+            { "title": "Rebinding", "body": "Machine or hand, depending on the quilt. Old binding returned to you.", "price": "by quote" },
+            { "title": "Display sleeve", "body": "A hanging sleeve and a muslin storage bag. No hanging on a nail." }
+          ],
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "rich_text", "id": "s-not", "variant": "prose", "heading": "What I will not do",
+          "html": "<p>I will not bleach, dye a whole quilt, or replace a block to make it look new. If you need a value for insurance, that is an appraiser. I can refer you.</p>",
+          "style": { "bg": "none", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "portfolio", "title": "Before and After", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "g-hero", "variant": "minimal",
+          "title": "Before and after",
+          "subtitle": "Sample text — replace me: Photographs of edges, backs, and the same corner after work. Families stay unnamed.",
+          "ctaLabel": "Albums", "ctaHref": "/galleries",
+          "style": { "bg": "dark", "align": "center" }
+        },
+        { "type": "gallery", "id": "g-grid", "variant": "grid", "source": "gallery", "gallerySlug": "repairs", "style": { "bg": "none", "width": "wide" } }
+      ]
+    },
+    {
+      "slug": "quote", "title": "Request a Consult", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "q-hero", "variant": "minimal",
+          "title": "Request a consult",
+          "subtitle": "Sample text — replace me: Photographs first. Do not mail the quilt until we have a plan.",
+          "style": { "bg": "none", "align": "center" }
+        },
+        { "type": "quote_cta", "id": "q-form", "projectType": "custom_quilt", "heading": "Damage, size, and whether it must stay on a bed", "submitLabel": "Send photographs", "style": { "bg": "tint" } },
+        {
+          "type": "faq", "id": "q-faq",
+          "items": [
+            { "q": "Will it look new?", "a": "No. The aim is that it can be folded and, if you want, slept under. The age stays visible." },
+            { "q": "Do you work on art quilts?", "a": "Sometimes. If the piece is meant to hang, say so. The stitches change." }
+          ],
+          "style": { "bg": "none", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "about", "title": "About", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "a-hero", "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: One table, north light, in {{city}}. I take a few quilts at a time so none of them wait in a pile.",
+          "style": { "bg": "none", "align": "center" }
+        },
+        {
+          "type": "rich_text", "id": "a-body", "variant": "prose",
+          "html": "<p>I learned repair in a costume shop, then on family quilts that could not go to a museum lab. The studio is appointment only. Gloves are on the table. Coffee is not, because it spills.</p>",
+          "style": { "bg": "tint", "width": "narrow" }
+        },
+        { "type": "meeting_info", "id": "a-hours", "heading": "Studio", "when": "By appointment, Wednesday through Friday", "where": "{{city}}", "style": { "bg": "none" } }
+      ]
+    },
+    {
+      "slug": "contact", "title": "Contact", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "c-hero", "variant": "minimal",
+          "title": "Contact",
+          "subtitle": "Sample text — replace me: Consults, quilts already here, and referrals for appraisal.",
+          "style": { "bg": "none", "align": "center" }
+        },
+        { "type": "contact", "id": "form", "showDetails": true, "style": { "bg": "tint" } },
+        { "type": "cta", "id": "c-quote", "label": "Request a consult", "href": "/quote", "kind": "primary", "style": { "bg": "brand", "align": "center" } }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,330 @@
+{
+  "id": "dye-house",
+  "name": "Dye House",
+  "audience": "business",
+  "character": "Moss and a wet studio: hand-dyed yardage in small lots, no two bolts the same, pickup on Thursdays.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "none",
+      "opacity": 0
+    },
+    "palette": "naturals-moss",
+    "typePair": "dmserif-dmsans"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Lot 12 Dyes",
+    "city": "Providence, Rhode Island"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Hand-dyed cloth in {{city}}",
+          "title": "Small lots. Wet studio. Thursday pickup.",
+          "subtitle": "Sample text — replace me: {{guild_name}} dyes cotton and linen in a garage studio. You buy a cut from the rack or send a color brief for a custom pot.",
+          "ctaLabel": "Request a quote",
+          "ctaHref": "/request-a-quote",
+          "secondaryLabel": "Batches",
+          "secondaryHref": "/batches",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "home-offer",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Fat quarters",
+              "body": "Dyed in a run of eight. Numbered. When a number is gone, it is gone.",
+              "price": "$14",
+              "href": "/batches"
+            },
+            {
+              "title": "Yardage",
+              "body": "Two to six yards from the same pot. Enough for a back or a dress.",
+              "price": "$28 / yd"
+            },
+            {
+              "title": "Custom pot",
+              "body": "You send a swatch or a sentence. I dye two yards as a test, then the rest.",
+              "price": "from $90"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          },
+          "heading": "On the rack"
+        },
+        {
+          "type": "testimonials",
+          "id": "home-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "The rust lot I bought in March does not match the rust lot in June. That is the point. I wanted cloth that remembers a day.",
+              "author": "A repeat buyer"
+            }
+          ],
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "home-cta",
+          "projectType": "custom_quilt",
+          "heading": "Fiber, yards, and a color you can live with",
+          "submitLabel": "Request a quote",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "batches",
+      "title": "Batches",
+      "nav": true,
+      "navLabel": "Batches",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "Batches",
+          "subtitle": "Sample text — replace me: What is on the rack this month, and how a custom pot is timed.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "b-grid",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Rack",
+              "body": "Photographed on Tuesdays. Sold Thursday through Sunday. Leftovers go on the scrap table Monday."
+            },
+            {
+              "title": "Custom",
+              "body": "Two weeks for a test. Another two for the full pot if you like the test."
+            },
+            {
+              "title": "Fiber",
+              "body": "Pima cotton, linen, and a little silk noil. I do not dye polyester."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "b-faq",
+          "items": [
+            {
+              "q": "Will you match a commercial solid?",
+              "a": "I will aim at it. I will not promise a match. That is a mill's job."
+            },
+            {
+              "q": "Is it colorfast?",
+              "a": "Hot wash the first time, like any hand-dye. After that, warm."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "visit",
+      "title": "Pickup",
+      "nav": true,
+      "navLabel": "Pickup",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "Pickup",
+          "subtitle": "Sample text — replace me: The studio is not a shop you browse. Pickup is Thursday, {{meeting_info}}.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "v-hours",
+          "heading": "Thursday window",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "note": "Alley door. Text when you park. Wet cloth is not released until it is dry and labeled.",
+          "style": {
+            "bg": "tint"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "request-a-quote",
+      "title": "Request a Quote",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "q-hero",
+          "variant": "minimal",
+          "title": "Request a quote",
+          "subtitle": "Sample text — replace me: Custom pots start with a test cut. Rack cuts are first come.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "q-form",
+          "projectType": "custom_quilt",
+          "heading": "Fiber, yards, and a color you can live with",
+          "submitLabel": "Send details",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "cta",
+          "id": "q-more",
+          "label": "Or email first",
+          "href": "/contact",
+          "kind": "secondary",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A wet studio in {{city}}, not a fabric shop with a dye pot in the back.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "The work",
+          "html": "<p><em>Sample text — replace me:</em> I dye because I wanted cloth that did not already exist on a bolt wall. {{guild_name}} is one person, one garage, lots numbered so you can come back to a cousin of a color, not a clone.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "a-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "The rust lot I bought in March does not match the rust lot in June. That is the point. I wanted cloth that remembers a day.",
+              "author": "A repeat buyer"
+            }
+          ],
+          "style": {
+            "bg": "none"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Rack questions, custom briefs, and pickup timing.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-hours",
+          "heading": "Hours",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    }
+  ]
+}

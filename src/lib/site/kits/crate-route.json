@@ -1,0 +1,322 @@
+{
+  "id": "crate-route",
+  "name": "Crate Route",
+  "audience": "business",
+  "character": "Mustard crate stencils: a courier that ships quilts to shows, with a crate, a label, and a phone call if the truck is late.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "lifted"
+    },
+    "rhythm": {
+      "spacing": "tight",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "flying-geese",
+      "opacity": 0.08
+    },
+    "palette": "jewel-sapphire",
+    "typePair": "manrope"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Sleeve & Crate",
+    "city": "Indianapolis, Indiana"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Quilt shipping in {{city}}",
+          "title": "The quilt goes in a crate. Not in a trash bag.",
+          "subtitle": "Sample text — replace me: {{guild_name}} ships quilts to shows. We crate, we label, we track, and we do not fold a silk into a priority envelope because it was cheaper.",
+          "ctaLabel": "Request a crate",
+          "ctaHref": "/request-a-quote",
+          "secondaryLabel": "Crates",
+          "secondaryHref": "/crates",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "home-offer",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "To a show",
+              "body": "Pickup, crate, inbound to the hall's window. You still do the entry form.",
+              "price": "from $85",
+              "href": "/crates"
+            },
+            {
+              "title": "Home again",
+              "body": "We wait for the hall's release, then reverse.",
+              "price": "from $85"
+            },
+            {
+              "title": "A pair",
+              "body": "Hang crew is a different company. We will hand them the crate. We will not hang.",
+              "price": "quote"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "home-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "They called when the truck sat overnight. I had time to tell the show. That call was the service.",
+              "author": "An exhibitor"
+            }
+          ],
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "home-cta",
+          "projectType": "custom_quilt",
+          "heading": "Show name, quilt size, sleeve or no sleeve, and the hall's receiving dates",
+          "submitLabel": "Request a crate",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "crates",
+      "title": "The Crate",
+      "nav": true,
+      "navLabel": "Crates",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "The Crate",
+          "subtitle": "Sample text — replace me: How a quilt is packed, and what we will not do.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "cr-grid",
+          "variant": "numbered",
+          "items": [
+            {
+              "title": "Fold",
+              "body": "If the show requires a fold, we fold on a seam and pad. If it should be rolled, we roll."
+            },
+            {
+              "title": "Label",
+              "body": "Your name, the show, a phone that you will answer. Not a work line you ignore at 6 p.m."
+            },
+            {
+              "title": "Refuse",
+              "body": "Wet quilts, moths, and a trash bag as the only packaging. We will sell you a crate instead."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "route",
+      "title": "The Route",
+      "nav": true,
+      "navLabel": "Route",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "The Route",
+          "subtitle": "Sample text — replace me: Midwest halls we already know the dock at.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "events",
+          "id": "rt-list",
+          "variant": "list",
+          "heading": "This season's trucks",
+          "limit": 8,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "rt-note",
+          "variant": "prose",
+          "heading": "Not a hang crew",
+          "html": "<p><em>Sample text — replace me:</em> If you need rods and a 60-inch line, that is a different invoice and a different morning.</p>",
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "request-a-quote",
+      "title": "Request a Quote",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "q-hero",
+          "variant": "minimal",
+          "title": "Request a quote",
+          "subtitle": "Sample text — replace me: A date window is required. A hope is not a receiving day.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "q-form",
+          "projectType": "custom_quilt",
+          "heading": "Show name, quilt size, sleeve or no sleeve, and the hall's receiving dates",
+          "submitLabel": "Request a crate",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "cta",
+          "id": "q-more",
+          "label": "Or write first",
+          "href": "/contact",
+          "kind": "secondary",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A crate company that has been to intake.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "The work",
+          "html": "<p><em>Sample text — replace me:</em> I used to volunteer at a receiving table and watch quilts arrive in grocery bags. {{guild_name}} is the boring professional version: a crate, a label, a call. Show-crew hangs. We move.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "a-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "They called when the truck sat overnight. I had time to tell the show. That call was the service.",
+              "author": "An exhibitor"
+            }
+          ],
+          "style": {
+            "bg": "none"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Dates, deposits, and work already in the shop.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-hours",
+          "heading": "Hours",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -30,7 +30,7 @@
       "sections": [
         {
           "type": "hero", "id": "welcome", "variant": "pattern",
-          "eyebrow": "{{city}}",
+          "eyebrow": "Quilters in {{city}}",
           "title": "{{guild_name}}",
           "subtitle": "Sample text — replace me: A small guild. We meet {{meeting_info}}. Guests sit in on the first meeting.",
           "ctaLabel": "Join", "ctaHref": "/membership",

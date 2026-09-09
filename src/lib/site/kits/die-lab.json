@@ -1,0 +1,311 @@
+{
+  "id": "die-lab",
+  "name": "Die Lab",
+  "audience": "business",
+  "character": "Slate, a press, and acrylic: a die-cut studio where the machine does the cutting and you still have to sew.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "tight",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "none",
+      "opacity": 0
+    },
+    "palette": "modern-slate-lime",
+    "typePair": "system"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Press 9",
+    "city": "Grand Rapids, Michigan"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Die cutting in {{city}}",
+          "title": "The press is loud. The squares are true.",
+          "subtitle": "Sample text — replace me: {{guild_name}} is a die-cut studio. Bring fabric, rent the press, or send a stack and get it back in bags, labeled.",
+          "ctaLabel": "Request a quote",
+          "ctaHref": "/request-a-quote",
+          "secondaryLabel": "Dies",
+          "secondaryHref": "/dies",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "home-offer",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Open press",
+              "body": "An hour on the machine with a die you bring or rent.",
+              "price": "$20 / hr",
+              "href": "/dies"
+            },
+            {
+              "title": "Cut for you",
+              "body": "You send yardage and a list. I return labeled bags.",
+              "price": "from $35"
+            },
+            {
+              "title": "Custom die",
+              "body": "If the shape does not exist, we talk to the shop that mills acrylic.",
+              "price": "quote"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "home-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "I had 400 identical triangles and none of them were the triangle I cut by hand at midnight.",
+              "author": "A BOM victim no longer"
+            }
+          ],
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "home-cta",
+          "projectType": "custom_quilt",
+          "heading": "Die name, fabric amount, and whether you are coming in or mailing a stack",
+          "submitLabel": "Request a quote",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "dies",
+      "title": "The Dies",
+      "nav": true,
+      "navLabel": "Dies",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "The Dies",
+          "subtitle": "Sample text — replace me: What is on the wall, and what you should bring yourself.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "d-grid",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "On the wall",
+              "body": "Hexes, drunkard's, a few stars, the boring squares everyone needs."
+            },
+            {
+              "title": "Bring your own",
+              "body": "If you own a die, bring it. I will not pretend mine is the same brand's cousin."
+            },
+            {
+              "title": "The noise",
+              "body": "Headphones are fine. Conversation over the press is how fingers get involved."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "studio",
+      "title": "The Press",
+      "nav": true,
+      "navLabel": "Studio",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "The Press",
+          "subtitle": "Sample text — replace me: A concrete room, {{meeting_info}}.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "st-hours",
+          "heading": "Open press",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "note": "Closed-toe shoes. Fabric pre-pressed. I will not press your wrinkles as part of the hour.",
+          "style": {
+            "bg": "tint"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "request-a-quote",
+      "title": "Request a Quote",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "q-hero",
+          "variant": "minimal",
+          "title": "Request a quote",
+          "subtitle": "Sample text — replace me: Open-press hours are listed. Mail-in is a Tuesday pile.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "q-form",
+          "projectType": "custom_quilt",
+          "heading": "Die name, fabric amount, and whether you are coming in or mailing a stack",
+          "submitLabel": "Send details",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "cta",
+          "id": "q-more",
+          "label": "Or write first",
+          "href": "/contact",
+          "kind": "secondary",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A press, not a class, not a shop of bolts.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "The work",
+          "html": "<p><em>Sample text — replace me:</em> I got tired of people buying dies they used twice. {{guild_name}} is the room with the expensive ones and a calendar. You still sew the quilt. I just keep your rotary cutter from lying about a hexagon.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "a-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "I had 400 identical triangles and none of them were the triangle I cut by hand at midnight.",
+              "author": "A BOM victim no longer"
+            }
+          ],
+          "style": {
+            "bg": "none"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Dates, deposits, and work already in the shop.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-hours",
+          "heading": "Hours",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    }
+  ]
+}

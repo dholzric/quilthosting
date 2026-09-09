@@ -1,0 +1,311 @@
+{
+  "id": "house-block",
+  "name": "House Block",
+  "audience": "business",
+  "character": "Clay bricks in cloth: commissioned portraits of a house, a porch, the window that was yours.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "log-cabin",
+      "opacity": 0.1
+    },
+    "palette": "naturals-clay",
+    "typePair": "bitter-opensans"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "The Front Step",
+    "city": "Louisville, Kentucky"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "House-portrait quilts in {{city}}",
+          "title": "The house, as a block.",
+          "subtitle": "Sample text — replace me: {{guild_name}} pieces houses. Not a photograph printed on cloth. Windows as squares, a roof as a triangle that is allowed to be a little wrong.",
+          "ctaLabel": "Request a quote",
+          "ctaHref": "/request-a-quote",
+          "secondaryLabel": "Houses",
+          "secondaryHref": "/houses",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "home-offer",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "One house",
+              "body": "A wall hanging you can point at. The porch is larger than scale because porches are.",
+              "price": "from $280",
+              "href": "/houses"
+            },
+            {
+              "title": "A street",
+              "body": "Three or four facades, a sidewalk as a strip.",
+              "price": "from $520"
+            },
+            {
+              "title": "Gone",
+              "body": "If the house was torn down, we work from a photograph and a memory that will argue.",
+              "price": "quote"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "home-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "The window is the wrong size and the right house. I do not know how she did that.",
+              "author": "Someone who had moved away"
+            }
+          ],
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "home-cta",
+          "projectType": "custom_quilt",
+          "heading": "Address or photograph, which side of the house, and whether the porch must be there",
+          "submitLabel": "Request a quote",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "houses",
+      "title": "What I Sew",
+      "nav": true,
+      "navLabel": "Houses",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "What I Sew",
+          "subtitle": "Sample text — replace me: Brick, clapboard, and the things I will not pretend are brick.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "h-grid",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Clapboard",
+              "body": "Strips. I will not print wood grain."
+            },
+            {
+              "title": "Brick",
+              "body": "Tiny rectangles if you want the work. A textured solid if you want the house, not the masonry."
+            },
+            {
+              "title": "The tree",
+              "body": "Optional. Trees eat a quilt. I will say so."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "snapshots",
+      "title": "Photographs",
+      "nav": true,
+      "navLabel": "Photos",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "Photographs",
+          "subtitle": "Sample text — replace me: What to send, and what a phone snapshot hides.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "ph-body",
+          "variant": "prose",
+          "heading": "Send two",
+          "html": "<p><em>Sample text — replace me:</em> One from the sidewalk, one from across the street. If it is gone, send the blurry one anyway. I have drawn from worse.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "request-a-quote",
+      "title": "Request a Quote",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "q-hero",
+          "variant": "minimal",
+          "title": "Request a quote",
+          "subtitle": "Sample text — replace me: A winter photo hides bushes. A summer photo hides the foundation. Send both if you have them.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "q-form",
+          "projectType": "custom_quilt",
+          "heading": "Address or photograph, which side of the house, and whether the porch must be there",
+          "submitLabel": "Send details",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "cta",
+          "id": "q-more",
+          "label": "Or write first",
+          "href": "/contact",
+          "kind": "secondary",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: Houses, not people. People move. Houses stay long enough to be sewn.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "The work",
+          "html": "<p><em>Sample text — replace me:</em> I pieced barns for a while. Then people wanted the house they were leaving. {{guild_name}} is that job: a portrait that can hang in the next kitchen.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "a-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "The window is the wrong size and the right house. I do not know how she did that.",
+              "author": "Someone who had moved away"
+            }
+          ],
+          "style": {
+            "bg": "none"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Dates, deposits, and work already in the shop.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-hours",
+          "heading": "Hours",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    }
+  ]
+}

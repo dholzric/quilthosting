@@ -1,0 +1,235 @@
+{
+  "id": "healing-stitches",
+  "name": "Healing Stitches",
+  "audience": "both",
+  "character": "Stitching as shelter: small circles, soft cloth, and programs for grief, recovery, and long hospital stays.",
+  "defaults": {
+    "palette": "soft-lavender",
+    "typePair": "lora-karla",
+    "scale": "comfortable",
+    "shape": { "radius": "round", "shadow": "subtle" },
+    "rhythm": { "spacing": "airy", "container": "normal" },
+    "header": { "variant": "centered", "sticky": true, "cta": "join", "overlayHero": false },
+    "footer": { "variant": "columns" },
+    "pattern": { "id": "nine-patch", "opacity": 0.06 }
+  },
+  "imagery": [
+    { "id": "hero-art", "kind": "pattern", "alt": "" }
+  ],
+  "previewSeed": { "guildName": "Quiet Stitch Collective", "city": "Chapel Hill, North Carolina" },
+  "menu": [
+    { "label": "Programs", "href": "/programs" },
+    { "label": "Events", "href": "/events" },
+    { "label": "Support the work", "href": "/support" },
+    { "label": "About", "href": "/about" },
+    { "label": "Contact", "href": "/contact" }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "minimal",
+          "eyebrow": "Programs in needle and thread",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: Grief circles, hospital stitch kits, and a chair that is always set for a newcomer.",
+          "ctaLabel": "Find a circle",
+          "ctaHref": "/programs",
+          "secondaryLabel": "Support the work",
+          "secondaryHref": "/support",
+          "style": { "bg": "none", "width": "narrow", "spacing": "airy", "align": "center" }
+        },
+        {
+          "type": "feature_grid",
+          "id": "home-programs",
+          "variant": "cards",
+          "heading": "The programs",
+          "items": [
+            { "title": "The grief circle", "body": "Tuesday evenings. Hand stitching with nowhere to arrive and nothing to finish.", "href": "/programs" },
+            { "title": "Hospital stitch kits", "body": "Soft cloth, blunt needles, and one-page instructions for long waits.", "href": "/programs" },
+            { "title": "The re-entry circle", "body": "Sewing skills and steady hours for people rebuilding, in partnership with the halfway house on Rosemary Street.", "href": "/programs" },
+            { "title": "Family memory mornings", "body": "Quilts from the clothes of someone missing, made together, one square at a time.", "href": "/programs" }
+          ],
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "gallery",
+          "id": "home-gallery",
+          "variant": "grid",
+          "source": "gallery",
+          "gallerySlug": "circles",
+          "heading": "Made in the circles",
+          "style": { "bg": "none", "width": "wide" }
+        },
+        {
+          "type": "testimonials",
+          "id": "home-quotes",
+          "variant": "grid",
+          "items": [
+            { "quote": "Nobody in the circle asked me how I was doing. Everybody asked what I was stitching. That is the whole difference.", "author": "A grief circle member" },
+            { "quote": "The kit got me through six weeks of treatment and the quilt got me through the winter after.", "author": "A hospital kit recipient" }
+          ],
+          "style": { "bg": "tint", "width": "normal" }
+        },
+        {
+          "type": "join_band",
+          "id": "home-join",
+          "title": "Every kit costs twelve dollars",
+          "body": "Friends of the collective keep the kits stocked, the circles staffed, and the childcare free.",
+          "ctaLabel": "Support the work",
+          "style": { "bg": "brand", "width": "full", "align": "center" }
+        }
+      ]
+    },
+    {
+      "slug": "programs",
+      "title": "Programs",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "programs-hero",
+          "variant": "minimal",
+          "title": "The programs",
+          "subtitle": "Sample text — replace me: Small circles with soft cloth, open to anyone who shows up, at no cost to anyone who needs them.",
+          "style": { "bg": "none", "width": "narrow", "align": "center" }
+        },
+        {
+          "type": "feature_grid",
+          "id": "programs-list",
+          "variant": "cards",
+          "heading": "Where to sit down",
+          "items": [
+            { "title": "Grief circle", "body": "Eight weeks, rolling. Hand work only, because scissors and grief need supervision and conversation." },
+            { "title": "Hospital kits", "body": "Assembled by volunteers, distributed through the cancer center and two dialysis units." },
+            { "title": "Re-entry circle", "body": "Wednesday afternoons with a paid instructor, machines provided, materials to keep." },
+            { "title": "Family memory mornings", "body": "One Saturday a month, by appointment, with as much silence as a family needs." }
+          ],
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "rich_text",
+          "id": "programs-who",
+          "variant": "prose",
+          "heading": "Who the circles are for",
+          "html": "<p>Anyone. No diagnosis, referral, or paperwork is required, and no experience is expected; half the stitches learned here are the first ones. Everything made in a circle belongs to the maker, and nothing made here is graded, judged, or photographed without permission.</p>",
+          "style": { "bg": "none", "width": "narrow" }
+        },
+        {
+          "type": "faq",
+          "id": "programs-faq",
+          "heading": "Gentle questions",
+          "items": [
+            { "q": "Do I need to know how to sew?", "a": "No. The circles teach the stitch being used that evening, and unfinished is a word we do not use here." },
+            { "q": "Is there a cost?", "a": "No. Materials, instruction, and childcare during circles are covered by Friends of the collective." },
+            { "q": "Can I come just once?", "a": "Once, sometimes, is exactly right. The chair will be there the following week if you want it again." }
+          ],
+          "style": { "bg": "tint", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "support",
+      "title": "Support",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "support-hero",
+          "variant": "minimal",
+          "title": "Support the work",
+          "subtitle": "Sample text — replace me: Friends memberships, fabric donations, and the specific magic of twelve dollars.",
+          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+        },
+        {
+          "type": "membership_levels",
+          "id": "support-levels",
+          "variant": "cards",
+          "heading": "Friends of the collective",
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "rich_text",
+          "id": "support-where",
+          "variant": "prose",
+          "heading": "Where the money goes",
+          "html": "<p>Twelve dollars assembles one hospital kit. Forty stocks a circle's materials for a month. A hundred keeps the childcare room open on a Tuesday. The ledger is read at the annual potluck and posted to the members' area, because trust is part of the care.</p>",
+          "style": { "bg": "none", "width": "narrow" }
+        },
+        {
+          "type": "join_band",
+          "id": "support-join",
+          "title": "Become a Friend",
+          "body": "Friends receive the quarterly letter and the satisfaction of a shelf that stays stocked.",
+          "ctaLabel": "Become a Friend",
+          "style": { "bg": "brand", "width": "full", "align": "center" }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "about-hero",
+          "variant": "minimal",
+          "title": "About the collective",
+          "subtitle": "Sample text — replace me: Founded in a hospice hallway with two quilting frames and a social worker who could thread a needle in the dark.",
+          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+        },
+        {
+          "type": "rich_text",
+          "id": "about-body",
+          "variant": "two_column",
+          "html": "<p>The first circle formed around a family who could not sit still in the waiting room and a volunteer who could not watch them try. She brought in a quilting frame, and the hallway filled with people who had something to do with their hands while they waited. The hospice asked her back. The program outgrew the hallway in a year.</p><p>The collective now runs four programs on donations and stubbornness, with one part-time coordinator, a rotating cast of volunteers, and a firm rule that care stays free at the door.</p>",
+          "style": { "bg": "tint", "width": "normal" }
+        },
+        {
+          "type": "testimonials",
+          "id": "about-quote",
+          "variant": "single",
+          "items": [
+            { "quote": "In twenty years of practice I have prescribed a lot of things. This is the only one patients thank me for with their hands busy.", "author": "An oncology social worker" }
+          ],
+          "style": { "bg": "none", "width": "normal" }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "contact-hero",
+          "variant": "minimal",
+          "title": "Contact the collective",
+          "subtitle": "Sample text — replace me: Circle schedules, kit requests from units and clinics, and donations of soft cotton.",
+          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+        },
+        {
+          "type": "contact",
+          "id": "contact-form",
+          "heading": "Send a message",
+          "showDetails": true,
+          "style": { "bg": "none", "width": "normal" }
+        },
+        {
+          "type": "rich_text",
+          "id": "contact-soft",
+          "variant": "prose",
+          "heading": "What we can accept",
+          "html": "<p>Soft washed cotton, flannel, and perle cotton thread are always in season. We cannot accept batting scraps or polyester for the hospital kits, and the donation door answer is on the answering machine, which is staffed by a volunteer with strong opinions.</p>",
+          "style": { "bg": "tint", "width": "narrow" }
+        }
+      ]
+    }
+  ]
+}

@@ -19,7 +19,8 @@
     "test:delivery": "node scripts/verify-delivery.mjs",
     "test:business-site": "node scripts/verify-business-site.mjs",
     "kits:validate": "node scripts/kits-validate.mjs",
-    "kits:preview": "node scripts/kits-preview.mjs"
+    "kits:preview": "node scripts/kits-preview.mjs",
+    "kits:gallery": "node scripts/kits-gallery.mjs"
   },
   "dependencies": {
     "hono": "^4.7.0",

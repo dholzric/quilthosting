@@ -2,7 +2,7 @@
   "id": "show-festival",
   "name": "Show & Festival",
   "audience": "guild",
-  "character": "Photo-led hero, event spotlight first, sponsors strip.",
+  "character": "Show-first: a stats hero for the show, one event spotlight, sponsor and volunteer paths, harvest palette.",
   "defaults": {
     "palette": "seasonal-harvest",
     "typePair": "playfair-lato",
@@ -33,7 +33,6 @@
           ],
           "style": { "bg": "dark", "width": "full", "align": "center", "spacing": "airy" }
         },
-        { "type": "events", "id": "spotlight", "variant": "next_up", "heading": "Next on the calendar", "limit": 1, "style": { "bg": "none" } },
         {
           "type": "feature_grid", "id": "home-paths", "variant": "cards",
           "items": [
@@ -43,8 +42,9 @@
           ],
           "style": { "bg": "tint", "width": "wide" }
         },
-        { "type": "gallery", "id": "last-show", "variant": "grid", "source": "gallery", "gallerySlug": "2025-show", "style": { "bg": "none", "width": "wide" } },
-        { "type": "join_band", "id": "join", "title": "The show is a guild project", "body": "Membership includes entry discounts and first pick of volunteer shifts.", "ctaLabel": "Join", "style": { "bg": "brand", "align": "center" } }
+        { "type": "events", "id": "spotlight", "variant": "next_up", "heading": "Next on the calendar", "limit": 1, "style": { "bg": "none" } },
+        { "type": "join_band", "id": "join", "title": "The show is a guild project", "body": "Membership includes entry discounts and first pick of volunteer shifts.", "ctaLabel": "Join", "style": { "bg": "brand", "align": "center" } },
+        { "type": "gallery", "id": "last-show", "variant": "grid", "source": "gallery", "gallerySlug": "2025-show", "style": { "bg": "none", "width": "wide" } }
       ]
     },
     {
@@ -52,7 +52,7 @@
       "sections": [
         {
           "type": "hero", "id": "show-hero", "variant": "split",
-          "title": "Riverbend Quilt Show 2026",
+          "title": "The 2026 show",
           "subtitle": "Sample text — replace me: October 16–18 at the county events center. Judging on Thursday, open to the public Friday through Sunday.",
           "ctaLabel": "Register for intake", "ctaHref": "/events",
           "style": { "bg": "pattern", "width": "wide", "media": "right", "imageId": "hero-art" }

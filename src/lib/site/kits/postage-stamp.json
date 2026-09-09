@@ -1,0 +1,347 @@
+{
+  "id": "postage-stamp",
+  "name": "Postage Stamp",
+  "audience": "guild",
+  "character": "Tweezers, one-inch squares, and a lamp: a guild that pieces at a scale most people would call a dare.",
+  "defaults": {
+    "scale": "compact",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "tight",
+      "container": "narrow"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "meeting"
+    },
+    "pattern": {
+      "id": "nine-patch",
+      "opacity": 0.14
+    },
+    "palette": "soft-lavender",
+    "typePair": "nunito"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "One Inch Guild",
+    "city": "Providence, Rhode Island"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Tiny piecing in {{city}}",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: {{guild_name}} pieces one-inch finished squares. We meet {{meeting_info}} with tweezers, a stiff neck, and no apology for how long a block takes.",
+          "ctaLabel": "Join",
+          "ctaHref": "/membership",
+          "secondaryLabel": "The inch",
+          "secondaryHref": "/inch",
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "spacing": "airy",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "when",
+          "heading": "Tiny night",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "note": "House tweezers in a jar. If your squares are two inches, you are in the wrong room for one night, and we will say so kindly.",
+          "style": {
+            "bg": "none"
+          }
+        },
+        {
+          "type": "events",
+          "id": "upcoming",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "life",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "The inch",
+              "body": "Finished. Not cut. If your rotary math is fuzzy we will draw it once on graph paper.",
+              "href": "/inch"
+            },
+            {
+              "title": "The lamp",
+              "body": "Everyone brings a task light. The ceiling is not enough."
+            },
+            {
+              "title": "The count",
+              "body": "A postage-stamp quilt is thousands of seams. We celebrate a hundred, not a top."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "join_band",
+          "id": "join",
+          "title": "Bring a lamp",
+          "body": "Dues cover the room and the graph paper. Tweezers are in the jar until they walk off, then we buy more.",
+          "ctaLabel": "See dues",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A guild that treats miniature piecing as the whole craft, not a cute corner.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "How we started",
+          "html": "<p><em>Sample text — replace me:</em> {{guild_name}} started because the regular guild kept saying tiny work was a phase. It was not. We sew small because the math is the pleasure. A bed quilt here is a year, and we are not sorry.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "a-year",
+          "variant": "numbered",
+          "items": [
+            {
+              "title": "Spring hundred",
+              "body": "A shared goal: one hundred sewn squares, photographed on graph paper."
+            },
+            {
+              "title": "Summer eyes",
+              "body": "Shorter meetings. Heat makes the inch cruel."
+            },
+            {
+              "title": "Winter lamp",
+              "body": "Longer nights, extra outlets, a rule about not stacking coats on the cords."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          },
+          "heading": "A year with us"
+        }
+      ]
+    },
+    {
+      "slug": "inch",
+      "title": "The Inch",
+      "nav": true,
+      "navLabel": "The inch",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "s-hero",
+          "variant": "minimal",
+          "title": "The Inch",
+          "subtitle": "Sample text — replace me: Cut size, finished size, and what we will not debate.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "i-body",
+          "variant": "prose",
+          "heading": "The number",
+          "html": "<p><em>Sample text — replace me:</em> We sew 1.5-inch cut squares to finish at one inch. If you want 0.75 finished, that is a private dare. In this room the inch is the inch so we can trade blocks without a calculator.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "i-faq",
+          "items": [
+            {
+              "q": "May I English-paper-piece the inch?",
+              "a": "Yes. Papers in a tin. Pull them before you bring the block to the design wall."
+            },
+            {
+              "q": "Do you make doll quilts?",
+              "a": "Sometimes. Most of us are aiming at a lap, just slowly."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "why-join",
+      "title": "Join",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "j-hero",
+          "variant": "minimal",
+          "title": "Membership",
+          "subtitle": "Sample text — replace me: If you need a magnifier, say so. Several of us already wear two pairs of glasses.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "membership_levels",
+          "id": "levels",
+          "variant": "cards",
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "j-faq",
+          "items": [
+            {
+              "q": "I have arthritis.",
+              "a": "Sit. Use a larger needle. We are not a contest for the smallest stitch."
+            },
+            {
+              "q": "Is foundation paper required?",
+              "a": "No. Accurate cut-and-sew is welcome. Wobbly inch squares will be unpicked, by you, with help."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "meetings",
+      "title": "Meetings",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "m-hero",
+          "variant": "minimal",
+          "title": "Meetings",
+          "subtitle": "Sample text — replace me: We meet {{meeting_info}} in {{city}}.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "m-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "events",
+          "id": "m-list",
+          "variant": "list",
+          "heading": "On the calendar",
+          "limit": 8,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Programs, dues, and the door.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "dark"
+          }
+        }
+      ]
+    }
+  ]
+}

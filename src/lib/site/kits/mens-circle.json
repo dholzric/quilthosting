@@ -1,0 +1,340 @@
+{
+  "id": "mens-circle",
+  "name": "Men's Circle",
+  "audience": "guild",
+  "character": "Emerald and a shop-night rhythm: a guild of men who quilt, talk less than they sew, and keep the irons honest.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "lifted"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "meeting"
+    },
+    "pattern": {
+      "id": "churn-dash",
+      "opacity": 0.1
+    },
+    "palette": "jewel-emerald",
+    "typePair": "manrope"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Iron & Nine-Patch",
+    "city": "Milwaukee, Wisconsin"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "A quilt guild of men in {{city}}",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: {{guild_name}} is for men who quilt. We meet {{meeting_info}}. Partners and kids are welcome at the December potluck, not at sew night.",
+          "ctaLabel": "Join",
+          "ctaHref": "/membership",
+          "secondaryLabel": "Shop nights",
+          "secondaryHref": "/shop-nights",
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "spacing": "airy",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "when",
+          "heading": "When we sew",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "note": "Shop-night rules: irons on the fireproof mat, rotary blades in, and the radio stays low enough to hear a seam question.",
+          "style": {
+            "bg": "none"
+          }
+        },
+        {
+          "type": "events",
+          "id": "upcoming",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "life",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Shop night",
+              "body": "Four hours, one project, a shared design wall. No program, no speaker, no raffle.",
+              "href": "/shop-nights"
+            },
+            {
+              "title": "Tool clinic",
+              "body": "Once a quarter we clean machines, square rulers, and replace blades as a group."
+            },
+            {
+              "title": "Charity tops",
+              "body": "Lap quilts for the VA clinic. Kits are pre-cut so a new member can sew the same night."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "join_band",
+          "id": "join",
+          "title": "Join {{guild_name}}",
+          "body": "Dues are collected once a year.",
+          "ctaLabel": "See dues",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: Men in {{city}} who would rather sew than explain why they sew.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "How we started",
+          "html": "<p><em>Sample text — replace me:</em> Most of us learned from a mother, a shop class, or a longarm we bought on a whim. Mixed guilds are fine. This one exists because some of us sew more when the room is mostly men, the talk is about tension and grain, and nobody asks whether the quilt is for a wife.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "a-year",
+          "variant": "numbered",
+          "items": [
+            {
+              "title": "April tool clinic",
+              "body": "Oil, lint, and a blade count. Bring the machine you actually use."
+            },
+            {
+              "title": "August charity stack",
+              "body": "We aim for twenty lap quilts. Binding bees the following week."
+            },
+            {
+              "title": "December potluck",
+              "body": "Families come. Quilts on the wall. The rest of the year is sew night only."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          },
+          "heading": "A year with us"
+        }
+      ]
+    },
+    {
+      "slug": "shop-nights",
+      "title": "Shop Nights",
+      "nav": true,
+      "navLabel": "Shop nights",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "s-hero",
+          "variant": "minimal",
+          "title": "Shop Nights",
+          "subtitle": "Sample text — replace me: How a sew night runs when there is no program.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "sn-body",
+          "variant": "prose",
+          "heading": "The clock",
+          "html": "<p><em>Sample text — replace me:</em> Doors at 6. Irons hot by 6:15. We sew until 9:30. If you need a lesson, ask the person at the next machine. If you need a program with a slide deck, a different guild will treat you better.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "events",
+          "id": "sn-list",
+          "variant": "list",
+          "heading": "Next shop nights",
+          "limit": 6,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "why-join",
+      "title": "Join",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "j-hero",
+          "variant": "minimal",
+          "title": "Membership",
+          "subtitle": "Sample text — replace me: Dues cover the hall, the charity batting, and replacement rotary blades for the clinic.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "membership_levels",
+          "id": "levels",
+          "variant": "cards",
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "j-faq",
+          "items": [
+            {
+              "q": "Are women members allowed?",
+              "a": "This roster is for men. Plenty of good mixed guilds in {{city}}. We will name them if you ask."
+            },
+            {
+              "q": "I am nonbinary and I quilt.",
+              "a": "If this room feels like yours, write to the contact form and we will talk. We would rather be precise than make you guess at the door."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "meetings",
+      "title": "Meetings",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "m-hero",
+          "variant": "minimal",
+          "title": "Meetings",
+          "subtitle": "Sample text — replace me: We meet {{meeting_info}} in {{city}}.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "m-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "events",
+          "id": "m-list",
+          "variant": "list",
+          "heading": "On the calendar",
+          "limit": 8,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Programs, dues, and the door code.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "dark"
+          }
+        }
+      ]
+    }
+  ]
+}

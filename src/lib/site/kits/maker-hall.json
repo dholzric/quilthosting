@@ -1,0 +1,311 @@
+{
+  "id": "maker-hall",
+  "name": "Maker Hall",
+  "audience": "business",
+  "character": "Amethyst and a key-fob: a membership hall of domestic machines, cutting tables, and no longarm in the corner.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "soft",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "none",
+      "opacity": 0
+    },
+    "palette": "jewel-amethyst",
+    "typePair": "nunito"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Hall 4 Sew Studio",
+    "city": "Durham, North Carolina"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "A sew studio membership in {{city}}",
+          "title": "A hall of tables, not a longarm rental.",
+          "subtitle": "Sample text — replace me: {{guild_name}} is a membership room: domestic machines, cutting mats, irons that stay. You bring the project. We keep the space from turning into someone's garage.",
+          "ctaLabel": "See passes",
+          "ctaHref": "/request-a-quote",
+          "secondaryLabel": "Passes",
+          "secondaryHref": "/passes",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "home-offer",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Evening pass",
+              "body": "Three hours after work, two nights a week.",
+              "price": "$45 / mo",
+              "href": "/passes"
+            },
+            {
+              "title": "Day desk",
+              "body": "A table that is yours from 10 to 4, weekdays.",
+              "price": "$90 / mo"
+            },
+            {
+              "title": "Drop-in",
+              "body": "If a chair is free. Members first.",
+              "price": "$12"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "home-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "I have a dining table at home. I do not have a dining table I am allowed to cover with batting.",
+              "author": "A day-desk member"
+            }
+          ],
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "home-cta",
+          "projectType": "custom_quilt",
+          "heading": "Pass type, typical days, and whether you need a house machine",
+          "submitLabel": "Ask about a pass",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "passes",
+      "title": "Passes",
+      "nav": true,
+      "navLabel": "Passes",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "Passes",
+          "subtitle": "Sample text — replace me: What a month includes, and what it does not.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "p-grid",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Included",
+              "body": "Table, iron, mat, design wall time, Wi-Fi, coffee that is not good."
+            },
+            {
+              "title": "Not included",
+              "body": "Longarm, serger unless you book it, storage of a quilt between visits, teaching."
+            },
+            {
+              "title": "House machines",
+              "body": "Four domestics. Sign-out. Clean the bobbin case or lose the privilege."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "benches",
+      "title": "The Hall",
+      "nav": true,
+      "navLabel": "The hall",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "The Hall",
+          "subtitle": "Sample text — replace me: A former classroom, {{meeting_info}}, in {{city}}.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "h-hours",
+          "heading": "Open hours",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "note": "Fob after 8 p.m. for evening-pass holders. The last person vacuums the clippings.",
+          "style": {
+            "bg": "tint"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "request-a-quote",
+      "title": "Request a Quote",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "q-hero",
+          "variant": "minimal",
+          "title": "Request a quote",
+          "subtitle": "Sample text — replace me: Memberships start on the first of the month. Drop-in is cash or card at the door.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "q-form",
+          "projectType": "custom_quilt",
+          "heading": "Pass type, typical days, and whether you need a house machine",
+          "submitLabel": "Ask about a pass",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "cta",
+          "id": "q-more",
+          "label": "Or email first",
+          "href": "/contact",
+          "kind": "secondary",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A room with rules so it stays a room.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "The work",
+          "html": "<p><em>Sample text — replace me:</em> I opened {{guild_name}} because sit-down longarm places are for quilting, and dining tables are for dinner. This hall is for piecing, applique, and the kind of mess you cannot make at home. There is no frame in the corner. If you need one, I will name the studio that has it.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "a-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "I have a dining table at home. I do not have a dining table I am allowed to cover with batting.",
+              "author": "A day-desk member"
+            }
+          ],
+          "style": {
+            "bg": "none"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Dates, deposits, and work already in the shop.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-hours",
+          "heading": "Hours",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    }
+  ]
+}

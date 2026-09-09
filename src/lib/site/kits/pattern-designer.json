@@ -28,16 +28,16 @@
           "secondaryLabel": "Workshops", "secondaryHref": "/workshops",
           "style": { "bg": "dark", "width": "wide", "spacing": "airy", "media": "left", "imageId": "hero-art" }
         },
-        { "type": "store_teaser", "id": "home-shop", "heading": "In the shop", "limit": 4, "style": { "bg": "none", "width": "wide" } },
-        { "type": "events", "id": "home-workshops", "variant": "cards", "heading": "Upcoming workshops", "limit": 3, "style": { "bg": "tint", "width": "wide" } },
         {
           "type": "testimonials", "id": "home-press", "variant": "grid",
           "items": [
-            { "quote": "The flying-geese paper is actually the size it claims to be. That should not be notable, and yet.", "author": "Quiltfolk, issue 22" },
-            { "quote": "She taught a room of forty and still walked the aisles during the first seam.", "author": "A guild workshop chair in {{city}}" }
+            { "quote": "The flying-geese paper is actually the size it claims to be. That should not be notable, and yet.", "author": "A print magazine review" },
+            { "quote": "Taught a room of forty and still walked the aisles during the first seam.", "author": "A guild workshop chair in {{city}}" }
           ],
           "style": { "bg": "none" }
         },
+        { "type": "store_teaser", "id": "home-shop", "heading": "In the shop", "limit": 4, "style": { "bg": "tint", "width": "wide" } },
+        { "type": "events", "id": "home-workshops", "variant": "cards", "heading": "Upcoming workshops", "limit": 3, "style": { "bg": "none", "width": "wide" } },
         { "type": "cta", "id": "home-press-link", "label": "Press and teaching", "href": "/press", "kind": "secondary", "style": { "bg": "brand", "align": "center" } }
       ]
     },
@@ -110,7 +110,7 @@
         {
           "type": "testimonials", "id": "pr-quotes", "variant": "grid",
           "items": [
-            { "quote": "Clear cutting diagrams, and she says out loud when a step is fussy.", "author": "Modern Quilt Studio blog" },
+            { "quote": "Clear cutting diagrams, and she says out loud when a step is fussy.", "author": "A quilting blog review" },
             { "quote": "The retreat pattern was finished by Sunday noon, which has not happened to me in years.", "author": "A student, 2025 retreat" },
             { "quote": "We booked her two years in a row because the waitlist from the first class filled the second.", "author": "A Midwest guild president" }
           ],
@@ -119,7 +119,7 @@
         {
           "type": "rich_text", "id": "pr-bio", "variant": "prose",
           "heading": "Short bio for programs",
-          "html": "<p>{{guild_name}} designs paper-pieced and strip-pieced patterns and teaches guild workshops across the country. She lives in {{city}}.</p>",
+          "html": "<p>{{guild_name}} designs paper-pieced and strip-pieced patterns and teaches guild workshops across the country from a studio in {{city}}.</p>",
           "style": { "bg": "none", "width": "narrow" }
         }
       ]

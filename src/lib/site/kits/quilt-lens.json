@@ -1,0 +1,311 @@
+{
+  "id": "quilt-lens",
+  "name": "Quilt Lens",
+  "audience": "business",
+  "character": "Charcoal gold and a white wall: quilt photography for show entries, sharp files, no lifestyle props.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "tight",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "none",
+      "opacity": 0
+    },
+    "palette": "dark-charcoal-gold",
+    "typePair": "spacegrotesk-worksans"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "North Wall Studio",
+    "city": "Minneapolis, Minnesota"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Quilt photography in {{city}}",
+          "title": "A square file for the entry form.",
+          "subtitle": "Sample text — replace me: {{guild_name}} photographs quilts for shows. White wall, even light, a file that meets the pixel count. No barn doors, no coffee mugs.",
+          "ctaLabel": "Request a quote",
+          "ctaHref": "/request-a-quote",
+          "secondaryLabel": "Sessions",
+          "secondaryHref": "/sessions",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "home-offer",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Entry set",
+              "body": "Front, a corner detail, and a label shot if you need it.",
+              "price": "$85",
+              "href": "/sessions"
+            },
+            {
+              "title": "Full documentation",
+              "body": "Front, back, four corners, and a detail of the quilting.",
+              "price": "$140"
+            },
+            {
+              "title": "On-site show",
+              "body": "I come to a hall the day before hanging. Guild rate for ten quilts or more.",
+              "price": "quote"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "home-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "The show accepted the file on the first try. That has never happened when I photographed it on the floor.",
+              "author": "An exhibitor"
+            }
+          ],
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "home-cta",
+          "projectType": "custom_quilt",
+          "heading": "Quilt size, show due date, and whether it is already quilted",
+          "submitLabel": "Request a session",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "sessions",
+      "title": "Sessions",
+      "nav": true,
+      "navLabel": "Sessions",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "Sessions",
+          "subtitle": "Sample text — replace me: How to bring a quilt, and what I will not do to it.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "se-grid",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Hang",
+              "body": "A sleeve helps. If there is no sleeve I clamp a rod. I do not pin through the quilt."
+            },
+            {
+              "title": "Press",
+              "body": "I will steam a crease if you ask. I will not wet a silk or a vintage top."
+            },
+            {
+              "title": "Files",
+              "body": "sRGB, the pixel edge the show asked for, and a full-resolution copy for you."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "portfolio",
+      "title": "Wall",
+      "nav": true,
+      "navLabel": "Wall",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "Wall",
+          "subtitle": "Sample text — replace me: Quilts on a wall. That is the portfolio.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "gallery",
+          "id": "wall",
+          "variant": "grid",
+          "source": "gallery",
+          "gallerySlug": "wall",
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "request-a-quote",
+      "title": "Request a Quote",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "q-hero",
+          "variant": "minimal",
+          "title": "Request a quote",
+          "subtitle": "Sample text — replace me: Studio sessions are weekdays. Show due dates get the morning slots.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "q-form",
+          "projectType": "custom_quilt",
+          "heading": "Quilt size, show due date, and whether it is already quilted",
+          "submitLabel": "Request a session",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "cta",
+          "id": "q-more",
+          "label": "Or email first",
+          "href": "/contact",
+          "kind": "secondary",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A photographer who has hung a show, not a portrait studio with a quilt in the corner.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "The work",
+          "html": "<p><em>Sample text — replace me:</em> I used to volunteer at intake. The photographs were the thing that failed first. {{guild_name}} is a wall, two lights, and a ladder. I will not style your quilt on a bed.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "a-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "The show accepted the file on the first try. That has never happened when I photographed it on the floor.",
+              "author": "An exhibitor"
+            }
+          ],
+          "style": {
+            "bg": "none"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Dates, deposits, and work already in the shop.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-hours",
+          "heading": "Hours",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    }
+  ]
+}

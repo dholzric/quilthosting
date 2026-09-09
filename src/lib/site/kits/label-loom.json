@@ -1,0 +1,329 @@
+{
+  "id": "label-loom",
+  "name": "Label Loom",
+  "audience": "business",
+  "character": "Linen and a shuttle: woven quilt labels with a name, a year, and enough wash cycles to outlast the maker.",
+  "defaults": {
+    "scale": "editorial",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "narrow"
+    },
+    "header": {
+      "variant": "centered",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "none",
+      "opacity": 0
+    },
+    "palette": "naturals-linen",
+    "typePair": "newsreader-ibmplexsans"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "The Name in the Corner",
+    "city": "Brattleboro, Vermont"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Woven labels in {{city}}",
+          "title": "A name that survives the wash.",
+          "subtitle": "Sample text — replace me: {{guild_name}} weaves labels. Not printed iron-ons. A name, a date, sometimes a line, stitched into the back where a quilt is honest.",
+          "ctaLabel": "Order labels",
+          "ctaHref": "/request-a-quote",
+          "secondaryLabel": "Labels",
+          "secondaryHref": "/labels",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "home-offer",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Standard",
+              "body": "Name, year, town. One color on cotton tape.",
+              "price": "$6",
+              "href": "/labels"
+            },
+            {
+              "title": "Two-line",
+              "body": "A dedication that will still be readable when the quilt is a rumor.",
+              "price": "$9"
+            },
+            {
+              "title": "Edition",
+              "body": "For a guild series. Same design, numbered.",
+              "price": "from $4 / ea"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "home-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "The printed label went first. The woven one is how we know who made it.",
+              "author": "A granddaughter"
+            }
+          ],
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "home-cta",
+          "projectType": "custom_quilt",
+          "heading": "Wording, quantity, and whether it must match a binding",
+          "submitLabel": "Order labels",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "labels",
+      "title": "Wording",
+      "nav": true,
+      "navLabel": "Labels",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "Wording",
+          "subtitle": "Sample text — replace me: What belongs on a label, and what belongs in a letter.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "lb-body",
+          "variant": "prose",
+          "heading": "Keep it short",
+          "html": "<p><em>Sample text — replace me:</em> A name and a year will still be true in fifty years. A joke about a president will not. I will weave the joke if you insist. I will also send a second label with just the name.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "lb-faq",
+          "items": [
+            {
+              "q": "Can you weave a logo?",
+              "a": "A simple one. A detailed shop logo is a different machine and a different price."
+            },
+            {
+              "q": "Do you sew them on?",
+              "a": "I can, if the quilt is here. Most people want the tape and a needle."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "care",
+      "title": "Care",
+      "nav": true,
+      "navLabel": "Care",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "Care",
+          "subtitle": "Sample text — replace me: How a woven label wants to be attached.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "ca-grid",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Stitch",
+              "body": "A whipstitch on all four sides. Glue is how labels leave."
+            },
+            {
+              "title": "Place",
+              "body": "Lower back corner, or wherever your guild's documentation day expects it."
+            },
+            {
+              "title": "Wash",
+              "body": "It will outlast a printed one. It will not outlast bleach as a hobby."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "request-a-quote",
+      "title": "Request a Quote",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "q-hero",
+          "variant": "minimal",
+          "title": "Request a quote",
+          "subtitle": "Sample text — replace me: I will not weave a novel. Two lines is a lot. One is better.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "q-form",
+          "projectType": "custom_quilt",
+          "heading": "Wording, quantity, and whether it must match a binding",
+          "submitLabel": "Order labels",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "cta",
+          "id": "q-more",
+          "label": "Or write first",
+          "href": "/contact",
+          "kind": "secondary",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A small loom and a stubbornness about names.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "The work",
+          "html": "<p><em>Sample text — replace me:</em> Quilts lose their people. {{guild_name}} is a label that takes longer to make so it takes longer to vanish. I will not print your name on a sticker and call it history.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "a-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "The printed label went first. The woven one is how we know who made it.",
+              "author": "A granddaughter"
+            }
+          ],
+          "style": {
+            "bg": "none"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Dates, deposits, and work already in the shop.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-hours",
+          "heading": "Hours",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    }
+  ]
+}

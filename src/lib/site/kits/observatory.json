@@ -1,0 +1,341 @@
+{
+  "id": "observatory",
+  "name": "Observatory",
+  "audience": "guild",
+  "character": "Winter sky and a red flashlight: a dark-sky guild that sews star blocks after the sun goes down.",
+  "defaults": {
+    "scale": "editorial",
+    "shape": {
+      "radius": "soft",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "narrow"
+    },
+    "header": {
+      "variant": "centered",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "meeting"
+    },
+    "pattern": {
+      "id": "flying-geese",
+      "opacity": 0.1
+    },
+    "palette": "seasonal-winter",
+    "typePair": "newsreader-ibmplexsans"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Red Light Quilt Guild",
+    "city": "Flagstaff, Arizona"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Star quilts under a dark sky in {{city}}",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: {{guild_name}} meets {{meeting_info}}, after nautical twilight. We sew stars. Then we go outside if the sky is clear.",
+          "ctaLabel": "Join",
+          "ctaHref": "/membership",
+          "secondaryLabel": "Sky",
+          "secondaryHref": "/sky",
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "spacing": "airy",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "when",
+          "heading": "After dark",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "note": "White phone lights stay in pockets outside. Red film on the porch flashlights. The quilt is the warmup for the sky.",
+          "style": {
+            "bg": "none"
+          }
+        },
+        {
+          "type": "events",
+          "id": "upcoming",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "life",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Star blocks",
+              "body": "Ohio, variable, sawtooth, Mariner's compass if you are brave.",
+              "href": "/sky"
+            },
+            {
+              "title": "The porch",
+              "body": "A telescope the astronomy club parks. We are guests with better snacks."
+            },
+            {
+              "title": "Cloud nights",
+              "body": "We sew longer. The sky does not owe us a show."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "join_band",
+          "id": "join",
+          "title": "Stay after dark",
+          "body": "Dues cover the room. The astronomy club covers the telescope. Cookies are a rotation.",
+          "ctaLabel": "See dues",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A guild in a dark-sky town, where the night is the point.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "How we started",
+          "html": "<p><em>Sample text — replace me:</em> {{city}} protects the dark. {{guild_name}} sews under that rule. Star blocks are not a theme-park print. They are what you make with your hands before you look up.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "a-year",
+          "variant": "numbered",
+          "items": [
+            {
+              "title": "Perseid week",
+              "body": "We move the meeting. Blankets on the lot. Sewing stays inside."
+            },
+            {
+              "title": "Winter early",
+              "body": "Twilight is early. So are we."
+            },
+            {
+              "title": "Monsoon",
+              "body": "Clouds. Extra piecing. No complaints about the sky."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          },
+          "heading": "A year with us"
+        }
+      ]
+    },
+    {
+      "slug": "sky",
+      "title": "Stars and Sky",
+      "nav": true,
+      "navLabel": "Sky",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "s-hero",
+          "variant": "minimal",
+          "title": "Stars and Sky",
+          "subtitle": "Sample text — replace me: Blocks we sew, and how we stand outside without ruining anyone's night vision.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "sk-grid",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Red light",
+              "body": "Porch and lot only. Inside is normal light so we can sew a point."
+            },
+            {
+              "title": "The scope",
+              "body": "Not ours. We bring cookies. They bring the sky. Do not touch the glass."
+            },
+            {
+              "title": "The blocks",
+              "body": "Stars, compasses, flying geese as rays. A novelty planet print is a fine joke and a poor repeat."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "why-join",
+      "title": "Join",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "j-hero",
+          "variant": "minimal",
+          "title": "Membership",
+          "subtitle": "Sample text — replace me: You do not have to know a constellation. You have to be willing to go outside in a jacket.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "membership_levels",
+          "id": "levels",
+          "variant": "cards",
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "j-faq",
+          "items": [
+            {
+              "q": "I am afraid of the dark.",
+              "a": "Stay inside. Plenty of us do on windy nights. Nobody is graded on looking up."
+            },
+            {
+              "q": "Do you only sew stars?",
+              "a": "Mostly. A moon is allowed. A log cabin is a visit from another guild, not the program."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "meetings",
+      "title": "Meetings",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "m-hero",
+          "variant": "minimal",
+          "title": "Meetings",
+          "subtitle": "Sample text — replace me: We meet {{meeting_info}} in {{city}}.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "m-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "events",
+          "id": "m-list",
+          "variant": "list",
+          "heading": "On the calendar",
+          "limit": 8,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Programs, dues, and the door.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "dark"
+          }
+        }
+      ]
+    }
+  ]
+}

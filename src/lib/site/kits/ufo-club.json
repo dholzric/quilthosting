@@ -1,0 +1,359 @@
+{
+  "id": "ufo-club",
+  "name": "UFO Club",
+  "audience": "guild",
+  "character": "Dark gold and a finish list: a guild that will not start a new top until three old ones leave the closet.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "tight",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "flying-geese",
+      "opacity": 0.08
+    },
+    "palette": "dark-charcoal-gold",
+    "typePair": "spacegrotesk-worksans"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Finish What You Started",
+    "city": "Pittsburgh, Pennsylvania"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Unfinished objects in {{city}}",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: {{guild_name}} is a finish guild. We meet {{meeting_info}} with one UFO, a timer, and no new cuts that night.",
+          "ctaLabel": "Join",
+          "ctaHref": "/membership",
+          "secondaryLabel": "Piles",
+          "secondaryHref": "/piles",
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "spacing": "airy",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "when",
+          "heading": "Finish night",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "note": "Bring one project. If you finish it, you may start the next. Cutting a new top is fined one fat quarter for the charity pile.",
+          "style": {
+            "bg": "none"
+          }
+        },
+        {
+          "type": "events",
+          "id": "upcoming",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "life",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "The pile audit",
+              "body": "January we count bags. You name three to finish this year. The rest stay on a list, not in the way.",
+              "href": "/piles"
+            },
+            {
+              "title": "Binding table",
+              "body": "Two machines set up only for binding. You quilt at home; we close the edge together."
+            },
+            {
+              "title": "Accountability pairs",
+              "body": "A text buddy who asks, once a week, whether the sandwich left the chair."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "join_band",
+          "id": "join",
+          "title": "Three finishes this year",
+          "body": "Membership is for people who want the closet quieter.",
+          "ctaLabel": "See dues",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A guild in {{city}} for people whose closets are louder than their finished quilts.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "How we started",
+          "html": "<p><em>Sample text — replace me:</em> We started because every other guild night ended with a new pattern and another half-cut stack. {{guild_name}} flipped the rule. You may look at a new idea. You may not cut it until three older tops are bound.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "a-year",
+          "variant": "numbered",
+          "items": [
+            {
+              "title": "Spring purge",
+              "body": "Bags you will not finish go to a destash table. Money from the table buys batting for charity."
+            },
+            {
+              "title": "Summer bind-a-thon",
+              "body": "Eight hours, lunch in the middle, as many bindings as the machines will take."
+            },
+            {
+              "title": "December count",
+              "body": "We photograph finished quilts. The list for next year is written the same night."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          },
+          "heading": "A year with us"
+        }
+      ]
+    },
+    {
+      "slug": "piles",
+      "title": "The Pile Rules",
+      "nav": true,
+      "navLabel": "Piles",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "s-hero",
+          "variant": "minimal",
+          "title": "The Pile Rules",
+          "subtitle": "Sample text — replace me: How we decide what gets finished, gifted, or given away.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "p-rules",
+          "variant": "numbered",
+          "items": [
+            {
+              "title": "Name three",
+              "body": "At the first meeting you write three UFOs. Those are the only ones you may work on until they are bound."
+            },
+            {
+              "title": "No new cuts",
+              "body": "A new top is allowed after a finish, not before. The fat-quarter fine is real."
+            },
+            {
+              "title": "Gift or let go",
+              "body": "If a bag has not moved in two years, it goes on the destash table or to a friend who will sew it."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "p-faq",
+          "items": [
+            {
+              "q": "What counts as a finish?",
+              "a": "Bound, labeled, and photographed. A quilted sandwich still in a bag is not a finish."
+            },
+            {
+              "q": "May I buy fabric?",
+              "a": "Yes. You may not cut a new top from it until a named UFO is done."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "why-join",
+      "title": "Join",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "j-hero",
+          "variant": "minimal",
+          "title": "Membership",
+          "subtitle": "Sample text — replace me: Dues cover the room, the batting for charity from destash money, and the binding thread on the house machines.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "membership_levels",
+          "id": "levels",
+          "variant": "cards",
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "j-faq",
+          "items": [
+            {
+              "q": "I only have one UFO.",
+              "a": "Then you will finish it and be very popular. Bring it."
+            },
+            {
+              "q": "Is this a beginner guild?",
+              "a": "Beginners are welcome if they already have something unfinished. We will not start your first quilt here. See a teaching guild for that."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "meetings",
+      "title": "Meetings",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "m-hero",
+          "variant": "minimal",
+          "title": "Meetings",
+          "subtitle": "Sample text — replace me: We meet {{meeting_info}} in {{city}}.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "m-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "events",
+          "id": "m-list",
+          "variant": "list",
+          "heading": "On the calendar",
+          "limit": 8,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Programs, dues, and the door code.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "dark"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,319 @@
+{
+  "id": "crib-studio",
+  "name": "Crib Studio",
+  "audience": "business",
+  "character": "Sky and a size chart: new-baby quilts from new cloth, named and washable, not cut from a relative's shirts.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "round",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "nine-patch",
+      "opacity": 0.1
+    },
+    "palette": "soft-sky",
+    "typePair": "nunito"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Crib Size Studio",
+    "city": "Des Moines, Iowa"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Baby quilts in {{city}}",
+          "title": "New cloth. Crib size. Built to be washed.",
+          "subtitle": "Sample text — replace me: {{guild_name}} makes baby quilts from new cotton, not from clothes. If you want a shirt quilt, I will send you to the shop that does that.",
+          "ctaLabel": "Request a quote",
+          "ctaHref": "/request-a-quote",
+          "secondaryLabel": "Sizes",
+          "secondaryHref": "/sizes",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "home-offer",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Crib",
+              "body": "36 by 52, cotton batting, a binding a toddler can chew on.",
+              "price": "from $180",
+              "href": "/sizes"
+            },
+            {
+              "title": "Play mat",
+              "body": "Square, thicker batting, a backing that can live on a floor.",
+              "price": "from $160"
+            },
+            {
+              "title": "Twin later",
+              "body": "The same blocks, larger, when the crib is a bed. I keep the leftover fabric a year if you ask.",
+              "price": "from $320"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "home-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "It went through the hospital laundry and came back the same size. That was the requirement.",
+              "author": "A new parent"
+            }
+          ],
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "home-cta",
+          "projectType": "custom_quilt",
+          "heading": "Due date, crib or play mat, and whether the palette is already chosen",
+          "submitLabel": "Request a quote",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "sizes",
+      "title": "Sizes",
+      "nav": true,
+      "navLabel": "Sizes",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "Sizes",
+          "subtitle": "Sample text — replace me: Crib, play mat, and the later twin. Measured, not guessed.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "sz-grid",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Crib",
+              "body": "36 by 52. Fits a standard crib without a puddle on the floor."
+            },
+            {
+              "title": "Play mat",
+              "body": "40 by 40. Binding is wider. No pieced back; a toddler will find the seam."
+            },
+            {
+              "title": "Twin",
+              "body": "63 by 87. Only if I still have the fabric from the crib.",
+              "price": "from $320"
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "process",
+      "title": "Order",
+      "nav": true,
+      "navLabel": "Order",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "Order",
+          "subtitle": "Sample text — replace me: Palette, due date, and a name for the label.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "or-faq",
+          "items": [
+            {
+              "q": "Will you use the grandmother's dresses?",
+              "a": "No. That is a memory quilt. I work in new cloth that can be replaced if the dog finds it."
+            },
+            {
+              "q": "Can it go in a hospital washer?",
+              "a": "Yes. Say so on the form. I will skip wool batting."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "request-a-quote",
+      "title": "Request a Quote",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "q-hero",
+          "variant": "minimal",
+          "title": "Request a quote",
+          "subtitle": "Sample text — replace me: I need four weeks. A due date next Friday is a no.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "q-form",
+          "projectType": "custom_quilt",
+          "heading": "Due date, crib or play mat, and whether the palette is already chosen",
+          "submitLabel": "Send details",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "cta",
+          "id": "q-more",
+          "label": "Or email first",
+          "href": "/contact",
+          "kind": "secondary",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A baby-quilt studio, not a keepsake shop.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "The work",
+          "html": "<p><em>Sample text — replace me:</em> Parents kept asking for something that could live in a crib and a washer. The memory-quilt shops did not want to hear about bleach. {{guild_name}} is new fabric, a known size, and a label with a name.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "a-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "It went through the hospital laundry and came back the same size. That was the requirement.",
+              "author": "A new parent"
+            }
+          ],
+          "style": {
+            "bg": "none"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Dates, deposits, and work already in the shop.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-hours",
+          "heading": "Hours",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    }
+  ]
+}

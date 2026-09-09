@@ -1,0 +1,341 @@
+{
+  "id": "coat-guild",
+  "name": "Coat Guild",
+  "audience": "guild",
+  "character": "Ink, rose, and a dress form: a guild for quilted coats, not bedcovers, with one runway night a year.",
+  "defaults": {
+    "scale": "editorial",
+    "shape": {
+      "radius": "soft",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "centered",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "none",
+      "opacity": 0
+    },
+    "palette": "dark-ink-rose",
+    "typePair": "dmserif-dmsans"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Sleeve & Batting",
+    "city": "Brooklyn, New York"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "minimal",
+          "eyebrow": "Quilted garments in {{city}}",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: {{guild_name}} quilts things you wear. We meet {{meeting_info}} with dress forms, sleeve boards, and no interest in a queen-size anything.",
+          "ctaLabel": "Join",
+          "ctaHref": "/membership",
+          "secondaryLabel": "The walk",
+          "secondaryHref": "/runway",
+          "style": {
+            "bg": "dark",
+            "width": "narrow",
+            "spacing": "airy",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "when",
+          "heading": "Garment night",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "note": "Beds stay home. If you bring a lap quilt we will admire it in ten seconds and ask where the coat is.",
+          "style": {
+            "bg": "none"
+          }
+        },
+        {
+          "type": "events",
+          "id": "upcoming",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "life",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Coats",
+              "body": "Pieced shells, quilted linings, bindings that have to survive a subway pole.",
+              "href": "/runway"
+            },
+            {
+              "title": "Vests",
+              "body": "The gateway garment. Faster. Still not a bed.",
+              "href": "/runway"
+            },
+            {
+              "title": "The night",
+              "body": "One evening in November we walk. Friends may come. Photographers stay at the end of the aisle."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "join_band",
+          "id": "join",
+          "title": "Bring a form",
+          "body": "Dues cover the room and the November hall. Dress forms are shared; label yours.",
+          "ctaLabel": "See dues",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: Wearable work, in a city that will rain on it.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "How we started",
+          "html": "<p><em>Sample text — replace me:</em> Bed quilts have guilds. This one is for the people who wanted a coat that was also a quilt, and got tired of being told to make a throw first. {{guild_name}} talks about ease, wash, and whether a binding will catch on a bike.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "a-year",
+          "variant": "numbered",
+          "items": [
+            {
+              "title": "Spring muslin",
+              "body": "Fit. No fashion fabric yet."
+            },
+            {
+              "title": "Summer quilt",
+              "body": "Thin batting. Heat is a design constraint."
+            },
+            {
+              "title": "November walk",
+              "body": "The runway. Coats on people, not on hangers."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          },
+          "heading": "A year with us"
+        }
+      ]
+    },
+    {
+      "slug": "runway",
+      "title": "The Walk",
+      "nav": true,
+      "navLabel": "The walk",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "s-hero",
+          "variant": "minimal",
+          "title": "The Walk",
+          "subtitle": "Sample text — replace me: How November works, and what counts as finished.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "r-grid",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Finished",
+              "body": "Wearable, bound, and able to go outside. A muslin is not a walk piece."
+            },
+            {
+              "title": "The aisle",
+              "body": "A rented hall, twenty feet, friends along the wall. No judging. Plenty of opinions afterward."
+            },
+            {
+              "title": "After",
+              "body": "Coats go home on hangers. We do not sell from the aisle."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "why-join",
+      "title": "Join",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "j-hero",
+          "variant": "minimal",
+          "title": "Membership",
+          "subtitle": "Sample text — replace me: If you have never set a sleeve, sit next to someone who has. We will not pretend it is a square block.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "membership_levels",
+          "id": "levels",
+          "variant": "cards",
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "j-faq",
+          "items": [
+            {
+              "q": "May I quilt a skirt?",
+              "a": "Yes. Anything worn. Bags are a maybe; they are not coats, but they are not beds."
+            },
+            {
+              "q": "Do you use wool coats as bases?",
+              "a": "Some of us do. Say so, because the pressing rules change."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "meetings",
+      "title": "Meetings",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "m-hero",
+          "variant": "minimal",
+          "title": "Meetings",
+          "subtitle": "Sample text — replace me: We meet {{meeting_info}} in {{city}}.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "m-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "events",
+          "id": "m-list",
+          "variant": "list",
+          "heading": "On the calendar",
+          "limit": 8,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Programs, dues, and the door.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "dark"
+          }
+        }
+      ]
+    }
+  ]
+}

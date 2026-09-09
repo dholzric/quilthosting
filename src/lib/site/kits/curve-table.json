@@ -1,0 +1,352 @@
+{
+  "id": "curve-table",
+  "name": "Curve Table",
+  "audience": "guild",
+  "character": "Round corners and no straight seam: drunkard's path, clamshells, and the kind of pins that forgive an arc.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "round",
+      "shadow": "lifted"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "centered",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "meeting"
+    },
+    "pattern": {
+      "id": "bear-paw",
+      "opacity": 0.1
+    },
+    "palette": "jewel-amethyst",
+    "typePair": "lora-karla"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Arc & Clamshell",
+    "city": "Savannah, Georgia"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Curved piecing in {{city}}",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: {{guild_name}} does not sew a straight seam on purpose. We meet {{meeting_info}} with templates that bend and irons that wait.",
+          "ctaLabel": "Join",
+          "ctaHref": "/membership",
+          "secondaryLabel": "Arcs",
+          "secondaryHref": "/arcs",
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "spacing": "airy",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "when",
+          "heading": "Arc night",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "note": "Pins every inch on a curve. If you clip a seam, clip it. The straight-stitch guild is across town and they are very good.",
+          "style": {
+            "bg": "none"
+          }
+        },
+        {
+          "type": "events",
+          "id": "upcoming",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "life",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Drunkard's path",
+              "body": "The gateway curve. We keep a nested template set so nobody traces a lid.",
+              "href": "/arcs"
+            },
+            {
+              "title": "Clamshell",
+              "body": "Slower. A row looks like water. We do not rush a row."
+            },
+            {
+              "title": "Double wedding ring",
+              "body": "Once a year, as a group, because it is a lot of arc for one person."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "join_band",
+          "id": "join",
+          "title": "Bring pins",
+          "body": "Dues cover the room and the shared templates. Your thread is your business.",
+          "ctaLabel": "See dues",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A guild that left the ruler's long edge at home.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "How we started",
+          "html": "<p><em>Sample text — replace me:</em> Straight piecing is a fine craft. This room is for the other one. {{guild_name}} exists so you do not have to apologize for a block that will not sit on a grid. We still square a quilt when it is done. The inside is allowed to swim.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "a-year",
+          "variant": "numbered",
+          "items": [
+            {
+              "title": "Spring path",
+              "body": "Everyone starts a drunkard's path in two colors. We hang them together in May."
+            },
+            {
+              "title": "Summer shell",
+              "body": "Clamshells, slower meetings, sweet tea."
+            },
+            {
+              "title": "Winter ring",
+              "body": "The group double wedding ring, one arc at a time."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          },
+          "heading": "A year with us"
+        }
+      ]
+    },
+    {
+      "slug": "arcs",
+      "title": "Arcs",
+      "nav": true,
+      "navLabel": "Arcs",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "s-hero",
+          "variant": "minimal",
+          "title": "Arcs",
+          "subtitle": "Sample text — replace me: Templates, clipping, and how we press a curve without killing it.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "a-grid",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Clip",
+              "body": "To the stitch, not through it. If you are afraid, we will watch the first three."
+            },
+            {
+              "title": "Press",
+              "body": "To the concave side unless the block argues. The block often argues."
+            },
+            {
+              "title": "Stay-stitch",
+              "body": "Bias edges get a stay line before they meet a border. This is not optional in July humidity."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-note",
+          "variant": "prose",
+          "heading": "Straight borders",
+          "html": "<p><em>Sample text — replace me:</em> A curved center may have a straight border. We are not fanatics. We are specific.</p>",
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "why-join",
+      "title": "Join",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "j-hero",
+          "variant": "minimal",
+          "title": "Membership",
+          "subtitle": "Sample text — replace me: If curves make you angry, try one night. If they still make you angry, we will refund the first month and wave.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "membership_levels",
+          "id": "levels",
+          "variant": "cards",
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "j-faq",
+          "items": [
+            {
+              "q": "Do you allow paper piecing of curves?",
+              "a": "Yes. Glue-baste is a valid religion here."
+            },
+            {
+              "q": "May I bring a straight nine-patch to work on?",
+              "a": "Work on it at home. In this room we bend."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "meetings",
+      "title": "Meetings",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "m-hero",
+          "variant": "minimal",
+          "title": "Meetings",
+          "subtitle": "Sample text — replace me: We meet {{meeting_info}} in {{city}}.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "m-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "events",
+          "id": "m-list",
+          "variant": "list",
+          "heading": "On the calendar",
+          "limit": 8,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Programs, dues, and the door.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "dark"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,309 @@
+{
+  "id": "vintage-yardage",
+  "name": "Vintage Yardage",
+  "audience": "business",
+  "character": "Madder and a measuring table: deadstock and estate bolts, sold by the yard, with the decade named when we know it.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "split",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "log-cabin",
+      "opacity": 0.08
+    },
+    "palette": "heritage-madder",
+    "typePair": "newsreader-ibmplexsans"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "The Measuring Table",
+    "city": "Hudson, New York"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Vintage cloth in {{city}}",
+          "title": "Yardage with a decade, when we have one.",
+          "subtitle": "Sample text — replace me: {{guild_name}} sells deadstock and estate bolts. Not reproduction. Not new. If I do not know the decade I will say so.",
+          "ctaLabel": "Request a quote",
+          "ctaHref": "/request-a-quote",
+          "secondaryLabel": "Stock",
+          "secondaryHref": "/stock",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "home-offer",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "By the yard",
+              "body": "Cuts from a bolt on the wall. Minimum half yard unless the remnant is smaller.",
+              "price": "tagged",
+              "href": "/stock"
+            },
+            {
+              "title": "Remnants",
+              "body": "Less than a yard, priced as a piece. Good for a border or a binding.",
+              "price": "tagged"
+            },
+            {
+              "title": "Estate lots",
+              "body": "A bag from one house. You buy the bag. I will not pick the flowers out for you.",
+              "price": "quote"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "home-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "She wrote 1974 on the card and also wrote maybe. I trusted the maybe more than other shops' certainty.",
+              "author": "A regular"
+            }
+          ],
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "home-cta",
+          "projectType": "custom_quilt",
+          "heading": "What you are looking for, and whether a photo from the rack is enough",
+          "submitLabel": "Request a quote",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "stock",
+      "title": "On the Wall",
+      "nav": true,
+      "navLabel": "Stock",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "On the Wall",
+          "subtitle": "Sample text — replace me: Bolts turn over. The site is a sample of what a week looks like, not a catalog.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "store_teaser",
+          "id": "st-shop",
+          "heading": "A few cuts",
+          "limit": 6,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "st-care",
+          "variant": "prose",
+          "heading": "Fiber",
+          "html": "<p><em>Sample text — replace me:</em> I test a snip if the fiber is unclear. If it melts, it is not the cotton you hoped. I will still sell it, labeled.</p>",
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "visit",
+      "title": "The Table",
+      "nav": true,
+      "navLabel": "Visit",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "The Table",
+          "subtitle": "Sample text — replace me: A narrow shop, {{meeting_info}}, in {{city}}.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "vi-hours",
+          "heading": "Hours",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "note": "Ring. The door sticks. Do not yank the glass.",
+          "style": {
+            "bg": "tint"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "request-a-quote",
+      "title": "Request a Quote",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "q-hero",
+          "variant": "minimal",
+          "title": "Request a quote",
+          "subtitle": "Sample text — replace me: Hold requests are 48 hours. Estate lots are described, then opened here, not mailed unseen.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "q-form",
+          "projectType": "custom_quilt",
+          "heading": "What you are looking for, and whether a photo from the rack is enough",
+          "submitLabel": "Send details",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "cta",
+          "id": "q-more",
+          "label": "Or email first",
+          "href": "/contact",
+          "kind": "secondary",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A measuring table, not a museum, not a craft chain.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "The work",
+          "html": "<p><em>Sample text — replace me:</em> Estate sales leave bolts. Mills leave deadstock. {{guild_name}} is the place those yards wait until someone wants a border that does not exist on a new wall. I am not an appraiser. I am a person with a ruler and a notebook.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "a-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "She wrote 1974 on the card and also wrote maybe. I trusted the maybe more than other shops' certainty.",
+              "author": "A regular"
+            }
+          ],
+          "style": {
+            "bg": "none"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Dates, deposits, and work already in the shop.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-hours",
+          "heading": "Hours",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    }
+  ]
+}

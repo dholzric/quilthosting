@@ -1,0 +1,263 @@
+{
+  "id": "quilt-photographer",
+  "name": "Quilt Photographer",
+  "audience": "business",
+  "character": "Quilts photographed like the art objects they are: chrome-free, image-first, booked by the quilt.",
+  "defaults": {
+    "palette": "modern-charcoal-coral",
+    "typePair": "system",
+    "scale": "comfortable",
+    "shape": { "radius": "sharp", "shadow": "none" },
+    "rhythm": { "spacing": "tight", "container": "normal" },
+    "header": { "variant": "left", "sticky": true, "cta": "quote", "overlayHero": false },
+    "footer": { "variant": "simple" },
+    "pattern": { "id": "none", "opacity": 0 }
+  },
+  "imagery": [
+    { "id": "hero-art", "kind": "pattern", "alt": "" }
+  ],
+  "previewSeed": { "guildName": "Stitch & Light Photography", "city": "Providence, Rhode Island" },
+  "menu": [
+    { "label": "Services", "href": "/services" },
+    { "label": "Guild days", "href": "/guild-days" },
+    { "label": "About", "href": "/about" },
+    { "label": "Contact", "href": "/contact" },
+    { "label": "Book a session", "href": "/request-a-quote" }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "minimal",
+          "eyebrow": "Quilt photography for shows, entries, and portfolios",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: Straight-on, evenly lit, and color-true: the photograph the judge sees before the quilt does.",
+          "ctaLabel": "Book a session",
+          "ctaHref": "/request-a-quote",
+          "secondaryLabel": "Services and fees",
+          "secondaryHref": "/services",
+          "style": { "bg": "none", "width": "narrow", "spacing": "airy", "align": "center" }
+        },
+        {
+          "type": "feature_grid",
+          "id": "home-services",
+          "variant": "cards",
+          "heading": "By the quilt, not by the hour",
+          "items": [
+            { "title": "Full quilt set", "body": "Square-on full view, front and back, on an 8-foot neutral wall.", "price": "$45", "href": "/services" },
+            { "title": "Detail set", "body": "Four close-ups: the binding, one block, the quilting line, the label.", "price": "$30", "href": "/services" },
+            { "title": "Styled shoot", "body": "The quilt in a room it belongs in, with the good chair and the morning light.", "price": "+$25", "href": "/services" },
+            { "title": "Show floor", "body": "On location at the show, hung quilts before the doors open.", "price": "$120/hr", "href": "/guild-days" }
+          ],
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "gallery",
+          "id": "home-gallery",
+          "variant": "grid",
+          "source": "gallery",
+          "gallerySlug": "sessions",
+          "heading": "From the wall",
+          "style": { "bg": "dark", "width": "wide" }
+        },
+        {
+          "type": "rich_text",
+          "id": "home-why",
+          "variant": "two_column",
+          "heading": "Why it matters",
+          "html": "<p>Show entry, magazine submission, jury applications, and the family archive all run on the same photograph. Phone cameras guess at reds and stretch texture; a quilt photographed properly looks on screen the way it looks in your hands.</p><p>Every session delivers web-sized images for forms and print-ready files for catalogs, both color-checked against the quilt on the wall before they leave the studio.</p>",
+          "style": { "bg": "none", "width": "normal" }
+        },
+        {
+          "type": "quote_cta",
+          "id": "home-book",
+          "projectType": "photography",
+          "heading": "Hold a session slot",
+          "submitLabel": "Book a session",
+          "style": { "bg": "tint", "width": "normal", "align": "center" }
+        }
+      ]
+    },
+    {
+      "slug": "services",
+      "title": "Services & Fees",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "services-hero",
+          "variant": "minimal",
+          "title": "Services and fees",
+          "subtitle": "Sample text — replace me: What each set includes, how long it takes, and what arrives in the folder.",
+          "style": { "bg": "none", "width": "narrow", "align": "center" }
+        },
+        {
+          "type": "feature_grid",
+          "id": "services-list",
+          "variant": "cards",
+          "heading": "The fee card",
+          "items": [
+            { "title": "Full quilt set", "body": "Both sides, delivered same day in web and print sizes.", "price": "$45" },
+            { "title": "Detail set", "body": "The four shots every entry form secretly wants.", "price": "$30" },
+            { "title": "Styled shoot", "body": "Staged interiors for pattern covers and portfolios.", "price": "+$25" },
+            { "title": "Show floor", "body": "Event coverage before doors, per quilt or per hour.", "price": "$120/hr" },
+            { "title": "Rush", "body": "Same-day delivery when the deadline is real. Says so, no surcharge theater.", "price": "+$20" }
+          ],
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "rich_text",
+          "id": "services-session",
+          "variant": "two_column",
+          "heading": "How a session runs",
+          "html": "<p>Bring the quilt loose, not pinned to a rod, and give it ten minutes to relax out of the car. Squares go on the wall with pins that have never met a quilt before, the level does the arguing, and each shot is checked on the monitor with you standing there.</p><p>You pick keepers on the spot. Nothing is delivered that you did not approve, and nothing is retouched that the quilt did not do.</p>",
+          "style": { "bg": "none", "width": "normal" }
+        },
+        {
+          "type": "faq",
+          "id": "services-faq",
+          "heading": "Session questions",
+          "items": [
+            { "q": "Can you photograph a quilt that hangs badly?", "a": "Almost every quilt hangs badly until it is pinned properly. Bring it; the wall and the steamer will handle the rest." },
+            { "q": "Do I get the raw files?", "a": "You get the finished files, print and web. Raw files are the negative and the darkroom, and they stay in the studio like negatives did." },
+            { "q": "What about very large quilts?", "a": "King quilts shoot in two passes and are stitched square on the bench. Bring a friend to help drape and it takes ten extra minutes." }
+          ],
+          "style": { "bg": "tint", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "guild-days",
+      "title": "Guild Days",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "days-hero",
+          "variant": "pattern",
+          "title": "Guild and show days",
+          "subtitle": "Sample text — replace me: The studio packs a wall and the lights and sets up where your quilts already are.",
+          "ctaLabel": "Request a guild day",
+          "ctaHref": "/request-a-quote",
+          "style": { "bg": "pattern", "width": "wide", "align": "center", "imageId": "hero-art" }
+        },
+        {
+          "type": "rich_text",
+          "id": "days-body",
+          "variant": "two_column",
+          "heading": "How a guild day runs",
+          "html": "<p>The studio brings the backdrop, the stands, and the light to your meeting hall. Members book ten-minute slots through the guild, quilts go up in show order, and everyone leaves with files by the weekend. The guild keeps a share of the day as a fundraiser, which has paid for more than one speaker's mileage.</p><p>Show days work the same way at 7 a.m., before the doors, while the hang is fresh and the halls are empty.</p>",
+          "style": { "bg": "none", "width": "normal" }
+        },
+        {
+          "type": "testimonials",
+          "id": "days-quote",
+          "variant": "single",
+          "items": [
+            { "quote": "Thirty-one member quilts photographed in one morning, and the guild treasury gained two speakers' fees.", "author": "A program chair" }
+          ],
+          "style": { "bg": "tint", "width": "normal" }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "about-hero",
+          "variant": "minimal",
+          "title": "Behind the camera",
+          "subtitle": "Sample text — replace me: A product photographer who married a quilter and finally found subjects that hold still and mean something.",
+          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+        },
+        {
+          "type": "rich_text",
+          "id": "about-body",
+          "variant": "two_column",
+          "html": "<p>Ten years photographing things nobody loved: gadget packaging, rental furniture, one memorable year of socks. A favor for my mother-in-law's quilt guild turned into the only work where the subject has a name, a maker, and an opinion about which corner is the good one.</p><p>Every quilt is handled like a loan from a museum, because to somebody in the room it is one. White gloves are not pretension; they are what the quilts taught me.</p>",
+          "style": { "bg": "tint", "width": "normal" }
+        },
+        {
+          "type": "testimonials",
+          "id": "about-quote",
+          "variant": "single",
+          "items": [
+            { "quote": "The photograph caught the quilting lines better than I could see them from the saddle of making it.", "author": "A first-time entrant" }
+          ],
+          "style": { "bg": "none", "width": "normal" }
+        }
+      ]
+    },
+    {
+      "slug": "request-a-quote",
+      "title": "Book a Session",
+      "nav": false,
+      "navLabel": "Book a session",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "quote-hero",
+          "variant": "minimal",
+          "title": "Book a session",
+          "subtitle": "Sample text — replace me: Quilt count, sets wanted, and your deadline. Slots run Tuesdays and Thursdays, with show days on the calendar.",
+          "style": { "bg": "none", "width": "narrow", "align": "center" }
+        },
+        {
+          "type": "quote_cta",
+          "id": "quote-form",
+          "projectType": "photography",
+          "heading": "Session request",
+          "submitLabel": "Send the request",
+          "style": { "bg": "tint", "width": "normal" }
+        },
+        {
+          "type": "rich_text",
+          "id": "quote-note",
+          "variant": "prose",
+          "heading": "After you write",
+          "html": "<p>You get a confirmation with the next slot and the prep sheet: how to fold, what to bring, and why the quilt rides flat on the back seat. Files arrive within two days, or the same day on the rush.</p>",
+          "style": { "bg": "none", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "contact-hero",
+          "variant": "minimal",
+          "title": "Contact the studio",
+          "subtitle": "Sample text — replace me: Booking, show-day coverage, and the eternal question of whether a phone photo is good enough.",
+          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+        },
+        {
+          "type": "contact",
+          "id": "contact-form",
+          "heading": "Send a message",
+          "showDetails": true,
+          "style": { "bg": "none", "width": "normal" }
+        },
+        {
+          "type": "meeting_info",
+          "id": "contact-studio",
+          "heading": "The studio",
+          "when": "Sessions Tuesdays and Thursdays, 10 to 6",
+          "where": "{{city}}",
+          "note": "Third floor, elevator to the fourth, one flight of stairs with a quilt and a friend is the traditional approach.",
+          "style": { "bg": "brand", "width": "wide" }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,348 @@
+{
+  "id": "mystery-clue",
+  "name": "Mystery Clue",
+  "audience": "guild",
+  "character": "Sealed envelopes and a stubborn calendar: a guild that will not tell you the quilt until the last clue.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "soft",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "meeting"
+    },
+    "pattern": {
+      "id": "log-cabin",
+      "opacity": 0.12
+    },
+    "palette": "heritage-indigo",
+    "typePair": "cormorantgaramond-sourcesans"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Do Not Peek",
+    "city": "Richmond, Virginia"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Mystery quilts in {{city}}",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: {{guild_name}} runs one mystery a year. We meet {{meeting_info}}. Clues stay sealed until the night they open. Guessing is sport. Opening early is a small disgrace.",
+          "ctaLabel": "Join",
+          "ctaHref": "/membership",
+          "secondaryLabel": "Clues",
+          "secondaryHref": "/clues",
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "spacing": "airy",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "when",
+          "heading": "Clue night",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "note": "Envelopes on the chair. Do not open the next one. If you came late, you still do not skip ahead.",
+          "style": {
+            "bg": "none"
+          }
+        },
+        {
+          "type": "events",
+          "id": "upcoming",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "life",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "The year",
+              "body": "Twelve clues, one quilt. Fabric list in January, no picture.",
+              "href": "/clues"
+            },
+            {
+              "title": "The guesses",
+              "body": "A wall of wrong ideas. We keep them up on purpose."
+            },
+            {
+              "title": "The reveal",
+              "body": "December. Then a second sew for the people who refused to guess and just followed.",
+              "href": "/clues"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "join_band",
+          "id": "join",
+          "title": "Take an envelope",
+          "body": "Dues cover the room and the printing. Fabric is your January problem.",
+          "ctaLabel": "See dues",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A guild whose program is not knowing.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "How we started",
+          "html": "<p><em>Sample text — replace me:</em> Pattern designers sell mysteries. This is a guild that lives inside one together. {{guild_name}} writes its own clues or licenses one and then obeys it as a group, which is harder than it sounds.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "a-year",
+          "variant": "numbered",
+          "items": [
+            {
+              "title": "January list",
+              "body": "Yardage. No mood board. If you cannot bear that, wait a year."
+            },
+            {
+              "title": "Midsummer panic",
+              "body": "Normal. Do not buy extra. The clue will use what it said."
+            },
+            {
+              "title": "December",
+              "body": "The picture. The groans. The extra batting run."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          },
+          "heading": "A year with us"
+        }
+      ]
+    },
+    {
+      "slug": "clues",
+      "title": "Clues",
+      "nav": true,
+      "navLabel": "Clues",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "s-hero",
+          "variant": "minimal",
+          "title": "Clues",
+          "subtitle": "Sample text — replace me: How a clue is written, sealed, and not spoiled in the group chat.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "cl-body",
+          "variant": "prose",
+          "heading": "No peeking",
+          "html": "<p><em>Sample text — replace me:</em> The group chat is for missing rotary blades, not for reverse-engineering clue four from a shadow on the floor. If you figure it out, keep it. Bragging is a spoiler.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "cl-faq",
+          "items": [
+            {
+              "q": "What if I miss a month?",
+              "a": "The envelope waits. You do not get next month's until you open this one in order."
+            },
+            {
+              "q": "Can I look up the commercial mystery online?",
+              "a": "You can. You will be asked not to tell. The honor is the whole game."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "why-join",
+      "title": "Join",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "j-hero",
+          "variant": "minimal",
+          "title": "Membership",
+          "subtitle": "Sample text — replace me: Join before the fabric list if you can. Mid-year joiners sew last year's mystery as a catch-up.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "membership_levels",
+          "id": "levels",
+          "variant": "cards",
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "j-faq",
+          "items": [
+            {
+              "q": "I hate surprises.",
+              "a": "This will be a long year. A BOM with a picture might love you more."
+            },
+            {
+              "q": "Who writes the clues?",
+              "a": "A rotating pair. They sew the quilt first, in secret, in a basement we do not discuss."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "meetings",
+      "title": "Meetings",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "m-hero",
+          "variant": "minimal",
+          "title": "Meetings",
+          "subtitle": "Sample text — replace me: We meet {{meeting_info}} in {{city}}.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "m-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "events",
+          "id": "m-list",
+          "variant": "list",
+          "heading": "On the calendar",
+          "limit": 8,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Programs, dues, and the door.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "dark"
+          }
+        }
+      ]
+    }
+  ]
+}

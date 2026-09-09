@@ -1,0 +1,135 @@
+{
+  "id": "foundation-piecers",
+  "name": "Foundation Piecers",
+  "audience": "guild",
+  "character": "Add-a-quarter energy: numbered sections, a sharp grid, sage type for people who sew on paper on purpose.",
+  "defaults": {
+    "palette": "naturals-sage",
+    "typePair": "dmserif-dmsans",
+    "scale": "compact",
+    "shape": { "radius": "sharp", "shadow": "none" },
+    "rhythm": { "spacing": "tight", "container": "normal" },
+    "header": { "variant": "split", "sticky": true, "cta": "join", "overlayHero": false },
+    "footer": { "variant": "columns" },
+    "pattern": { "id": "flying-geese", "opacity": 0.12 }
+  },
+  "imagery": [{ "id": "hero-art", "kind": "pattern", "alt": "" }],
+  "previewSeed": { "guildName": "Add-a-Quarter Guild", "city": "Fort Wayne, Indiana" },
+  "pages": [
+    {
+      "slug": "home", "title": "Home", "nav": false,
+      "sections": [
+        {
+          "type": "hero", "id": "welcome", "variant": "split",
+          "eyebrow": "Foundation paper piecing in {{city}}",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: Numbered sections, an add-a-quarter ruler, and a short business meeting. We gather {{meeting_info}}.",
+          "ctaLabel": "Join", "ctaHref": "/membership",
+          "secondaryLabel": "Patterns", "secondaryHref": "/patterns",
+          "style": { "bg": "dark", "width": "wide", "media": "right", "imageId": "hero-art" }
+        },
+        { "type": "events", "id": "next", "variant": "next_up", "heading": "Next sew", "limit": 1, "style": { "bg": "none" } },
+        {
+          "type": "feature_grid", "id": "home-grid", "variant": "numbered",
+          "items": [
+            { "title": "Monthly pattern", "body": "A small FPP block, printed on newsprint, due at the following meeting.", "href": "/patterns" },
+            { "title": "Ruler clinic", "body": "Add-a-quarter, fold-back, and how to unpick section 7 without tearing the paper.", "href": "/meetings" },
+            { "title": "Show and tell", "body": "Unfinished sections welcome. We want to see the numbering, not only the finish." }
+          ],
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        { "type": "join_band", "id": "join", "title": "Bring an add-a-quarter ruler if you have one", "body": "We keep a few extras. Dues cover the printed patterns.", "ctaLabel": "See levels", "style": { "bg": "brand", "align": "center" } }
+      ]
+    },
+    {
+      "slug": "about", "title": "About", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "a-hero", "variant": "minimal",
+          "title": "A guild that sews on paper",
+          "subtitle": "Sample text — replace me: Traditional piecers are welcome. The program assumes you have pulled a paper pattern at least once.",
+          "style": { "bg": "none", "align": "center" }
+        },
+        {
+          "type": "rich_text", "id": "a-body", "variant": "prose",
+          "html": "<p>{{guild_name}} meets {{meeting_info}} in {{city}}. We print the month's pattern on newsprint so you can stitch through it. Pull the paper after the block is pressed, not before.</p>",
+          "style": { "bg": "tint", "width": "narrow" }
+        },
+        {
+          "type": "testimonials", "id": "a-quote", "variant": "single",
+          "items": [{ "quote": "I had been avoiding FPP because of the numbering. Sitting next to someone who counts out loud fixed that.", "author": "Elena V." }],
+          "style": { "bg": "none" }
+        }
+      ]
+    },
+    {
+      "slug": "patterns", "title": "Patterns", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "p-hero", "variant": "pattern",
+          "title": "This year's blocks",
+          "subtitle": "Sample text — replace me: Twelve small foundations. Together they make a sampler, or stay as twelve minis.",
+          "style": { "bg": "pattern", "align": "center", "imageId": "hero-art" }
+        },
+        {
+          "type": "feature_grid", "id": "p-list", "variant": "cards",
+          "items": [
+            { "title": "Sharp points", "body": "January through April: stars and geese that actually meet." },
+            { "title": "Curves on paper", "body": "May through August: clamshells and drunkard's path on foundation." },
+            { "title": "Sampler set", "body": "September through December: sashing, joining, and a thin border." }
+          ],
+          "style": { "bg": "none", "width": "wide" }
+        },
+        { "type": "blog_teaser", "id": "p-news", "heading": "Errata and cutting notes", "limit": 4, "style": { "bg": "tint" } }
+      ]
+    },
+    {
+      "slug": "meetings", "title": "Meetings", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "m-hero", "variant": "minimal",
+          "title": "Meetings and clinics",
+          "subtitle": "Sample text — replace me: A demo, then sewing. Irons at the back. Papers at the front table.",
+          "ctaLabel": "Calendar", "ctaHref": "/calendar",
+          "style": { "bg": "none", "align": "center" }
+        },
+        { "type": "meeting_info", "id": "m-when", "when": "{{meeting_info}}", "where": "{{city}}", "note": "Bring a small ruler, an add-a-quarter, and a paper-piecing foot if you have one.", "style": { "bg": "tint" } },
+        { "type": "events", "id": "m-list", "variant": "list", "limit": 8, "style": { "bg": "none", "width": "wide" } }
+      ]
+    },
+    {
+      "slug": "why-join", "title": "Join", "nav": true, "navLabel": "Join",
+      "sections": [
+        {
+          "type": "hero", "id": "j-hero", "variant": "minimal",
+          "title": "Membership",
+          "subtitle": "Sample text — replace me: Dues cover printed patterns and the hall. Guests may sew one pattern before joining.",
+          "ctaLabel": "Levels", "ctaHref": "/membership",
+          "style": { "bg": "brand", "align": "center" }
+        },
+        { "type": "membership_levels", "id": "levels", "variant": "compact", "style": { "bg": "none", "width": "narrow" } },
+        {
+          "type": "faq", "id": "j-faq",
+          "items": [
+            { "q": "Do I need a paper-piecing foot?", "a": "Helpful, not required. An open-toe foot and a short stitch length will do." },
+            { "q": "Can I print the pattern at home?", "a": "Members get a PDF in the newsletter. We still put newsprint copies on the table for people who want to stitch through paper." }
+          ],
+          "style": { "bg": "tint", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "contact", "title": "Contact", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "c-hero", "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Pattern errata, visiting teachers, and new-member questions.",
+          "style": { "bg": "none", "align": "center" }
+        },
+        { "type": "contact", "id": "form", "showDetails": true, "style": { "bg": "tint" } },
+        { "type": "meeting_info", "id": "c-when", "when": "{{meeting_info}}", "where": "{{city}}", "style": { "bg": "dark" } }
+      ]
+    }
+  ]
+}

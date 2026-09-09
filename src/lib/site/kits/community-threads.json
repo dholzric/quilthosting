@@ -21,7 +21,7 @@
       "sections": [
         {
           "type": "hero", "id": "welcome", "variant": "stats",
-          "eyebrow": "{{city}}",
+          "eyebrow": "Sewing for {{city}}",
           "title": "Quilts that leave the building",
           "subtitle": "Sample text — replace me: {{guild_name}} sews for hospitals, shelters, and first responders. Meetings are {{meeting_info}}.",
           "ctaLabel": "Get involved", "ctaHref": "/involved",

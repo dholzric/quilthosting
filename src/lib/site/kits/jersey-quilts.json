@@ -1,0 +1,311 @@
+{
+  "id": "jersey-quilts",
+  "name": "Jersey Quilts",
+  "audience": "business",
+  "character": "Charcoal and coral, a roster grid: sports jerseys into bed quilts, numbers readable, logos not sliced through the star.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "lifted"
+    },
+    "rhythm": {
+      "spacing": "tight",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "flying-geese",
+      "opacity": 0.08
+    },
+    "palette": "modern-charcoal-coral",
+    "typePair": "manrope"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Home Jersey Quilts",
+    "city": "Buffalo, New York"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Jersey quilts in {{city}}",
+          "title": "The numbers stay readable.",
+          "subtitle": "Sample text — replace me: {{guild_name}} builds bed quilts from sports jerseys. Not concert tees, not baby onesies. Jerseys, with the name and the number intact.",
+          "ctaLabel": "Request a quote",
+          "ctaHref": "/request-a-quote",
+          "secondaryLabel": "Process",
+          "secondaryHref": "/process",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "home-offer",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Throw",
+              "body": "Nine jerseys, 3 by 3, sashing wide enough that a logo does not hit a seam.",
+              "price": "from $340",
+              "href": "/process"
+            },
+            {
+              "title": "Twin",
+              "body": "Twelve jerseys. High-school wall of fame size.",
+              "price": "from $480"
+            },
+            {
+              "title": "Queen",
+              "body": "Twenty jerseys or a mix of jerseys and T-shirts you admit are not jerseys.",
+              "price": "from $720"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "home-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "He kept the captain C. I had told two other shops it was fine to cut it. It was not fine.",
+              "author": "A parent in Kenmore"
+            }
+          ],
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "home-cta",
+          "projectType": "tshirt_quilt",
+          "heading": "Jersey count, bed size, and whether names may sit in sashing",
+          "submitLabel": "Request a quote",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "process",
+      "title": "Process",
+      "nav": true,
+      "navLabel": "Process",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "Process",
+          "subtitle": "Sample text — replace me: Stabilize, place, sew. The logo does not go under a seam if I can help it.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "pr-grid",
+          "variant": "numbered",
+          "items": [
+            {
+              "title": "Stabilize",
+              "body": "Each jersey gets a fused back so knits do not wave."
+            },
+            {
+              "title": "Place",
+              "body": "I send a photo of the layout. You say yes before I cut sashing."
+            },
+            {
+              "title": "Quilt",
+              "body": "A simple grid or stitch-in-the-ditch. Heavy custom quilting fights the knit."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "portfolio",
+      "title": "Finished",
+      "nav": true,
+      "navLabel": "Finished",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "Finished",
+          "subtitle": "Sample text — replace me: Layouts with numbers intact. I photograph on a wall, not a bed, so you can see the grid.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "gallery",
+          "id": "port",
+          "variant": "grid",
+          "source": "gallery",
+          "gallerySlug": "jerseys",
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "request-a-quote",
+      "title": "Request a Quote",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "q-hero",
+          "variant": "minimal",
+          "title": "Request a quote",
+          "subtitle": "Sample text — replace me: Count the jerseys. Photograph the pile with numbers facing up.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "q-form",
+          "projectType": "tshirt_quilt",
+          "heading": "Jersey count, bed size, and whether names may sit in sashing",
+          "submitLabel": "Send details",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "cta",
+          "id": "q-more",
+          "label": "Or email first",
+          "href": "/contact",
+          "kind": "secondary",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A shop that will turn down a pile of concert tees.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "The work",
+          "html": "<p><em>Sample text — replace me:</em> There is a good T-shirt quilt shop in this town. I send those piles there. {{guild_name}} is jerseys: hockey, football, soccer, the high-school closet. Knit, heavy trim, numbers that people will argue about if you bisect them.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "a-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "He kept the captain C. I had told two other shops it was fine to cut it. It was not fine.",
+              "author": "A parent in Kenmore"
+            }
+          ],
+          "style": {
+            "bg": "none"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Counts, deposits, and jerseys that still smell like the bag.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-hours",
+          "heading": "Hours",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    }
+  ]
+}

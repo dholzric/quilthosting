@@ -1,0 +1,322 @@
+{
+  "id": "show-crew",
+  "name": "Show Crew",
+  "audience": "business",
+  "character": "Mustard on slate and a packing crate: a crew that hangs quilt shows, not a guild that hosts one.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "tight",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "flying-geese",
+      "opacity": 0.08
+    },
+    "palette": "modern-indigo-mustard",
+    "typePair": "system"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Rod and Sleeve Co.",
+    "city": "Indianapolis, Indiana"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Quilt-show hanging in {{city}}",
+          "title": "We hang the show. You run the guild.",
+          "subtitle": "Sample text — replace me: {{guild_name}} is a hanging crew. Rods, sleeves, labels at 60 inches, and a floor plan that matches the fire marshal's tape.",
+          "ctaLabel": "Request a quote",
+          "ctaHref": "/request-a-quote",
+          "secondaryLabel": "Hang",
+          "secondaryHref": "/hang",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "home-offer",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Hang day",
+              "body": "A crew of four, your rods or ours, a map, and a lunch you provide.",
+              "price": "from $1,200",
+              "href": "/hang"
+            },
+            {
+              "title": "Intake",
+              "body": "The day before. We check sleeves, measure, and refuse to hang a quilt with a wet label.",
+              "price": "from $400"
+            },
+            {
+              "title": "Strike",
+              "body": "Take-down, bag, and a stack by last name. Same crew if you book hang and strike together.",
+              "price": "from $800"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "home-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "They argued with the lighting guy, not with the volunteers. That is what we had paid for.",
+              "author": "A show chair"
+            }
+          ],
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "home-cta",
+          "projectType": "custom_quilt",
+          "heading": "Show dates, quilt count, ceiling height, and whether you have rods",
+          "submitLabel": "Request a crew",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "hang",
+      "title": "Hang and Strike",
+      "nav": true,
+      "navLabel": "Hang",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "Hang and Strike",
+          "subtitle": "Sample text — replace me: What the crew does, and what the guild still has to do.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "h-grid",
+          "variant": "numbered",
+          "items": [
+            {
+              "title": "You provide",
+              "body": "A locked hall, a quilt list, volunteers for the door, and food. We are not your ticket table."
+            },
+            {
+              "title": "We provide",
+              "body": "Ladders, a laser for the 60-inch line, spare sleeves, and the argument with the lighting contractor."
+            },
+            {
+              "title": "We do not provide",
+              "body": "Judging, ribbons, or a reason the quilt from the board president hangs in the foyer."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "dates",
+      "title": "Calendar",
+      "nav": true,
+      "navLabel": "Dates",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "Calendar",
+          "subtitle": "Sample text — replace me: Weekends we are already in a hall.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "events",
+          "id": "d-list",
+          "variant": "list",
+          "heading": "Booked halls",
+          "limit": 8,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "d-note",
+          "variant": "prose",
+          "heading": "Lead time",
+          "html": "<p><em>Sample text — replace me:</em> Spring shows book in the fall. If you write in March for an April show I will say no, kindly, once.</p>",
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "request-a-quote",
+      "title": "Request a Quote",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "q-hero",
+          "variant": "minimal",
+          "title": "Request a quote",
+          "subtitle": "Sample text — replace me: I need a floor plan and a quilt count before I quote. A wish is not a count.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "q-form",
+          "projectType": "custom_quilt",
+          "heading": "Show dates, quilt count, ceiling height, and whether you have rods",
+          "submitLabel": "Request a crew",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "cta",
+          "id": "q-more",
+          "label": "Or email first",
+          "href": "/contact",
+          "kind": "secondary",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A crew, based near {{city}}, that works the Midwest circuit.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "The work",
+          "html": "<p><em>Sample text — replace me:</em> I hung my own guild's show until I realized hanging was the job I liked. {{guild_name}} is four people who will work a union hall or a church gym and leave the politics on the committee table.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "a-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "They argued with the lighting guy, not with the volunteers. That is what we had paid for.",
+              "author": "A show chair"
+            }
+          ],
+          "style": {
+            "bg": "none"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Dates, deposits, and work already in the shop.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-hours",
+          "heading": "Hours",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    }
+  ]
+}

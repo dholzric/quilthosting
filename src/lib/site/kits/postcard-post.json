@@ -1,0 +1,359 @@
+{
+  "id": "postcard-post",
+  "name": "Postcard Post",
+  "audience": "guild",
+  "character": "Sky blue and a postage scale: quilted postcards that actually go in the mail, cancelled and all.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "soft",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "split",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "meeting"
+    },
+    "pattern": {
+      "id": "nine-patch",
+      "opacity": 0.1
+    },
+    "palette": "soft-sky",
+    "typePair": "newsreader-ibmplexsans"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Cancel & Stitch",
+    "city": "Burlington, Vermont"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Quilted mail in {{city}}",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: {{guild_name}} makes postcards you can mail. We meet {{meeting_info}} with a scale, a stamp box, and a list of addresses that want cloth.",
+          "ctaLabel": "Join",
+          "ctaHref": "/membership",
+          "secondaryLabel": "Mail",
+          "secondaryHref": "/mail",
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "spacing": "airy",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "when",
+          "heading": "Mail night",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "note": "USPS size is 4 by 6, stiff enough to survive a canceling machine. If it is floppy, add a cardstock middle. If it is too thick, it is a parcel.",
+          "style": {
+            "bg": "none"
+          }
+        },
+        {
+          "type": "events",
+          "id": "upcoming",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "life",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "The swap",
+              "body": "Each month you mail one and receive one. Addresses drawn from a hat.",
+              "href": "/mail"
+            },
+            {
+              "title": "The public ones",
+              "body": "A stack by the library desk. Anyone may take a postcard if they will write a real note on the back."
+            },
+            {
+              "title": "The show",
+              "body": "Once a year we pin the returned cards to a map before they go home in albums."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "join_band",
+          "id": "join",
+          "title": "Bring stamps",
+          "body": "Dues cover the room and the library stack. Postage is yours.",
+          "ctaLabel": "See dues",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A guild that treats the mail as a gallery.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "How we started",
+          "html": "<p><em>Sample text — replace me:</em> Paper postcards vanish. Cloth ones get kept on fridges. {{guild_name}} started as a dare to see if the post office would cancel a quilted square. They will, if you stay inside the size and the thickness.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "a-year",
+          "variant": "numbered",
+          "items": [
+            {
+              "title": "Monthly swap",
+              "body": "Twelve cards out, twelve back, if the mail behaves."
+            },
+            {
+              "title": "April map",
+              "body": "We pin every returned card on a wall map of the country."
+            },
+            {
+              "title": "December thick",
+              "body": "Holiday cards may be a hair thicker. We still weigh them."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          },
+          "heading": "A year with us"
+        }
+      ]
+    },
+    {
+      "slug": "mail",
+      "title": "How to Mail Cloth",
+      "nav": true,
+      "navLabel": "Mail",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "s-hero",
+          "variant": "minimal",
+          "title": "How to Mail Cloth",
+          "subtitle": "Sample text — replace me: Size, stiffness, stamps, and what happens when a card comes back crumpled.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "m-grid",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Size",
+              "body": "4 by 6 inches. Corners may be round. A hanging sleeve is how you get it returned as a parcel."
+            },
+            {
+              "title": "Middle",
+              "body": "Cardstock or a thin plastic. Quilted cloth alone will crumple in the machine."
+            },
+            {
+              "title": "Address",
+              "body": "Ink on a fabric label, or a paper label stitched on. Pencil disappears."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "m-faq",
+          "items": [
+            {
+              "q": "Do you insure them?",
+              "a": "No. That is the point of a postcard. If it vanishes, sew another."
+            },
+            {
+              "q": "International?",
+              "a": "A few of us do. Extra stamps, extra time, a customs form that confuses everyone."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "why-join",
+      "title": "Join",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "j-hero",
+          "variant": "minimal",
+          "title": "Membership",
+          "subtitle": "Sample text — replace me: You need twelve addresses in you, including strangers.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "membership_levels",
+          "id": "levels",
+          "variant": "cards",
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "j-faq",
+          "items": [
+            {
+              "q": "I do not want strangers to have my home address.",
+              "a": "Use a PO box or the guild's mailbox. We will not publish a roster to the public pile."
+            },
+            {
+              "q": "Can it be art quilt tiny work, not cute?",
+              "a": "Please. Cute is allowed. Cute is not required."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "meetings",
+      "title": "Meetings",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "m-hero",
+          "variant": "minimal",
+          "title": "Meetings",
+          "subtitle": "Sample text — replace me: We meet {{meeting_info}} in {{city}}.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "m-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "events",
+          "id": "m-list",
+          "variant": "list",
+          "heading": "On the calendar",
+          "limit": 8,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Programs, dues, and the door.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "dark"
+          }
+        }
+      ]
+    }
+  ]
+}

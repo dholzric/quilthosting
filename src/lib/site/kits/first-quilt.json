@@ -1,0 +1,356 @@
+{
+  "id": "first-quilt",
+  "name": "First Quilt",
+  "audience": "guild",
+  "character": "Spring green and patient type: a teaching guild for adults making the first quilt they will actually finish.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "round",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "centered",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "meeting"
+    },
+    "pattern": {
+      "id": "nine-patch",
+      "opacity": 0.12
+    },
+    "palette": "seasonal-spring",
+    "typePair": "nunito"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Start Here Quilt Guild",
+    "city": "Madison, Wisconsin"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Learn to quilt in {{city}}",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: {{guild_name}} is for adults on quilt number one. We meet {{meeting_info}}. You will leave with a finished throw before we talk about a second top.",
+          "ctaLabel": "Join",
+          "ctaHref": "/membership",
+          "secondaryLabel": "The path",
+          "secondaryHref": "/start-here",
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "spacing": "airy",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "when",
+          "heading": "When we sew",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "note": "Machines are provided for the first three meetings if you do not own one yet. Bring fabric for a 12-inch nine-patch, or use the class pack.",
+          "style": {
+            "bg": "none"
+          }
+        },
+        {
+          "type": "events",
+          "id": "upcoming",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "life",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "The path",
+              "body": "Nine-patch, sandwich, quilt, bind. Four months. No mystery, no BOM with twelve techniques.",
+              "href": "/start-here"
+            },
+            {
+              "title": "Machine nights",
+              "body": "We thread, wind, and unpick as a group. Tension is a lesson, not a personality test."
+            },
+            {
+              "title": "Then you graduate",
+              "body": "After the throw is bound you join a regular guild or stay as a mentor. This room stays aimed at first quilts."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "join_band",
+          "id": "join",
+          "title": "Join {{guild_name}}",
+          "body": "Dues are collected once a year.",
+          "ctaLabel": "See dues",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A guild that refuses to skip the first quilt.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "How we started",
+          "html": "<p><em>Sample text — replace me:</em> Shops teach a Saturday. Regular guilds assume you already know a quarter-inch. {{guild_name}} sits in the gap: adults in {{city}} who want a finished quilt, not a drawer of samples. Mentors are members who finished here last year.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "a-year",
+          "variant": "numbered",
+          "items": [
+            {
+              "title": "Cohort A",
+              "body": "January start, May finish."
+            },
+            {
+              "title": "Cohort B",
+              "body": "August start, December finish."
+            },
+            {
+              "title": "Mentor term",
+              "body": "Graduates may sit a year as helpers. After that, we send you to a guild with a show and a bee."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          },
+          "heading": "A year with us"
+        }
+      ]
+    },
+    {
+      "slug": "start-here",
+      "title": "The First Path",
+      "nav": true,
+      "navLabel": "The path",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "s-hero",
+          "variant": "minimal",
+          "title": "The First Path",
+          "subtitle": "Sample text — replace me: What you make, what we provide, and what you buy.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "st-grid",
+          "variant": "numbered",
+          "items": [
+            {
+              "title": "Month 1",
+              "body": "Grain, 1/4 inch, nine-patch. You will unpick. That is the class."
+            },
+            {
+              "title": "Month 2",
+              "body": "Sashing and borders. Press toward the dark. Square the top."
+            },
+            {
+              "title": "Month 3",
+              "body": "Baste, quilt in the ditch or a simple grid, trim."
+            },
+            {
+              "title": "Month 4",
+              "body": "Bind. Label. Photograph. Then we talk about quilt two."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "st-buy",
+          "variant": "prose",
+          "heading": "What to buy",
+          "html": "<p><em>Sample text — replace me:</em> If you have a machine, bring it. If not, use ours for the cohort. Fabric: three one-yard cuts that contrast. We sell a pack at cost if choosing fabric is the thing that has stopped you.</p>",
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "why-join",
+      "title": "Join",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "j-hero",
+          "variant": "minimal",
+          "title": "Membership",
+          "subtitle": "Sample text — replace me: Cohort dues include the room, batting for the throw, and binding tape if you want it. Your fabric is yours.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "membership_levels",
+          "id": "levels",
+          "variant": "cards",
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "j-faq",
+          "items": [
+            {
+              "q": "I already made a quilt twenty years ago.",
+              "a": "If it is finished, a regular guild will fit better. If it is in a bag, bring the bag. We will treat it as quilt one."
+            },
+            {
+              "q": "May my teenager join?",
+              "a": "This cohort is 18 and up. The youth guild in town is better at that age."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "meetings",
+      "title": "Meetings",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "m-hero",
+          "variant": "minimal",
+          "title": "Meetings",
+          "subtitle": "Sample text — replace me: We meet {{meeting_info}} in {{city}}.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "m-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "events",
+          "id": "m-list",
+          "variant": "list",
+          "heading": "On the calendar",
+          "limit": 8,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Programs, dues, and the door code.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "dark"
+          }
+        }
+      ]
+    }
+  ]
+}

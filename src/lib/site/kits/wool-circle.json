@@ -1,0 +1,352 @@
+{
+  "id": "wool-circle",
+  "name": "Wool Circle",
+  "audience": "guild",
+  "character": "Walnut and round corners: felted wool, punch needle, and a table that smells like steam, not spray starch.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "round",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "centered",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "meeting"
+    },
+    "pattern": {
+      "id": "log-cabin",
+      "opacity": 0.1
+    },
+    "palette": "heritage-walnut",
+    "typePair": "lora-karla"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Steam & Penny Wool",
+    "city": "Lancaster, Pennsylvania"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Wool applique in {{city}}",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: {{guild_name}} works in felted wool. We meet {{meeting_info}} with penny rugs, punch needle, and a kettle.",
+          "ctaLabel": "Join",
+          "ctaHref": "/membership",
+          "secondaryLabel": "Wool",
+          "secondaryHref": "/wool",
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "spacing": "airy",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "when",
+          "heading": "When we sew",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "note": "Irons on wool setting. Cotton applique is welcome if it sits beside wool, not instead of it.",
+          "style": {
+            "bg": "none"
+          }
+        },
+        {
+          "type": "events",
+          "id": "upcoming",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "life",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Penny rugs",
+              "body": "Circles, blanket stitch, a backing that can live on a table.",
+              "href": "/wool"
+            },
+            {
+              "title": "Punch needle",
+              "body": "Monk's cloth in a hoop. Threads in a shared basket so you can try a color before you buy a skein."
+            },
+            {
+              "title": "Steam, not glue",
+              "body": "We felt edges with steam. Fusible is a last resort and we will say so."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "join_band",
+          "id": "join",
+          "title": "Join {{guild_name}}",
+          "body": "Dues are collected once a year.",
+          "ctaLabel": "See dues",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A wool table in a cotton town.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "How we started",
+          "html": "<p><em>Sample text — replace me:</em> {{city}} has no shortage of piecers. {{guild_name}} is the night for people who want a needle, a blanket stitch, and wool that does not fray if you treat it kindly. We are not anti-cotton. We are pro-steam.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "a-year",
+          "variant": "numbered",
+          "items": [
+            {
+              "title": "Autumn rug",
+              "body": "A group penny rug for the library table."
+            },
+            {
+              "title": "Winter punch",
+              "body": "Small ornaments, because daylight is short and wool is dark."
+            },
+            {
+              "title": "Spring dye",
+              "body": "If someone will teach acid dye on wool, we take the Saturday."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          },
+          "heading": "A year with us"
+        }
+      ]
+    },
+    {
+      "slug": "wool",
+      "title": "Wool Work",
+      "nav": true,
+      "navLabel": "Wool",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "s-hero",
+          "variant": "minimal",
+          "title": "Wool Work",
+          "subtitle": "Sample text — replace me: What we stitch, what we punch, and what we will not fuse.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "w-grid",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Felted wool",
+              "body": "Hand-dyed or mill-dyed. We keep a swatch book so you can match a dye lot later."
+            },
+            {
+              "title": "Punch needle",
+              "body": "We punch into monk's cloth, not into a quilt sandwich. Different night if you want that mix."
+            },
+            {
+              "title": "Care",
+              "body": "Shake, do not wash, unless the piece will live on a lap. Then we talk about a cotton backing."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "w-note",
+          "variant": "prose",
+          "heading": "Cotton applique",
+          "html": "<p><em>Sample text — replace me:</em> Baltimore album and needle-turn live in other guilds. Bring a block if you want company. The program will still be wool.</p>",
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "why-join",
+      "title": "Join",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "j-hero",
+          "variant": "minimal",
+          "title": "Membership",
+          "subtitle": "Sample text — replace me: Dues cover the room and the punch-needle stand. Wool is sold at cost when we dye a batch.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "membership_levels",
+          "id": "levels",
+          "variant": "cards",
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "j-faq",
+          "items": [
+            {
+              "q": "I am allergic to wool.",
+              "a": "This will be a hard room. We can name a cotton applique guild."
+            },
+            {
+              "q": "Do you quilt the wool pieces?",
+              "a": "Penny rugs are not usually quilted. If you want a wool quilt, bring a plan and we will talk batting."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "meetings",
+      "title": "Meetings",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "m-hero",
+          "variant": "minimal",
+          "title": "Meetings",
+          "subtitle": "Sample text — replace me: We meet {{meeting_info}} in {{city}}.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "m-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "events",
+          "id": "m-list",
+          "variant": "list",
+          "heading": "On the calendar",
+          "limit": 8,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Programs, dues, and the door code.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "dark"
+          }
+        }
+      ]
+    }
+  ]
+}

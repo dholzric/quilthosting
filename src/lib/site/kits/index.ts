@@ -18,6 +18,86 @@ import onePager from "./one-pager.json";
 import longarmStudio from "./longarm-studio.json";
 import quiltShop from "./quilt-shop.json";
 import patternDesigner from "./pattern-designer.json";
+import retreatHouse from "./retreat-house.json";
+import virtualGuild from "./virtual-guild.json";
+import quiltMuseum from "./quilt-museum.json";
+import memoryQuilts from "./memory-quilts.json";
+import barnQuiltTrail from "./barn-quilt-trail.json";
+import youngStitchers from "./young-stitchers.json";
+import stateAssociation from "./state-association.json";
+import slowStitchStudio from "./slow-stitch-studio.json";
+import marketQuilter from "./market-quilter.json";
+import quiltAppraiser from "./quilt-appraiser.json";
+import eppCircle from "./epp-circle.json";
+import snowbirdGuild from "./snowbird-guild.json";
+import scrapCircle from "./scrap-circle.json";
+import prayerCircle from "./prayer-circle.json";
+import foundationPiecers from "./foundation-piecers.json";
+import tshirtMaker from "./tshirt-maker.json";
+import restorationAtelier from "./restoration-atelier.json";
+import sitDownStudio from "./sit-down-studio.json";
+import quiltAlong from "./quilt-along.json";
+import bindingBar from "./binding-bar.json";
+import ufoClub from "./ufo-club.json";
+import handQuilters from "./hand-quilters.json";
+import mensCircle from "./mens-circle.json";
+import coastalGuild from "./coastal-guild.json";
+import mountainGuild from "./mountain-guild.json";
+import firstQuilt from "./first-quilt.json";
+import reproduction from "./reproduction.json";
+import woolCircle from "./wool-circle.json";
+import fabricSwap from "./fabric-swap.json";
+import nightOwls from "./night-owls.json";
+import dyeHouse from "./dye-house.json";
+import classBench from "./class-bench.json";
+import jerseyQuilts from "./jersey-quilts.json";
+import hiredPiecer from "./hired-piecer.json";
+import makerHall from "./maker-hall.json";
+import vintageYardage from "./vintage-yardage.json";
+import quiltLens from "./quilt-lens.json";
+import lectureCircuit from "./lecture-circuit.json";
+import cribStudio from "./crib-studio.json";
+import showCrew from "./show-crew.json";
+import quiltDocumentationDays from "./quilt-documentation-days.json";
+import quiltFilm from "./quilt-film.json";
+import templateWorkshop from "./template-workshop.json";
+import quiltTruck from "./quilt-truck.json";
+import quiltingAcademy from "./quilting-academy.json";
+import quiltAuthor from "./quilt-author.json";
+import quiltPhotographer from "./quilt-photographer.json";
+import guestbookQuilts from "./guestbook-quilts.json";
+import farmBattingCompany from "./farm-batting-company.json";
+import quiltFrameMaker from "./quilt-frame-maker.json";
+import longarmPantographs from "./longarm-pantographs.json";
+import woolAppliqueCircle from "./wool-applique-circle.json";
+import quiltCruise from "./quilt-cruise.json";
+import sewingMachineHospital from "./sewing-machine-hospital.json";
+import silentBee from "./silent-bee.json";
+import postageStamp from "./postage-stamp.json";
+import curveTable from "./curve-table.json";
+import twoColor from "./two-color.json";
+import postcardPost from "./postcard-post.json";
+import dinerBooth from "./diner-booth.json";
+import tessellate from "./tessellate.json";
+import coatGuild from "./coat-guild.json";
+import mysteryClue from "./mystery-clue.json";
+import observatory from "./observatory.json";
+import pixelLoft from "./pixel-loft.json";
+import atlasQuilt from "./atlas-quilt.json";
+import threadRoom from "./thread-room.json";
+import dieLab from "./die-lab.json";
+import labelLoom from "./label-loom.json";
+import kennelQuilt from "./kennel-quilt.json";
+import houseBlock from "./house-block.json";
+import climateVault from "./climate-vault.json";
+import notionsBar from "./notions-bar.json";
+import crateRoute from "./crate-route.json";
+import vintageLinenStudio from "./vintage-linen-studio.json";
+import patternLibrary from "./pattern-library.json";
+import neighborhoodBees from "./neighborhood-bees.json";
+import healingStitches from "./healing-stitches.json";
+import guysWhoQuilt from "./guys-who-quilt.json";
+import quiltingFellowship from "./quilting-fellowship.json";
 
 export type { Kit, KitDefaults, KitImage, KitIssue, KitPage, SiteMenuItem } from "./schema";
 export { kitSchema, validateKit, KIT_SYSTEM_PATHS, SAMPLE_MARKER } from "./schema";
@@ -46,6 +126,86 @@ export const KITS: Kit[] = [
   longarmStudio,
   quiltShop,
   patternDesigner,
+  retreatHouse,
+  virtualGuild,
+  quiltMuseum,
+  memoryQuilts,
+  barnQuiltTrail,
+  youngStitchers,
+  stateAssociation,
+  slowStitchStudio,
+  marketQuilter,
+  quiltAppraiser,
+  eppCircle,
+  snowbirdGuild,
+  scrapCircle,
+  prayerCircle,
+  foundationPiecers,
+  tshirtMaker,
+  restorationAtelier,
+  sitDownStudio,
+  quiltAlong,
+  bindingBar,
+  ufoClub,
+  handQuilters,
+  mensCircle,
+  coastalGuild,
+  mountainGuild,
+  firstQuilt,
+  reproduction,
+  woolCircle,
+  fabricSwap,
+  nightOwls,
+  dyeHouse,
+  classBench,
+  jerseyQuilts,
+  hiredPiecer,
+  makerHall,
+  vintageYardage,
+  quiltLens,
+  lectureCircuit,
+  cribStudio,
+  showCrew,
+  quiltDocumentationDays,
+  quiltFilm,
+  templateWorkshop,
+  quiltTruck,
+  quiltingAcademy,
+  quiltAuthor,
+  quiltPhotographer,
+  guestbookQuilts,
+  farmBattingCompany,
+  quiltFrameMaker,
+  longarmPantographs,
+  woolAppliqueCircle,
+  quiltCruise,
+  sewingMachineHospital,
+  silentBee,
+  postageStamp,
+  curveTable,
+  twoColor,
+  postcardPost,
+  dinerBooth,
+  tessellate,
+  coatGuild,
+  mysteryClue,
+  observatory,
+  pixelLoft,
+  atlasQuilt,
+  threadRoom,
+  dieLab,
+  labelLoom,
+  kennelQuilt,
+  houseBlock,
+  climateVault,
+  notionsBar,
+  crateRoute,
+  vintageLinenStudio,
+  patternLibrary,
+  neighborhoodBees,
+  healingStitches,
+  guysWhoQuilt,
+  quiltingFellowship,
 ].map((raw) => kitSchema.parse(raw));
 
 const BY_ID = new Map(KITS.map((k) => [k.id, k]));

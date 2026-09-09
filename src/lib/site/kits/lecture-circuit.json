@@ -1,0 +1,322 @@
+{
+  "id": "lecture-circuit",
+  "name": "Lecture Circuit",
+  "audience": "business",
+  "character": "Indigo serif and a packing list: trunk shows and lectures for guilds, with a travel calendar you can actually book.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "soft",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "bear-paw",
+      "opacity": 0.08
+    },
+    "palette": "heritage-indigo",
+    "typePair": "playfair-lato"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Packed Trunk Lectures",
+    "city": "St. Louis, Missouri"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Guild lectures from {{city}}",
+          "title": "A trunk, a talk, a date you can hold.",
+          "subtitle": "Sample text — replace me: {{guild_name}} books lectures and trunk shows for guilds. I travel. I do not sell a class on the same night unless the contract says so.",
+          "ctaLabel": "Request a quote",
+          "ctaHref": "/request-a-quote",
+          "secondaryLabel": "Talks",
+          "secondaryHref": "/talks",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "home-offer",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Lecture only",
+              "body": "Sixty minutes, slides, three quilts on a stand. Q and A after.",
+              "price": "$250 + travel",
+              "href": "/talks"
+            },
+            {
+              "title": "Trunk show",
+              "body": "Twenty quilts, two hours, members may handle with clean hands.",
+              "price": "$400 + travel"
+            },
+            {
+              "title": "Lecture and workshop",
+              "body": "Talk Friday, sit-and-sew Saturday. Separate fees, one travel invoice.",
+              "price": "quote"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "home-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "She sent the contract with the mileage and the hotel cap already written. The treasurer almost cried.",
+              "author": "A program chair"
+            }
+          ],
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "home-cta",
+          "projectType": "custom_quilt",
+          "heading": "Guild name, date window, lecture or trunk, and the room size",
+          "submitLabel": "Request a date",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "talks",
+      "title": "Talks",
+      "nav": true,
+      "navLabel": "Talks",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "Talks",
+          "subtitle": "Sample text — replace me: What I currently pack, and what I have retired.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "t-grid",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Grain and the quarter-inch",
+              "body": "A lecture for guilds tired of being told to sew better without being shown how."
+            },
+            {
+              "title": "A trunk of failures",
+              "body": "Tops I unpicked. More useful than a trunk of ribbons."
+            },
+            {
+              "title": "Retired",
+              "body": "The 2019 color-theory talk. The slides are out of date and I will not give it."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "events",
+          "id": "t-cal",
+          "variant": "list",
+          "heading": "Booked and open",
+          "limit": 8,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "travel",
+      "title": "Travel",
+      "nav": true,
+      "navLabel": "Travel",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "Travel",
+          "subtitle": "Sample text — replace me: How I invoice the road, so the treasurer is not surprised.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "tr-body",
+          "variant": "prose",
+          "heading": "The invoice",
+          "html": "<p><em>Sample text — replace me:</em> Mileage at the IRS rate, hotel at a cap we agree in the contract, and meals I do not charge if I ate with the guild. I fly when the drive is more than eight hours. I do not require a banquet.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "request-a-quote",
+      "title": "Request a Quote",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "q-hero",
+          "variant": "minimal",
+          "title": "Request a quote",
+          "subtitle": "Sample text — replace me: I hold a date for ten days after a verbal yes. Then it goes back on the calendar.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "q-form",
+          "projectType": "custom_quilt",
+          "heading": "Guild name, date window, lecture or trunk, and the room size",
+          "submitLabel": "Request a date",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "cta",
+          "id": "q-more",
+          "label": "Or email first",
+          "href": "/contact",
+          "kind": "secondary",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A teacher on the road, based in {{city}}.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "The work",
+          "html": "<p><em>Sample text — replace me:</em> I pieced for a living, then I talked about piecing, then the talking paid the gas. {{guild_name}} is the calendar and the trunk. I still sew in the studio on weeks that are not packed.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "a-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "She sent the contract with the mileage and the hotel cap already written. The treasurer almost cried.",
+              "author": "A program chair"
+            }
+          ],
+          "style": {
+            "bg": "none"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Dates, deposits, and work already in the shop.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-hours",
+          "heading": "Hours",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    }
+  ]
+}

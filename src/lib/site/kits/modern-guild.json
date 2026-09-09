@@ -99,7 +99,7 @@
         {
           "type": "hero", "id": "events-hero", "variant": "minimal",
           "title": "Meetings and workshops",
-          "subtitle": "Sample text — replace me: {{meeting_info}} in {{city}}. Workshops sit on Saturdays.",
+          "subtitle": "Sample text — replace me: We meet {{meeting_info}} in {{city}}. Workshops sit on Saturdays.",
           "ctaLabel": "Calendar", "ctaHref": "/calendar",
           "style": { "bg": "brand", "align": "center" }
         },

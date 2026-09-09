@@ -11,5 +11,5 @@ Quick reference for engineers:
 | Applying a kit | `src/lib/site/kits/apply.ts` (`kitPageRows`, `kitSettingsJson`, `substitutePlaceholders`, `sectionsToLegacyBlocks`) |
 | Registry | `src/lib/site/kits/index.ts` (`KITS`, `kitById`) — add a new kit here |
 | Validate | `npm run kits:validate` (per-kit issues, then `vitest run src/lib/site/kits`) |
-| Preview | `npm run kits:preview` — needs a local Worker and `PLAYWRIGHT_PATH`; see the header of `scripts/kits-preview.mjs`. Output: `docs/kit-gallery/` |
+| Preview | `npm run kits:gallery` — live HTML of every kit (no Worker). `npm run kits:preview` screenshots via Playwright; see the header of `scripts/kits-preview.mjs`. Output: `docs/kit-gallery/` |
 | New guild seed | `src/lib/starterSite.ts` derives the legacy five-page block seed from the Heritage kit |

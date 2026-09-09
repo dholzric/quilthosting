@@ -1,0 +1,318 @@
+{
+  "id": "kennel-quilt",
+  "name": "Kennel Quilt",
+  "audience": "business",
+  "character": "Summer wash-and-wear: dog beds and crate quilts from new cloth, built for hair, mud, and a washing machine.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "round",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "nine-patch",
+      "opacity": 0.1
+    },
+    "palette": "seasonal-summer",
+    "typePair": "nunito"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Crate & Cotton",
+    "city": "Fort Collins, Colorado"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Dog quilts in {{city}}",
+          "title": "Built to be washed, not admired from a peg.",
+          "subtitle": "Sample text — replace me: {{guild_name}} makes quilts for crates and couches where dogs live. New cloth, thick batting, a binding a tooth can find and not ruin on the first night.",
+          "ctaLabel": "Request a quote",
+          "ctaHref": "/request-a-quote",
+          "secondaryLabel": "Beds",
+          "secondaryHref": "/beds",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "home-offer",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Crate",
+              "body": "Sized to the pan, not to a human twin rumor.",
+              "price": "from $75",
+              "href": "/beds"
+            },
+            {
+              "title": "Couch",
+              "body": "A throw that can come off in one pull when someone sits down.",
+              "price": "from $120"
+            },
+            {
+              "title": "Kennel run",
+              "body": "A stack for a rescue. Flat rate if the size is one size.",
+              "price": "quote"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "home-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "It went through the wash with the towels and came out the same rectangle. That is the whole review.",
+              "author": "A person with a muddy dog"
+            }
+          ],
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "home-cta",
+          "projectType": "custom_quilt",
+          "heading": "Crate size or couch, fabric you can bear to see covered in hair",
+          "submitLabel": "Request a quote",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "beds",
+      "title": "Sizes",
+      "nav": true,
+      "navLabel": "Beds",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "Sizes",
+          "subtitle": "Sample text — replace me: Measure the pan. Do not guess from a website photo of a crate.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "be-grid",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Crate pan",
+              "body": "Length and width inside. I will subtract a little so it lies flat."
+            },
+            {
+              "title": "Bolster",
+              "body": "Optional. Dogs who curl like a bolster. Dogs who sprawl do not."
+            },
+            {
+              "title": "Binding",
+              "body": "Wider than a bed quilt. A narrow binding is a chew toy."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "wash",
+      "title": "Wash",
+      "nav": true,
+      "navLabel": "Wash",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "Wash",
+          "subtitle": "Sample text — replace me: Hot is allowed. Bleach is a conversation.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "w-faq",
+          "items": [
+            {
+              "q": "Will you use minky?",
+              "a": "If you want a lint factory. I prefer a tight cotton that hair comes off of."
+            },
+            {
+              "q": "Can it go in a kennel dryer?",
+              "a": "Say so. I will skip wool batting and anything with a tail of thread."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "request-a-quote",
+      "title": "Request a Quote",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "q-hero",
+          "variant": "minimal",
+          "title": "Request a quote",
+          "subtitle": "Sample text — replace me: I do not make memory quilts from a late dog's shirts. I will name the shop that does.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "q-form",
+          "projectType": "custom_quilt",
+          "heading": "Crate size or couch, fabric you can bear to see covered in hair",
+          "submitLabel": "Send details",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "cta",
+          "id": "q-more",
+          "label": "Or write first",
+          "href": "/contact",
+          "kind": "secondary",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A dog-quilt shop, not a baby shop with a paw print.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "The work",
+          "html": "<p><em>Sample text — replace me:</em> People kept asking the baby-quilt studio for something a Labrador could ruin. That studio was right to say no. {{guild_name}} says yes, with batting that can take a dryer and a binding that expects teeth.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "a-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "It went through the wash with the towels and came out the same rectangle. That is the whole review.",
+              "author": "A person with a muddy dog"
+            }
+          ],
+          "style": {
+            "bg": "none"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Dates, deposits, and work already in the shop.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-hours",
+          "heading": "Hours",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,352 @@
+{
+  "id": "coastal-guild",
+  "name": "Coastal Guild",
+  "audience": "guild",
+  "character": "Salt-air summer palette and a tide calendar: a shore guild that sews around tourist season and hurricane closures.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "round",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "split",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "meeting"
+    },
+    "pattern": {
+      "id": "flying-geese",
+      "opacity": 0.1
+    },
+    "palette": "seasonal-summer",
+    "typePair": "newsreader-ibmplexsans"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Sound & Sand Quilt Guild",
+    "city": "Beaufort, North Carolina"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "A coastal quilt guild in {{city}}",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: {{guild_name}} sews {{meeting_info}}. Summer meetings move earlier so the bridge traffic does not eat the evening.",
+          "ctaLabel": "Join",
+          "ctaHref": "/membership",
+          "secondaryLabel": "Season",
+          "secondaryHref": "/tides",
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "spacing": "airy",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "when",
+          "heading": "When we sew",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "note": "If a storm warning is up, we cancel by noon and sew the next fair Tuesday. The library is our backup room.",
+          "style": {
+            "bg": "none"
+          }
+        },
+        {
+          "type": "events",
+          "id": "upcoming",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "life",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Tide table",
+              "body": "Meeting start times shift in June, July, and August. Check the calendar before you leave the island.",
+              "href": "/tides"
+            },
+            {
+              "title": "Storm kits",
+              "body": "Comfort quilts for the shelter. Kits live in a dry bin, not a garage."
+            },
+            {
+              "title": "Winter deep work",
+              "body": "From November to March we run a proper program. Summer is sew-and-go."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "join_band",
+          "id": "join",
+          "title": "Join {{guild_name}}",
+          "body": "Dues are collected once a year.",
+          "ctaLabel": "See dues",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: Quilters who live with salt, tourists, and a bridge that backs up on Fridays.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "How we started",
+          "html": "<p><em>Sample text — replace me:</em> {{guild_name}} meets in {{city}} because that is where we live, not because it is convenient. Half the members close shops in October. The other half work the restaurants. The guild calendar follows the water more than the school year.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "a-year",
+          "variant": "numbered",
+          "items": [
+            {
+              "title": "Quiet winter",
+              "body": "Full programs, a block of the month, and the show planning."
+            },
+            {
+              "title": "Shoulder spring",
+              "body": "Charity kits before the shelter season."
+            },
+            {
+              "title": "Short summer",
+              "body": "Earlier start, shorter meeting, more sewing, fewer speakers."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          },
+          "heading": "A year with us"
+        }
+      ]
+    },
+    {
+      "slug": "tides",
+      "title": "The Season",
+      "nav": true,
+      "navLabel": "Season",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "s-hero",
+          "variant": "minimal",
+          "title": "The Season",
+          "subtitle": "Sample text — replace me: How the guild clock changes with the water and the visitors.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "t-grid",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "November–March",
+              "body": "Tuesday at the usual hour. Speakers, BOM, and business."
+            },
+            {
+              "title": "April–May",
+              "body": "Still a program, but we keep it to forty minutes so sewing happens."
+            },
+            {
+              "title": "June–August",
+              "body": "Start one hour earlier. No speaker. Storm cancellations by noon."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "events",
+          "id": "t-ev",
+          "variant": "calendar",
+          "heading": "This month",
+          "limit": 12,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "why-join",
+      "title": "Join",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "j-hero",
+          "variant": "minimal",
+          "title": "Membership",
+          "subtitle": "Sample text — replace me: Dues are the same year-round. Summer members who leave the island still get the newsletter.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "membership_levels",
+          "id": "levels",
+          "variant": "cards",
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "j-faq",
+          "items": [
+            {
+              "q": "I am here three months a year.",
+              "a": "A seasonal membership exists. Ask on the form. You sew when you are in town."
+            },
+            {
+              "q": "Do you meet during a hurricane watch?",
+              "a": "No. Watch the site. We would rather lose a Tuesday than lose a car on the bridge."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "meetings",
+      "title": "Meetings",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "m-hero",
+          "variant": "minimal",
+          "title": "Meetings",
+          "subtitle": "Sample text — replace me: We meet {{meeting_info}} in {{city}}.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "m-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "events",
+          "id": "m-list",
+          "variant": "list",
+          "heading": "On the calendar",
+          "limit": 8,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Programs, dues, and the door code.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "dark"
+          }
+        }
+      ]
+    }
+  ]
+}

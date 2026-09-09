@@ -1,0 +1,132 @@
+{
+  "id": "prayer-circle",
+  "name": "Prayer Circle",
+  "audience": "guild",
+  "character": "Fellowship-hall quilts: butter yellow, a meeting footer, and a ministry that labels, prays over, and delivers lap quilts.",
+  "defaults": {
+    "palette": "soft-butter",
+    "typePair": "librebaskerville-nunitosans",
+    "scale": "comfortable",
+    "shape": { "radius": "round", "shadow": "subtle" },
+    "rhythm": { "spacing": "airy", "container": "normal" },
+    "header": { "variant": "left", "sticky": true, "cta": "donate", "overlayHero": false },
+    "footer": { "variant": "meeting" },
+    "pattern": { "id": "log-cabin", "opacity": 0.12 }
+  },
+  "imagery": [{ "id": "hero-art", "kind": "pattern", "alt": "" }],
+  "previewSeed": { "guildName": "Emmanuel Prayer Quilt Circle", "city": "Winston-Salem, North Carolina" },
+  "pages": [
+    {
+      "slug": "home", "title": "Home", "nav": false,
+      "sections": [
+        {
+          "type": "hero", "id": "welcome", "variant": "split",
+          "eyebrow": "{{city}}",
+          "title": "A lap quilt, a label, and a name",
+          "subtitle": "Sample text — replace me: {{guild_name}} sews for people who are ill, grieving, or new in the pew. We meet {{meeting_info}}.",
+          "ctaLabel": "Request a quilt", "ctaHref": "/request",
+          "secondaryLabel": "Sew with us", "secondaryHref": "/membership",
+          "style": { "bg": "pattern", "width": "wide", "spacing": "airy", "media": "right", "imageId": "hero-art" }
+        },
+        { "type": "meeting_info", "id": "when", "heading": "Sew morning", "when": "{{meeting_info}}", "where": "{{city}}", "note": "The fellowship hall. Coffee is on. Names for this week's quilts are on the whiteboard.", "style": { "bg": "none" } },
+        {
+          "type": "feature_grid", "id": "how", "variant": "numbered",
+          "heading": "How a quilt goes out",
+          "items": [
+            { "title": "A name comes in", "body": "A pastor, a nurse, or a family member writes through the request page.", "href": "/request" },
+            { "title": "We sew", "body": "Lap size, washed, labeled with the circle's name. No buttons. No three-dimensional applique." },
+            { "title": "We deliver", "body": "A pair of members takes the quilt. We do not publish the recipient's name." }
+          ],
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        { "type": "events", "id": "upcoming", "variant": "list", "heading": "Sew mornings", "limit": 3, "style": { "bg": "none" } },
+        { "type": "join_band", "id": "join", "title": "You can sew without joining the church", "body": "The circle is open. Membership is for people who want the newsletter and a vote on fabric.", "ctaLabel": "Join the circle", "style": { "bg": "brand", "align": "center" } }
+      ]
+    },
+    {
+      "slug": "request", "title": "Request a Quilt", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "r-hero", "variant": "minimal",
+          "title": "Request a quilt",
+          "subtitle": "Sample text — replace me: Tell us a first name, a size, and who will receive it. We do not need a diagnosis.",
+          "style": { "bg": "none", "align": "center" }
+        },
+        { "type": "contact", "id": "r-form", "heading": "Send a request", "showDetails": false, "style": { "bg": "tint" } },
+        {
+          "type": "faq", "id": "r-faq",
+          "items": [
+            { "q": "How long does it take?", "a": "Most lap quilts go out within two sew mornings. If you need one sooner, say so on the form." },
+            { "q": "Do you only sew for church members?", "a": "No. Requests come from the hospital, neighboring congregations, and families who found this page." }
+          ],
+          "style": { "bg": "none", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "about", "title": "About", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "a-hero", "variant": "minimal",
+          "title": "About the circle",
+          "subtitle": "Sample text — replace me: A sewing ministry that grew out of a Tuesday morning class in the fellowship hall.",
+          "style": { "bg": "none", "align": "center" }
+        },
+        {
+          "type": "rich_text", "id": "a-body", "variant": "two_column",
+          "html": "<p>{{guild_name}} meets {{meeting_info}} in {{city}}. We keep the theology short and the sewing long. Anyone who will sit and stitch is welcome, church member or not.</p><p>Labels are printed, not embroidered, so a quilt can leave the same week it is bound.</p>",
+          "style": { "bg": "tint" }
+        },
+        {
+          "type": "testimonials", "id": "a-quote", "variant": "single",
+          "items": [{ "quote": "They asked for a first name and a color. The quilt arrived before the next appointment.", "author": "A family who requested one" }],
+          "style": { "bg": "none" }
+        }
+      ]
+    },
+    {
+      "slug": "why-join", "title": "Join", "nav": true, "navLabel": "Join",
+      "sections": [
+        {
+          "type": "hero", "id": "j-hero", "variant": "minimal",
+          "title": "Sew with the circle",
+          "subtitle": "Sample text — replace me: Volunteers can come to one sew morning without joining. Members vote on fabric purchases.",
+          "ctaLabel": "Levels", "ctaHref": "/membership",
+          "style": { "bg": "brand", "align": "center" }
+        },
+        { "type": "membership_levels", "id": "levels", "variant": "compact", "style": { "bg": "none", "width": "narrow" } },
+        {
+          "type": "rich_text", "id": "j-note", "variant": "prose",
+          "html": "<p>If you only want to sew, skip dues and come on Tuesday. <a href=\"/membership\">Join</a> if you want the newsletter and a say in which batting we buy.</p>",
+          "style": { "bg": "tint", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "gallery", "title": "Gallery", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "g-hero", "variant": "minimal",
+          "title": "Quilts that went out",
+          "subtitle": "Sample text — replace me: We photograph the quilt, not the person. Names are not published.",
+          "ctaLabel": "Albums", "ctaHref": "/galleries",
+          "style": { "bg": "none", "align": "center" }
+        },
+        { "type": "gallery", "id": "g-grid", "variant": "grid", "source": "gallery", "gallerySlug": "delivered", "style": { "bg": "tint", "width": "wide" } }
+      ]
+    },
+    {
+      "slug": "contact", "title": "Contact", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "c-hero", "variant": "minimal",
+          "title": "Write to {{guild_name}}",
+          "subtitle": "Sample text — replace me: Fabric donations, volunteer days, and questions that are not a quilt request.",
+          "style": { "bg": "none", "align": "center" }
+        },
+        { "type": "contact", "id": "form", "showDetails": true, "style": { "bg": "tint" } },
+        { "type": "meeting_info", "id": "c-when", "when": "{{meeting_info}}", "where": "{{city}}", "style": { "bg": "brand" } }
+      ]
+    }
+  ]
+}

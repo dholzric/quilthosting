@@ -1,0 +1,347 @@
+{
+  "id": "reproduction",
+  "name": "Reproduction",
+  "audience": "guild",
+  "character": "Wheat ink and a document table: a study guild for 19th-century reproductions, not a costume party.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "narrow"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "bear-paw",
+      "opacity": 0.1
+    },
+    "palette": "heritage-wheat",
+    "typePair": "cormorantgaramond-sourcesans"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Document Print Circle",
+    "city": "Gettysburg, Pennsylvania"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Reproduction quilts in {{city}}",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: {{guild_name}} studies prints, dyes, and block drafts from the 1800s. We meet {{meeting_info}} with books on the table and reproduction yardage in the bag.",
+          "ctaLabel": "Join",
+          "ctaHref": "/membership",
+          "secondaryLabel": "Documents",
+          "secondaryHref": "/documents",
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "spacing": "airy",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "when",
+          "heading": "When we sew",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "note": "Show and tell is a date and a print name if you have them. Guessing is allowed. Inventing a history is not.",
+          "style": {
+            "bg": "none"
+          }
+        },
+        {
+          "type": "events",
+          "id": "upcoming",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "life",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Document night",
+              "body": "One print or one block, photocopies of the source, and a conversation about what the copy gets wrong.",
+              "href": "/documents"
+            },
+            {
+              "title": "Drafting",
+              "body": "We draft from photographs and from quilts we can stand over. Templates stay paper until the draft is agreed."
+            },
+            {
+              "title": "The library",
+              "body": "Swatch cards, exhibit catalogs, and the mean little books that tell you the green was arsenic."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "join_band",
+          "id": "join",
+          "title": "Join {{guild_name}}",
+          "body": "Dues are collected once a year.",
+          "ctaLabel": "See dues",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A study guild, not a living-history troupe.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "How we started",
+          "html": "<p><em>Sample text — replace me:</em> {{guild_name}} is for people who want the print to be right, or to know how it is wrong. We sew reproduction quilts. We also sew modern quilts at home. In this room the question is always: what did the maker have, and what are we pretending.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "a-year",
+          "variant": "numbered",
+          "items": [
+            {
+              "title": "Spring dye talk",
+              "body": "Indigo, madder, and the chrome oranges. A chemist if we can get one."
+            },
+            {
+              "title": "Summer exhibit trip",
+              "body": "One museum, one day, notebooks required."
+            },
+            {
+              "title": "Winter draft",
+              "body": "A group quilt from a documented top. We draw first."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          },
+          "heading": "A year with us"
+        }
+      ]
+    },
+    {
+      "slug": "documents",
+      "title": "Documents",
+      "nav": true,
+      "navLabel": "Documents",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "s-hero",
+          "variant": "minimal",
+          "title": "Documents",
+          "subtitle": "Sample text — replace me: How we cite a print, a quilt, and a guess.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "d-body",
+          "variant": "prose",
+          "heading": "Cite it",
+          "html": "<p><em>Sample text — replace me:</em> Bring the book, the accession number, or the photograph with a date. If you found it on a phone, say so. We would rather have a weak source than a confident story with no paper.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "d-faq",
+          "items": [
+            {
+              "q": "May I sew a reproduction with a modern solid?",
+              "a": "Yes. Say that you did. The quilt is still yours. The study is about not confusing the two."
+            },
+            {
+              "q": "Is Civil War the only era?",
+              "a": "No. 1840 through 1910 is our usual window. Earlier than that and we are in a different set of books."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "why-join",
+      "title": "Join",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "j-hero",
+          "variant": "minimal",
+          "title": "Membership",
+          "subtitle": "Sample text — replace me: Dues cover the room and the catalog orders. Your reproduction fabric is a personal problem we will happily discuss.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "membership_levels",
+          "id": "levels",
+          "variant": "cards",
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "j-faq",
+          "items": [
+            {
+              "q": "I like pretty old-looking fabric and I do not want to cite it.",
+              "a": "Sew it at home. This guild is the citing part."
+            },
+            {
+              "q": "Do you appraise?",
+              "a": "No. We will tell you who does."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "meetings",
+      "title": "Meetings",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "m-hero",
+          "variant": "minimal",
+          "title": "Meetings",
+          "subtitle": "Sample text — replace me: We meet {{meeting_info}} in {{city}}.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "m-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "events",
+          "id": "m-list",
+          "variant": "list",
+          "heading": "On the calendar",
+          "limit": 8,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Programs, dues, and the door code.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "dark"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,135 @@
+{
+  "id": "tshirt-maker",
+  "name": "T-shirt Maker",
+  "audience": "business",
+  "character": "Keepsake tees, not baby clothes: a garnet shopfront for T-shirt quilts with a grid, a size chart, and a quote form.",
+  "defaults": {
+    "palette": "jewel-garnet",
+    "typePair": "manrope",
+    "scale": "compact",
+    "shape": { "radius": "sharp", "shadow": "lifted" },
+    "rhythm": { "spacing": "tight", "container": "normal" },
+    "header": { "variant": "left", "sticky": true, "cta": "quote", "overlayHero": false },
+    "footer": { "variant": "simple" },
+    "pattern": { "id": "nine-patch", "opacity": 0.1 }
+  },
+  "imagery": [{ "id": "hero-art", "kind": "pattern", "alt": "" }],
+  "previewSeed": { "guildName": "Block 12 T-shirt Quilts", "city": "Nashville, Tennessee" },
+  "pages": [
+    {
+      "slug": "home", "title": "Home", "nav": false,
+      "sections": [
+        {
+          "type": "hero", "id": "welcome", "variant": "split",
+          "eyebrow": "T-shirt quilts in {{city}}",
+          "title": "Send the shirts. Get a quilt you can wash.",
+          "subtitle": "Sample text — replace me: {{guild_name}} stabilizes, grids, and quilts concert tees, team shirts, and the drawer you have been meaning to sort.",
+          "ctaLabel": "Request a quote", "ctaHref": "/quote",
+          "secondaryLabel": "How it works", "secondaryHref": "/process",
+          "style": { "bg": "dark", "width": "wide", "media": "right", "imageId": "hero-art" }
+        },
+        {
+          "type": "feature_grid", "id": "sizes", "variant": "cards",
+          "heading": "Typical sizes",
+          "items": [
+            { "title": "Throw", "body": "12 shirts, 3 by 4. Lap size for a dorm or a couch.", "price": "from $280", "href": "/quote" },
+            { "title": "Twin", "body": "20 shirts, 4 by 5. A first apartment bed.", "price": "from $420" },
+            { "title": "Queen", "body": "30 shirts, 5 by 6. The family quilt.", "price": "from $620" }
+          ],
+          "style": { "bg": "none", "width": "wide" }
+        },
+        { "type": "gallery", "id": "home-gal", "variant": "grid", "source": "gallery", "gallerySlug": "tees", "style": { "bg": "tint", "width": "wide" } },
+        { "type": "quote_cta", "id": "home-quote", "projectType": "tshirt_quilt", "heading": "Count the shirts and send a photo of the pile", "submitLabel": "Get a quote", "style": { "bg": "brand" } }
+      ]
+    },
+    {
+      "slug": "process", "title": "How It Works", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "p-hero", "variant": "minimal",
+          "title": "How a T-shirt quilt gets made",
+          "subtitle": "Sample text — replace me: Stabilize, cut to a grid, sash, quilt, bind. You approve the layout before I sew.",
+          "style": { "bg": "none", "align": "center" }
+        },
+        {
+          "type": "feature_grid", "id": "p-steps", "variant": "numbered",
+          "items": [
+            { "title": "You send shirts", "body": "Washed, no hangers. I can work around stains and small holes." },
+            { "title": "I stabilize and cut", "body": "Fusible on the back, then a square or rectangle that keeps the graphic." },
+            { "title": "You approve the grid", "body": "A photo of the design wall. We move blocks before anything is sewn." },
+            { "title": "Quilt and bind", "body": "Edge-to-edge on the longarm. Machine binding. Washable." }
+          ],
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "rich_text", "id": "p-prep", "variant": "prose", "heading": "What to send",
+          "html": "<p>Shirts, jerseys, and baby onesies all work. Avoid thick embroidery on seams if you can. I will not cut a shirt you marked keep. Put those in a separate bag.</p>",
+          "style": { "bg": "none", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "portfolio", "title": "Portfolio", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "g-hero", "variant": "minimal",
+          "title": "Recent quilts",
+          "subtitle": "Sample text — replace me: Concert tees, high-school sports, and one 40-shirt travel quilt.",
+          "ctaLabel": "All albums", "ctaHref": "/galleries",
+          "style": { "bg": "dark", "align": "center" }
+        },
+        { "type": "gallery", "id": "g-grid", "variant": "masonry", "source": "gallery", "gallerySlug": "tees", "style": { "bg": "none", "width": "wide" } }
+      ]
+    },
+    {
+      "slug": "quote", "title": "Request a Quote", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "q-hero", "variant": "minimal",
+          "title": "Request a quote",
+          "subtitle": "Sample text — replace me: Shirt count, finished size, and whether you want sashing. I reply within two business days.",
+          "style": { "bg": "none", "align": "center" }
+        },
+        { "type": "quote_cta", "id": "q-form", "projectType": "tshirt_quilt", "heading": "Shirt count and size", "submitLabel": "Send for a quote", "style": { "bg": "tint" } },
+        {
+          "type": "faq", "id": "q-faq",
+          "items": [
+            { "q": "Do you supply backing?", "a": "Yes, cotton in a short list of solids. You may send backing if it is 8 inches larger than the top on all sides." },
+            { "q": "Can you include jerseys?", "a": "Yes. Thick collars get trimmed. Let me know if a number on the back has to stay whole." }
+          ],
+          "style": { "bg": "none", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "about", "title": "About", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "a-hero", "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: One longarm and a cutting table in {{city}}. T-shirt quilts are the whole business, not a sideline.",
+          "style": { "bg": "none", "align": "center" }
+        },
+        {
+          "type": "rich_text", "id": "a-body", "variant": "prose",
+          "html": "<p>I started doing these for a high-school booster club. The work stuck. Turnaround is usually four to six weeks after I have the shirts and a layout you have approved.</p>",
+          "style": { "bg": "tint", "width": "narrow" }
+        },
+        { "type": "meeting_info", "id": "a-hours", "heading": "Drop-off", "when": "Tuesday and Thursday, 10 to 4", "where": "{{city}}", "note": "By appointment. The studio is a garage with a bell.", "style": { "bg": "none" } }
+      ]
+    },
+    {
+      "slug": "contact", "title": "Contact", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "c-hero", "variant": "minimal",
+          "title": "Contact",
+          "subtitle": "Sample text — replace me: Quotes, drop-off times, and shirts already in process.",
+          "style": { "bg": "none", "align": "center" }
+        },
+        { "type": "contact", "id": "form", "showDetails": true, "style": { "bg": "tint" } },
+        { "type": "cta", "id": "c-quote", "label": "Start a quote", "href": "/quote", "kind": "primary", "style": { "bg": "brand", "align": "center" } }
+      ]
+    }
+  ]
+}

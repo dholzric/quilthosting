@@ -1,0 +1,358 @@
+{
+  "id": "silent-bee",
+  "name": "Silent Bee",
+  "audience": "guild",
+  "character": "No talking, index cards on the table: a sew night that treats quiet as the program.",
+  "defaults": {
+    "scale": "editorial",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "centered",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "none",
+      "opacity": 0
+    },
+    "palette": "jewel-sapphire",
+    "typePair": "system"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "The Quiet Table",
+    "city": "Ithaca, New York"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "minimal",
+          "eyebrow": "A silent sew in {{city}}",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: {{guild_name}} meets {{meeting_info}}. We sew. We do not chat. Questions go on an index card, not into the air.",
+          "ctaLabel": "Join",
+          "ctaHref": "/membership",
+          "secondaryLabel": "Cards",
+          "secondaryHref": "/cards",
+          "style": {
+            "bg": "dark",
+            "width": "narrow",
+            "spacing": "airy",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "when",
+          "heading": "The quiet hours",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "note": "Phones on paper. If you need a word, write it. The kettle is in the hall so it does not whistle in the room.",
+          "style": {
+            "bg": "none"
+          }
+        },
+        {
+          "type": "events",
+          "id": "upcoming",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "life",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Index cards",
+              "body": "A stack in the middle. Need a color match, a seam ripping, a ride home. Write it. Someone will answer on the back.",
+              "href": "/cards"
+            },
+            {
+              "title": "The first ten minutes",
+              "body": "A typed sheet on each chair: tonight's light, the iron rule, where the bathroom is. Then silence."
+            },
+            {
+              "title": "After",
+              "body": "Fifteen minutes on the sidewalk if you want to talk. Inside stays quiet."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "join_band",
+          "id": "join",
+          "title": "A chair in the quiet",
+          "body": "Dues cover the room and the card stock. Conversation is extra, and it happens outside.",
+          "ctaLabel": "See dues",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A guild for people who sew worse when the room is a conversation.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "How we started",
+          "html": "<p><em>Sample text — replace me:</em> Most guilds are social, and that is fine. {{guild_name}} is for the night you want the machine, not the news. We still have dues, a roster, and a charity pile. We do not have a program chair with a microphone.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "a-year",
+          "variant": "numbered",
+          "items": [
+            {
+              "title": "January reset",
+              "body": "We rewrite the chair sheet. New members get the rules on paper, not a speech."
+            },
+            {
+              "title": "June long sew",
+              "body": "Four hours, two card breaks, still no talking inside."
+            },
+            {
+              "title": "December sidewalk",
+              "body": "The one night the after-talk is planned. Inside is still quiet."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          },
+          "heading": "A year with us"
+        }
+      ]
+    },
+    {
+      "slug": "cards",
+      "title": "The Cards",
+      "nav": true,
+      "navLabel": "Cards",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "s-hero",
+          "variant": "minimal",
+          "title": "The Cards",
+          "subtitle": "Sample text — replace me: How a question moves without a voice.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "c-grid",
+          "variant": "numbered",
+          "items": [
+            {
+              "title": "Write",
+              "body": "One question, one card, your first name. Put it in the center bowl."
+            },
+            {
+              "title": "Answer",
+              "body": "If you can help, write on the back and walk it to their chair. Do not announce it."
+            },
+            {
+              "title": "Keep",
+              "body": "Useful answers go in a binder by the door. The binder is the archive of the quiet."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "c-faq",
+          "items": [
+            {
+              "q": "What if there is an emergency?",
+              "a": "Speak. Quiet is a preference, not a vow that outranks safety."
+            },
+            {
+              "q": "May I bring a friend who talks?",
+              "a": "Not to this night. There are other guilds for that friendship."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "why-join",
+      "title": "Join",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "j-hero",
+          "variant": "minimal",
+          "title": "Membership",
+          "subtitle": "Sample text — replace me: Membership is for people who will keep the room quiet on purpose.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "membership_levels",
+          "id": "levels",
+          "variant": "cards",
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "j-faq",
+          "items": [
+            {
+              "q": "Is this a religious silence?",
+              "a": "No. It is a sewing silence. You may be any faith or none."
+            },
+            {
+              "q": "I am hard of hearing. Is this worse?",
+              "a": "Some of us are. Cards and a well-lit mouth if you need to lip-read an emergency. Ask on a card; we will arrange a chair with a view."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "meetings",
+      "title": "Meetings",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "m-hero",
+          "variant": "minimal",
+          "title": "Meetings",
+          "subtitle": "Sample text — replace me: We meet {{meeting_info}} in {{city}}.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "m-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "events",
+          "id": "m-list",
+          "variant": "list",
+          "heading": "On the calendar",
+          "limit": 8,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Programs, dues, and the door.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "dark"
+          }
+        }
+      ]
+    }
+  ]
+}

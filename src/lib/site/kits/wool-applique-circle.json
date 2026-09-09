@@ -1,0 +1,243 @@
+{
+  "id": "wool-applique-circle",
+  "name": "Wool Applique Circle",
+  "audience": "guild",
+  "character": "Wool, whipstitch, and winter light: a circle for penny rugs and wool applique that travels in a project bag.",
+  "defaults": {
+    "palette": "dark-forest-cream",
+    "typePair": "librebaskerville-nunitosans",
+    "scale": "comfortable",
+    "shape": { "radius": "soft", "shadow": "subtle" },
+    "rhythm": { "spacing": "normal", "container": "normal" },
+    "header": { "variant": "left", "sticky": true, "cta": "join", "overlayHero": false },
+    "footer": { "variant": "meeting" },
+    "pattern": { "id": "churn-dash", "opacity": 0.1 }
+  },
+  "imagery": [
+    { "id": "hero-art", "kind": "pattern", "alt": "" }
+  ],
+  "previewSeed": { "guildName": "Blackberry Wool Circle", "city": "Middlebury, Vermont" },
+  "menu": [
+    { "label": "Projects", "href": "/projects" },
+    { "label": "Events", "href": "/events" },
+    { "label": "Join", "href": "/why-join" },
+    { "label": "About", "href": "/about" },
+    { "label": "Contact", "href": "/contact" }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "pattern",
+          "eyebrow": "Wool applique and penny rugs, since 2009",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: A circle that meets in wool coats weather, stitches through the winters, and swaps felted sweaters like currency.",
+          "ctaLabel": "Join the circle",
+          "ctaHref": "/why-join",
+          "secondaryLabel": "What we stitch",
+          "secondaryHref": "/projects",
+          "style": { "bg": "pattern", "width": "wide", "spacing": "airy", "imageId": "hero-art" }
+        },
+        {
+          "type": "meeting_info",
+          "id": "when-where",
+          "heading": "When we meet",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "note": "Bring a project bag and a thimble you believe in. Tea is on the stove by eight.",
+          "style": { "bg": "tint", "width": "normal" }
+        },
+        {
+          "type": "feature_grid",
+          "id": "home-life",
+          "variant": "icons",
+          "heading": "The circle's year",
+          "items": [
+            { "icon": "🪙", "title": "Penny rug season", "body": "October through the new year, when the patterns come out and the blankets come apart.", "href": "/projects" },
+            { "icon": "🫖", "title": "Dye days", "body": "Two a year, in the biggest kitchen in the county. Wear clothes you can ruin.", "href": "/projects" },
+            { "icon": "🧶", "title": "The wool library", "body": "Felted sweaters catalogued by weight and color, borrowed like books.", "href": "/about" },
+            { "icon": "❄", "title": "The sew-cation", "body": "One weekend at the inn each February. Snow optional, stitching not.", "href": "/events" }
+          ],
+          "style": { "bg": "none", "width": "wide" }
+        },
+        {
+          "type": "events",
+          "id": "home-events",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "gallery",
+          "id": "home-gallery",
+          "variant": "grid",
+          "source": "gallery",
+          "gallerySlug": "wool-work",
+          "heading": "From the circle",
+          "style": { "bg": "none", "width": "wide" }
+        },
+        {
+          "type": "join_band",
+          "id": "home-join",
+          "title": "Bring a sweater, leave with a hobby",
+          "body": "Dues are twenty dollars a year and cover patterns, tea, and the dye pots.",
+          "ctaLabel": "Join the circle",
+          "style": { "bg": "brand", "width": "full", "align": "center" }
+        }
+      ]
+    },
+    {
+      "slug": "projects",
+      "title": "Projects",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "projects-hero",
+          "variant": "stats",
+          "title": "What the circle stitches",
+          "subtitle": "Sample text — replace me: Penny rugs, candle mats, wool baskets, and the annual raffle piece that funds the dye days.",
+          "stats": [
+            { "value": "46", "label": "mats and rugs finished last winter" },
+            { "value": "9", "label": "dyed palettes in the wool library" },
+            { "value": "3", "label": "beginner kits on the table at every meeting" }
+          ],
+          "style": { "bg": "brand", "width": "wide", "align": "center" }
+        },
+        {
+          "type": "feature_grid",
+          "id": "projects-list",
+          "variant": "cards",
+          "heading": "Kits and patterns",
+          "items": [
+            { "title": "Penny rug kit", "body": "Wool pennies, floss, and a paper pattern from the circle's own template drawer.", "price": "$28" },
+            { "title": "Candle mat pattern", "body": "The first project everyone finishes. Whipstitch taught slowly.", "price": "$9" },
+            { "title": "Wool basket", "body": "Built over clothesline, sturdy enough for the project bag itself.", "price": "$34" },
+            { "title": "Raffle piece patterns", "body": "The winter rug pattern, sold to fund the dye pots.", "price": "$12" }
+          ],
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "rich_text",
+          "id": "projects-wool",
+          "variant": "prose",
+          "heading": "About the wool",
+          "html": "<p>Everything here is felted wool, which means a sweater that shrank on purpose. Good wool is wool that has been washed hot and dried hot, cut from coats and skirts from the thrift store, and catalogued in the wool library by weight. If it pills and survives, it quilts.</p>",
+          "style": { "bg": "none", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "why-join",
+      "title": "Membership",
+      "nav": false,
+      "navLabel": "Join",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "join-hero",
+          "variant": "minimal",
+          "title": "Join the circle",
+          "subtitle": "Sample text — replace me: Twenty dollars a year, a pattern library, tea, and eleven people who will teach you the whipstitch until it looks right.",
+          "style": { "bg": "tint", "width": "narrow", "align": "center", "spacing": "airy" }
+        },
+        {
+          "type": "rich_text",
+          "id": "join-includes",
+          "variant": "prose",
+          "heading": "What dues cover",
+          "html": "<p>Meetings, the wool library, dye days, and the pattern drawer. Beginners are paired with a stitch partner for the first season, and the first kit is on the circle. <a href=\"/membership\">Open the membership form</a> and choose a level.</p>",
+          "style": { "bg": "none", "width": "narrow" }
+        },
+        {
+          "type": "membership_levels",
+          "id": "join-levels",
+          "variant": "cards",
+          "heading": "Levels",
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "faq",
+          "id": "join-faq",
+          "heading": "Before you join",
+          "items": [
+            { "q": "I have never stitched. Is that all right?", "a": "The circle was founded by two women who had never stitched either. The beginner kit and a patient partner are standing inventory." },
+            { "q": "Do I need a sewing machine?", "a": "No. This is all hand work, done with one needle, one thread, and better conversation than any machine allows." },
+            { "q": "What does the wool cost me?", "a": "A trip to the thrift store. Sweaters cost less there than felt by the yard, and the shrinking is part of the fun." }
+          ],
+          "style": { "bg": "none", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "about-hero",
+          "variant": "minimal",
+          "title": "About the circle",
+          "subtitle": "Sample text — replace me: Founded around a church basement table in 2009 with one pattern and two borrowed scissors.",
+          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+        },
+        {
+          "type": "rich_text",
+          "id": "about-body",
+          "variant": "two_column",
+          "heading": "How the circle grew",
+          "html": "<p>The first winter there were four of us and one pattern, traced by hand onto paper bags because nobody owned a copier. The second winter there were nine, and the dye days started because wool in one color is a hobby but wool in nine colors is a guild.</p><p>We keep the old habits: patterns traced and shared freely, felted wool traded instead of bought, and every finished piece shown before it is given away. Most of them are given away, which is the point of a penny rug anyway.</p>",
+          "style": { "bg": "tint", "width": "normal" }
+        },
+        {
+          "type": "testimonials",
+          "id": "about-quotes",
+          "variant": "grid",
+          "items": [
+            { "quote": "I joined to get out of the house one night a week. I stayed because someone finally taught me a stitch my mother never got to.", "author": "E., member since 2014" },
+            { "quote": "The wool library is the only library where I have returned something better than I borrowed it.", "author": "C., dye day regular" }
+          ],
+          "style": { "bg": "none", "width": "normal" }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "contact-hero",
+          "variant": "minimal",
+          "title": "Write to the circle",
+          "subtitle": "Sample text — replace me: Membership questions, wool donations, and requests for the circle at the winter craft fair.",
+          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+        },
+        {
+          "type": "contact",
+          "id": "contact-form",
+          "heading": "Send a message",
+          "showDetails": true,
+          "style": { "bg": "none", "width": "normal" }
+        },
+        {
+          "type": "meeting_info",
+          "id": "contact-meeting",
+          "heading": "Where the tea is",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "note": "The door sticks; push left and come up the stairs. Your first night is free.",
+          "style": { "bg": "brand", "width": "wide" }
+        }
+      ]
+    }
+  ]
+}

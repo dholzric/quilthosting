@@ -1,0 +1,136 @@
+{
+  "id": "sit-down-studio",
+  "name": "Sit-down Studio",
+  "audience": "business",
+  "character": "Hourly longarm rental: amethyst, sharp type, a certification class, and a calendar of open machine time.",
+  "defaults": {
+    "palette": "jewel-amethyst",
+    "typePair": "spacegrotesk-worksans",
+    "scale": "compact",
+    "shape": { "radius": "sharp", "shadow": "none" },
+    "rhythm": { "spacing": "tight", "container": "wide" },
+    "header": { "variant": "split", "sticky": true, "cta": "quote", "overlayHero": false },
+    "footer": { "variant": "simple" },
+    "pattern": { "id": "none", "opacity": 0 }
+  },
+  "imagery": [{ "id": "hero-art", "kind": "pattern", "alt": "" }],
+  "previewSeed": { "guildName": "Frame Time Studio", "city": "Boise, Idaho" },
+  "pages": [
+    {
+      "slug": "home", "title": "Home", "nav": false,
+      "sections": [
+        {
+          "type": "hero", "id": "welcome", "variant": "split",
+          "eyebrow": "Sit-down longarm rental in {{city}}",
+          "title": "Rent the frame. Quilt your own top.",
+          "subtitle": "Sample text — replace me: {{guild_name}} has two sit-down longarms. Certification first, then you book hours.",
+          "ctaLabel": "See rates", "ctaHref": "/rates",
+          "secondaryLabel": "Certification", "secondaryHref": "/certify",
+          "style": { "bg": "dark", "width": "wide", "media": "left", "imageId": "hero-art" }
+        },
+        {
+          "type": "feature_grid", "id": "home-rates", "variant": "cards",
+          "heading": "Time on the machine",
+          "items": [
+            { "title": "Certified hour", "body": "Once you have passed the class. Thread is extra if you do not bring Glide.", "price": "$22 / hr", "href": "/rates" },
+            { "title": "Pack of ten", "body": "Hours do not expire for six months. Better if you have more than one top.", "price": "$200" },
+            { "title": "Certification class", "body": "Three hours, loading through a small pantograph. Required before a solo booking.", "price": "$75", "href": "/certify" }
+          ],
+          "style": { "bg": "none", "width": "wide" }
+        },
+        { "type": "events", "id": "home-class", "variant": "next_up", "heading": "Next certification", "limit": 1, "style": { "bg": "tint" } },
+        { "type": "quote_cta", "id": "home-book", "projectType": "longarm", "heading": "Ask for an open slot once you are certified", "submitLabel": "Request hours", "style": { "bg": "brand" } }
+      ]
+    },
+    {
+      "slug": "rates", "title": "Rates", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "r-hero", "variant": "minimal",
+          "title": "Rates",
+          "subtitle": "Sample text — replace me: Hourly after certification. Batting and backing are on the shelf if you did not bring them.",
+          "style": { "bg": "none", "align": "center" }
+        },
+        {
+          "type": "feature_grid", "id": "r-grid", "variant": "cards",
+          "items": [
+            { "title": "Machine time", "body": "Two Handi Quilter sit-downs. You load, you quilt, you unload.", "price": "$22 / hr" },
+            { "title": "Ten-hour pack", "body": "Six months to use them.", "price": "$200" },
+            { "title": "Batting", "body": "Hobbs 80/20 off the roll, sold by the inch." },
+            { "title": "After hours", "body": "Saturday evening slots for certified members who have a key fob.", "price": "+$5 / hr" }
+          ],
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "rich_text", "id": "r-rules", "variant": "prose", "heading": "House rules",
+          "html": "<p>No rotary cutters at the frame. No food on the table. If you break a needle, there is a box. If you break a ruler, tell us before you leave.</p>",
+          "style": { "bg": "none", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "certify", "title": "Certification", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "c-hero", "variant": "minimal",
+          "title": "Certification class",
+          "subtitle": "Sample text — replace me: Three hours. You leave with a card that lets you book the calendar.",
+          "ctaLabel": "Class dates", "ctaHref": "/events",
+          "style": { "bg": "brand", "align": "center" }
+        },
+        { "type": "events", "id": "c-dates", "variant": "list", "heading": "Upcoming classes", "limit": 6, "style": { "bg": "none", "width": "wide" } },
+        {
+          "type": "faq", "id": "c-faq",
+          "items": [
+            { "q": "I already quilt on a longarm at home. Do I still need the class?", "a": "Yes. The class is how we know you can load these two machines. It is short if you already know the work." },
+            { "q": "Can two people share a booking?", "a": "Both need certification. One person at the handles at a time." }
+          ],
+          "style": { "bg": "tint", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "about", "title": "About", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "a-hero", "variant": "minimal",
+          "title": "About the studio",
+          "subtitle": "Sample text — replace me: A warehouse bay in {{city}}. We do not quilt for you. We rent the time.",
+          "style": { "bg": "none", "align": "center" }
+        },
+        {
+          "type": "rich_text", "id": "a-body", "variant": "prose",
+          "html": "<p>{{guild_name}} opened because the nearest custom longarmer was booked four months out and a lot of people just wanted a frame for a weekend. Certification keeps the machines in one piece.</p>",
+          "style": { "bg": "tint", "width": "narrow" }
+        },
+        { "type": "meeting_info", "id": "a-hours", "heading": "Hours", "when": "{{meeting_info}}", "where": "{{city}}", "note": "The door code is in your booking email.", "style": { "bg": "none" } }
+      ]
+    },
+    {
+      "slug": "quote", "title": "Book Hours", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "q-hero", "variant": "minimal",
+          "title": "Request hours",
+          "subtitle": "Sample text — replace me: Certified quilters only. Tell us which machine and a window of dates.",
+          "style": { "bg": "none", "align": "center" }
+        },
+        { "type": "quote_cta", "id": "q-form", "projectType": "longarm", "heading": "Machine, date window, hours needed", "submitLabel": "Request a slot", "style": { "bg": "tint" } },
+        { "type": "cta", "id": "q-class", "label": "I still need certification", "href": "/certify", "kind": "secondary", "style": { "bg": "none", "align": "center" } }
+      ]
+    },
+    {
+      "slug": "contact", "title": "Contact", "nav": true,
+      "sections": [
+        {
+          "type": "hero", "id": "co-hero", "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Bookings, broken needles, and the waitlist for Saturday evenings.",
+          "style": { "bg": "none", "align": "center" }
+        },
+        { "type": "contact", "id": "form", "showDetails": true, "style": { "bg": "tint" } },
+        { "type": "meeting_info", "id": "co-hours", "when": "{{meeting_info}}", "where": "{{city}}", "style": { "bg": "dark" } }
+      ]
+    }
+  ]
+}

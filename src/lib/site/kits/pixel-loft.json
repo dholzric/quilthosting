@@ -1,0 +1,310 @@
+{
+  "id": "pixel-loft",
+  "name": "Pixel Loft",
+  "audience": "business",
+  "character": "Mustard grid on indigo: photographs turned into square quilts, one pixel at a time, no painterly faking.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "tight",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "nine-patch",
+      "opacity": 0.08
+    },
+    "palette": "modern-indigo-mustard",
+    "typePair": "manrope"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Square One Pixels",
+    "city": "Portland, Maine"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "Pixel quilts in {{city}}",
+          "title": "Your photo, as squares.",
+          "subtitle": "Sample text — replace me: {{guild_name}} maps a photograph onto a grid of solids. It will look like the picture from ten feet and like a quilt from one.",
+          "ctaLabel": "Request a quote",
+          "ctaHref": "/request-a-quote",
+          "secondaryLabel": "The grid",
+          "secondaryHref": "/grid",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "home-offer",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "The grid",
+              "body": "You pick the finished size. I pick how many squares the face can bear.",
+              "price": "from $420",
+              "href": "/grid"
+            },
+            {
+              "title": "The cloth",
+              "body": "A limited solid set. I will not chase every photograph color with a custom dye."
+            },
+            {
+              "title": "The stand-back",
+              "body": "I send a mockup. If it only works on a phone screen, we do not sew it."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          },
+          "heading": "How a pixel quilt is built"
+        },
+        {
+          "type": "testimonials",
+          "id": "home-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "From the hallway it was my father. From the bed it was a hundred rectangles. Both things were true.",
+              "author": "A client who stood back"
+            }
+          ],
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "home-cta",
+          "projectType": "custom_quilt",
+          "heading": "Photo, finished size, and how close people will stand",
+          "submitLabel": "Request a quote",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "grid",
+      "title": "The Grid",
+      "nav": true,
+      "navLabel": "Grid",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "The Grid",
+          "subtitle": "Sample text — replace me: How many squares a face needs, and when I will refuse the job.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "g-grid",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Too few",
+              "body": "A portrait at 12 by 16 squares is a suggestion of a person. I will say no."
+            },
+            {
+              "title": "Enough",
+              "body": "A dog, a house, a band poster: we will find a count that reads."
+            },
+            {
+              "title": "Too many",
+              "body": "A king-size at half-inch squares is a year I will not sell you."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "samples",
+      "title": "Stand-back",
+      "nav": true,
+      "navLabel": "Samples",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
+          "title": "Stand-back",
+          "subtitle": "Sample text — replace me: Photographs of finished grids, taken from ten feet and from one.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "gallery",
+          "id": "samp",
+          "variant": "grid",
+          "source": "gallery",
+          "gallerySlug": "pixels",
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "request-a-quote",
+      "title": "Request a Quote",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "q-hero",
+          "variant": "minimal",
+          "title": "Request a quote",
+          "subtitle": "Sample text — replace me: A sharp file helps. A blurry phone photo of a painting will not survive a grid.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "q-form",
+          "projectType": "custom_quilt",
+          "heading": "Photo, finished size, and how close people will stand",
+          "submitLabel": "Send details",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "cta",
+          "id": "q-more",
+          "label": "Or write first",
+          "href": "/contact",
+          "kind": "secondary",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A studio that likes squares more than thread-painting.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "The work",
+          "html": "<p><em>Sample text — replace me:</em> I tried to make photographs look painted with thread. They looked sorry. Squares are honest. {{guild_name}} is the honest version: a grid, a limited palette, a picture that appears when you walk away.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "a-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "From the hallway it was my father. From the bed it was a hundred rectangles. Both things were true.",
+              "author": "A client who stood back"
+            }
+          ],
+          "style": {
+            "bg": "none"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Dates, deposits, and work already in the shop.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-hours",
+          "heading": "Hours",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "style": {
+            "bg": "brand"
+          }
+        }
+      ]
+    }
+  ]
+}

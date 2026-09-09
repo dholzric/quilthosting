@@ -1,0 +1,243 @@
+{
+  "id": "quilt-truck",
+  "name": "Quilt Truck",
+  "audience": "business",
+  "character": "A fabric shop with four wheels: bolts, kits, and a retired delivery van booked to guild nights and county fairs.",
+  "defaults": {
+    "palette": "seasonal-spring",
+    "typePair": "bitter-opensans",
+    "scale": "comfortable",
+    "shape": { "radius": "soft", "shadow": "subtle" },
+    "rhythm": { "spacing": "normal", "container": "normal" },
+    "header": { "variant": "left", "sticky": true, "cta": "quote", "overlayHero": false },
+    "footer": { "variant": "meeting" },
+    "pattern": { "id": "churn-dash", "opacity": 0.1 }
+  },
+  "imagery": [
+    { "id": "hero-art", "kind": "pattern", "alt": "" }
+  ],
+  "previewSeed": { "guildName": "The Bolt Bus", "city": "Bend, Oregon" },
+  "menu": [
+    { "label": "Shop", "href": "/shop" },
+    { "label": "Stops", "href": "/stops" },
+    { "label": "About", "href": "/about" },
+    { "label": "Contact", "href": "/contact" },
+    { "label": "Book the truck", "href": "/request-a-quote" }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "pattern",
+          "eyebrow": "The fabric shop that comes to you",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: A retired delivery van fitted with bolts three deep, a notion wall, and a step stool that has seen four counties.",
+          "ctaLabel": "See the stops",
+          "ctaHref": "/stops",
+          "secondaryLabel": "Book the truck",
+          "secondaryHref": "/request-a-quote",
+          "style": { "bg": "pattern", "width": "wide", "spacing": "airy", "imageId": "hero-art" }
+        },
+        {
+          "type": "events",
+          "id": "home-next",
+          "variant": "next_up",
+          "heading": "The next stop",
+          "limit": 1,
+          "style": { "bg": "none", "width": "normal" }
+        },
+        {
+          "type": "feature_grid",
+          "id": "home-stock",
+          "variant": "icons",
+          "heading": "What rolls off the van",
+          "items": [
+            { "icon": "🧵", "title": "The bolts", "body": "Three hundred at a time, rotated every run, with the backs and blenders that smaller towns never get.", "href": "/shop" },
+            { "icon": "🧷", "title": "The notion wall", "body": "Needles, rulers, and the rotary blades everyone forgot they needed until the wall mentioned it.", "href": "/shop" },
+            { "icon": "🪡", "title": "Guild nights", "body": "The truck parks outside your meeting; shopping happens before and after, never during the program.", "href": "/request-a-quote" },
+            { "icon": "🎪", "title": "Fairs and festivals", "body": "Look for the quilt on the awning and the line of totes.", "href": "/stops" }
+          ],
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "store_teaser",
+          "id": "home-shop",
+          "heading": "New on the shelves",
+          "limit": 4,
+          "style": { "bg": "none", "width": "wide" }
+        },
+        {
+          "type": "quote_cta",
+          "id": "home-book",
+          "projectType": "booking",
+          "heading": "Book the truck",
+          "submitLabel": "Check a date",
+          "style": { "bg": "tint", "width": "normal", "align": "center" }
+        }
+      ]
+    },
+    {
+      "slug": "stops",
+      "title": "Stops",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "stops-hero",
+          "variant": "minimal",
+          "title": "This month's route",
+          "subtitle": "Sample text — replace me: Where the van lands, with hours, parking, and what is fresh on the shelves that week.",
+          "style": { "bg": "none", "width": "narrow", "align": "center" }
+        },
+        {
+          "type": "events",
+          "id": "stops-list",
+          "variant": "list",
+          "heading": "The route",
+          "limit": 6,
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "rich_text",
+          "id": "stops-notes",
+          "variant": "prose",
+          "heading": "Route notes",
+          "html": "<p>The van runs most Saturdays and guild nights by booking. Winter routes stay south of the pass, and if a stop lands on a harvest or hay day, the route bends around it. Locals know to check the calendar the night before; the van waits for no one but does wait for weather.</p>",
+          "style": { "bg": "none", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "shop",
+      "title": "On the Shelves",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "shop-hero",
+          "variant": "minimal",
+          "title": "On the shelves",
+          "subtitle": "Sample text — replace me: What the van is carrying right now. The stock rotates, so if you see it, buy it.",
+          "style": { "bg": "tint", "width": "narrow", "align": "center", "spacing": "airy" }
+        },
+        {
+          "type": "store_teaser",
+          "id": "shop-list",
+          "heading": "In stock",
+          "limit": 8,
+          "style": { "bg": "none", "width": "wide" }
+        },
+        {
+          "type": "rich_text",
+          "id": "shop-orders",
+          "variant": "prose",
+          "heading": "Holds and special orders",
+          "html": "<p>Anything on the van can be held until the next stop in your town with a phone call. Bolts by the yard travel; kits are pre-cut and boarded in the cabinet at the back, which is also where the good scrap box lives, priced by the grocery sack.</p>",
+          "style": { "bg": "tint", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "about-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: Two sisters, a retired Step Van the color of marigolds, and a town whose shop closed in 2019.",
+          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+        },
+        {
+          "type": "rich_text",
+          "id": "about-body",
+          "variant": "two_column",
+          "html": "<p>When the last fabric shop in the county closed, the nearest bolts moved ninety minutes away. The van was a bakery delivery truck, then a false start as a food truck, and finally a shop: shelves bolted where the ovens were, a cutting counter where the sink used to be, and marigold paint chosen because it was on sale in a size that covered a van.</p><p>Four years later the route covers six towns and every fair that will have us. The rule painted inside the door is the original one: the fabric goes to the quilters, especially the ones the highway forgot.</p>",
+          "style": { "bg": "tint", "width": "normal" }
+        },
+        {
+          "type": "testimonials",
+          "id": "about-quote",
+          "variant": "single",
+          "items": [
+            { "quote": "Our guild night has doubled in attendance since the van started coming. The program chair takes partial credit. The van deserves it.", "author": "A guild secretary" }
+          ],
+          "style": { "bg": "none", "width": "normal" }
+        }
+      ]
+    },
+    {
+      "slug": "request-a-quote",
+      "title": "Book the Truck",
+      "nav": false,
+      "navLabel": "Book the truck",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "quote-hero",
+          "variant": "minimal",
+          "title": "Book the truck",
+          "subtitle": "Sample text — replace me: Guild nights, fairs, and festivals within 150 miles. Tell us the date and the parking situation.",
+          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+        },
+        {
+          "type": "quote_cta",
+          "id": "quote-form",
+          "projectType": "booking",
+          "heading": "Booking request",
+          "submitLabel": "Check a date",
+          "style": { "bg": "none", "width": "normal" }
+        },
+        {
+          "type": "faq",
+          "id": "quote-faq",
+          "heading": "Booking questions",
+          "items": [
+            { "q": "What does a guild night cost?", "a": "Nothing. The truck sells, your guild hosts, and the only ask is twenty feet of curb and a power outlet for the register." },
+            { "q": "How much space does the van need?", "a": "Thirty feet to park and open, plus room for a line to form. The awning needs one tree or none." },
+            { "q": "How far will you drive?", "a": "About 150 miles from base, farther for fairs that book a full weekend. The map on the contact page shows the usual territory." }
+          ],
+          "style": { "bg": "tint", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "contact-hero",
+          "variant": "minimal",
+          "title": "Contact the bus",
+          "subtitle": "Sample text — replace me: Bookings, holds, and the eternal question of whether the van is coming to your side of the mountain.",
+          "style": { "bg": "none", "width": "narrow", "align": "center" }
+        },
+        {
+          "type": "contact",
+          "id": "contact-form",
+          "heading": "Send a message",
+          "showDetails": true,
+          "style": { "bg": "tint", "width": "normal" }
+        },
+        {
+          "type": "meeting_info",
+          "id": "contact-base",
+          "heading": "Home base",
+          "when": "Saturdays the van is out; weekday mornings by phone",
+          "where": "{{city}}",
+          "note": "The van sleeps in the fairgrounds lot. If the marigold is there, knock on the cab.",
+          "style": { "bg": "brand", "width": "wide" }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,352 @@
+{
+  "id": "fabric-swap",
+  "name": "Fabric Swap",
+  "audience": "guild",
+  "character": "Slate, lime, and a scale: a destash guild where yardage moves, leftover guilt does not.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "nine-patch",
+      "opacity": 0.1
+    },
+    "palette": "modern-slate-lime",
+    "typePair": "nunito"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "By the Yard Swap",
+    "city": "Portland, Oregon"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
+          "eyebrow": "A destash guild in {{city}}",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: {{guild_name}} exists so fabric leaves the house. We meet {{meeting_info}} with a scale, labeled bags, and a one-in-one-out rule for members who keep buying.",
+          "ctaLabel": "Join",
+          "ctaHref": "/membership",
+          "secondaryLabel": "Swaps",
+          "secondaryHref": "/swaps",
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "spacing": "airy",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "when",
+          "heading": "When we sew",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "note": "No unlabeled scraps. Fat quarters and larger. If it is smaller than a fat quarter it goes in the crumb box, not on the swap table.",
+          "style": {
+            "bg": "none"
+          }
+        },
+        {
+          "type": "events",
+          "id": "upcoming",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "life",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "The table",
+              "body": "Bring yardage you will not sew. Take yardage you will sew this year. Leave money if the piece is listed with a price.",
+              "href": "/swaps"
+            },
+            {
+              "title": "The scale",
+              "body": "We weigh the leftover box once a quarter and donate the rest to school programs."
+            },
+            {
+              "title": "One in, one out",
+              "body": "If you bought new this month, bring something old. Honor system. We will tease you if the bags are all incoming."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "join_band",
+          "id": "join",
+          "title": "Join {{guild_name}}",
+          "body": "Dues are collected once a year.",
+          "ctaLabel": "See dues",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: Not a shop. Not a scrap bee. A movement of unused cloth.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "How we started",
+          "html": "<p><em>Sample text — replace me:</em> Stash is not a personality. {{guild_name}} is the guild for people in {{city}} whose cutting tables disappeared under bolts. We still sew. We just refuse to pretend that buying is the same as making.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "a-year",
+          "variant": "numbered",
+          "items": [
+            {
+              "title": "Equinox swap",
+              "body": "The big table. Public may come for the last hour."
+            },
+            {
+              "title": "School donation",
+              "body": "Whatever the scale says is leftover after June."
+            },
+            {
+              "title": "Bolt amnesty",
+              "body": "November. Full bolts only. No questions about why you bought them."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          },
+          "heading": "A year with us"
+        }
+      ]
+    },
+    {
+      "slug": "swaps",
+      "title": "How a Swap Runs",
+      "nav": true,
+      "navLabel": "Swaps",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "s-hero",
+          "variant": "minimal",
+          "title": "How a Swap Runs",
+          "subtitle": "Sample text — replace me: Labels, prices, and what happens to what nobody takes.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "sw-grid",
+          "variant": "numbered",
+          "items": [
+            {
+              "title": "Label",
+              "body": "Fiber, width, yards to the quarter. If you do not know, write unknown, not cotton."
+            },
+            {
+              "title": "Price or free",
+              "body": "Free goes on the left. Priced on the right. Cash in an envelope, name on the flap."
+            },
+            {
+              "title": "Close",
+              "body": "Unclaimed priced fabric goes home with its owner. Unclaimed free fabric goes to the donation bin."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "events",
+          "id": "sw-ev",
+          "variant": "cards",
+          "heading": "Next swaps",
+          "limit": 4,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "why-join",
+      "title": "Join",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "j-hero",
+          "variant": "minimal",
+          "title": "Membership",
+          "subtitle": "Sample text — replace me: Dues cover the hall and the school deliveries. We do not take a cut of priced fabric.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "membership_levels",
+          "id": "levels",
+          "variant": "cards",
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "j-faq",
+          "items": [
+            {
+              "q": "Can I sell patterns?",
+              "a": "No. Cloth only. Patterns belong in a different kind of market."
+            },
+            {
+              "q": "What about scraps?",
+              "a": "Crumb box by the door. The scrap-piecing guild will take it if the box fills."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "meetings",
+      "title": "Meetings",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "m-hero",
+          "variant": "minimal",
+          "title": "Meetings",
+          "subtitle": "Sample text — replace me: We meet {{meeting_info}} in {{city}}.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "m-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "events",
+          "id": "m-list",
+          "variant": "list",
+          "heading": "On the calendar",
+          "limit": 8,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Programs, dues, and the door code.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "dark"
+          }
+        }
+      ]
+    }
+  ]
+}

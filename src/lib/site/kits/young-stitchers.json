@@ -1,0 +1,296 @@
+{
+  "id": "young-stitchers",
+  "name": "Young Stitchers",
+  "audience": "guild",
+  "character": "Bright, sturdy, and forgiving: a quilt club for ages 8 to 18 where pins are optional and finished beats perfect.",
+  "defaults": {
+    "palette": "soft-butter",
+    "typePair": "nunito",
+    "scale": "comfortable",
+    "shape": { "radius": "round", "shadow": "subtle" },
+    "rhythm": { "spacing": "normal", "container": "normal" },
+    "header": { "variant": "centered", "sticky": true, "cta": "join", "overlayHero": false },
+    "footer": { "variant": "columns" },
+    "pattern": { "id": "nine-patch", "opacity": 0.12 }
+  },
+  "imagery": [
+    { "id": "hero-art", "kind": "pattern", "alt": "" }
+  ],
+  "previewSeed": { "guildName": "Thimblebugs Quilt Club", "city": "Ames, Iowa" },
+  "menu": [
+    { "label": "About", "href": "/about" },
+    { "label": "Join", "href": "/membership" },
+    { "label": "Meetings", "href": "/meetings" },
+    { "label": "Projects", "href": "/projects" },
+    { "label": "Gallery", "href": "/gallery" },
+    { "label": "For grown-ups", "href": "/grown-ups" },
+    { "label": "Contact", "href": "/contact" }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "pattern",
+          "eyebrow": "A quilt club for ages 8 to 18",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: We meet after school on Thursdays to sew by hand and by machine, and every member finishes at least one quilt a year.",
+          "ctaLabel": "Join the club",
+          "ctaHref": "/membership",
+          "secondaryLabel": "See what we make",
+          "secondaryHref": "/projects",
+          "style": { "bg": "pattern", "width": "wide", "spacing": "airy", "imageId": "hero-art" }
+        },
+        {
+          "type": "feature_grid",
+          "id": "home-year",
+          "variant": "icons",
+          "heading": "A year at the club",
+          "items": [
+            { "icon": "🧵", "title": "Pillowcase season", "body": "Straight seams, no patterns, and everyone takes a finished pillowcase home in October.", "href": "/projects" },
+            { "icon": "✂", "title": "Rag-quilt winter", "body": "Flannel, snipping, and no seam allowances to fuss about while the snow falls.", "href": "/projects" },
+            { "icon": "🧩", "title": "The spring group quilt", "body": "Every member pieces one block. We raffle the finished quilt at the school fair.", "href": "/projects" },
+            { "icon": "☀", "title": "Summer sew days", "body": "One long Saturday a month at the library, with a new skill each time.", "href": "/meetings" }
+          ],
+          "style": { "bg": "none", "width": "wide" }
+        },
+        {
+          "type": "events",
+          "id": "home-meetings",
+          "variant": "cards",
+          "heading": "Upcoming meetings",
+          "limit": 3,
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "meeting_info",
+          "id": "home-where",
+          "heading": "Where we meet",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "note": "The club owns six machines that live in the cabinet, so nobody has to carry one on the bus.",
+          "style": { "bg": "none", "width": "wide" }
+        },
+        {
+          "type": "gallery",
+          "id": "home-gallery",
+          "variant": "grid",
+          "source": "gallery",
+          "gallerySlug": "finished",
+          "heading": "Finished and proud",
+          "style": { "bg": "dark", "width": "wide" }
+        },
+        {
+          "type": "join_band",
+          "id": "home-join",
+          "title": "Dues are ten dollars a year",
+          "body": "That covers fabric, thread, and machine oil. Nobody is turned away; ask us quietly and it is covered.",
+          "ctaLabel": "Sign up a stitcher",
+          "style": { "bg": "brand", "width": "full", "align": "center" }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "about-hero",
+          "variant": "minimal",
+          "title": "About the club",
+          "subtitle": "Sample text — replace me: Two grandmothers, one 4-H agent, and a borrowed church basement in 2016. The basement still smells like ironing starch.",
+          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+        },
+        {
+          "type": "rich_text",
+          "id": "about-body",
+          "variant": "two_column",
+          "heading": "What members learn",
+          "html": "<p>How to thread a needle and a machine, how to press instead of iron, how to read a cutting mat, and how to unpick a seam without losing patience. The quilt skills are the excuse; the quiet confidence of finishing something real is the point.</p><p>Older members mentor younger ones from the first night. A fourteen-year-old who taught a nine-year-old to tie a quilter's knot last spring is now known, accurately, as Professor Knot.</p>",
+          "style": { "bg": "tint", "width": "normal" }
+        },
+        {
+          "type": "testimonials",
+          "id": "about-quotes",
+          "variant": "grid",
+          "items": [
+            { "quote": "My daughter unpicked her own mistake, fixed it, and then explained it to me at dinner like it was nothing.", "author": "A relieved parent" },
+            { "quote": "I made a quilt for my bed and one for my cousin and the raffle quilt at school is next.", "author": "Priya, age 11" }
+          ],
+          "style": { "bg": "none", "width": "normal" }
+        }
+      ]
+    },
+    {
+      "slug": "meetings",
+      "title": "Meetings",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "meetings-hero",
+          "variant": "minimal",
+          "title": "Meetings",
+          "subtitle": "Sample text — replace me: Thursday afternoons during the school year, one long Saturday a month in summer. Snacks at four.",
+          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+        },
+        {
+          "type": "events",
+          "id": "meetings-list",
+          "variant": "list",
+          "heading": "On the calendar",
+          "limit": 6,
+          "style": { "bg": "none", "width": "wide" }
+        },
+        {
+          "type": "rich_text",
+          "id": "meetings-bring",
+          "variant": "prose",
+          "heading": "What to bring",
+          "html": "<p>Just yourself the first time. After that: your project bag, your pins if you have a favorite kind, and any fabric you have been saving. Scissors, machines, irons, and band-aids belong to the club.</p>",
+          "style": { "bg": "tint", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "projects",
+      "title": "Projects",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "projects-hero",
+          "variant": "pattern",
+          "title": "What we sew",
+          "subtitle": "Sample text — replace me: One finished thing per season, each one a little harder than the last, by choice.",
+          "style": { "bg": "pattern", "width": "wide", "align": "center", "imageId": "hero-art" }
+        },
+        {
+          "type": "feature_grid",
+          "id": "projects-list",
+          "variant": "cards",
+          "heading": "The ladder of projects",
+          "items": [
+            { "title": "Pillowcase", "body": "The starter. One straight seam, one french seam, done in an hour." },
+            { "title": "Rag quilt", "body": "Flannel squares, clipped seams, and the dryer does the decorating." },
+            { "title": "Nine-patch tote", "body": "Piecing with a purpose, plus straps that survive library books." },
+            { "title": "Strip quilt", "body": "The first real quilt, tied with yarn, labeled with a permanent pen." },
+            { "title": "Applique banner", "body": "Shapes cut from felt and stitched down for the club booth." },
+            { "title": "Free choice", "body": "Mentors on call, machines reserved, and a plan written on the whiteboard." }
+          ],
+          "style": { "bg": "none", "width": "wide" }
+        },
+        {
+          "type": "gallery",
+          "id": "projects-gallery",
+          "variant": "grid",
+          "source": "gallery",
+          "gallerySlug": "finished",
+          "style": { "bg": "tint", "width": "wide" }
+        }
+      ]
+    },
+    {
+      "slug": "gallery",
+      "title": "Gallery",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "gallery-hero",
+          "variant": "minimal",
+          "title": "What we finished",
+          "subtitle": "Sample text — replace me: Every quilt here went home with its maker, and most of them are already on a bed.",
+          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+        },
+        {
+          "type": "gallery",
+          "id": "gallery-grid",
+          "variant": "grid",
+          "source": "gallery",
+          "gallerySlug": "finished",
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "rich_text",
+          "id": "gallery-note",
+          "variant": "prose",
+          "heading": "About the photos",
+          "html": "<p>Every face on this page belongs to a member whose grown-up signed the permission slip. Quilts are photographed with first names or no names, whichever the family chose.</p>",
+          "style": { "bg": "none", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "grown-ups",
+      "title": "For Grown-ups",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "grownups-hero",
+          "variant": "minimal",
+          "title": "For parents and guardians",
+          "subtitle": "Sample text — replace me: Safety, supervision, pickup times, and where the raffle quilt money goes.",
+          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+        },
+        {
+          "type": "rich_text",
+          "id": "grownups-body",
+          "variant": "two_column",
+          "heading": "The practical details",
+          "html": "<p>Every meeting has at least three background-checked adults, including one certified in first aid. Rotary cutters live in a locked drawer and are introduced one skill at a time; the iron is hot and the rule about walking past it is absolute.</p><p>Dues are ten dollars for the year and materials are included. The spring raffle quilt is licensed through the county 4-H office and the proceeds buy fabric, thread, and the club's machines; the ledger is read at the family potluck in May.</p>",
+          "style": { "bg": "none", "width": "normal" }
+        },
+        {
+          "type": "faq",
+          "id": "grownups-faq",
+          "heading": "Common questions",
+          "items": [
+            { "q": "My child is 7. Can they join?", "a": "The club starts at 8, but a younger visitor may come with their grown-up and sew at the hand-stitching table." },
+            { "q": "Do we need a sewing machine?", "a": "No. The club owns six, and learning to share a machine is part of the first year." },
+            { "q": "What does it cost?", "a": "Ten dollars a year, with fabric and thread provided. If the ten dollars is a problem, say so quietly and it is handled." },
+            { "q": "What if we miss a meeting?", "a": "Come back anyway. Projects wait patiently in labeled bags, and no step is ever only taught once." }
+          ],
+          "style": { "bg": "tint", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "contact-hero",
+          "variant": "minimal",
+          "title": "Contact the club",
+          "subtitle": "Sample text — replace me: Registration, visiting before joining, fabric donations, and adults who would like to help.",
+          "style": { "bg": "none", "width": "narrow", "align": "center" }
+        },
+        {
+          "type": "contact",
+          "id": "contact-form",
+          "heading": "Send a message",
+          "showDetails": true,
+          "style": { "bg": "tint", "width": "normal" }
+        },
+        {
+          "type": "rich_text",
+          "id": "contact-note",
+          "variant": "prose",
+          "heading": "Donations",
+          "html": "<p>The club sews through about forty yards of cotton a season and is always glad of clean fabric, especially flannel. Biggest wish right now: safety pins, for basting the spring quilt.</p>",
+          "style": { "bg": "none", "width": "narrow" }
+        }
+      ]
+    }
+  ]
+}

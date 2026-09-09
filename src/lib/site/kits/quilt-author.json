@@ -1,0 +1,236 @@
+{
+  "id": "quilt-author",
+  "name": "Quilt Author",
+  "audience": "business",
+  "character": "A quilting author's shelf: books front and center, the tour calendar, and a letter from the writing room.",
+  "defaults": {
+    "palette": "jewel-sapphire",
+    "typePair": "playfair-lato",
+    "scale": "editorial",
+    "shape": { "radius": "sharp", "shadow": "none" },
+    "rhythm": { "spacing": "airy", "container": "narrow" },
+    "header": { "variant": "left", "sticky": true, "cta": "quote", "overlayHero": false },
+    "footer": { "variant": "columns" },
+    "pattern": { "id": "nine-patch", "opacity": 0.06 }
+  },
+  "imagery": [
+    { "id": "hero-art", "kind": "pattern", "alt": "" }
+  ],
+  "previewSeed": { "guildName": "Esther Hobbs Quilts", "city": "Sewanee, Tennessee" },
+  "menu": [
+    { "label": "Books", "href": "/books" },
+    { "label": "Tour", "href": "/tour" },
+    { "label": "About", "href": "/about" },
+    { "label": "Contact", "href": "/contact" },
+    { "label": "Book a talk", "href": "/request-a-quote" }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "minimal",
+          "eyebrow": "Quilt history, patterns, and one stubborn series",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: Four books on the shelf, a tour that visits forty guilds a year, and a letter from the writing room each month.",
+          "ctaLabel": "See the books",
+          "ctaHref": "/books",
+          "secondaryLabel": "The tour dates",
+          "secondaryHref": "/tour",
+          "style": { "bg": "none", "width": "narrow", "spacing": "airy", "align": "center" }
+        },
+        {
+          "type": "store_teaser",
+          "id": "home-books",
+          "heading": "The books",
+          "limit": 4,
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "events",
+          "id": "home-tour",
+          "variant": "next_up",
+          "heading": "On tour next",
+          "limit": 1,
+          "style": { "bg": "none", "width": "normal" }
+        },
+        {
+          "type": "testimonials",
+          "id": "home-press",
+          "variant": "single",
+          "items": [
+            { "quote": "Hobbs writes pattern instructions the way a good host sets a table: everything in reach, nothing showing off.", "author": "A quilting magazine review" }
+          ],
+          "style": { "bg": "dark", "width": "normal" }
+        },
+        {
+          "type": "cta",
+          "id": "home-book",
+          "label": "Book a talk or a workshop",
+          "href": "/request-a-quote",
+          "kind": "primary",
+          "style": { "bg": "tint", "width": "normal", "align": "center" }
+        }
+      ]
+    },
+    {
+      "slug": "books",
+      "title": "Books",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "books-hero",
+          "variant": "minimal",
+          "title": "The books",
+          "subtitle": "Sample text — replace me: In print, in stock, and signed if you ask in the notes box at checkout.",
+          "style": { "bg": "none", "width": "narrow", "align": "center" }
+        },
+        {
+          "type": "store_teaser",
+          "id": "books-list",
+          "heading": "On the shelf",
+          "limit": 8,
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "rich_text",
+          "id": "books-orders",
+          "variant": "prose",
+          "heading": "Copies and bookstores",
+          "html": "<p>Copies ordered here are signed and shipped from the writing room within the week. Bookstores and guild libraries can order through the distributor listed on the contact page, and wholesale terms are the same ones every publisher pretends are special.</p>",
+          "style": { "bg": "none", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "tour",
+      "title": "Tour",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "tour-hero",
+          "variant": "pattern",
+          "title": "The tour",
+          "subtitle": "Sample text — replace me: Forty guilds a year, one slideshow with jokes that survive retelling, and a books table run by your volunteers.",
+          "style": { "bg": "pattern", "width": "wide", "align": "center", "imageId": "hero-art" }
+        },
+        {
+          "type": "events",
+          "id": "tour-list",
+          "variant": "cards",
+          "heading": "Where this year goes",
+          "limit": 6,
+          "style": { "bg": "none", "width": "wide" }
+        },
+        {
+          "type": "rich_text",
+          "id": "tour-host",
+          "variant": "prose",
+          "heading": "Hosting a stop",
+          "html": "<p>A stop is an evening lecture, or a lecture plus a next-day workshop for twenty. The guild provides the room, the projector, and one hotel night; the books table handles itself with two volunteers and a pen that signs quilts too, if you ask nicely.</p>",
+          "style": { "bg": "tint", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "about-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A quilt historian who started asking grandmothers one more question and never found the bottom of it.",
+          "style": { "bg": "tint", "width": "narrow", "align": "center", "spacing": "airy" }
+        },
+        {
+          "type": "rich_text",
+          "id": "about-body",
+          "variant": "two_column",
+          "heading": "The writing room",
+          "html": "<p>The first book happened because a guild lecture kept running long and nobody minded. The publisher who sat in the back row took a chance, and the second book happened because the first left questions unanswered on purpose, a trick I learned from the quilts.</p><p>Research here runs on county archives, church raffle records, and the letters strangers send after a talk. The monthly letter from the writing room goes out to readers who want the finds before they become chapters.</p>",
+          "style": { "bg": "none", "width": "normal" }
+        },
+        {
+          "type": "testimonials",
+          "id": "about-quote",
+          "variant": "single",
+          "items": [
+            { "quote": "Our lecture ran forty minutes over and the membership voted at the business meeting to blame the bylaws, not the speaker.", "author": "A program chair, Tennessee" }
+          ],
+          "style": { "bg": "tint", "width": "normal" }
+        }
+      ]
+    },
+    {
+      "slug": "request-a-quote",
+      "title": "Book a Talk",
+      "nav": false,
+      "navLabel": "Book a talk",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "quote-hero",
+          "variant": "minimal",
+          "title": "Book a talk",
+          "subtitle": "Sample text — replace me: Lecture or workshop, the date, and how far the drive is. The calendar answers within two days.",
+          "style": { "bg": "none", "width": "narrow", "align": "center" }
+        },
+        {
+          "type": "quote_cta",
+          "id": "quote-form",
+          "projectType": "lecture",
+          "heading": "Guild booking",
+          "submitLabel": "Check a date",
+          "style": { "bg": "tint", "width": "normal" }
+        },
+        {
+          "type": "rich_text",
+          "id": "quote-fees",
+          "variant": "prose",
+          "heading": "Fees and travel",
+          "html": "<p>Lectures and workshops are priced on the fee sheet sent with the reply, and travel is shared when two guilds within an hour book the same week. Guilds that cannot afford the fee should write anyway; the fund from the books table exists exactly for that.</p>",
+          "style": { "bg": "none", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "contact-hero",
+          "variant": "minimal",
+          "title": "Write to the writing room",
+          "subtitle": "Sample text — replace me: Reader letters, research questions, and corrections are all read, and corrections are thanked.",
+          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+        },
+        {
+          "type": "contact",
+          "id": "contact-form",
+          "heading": "Send a message",
+          "showDetails": true,
+          "style": { "bg": "none", "width": "normal" }
+        },
+        {
+          "type": "rich_text",
+          "id": "contact-research",
+          "variant": "prose",
+          "heading": "A quilt with a story",
+          "html": "<p>If you own a quilt with a mystery, write the whole story down before you write to me. Half the answers arrive while you are typing, and the rest make better letters than questions.</p>",
+          "style": { "bg": "tint", "width": "narrow" }
+        }
+      ]
+    }
+  ]
+}

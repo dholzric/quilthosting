@@ -1,0 +1,235 @@
+{
+  "id": "guys-who-quilt",
+  "name": "Guys Who Quilt",
+  "audience": "guild",
+  "character": "Sawdust, sashings, and zero apologies: a social guild where the sewing machines outnumber the grills.",
+  "defaults": {
+    "palette": "seasonal-harvest",
+    "typePair": "bitter-opensans",
+    "scale": "comfortable",
+    "shape": { "radius": "sharp", "shadow": "none" },
+    "rhythm": { "spacing": "normal", "container": "normal" },
+    "header": { "variant": "left", "sticky": true, "cta": "join", "overlayHero": false },
+    "footer": { "variant": "meeting" },
+    "pattern": { "id": "bear-paw", "opacity": 0.12 }
+  },
+  "imagery": [
+    { "id": "hero-art", "kind": "pattern", "alt": "" }
+  ],
+  "previewSeed": { "guildName": "Iron & Oak Quilting Club", "city": "Knoxville, Tennessee" },
+  "menu": [
+    { "label": "Builds", "href": "/builds" },
+    { "label": "Events", "href": "/events" },
+    { "label": "Join", "href": "/why-join" },
+    { "label": "About", "href": "/about" },
+    { "label": "Contact", "href": "/contact" }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "pattern",
+          "eyebrow": "A quilting club that started in a garage and never bought folding chairs",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: Six friends, one borrowed Featherweight, and a rule that nobody explains why they quilt unless they feel like it.",
+          "ctaLabel": "Join the club",
+          "ctaHref": "/why-join",
+          "secondaryLabel": "See the builds",
+          "secondaryHref": "/builds",
+          "style": { "bg": "pattern", "width": "wide", "spacing": "airy", "imageId": "hero-art" }
+        },
+        {
+          "type": "rich_text",
+          "id": "home-club",
+          "variant": "two_column",
+          "heading": "What the club is",
+          "html": "<p>The club met first because a deer stand needed reupholstering and the man with the machine needed helpers. The upholstery took an hour and the machines took over the garage. Now it is first Thursdays for shop night, third Saturdays for a build, and whenever the group text says the Featherweight is free.</p><p>Skills run from thirty years of garment sewing to a membership that bought its first seam ripper last month, and the club policy on that is the same as on biscuits: bring what you have, there is plenty.</p>",
+          "style": { "bg": "none", "width": "wide" }
+        },
+        {
+          "type": "feature_grid",
+          "id": "home-life",
+          "variant": "icons",
+          "heading": "The club calendar",
+          "items": [
+            { "icon": "🪚", "title": "Shop night", "body": "First Thursdays in the garage. Machines, mats, and one project that never seems to end.", "href": "/events" },
+            { "icon": "🧢", "title": "Flannel and flannel", "body": "The plaid exchange, every October. Bring a shirt you are done with; leave with someone else's.", "href": "/builds" },
+            { "icon": "🎖", "title": "Charity builds", "body": "Cot quilts for the veterans' center, built assembly-line style with coffee and charts.", "href": "/builds" },
+            { "icon": "⛺", "title": "The weekend build", "body": "One quilt, two days, at the lake cabin with the good tables.", "href": "/builds" }
+          ],
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "events",
+          "id": "home-events",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": { "bg": "none", "width": "wide" }
+        },
+        {
+          "type": "gallery",
+          "id": "home-gallery",
+          "variant": "grid",
+          "source": "gallery",
+          "gallerySlug": "builds",
+          "heading": "Finished, mostly",
+          "style": { "bg": "dark", "width": "wide" }
+        },
+        {
+          "type": "join_band",
+          "id": "home-join",
+          "title": "Dues are twenty dollars",
+          "body": "Snacks included, machines provided if yours is on the bench, and zero questions about why.",
+          "ctaLabel": "Join the club",
+          "style": { "bg": "brand", "width": "full", "align": "center" }
+        }
+      ]
+    },
+    {
+      "slug": "builds",
+      "title": "The Builds",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "builds-hero",
+          "variant": "pattern",
+          "title": "The builds",
+          "subtitle": "Sample text — replace me: Group projects with a materials list, a deadline, and a veto rule for patterns with more than sixty pieces.",
+          "style": { "bg": "pattern", "width": "wide", "align": "center", "imageId": "hero-art" }
+        },
+        {
+          "type": "feature_grid",
+          "id": "builds-list",
+          "variant": "cards",
+          "heading": "This year's slate",
+          "items": [
+            { "title": "Cot quilt build", "body": "Assembly line, twelve tops in a Saturday, batting by the roll.", "price": "$25 a head", "href": "/why-join" },
+            { "title": "The garage-sale log cabin", "body": "Scrap build from everybody's discard pile. No two blocks agree, which is the point.", "price": "$10 a head" },
+            { "title": "Flannel and flannel", "body": "The October plaid exchange, quilted heavy for the hunting cabin auction.", "price": "shirt in, quilt out" },
+            { "title": "Weekend build", "body": "Lake cabin, two days, one queen top. Spouses welcome, opinions welcome, whining heard." }
+          ],
+          "style": { "bg": "none", "width": "wide" }
+        },
+        {
+          "type": "gallery",
+          "id": "builds-gallery",
+          "variant": "grid",
+          "source": "gallery",
+          "gallerySlug": "builds",
+          "style": { "bg": "tint", "width": "wide" }
+        }
+      ]
+    },
+    {
+      "slug": "why-join",
+      "title": "Join",
+      "nav": false,
+      "navLabel": "Join",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "join-hero",
+          "variant": "minimal",
+          "title": "Join the club",
+          "subtitle": "Sample text — replace me: Twenty dollars a year, a garage full of machines, and the absence of any question you have heard before.",
+          "style": { "bg": "tint", "width": "narrow", "align": "center", "spacing": "airy" }
+        },
+        {
+          "type": "rich_text",
+          "id": "join-includes",
+          "variant": "prose",
+          "heading": "What dues cover",
+          "html": "<p>Snacks, machine maintenance, the charity batting, and the lake cabin's electric bill on build weekends. <a href=\"/membership\">Open the membership form</a> and show up whenever the calendar and your conscience allow.</p>",
+          "style": { "bg": "none", "width": "narrow" }
+        },
+        {
+          "type": "membership_levels",
+          "id": "join-levels",
+          "variant": "cards",
+          "heading": "Levels",
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "faq",
+          "id": "join-faq",
+          "heading": "New member questions",
+          "items": [
+            { "q": "I have never sewn anything.", "a": "Half the club started here. Shop night will hand you a project bag and a person whose job is to teach the seam." },
+            { "q": "Is it actually all men?", "a": "Mostly, at the moment, and by accident rather than policy. Guests are always welcome and half the best ideas come from the visitors." },
+            { "q": "What should I bring?", "a": "Nothing the first time. The club machines are serviced, the stash is communal, and the biscuits arrive whether or not you do." }
+          ],
+          "style": { "bg": "none", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "about-hero",
+          "variant": "minimal",
+          "title": "About the club",
+          "subtitle": "Sample text — replace me: Founded over one reupholstery job and formalized over chili, which explains the bylaws' tone.",
+          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+        },
+        {
+          "type": "rich_text",
+          "id": "about-body",
+          "variant": "two_column",
+          "html": "<p>The founding document is one page and mostly about the biscuit budget. Everything else grew: the charity builds found the veterans' center, the veterans' center found six more members, and one member's mother taught the whole club to bind properly in an afternoon that regulars still describe as the day the quilts got good.</p><p>The club quilts for the same reason it meets: it is better in company, and finished things should go where they are needed. Everything else is conversation.</p>",
+          "style": { "bg": "tint", "width": "normal" }
+        },
+        {
+          "type": "testimonials",
+          "id": "about-quote",
+          "variant": "single",
+          "items": [
+            { "quote": "My husband joined for the jokes and stayed for the paper piecing. Our guest room is now unusable and magnificent.", "author": "A club spouse" }
+          ],
+          "style": { "bg": "none", "width": "normal" }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "contact-hero",
+          "variant": "minimal",
+          "title": "Contact the club",
+          "subtitle": "Sample text — replace me: Membership, charity build requests, and directions to the garage with the good lights.",
+          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+        },
+        {
+          "type": "contact",
+          "id": "contact-form",
+          "heading": "Send a message",
+          "showDetails": true,
+          "style": { "bg": "none", "width": "normal" }
+        },
+        {
+          "type": "meeting_info",
+          "id": "contact-garage",
+          "heading": "The garage",
+          "when": "First Thursdays, 6:30 pm",
+          "where": "{{city}}",
+          "note": "Driveway parking fills early. The good space is behind the truck, which travels on build weekends.",
+          "style": { "bg": "brand", "width": "wide" }
+        }
+      ]
+    }
+  ]
+}

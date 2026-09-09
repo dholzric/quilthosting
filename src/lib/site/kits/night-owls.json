@@ -1,0 +1,339 @@
+{
+  "id": "night-owls",
+  "name": "Night Owls",
+  "audience": "guild",
+  "character": "Ink and rose after hours: a guild for people who get off work at 8 and sew when the rest of the town has gone to bed.",
+  "defaults": {
+    "scale": "comfortable",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "split",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "none",
+      "opacity": 0
+    },
+    "palette": "dark-ink-rose",
+    "typePair": "manrope"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Second Shift Quilt Guild",
+    "city": "Chicago, Illinois"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "minimal",
+          "eyebrow": "Late-night quilting in {{city}}",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: {{guild_name}} meets {{meeting_info}}, which is later than other guilds on purpose. If you work a restaurant, a hospital, or a closing shift, this is the room.",
+          "ctaLabel": "Join",
+          "ctaHref": "/membership",
+          "secondaryLabel": "Hours",
+          "secondaryHref": "/late",
+          "style": {
+            "bg": "dark",
+            "width": "narrow",
+            "spacing": "airy",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "when",
+          "heading": "When we sew",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "note": "Doors at 8:30 p.m. Sewing until 11. The building wants us out at 11:15. Coffee is decaf after 10.",
+          "style": {
+            "bg": "none"
+          }
+        },
+        {
+          "type": "events",
+          "id": "upcoming",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "life",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Late sew",
+              "body": "No morning bees. No lunch sit-and-sew. If you are free at 10 a.m. this is not your guild.",
+              "href": "/late"
+            },
+            {
+              "title": "Quiet hour",
+              "body": "10 to 11 is machines only, talk down. Some of us came from a loud job."
+            },
+            {
+              "title": "Transit",
+              "body": "We end in time for the last reliable train. If you drive, the lot is lit."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "join_band",
+          "id": "join",
+          "title": "Join {{guild_name}}",
+          "body": "Dues are collected once a year.",
+          "ctaLabel": "See dues",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A guild that refuses to meet when night workers are still on the floor.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "How we started",
+          "html": "<p><em>Sample text — replace me:</em> Daytime guilds are not hostile. They are timed for people who are free at 6. {{guild_name}} is timed for the rest of {{city}}. We still have show and tell. We still have dues. We do not apologize for starting when the dinner shift ends.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "a-year",
+          "variant": "numbered",
+          "items": [
+            {
+              "title": "Winter",
+              "body": "Same hours. Dress for the wait at the bus."
+            },
+            {
+              "title": "Summer",
+              "body": "Still 8:30. Daylight is not our clock."
+            },
+            {
+              "title": "One Saturday",
+              "body": "October, for the people who want a daylight sew once a year. Optional."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          },
+          "heading": "A year with us"
+        }
+      ]
+    },
+    {
+      "slug": "late",
+      "title": "How Late",
+      "nav": true,
+      "navLabel": "Hours",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "s-hero",
+          "variant": "minimal",
+          "title": "How Late",
+          "subtitle": "Sample text — replace me: The clock, the building, and how we keep the last hour quiet.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "l-body",
+          "variant": "prose",
+          "heading": "The last hour",
+          "html": "<p><em>Sample text — replace me:</em> From 10 p.m. we sew. Announcements already happened. If you arrive at 10:05 you sit down and stitch. Questions go to a note on the design wall, not a room-wide pause.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "l-when",
+          "heading": "The night",
+          "when": "{{meeting_info}}",
+          "where": "the third-floor room in {{city}}",
+          "note": "Buzzer code in the newsletter. Do not hold the street door open.",
+          "style": {
+            "bg": "none"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "why-join",
+      "title": "Join",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "j-hero",
+          "variant": "minimal",
+          "title": "Membership",
+          "subtitle": "Sample text — replace me: Dues cover a room that other groups do not want at that hour, which is why we can afford it.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "membership_levels",
+          "id": "levels",
+          "variant": "cards",
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "j-faq",
+          "items": [
+            {
+              "q": "I work days. May I join anyway?",
+              "a": "If you will come at 8:30 p.m., yes. If you want a 6 p.m. guild, there are several."
+            },
+            {
+              "q": "Is it safe to leave at 11?",
+              "a": "We walk out together. The lot is shared with the clinic next door. Nobody waits alone by a car."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "meetings",
+      "title": "Meetings",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "m-hero",
+          "variant": "minimal",
+          "title": "Meetings",
+          "subtitle": "Sample text — replace me: We meet {{meeting_info}} in {{city}}.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "m-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "events",
+          "id": "m-list",
+          "variant": "list",
+          "heading": "On the calendar",
+          "limit": 8,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Programs, dues, and the door code.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "dark"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,352 @@
+{
+  "id": "hand-quilters",
+  "name": "Hand Quilters",
+  "audience": "guild",
+  "character": "Forest and cream, a hoop on every lap: big-stitch, rocking stitch, and thimbles that have names.",
+  "defaults": {
+    "scale": "editorial",
+    "shape": {
+      "radius": "soft",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "narrow"
+    },
+    "header": {
+      "variant": "centered",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "meeting"
+    },
+    "pattern": {
+      "id": "bear-paw",
+      "opacity": 0.1
+    },
+    "palette": "dark-forest-cream",
+    "typePair": "playfair-lato"
+  },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Thimble & Frame",
+    "city": "Asheville, North Carolina"
+  },
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "pattern",
+          "eyebrow": "Hand quilting in {{city}}",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: {{guild_name}} quilts by hand. Machines stay home. We meet {{meeting_info}} with hoops, frames, and a pot of tea.",
+          "ctaLabel": "Join",
+          "ctaHref": "/membership",
+          "secondaryLabel": "Frames",
+          "secondaryHref": "/frames",
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "spacing": "airy",
+            "media": "right",
+            "imageId": "hero-art"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "when",
+          "heading": "Stitch night",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "note": "Chairs in a ring. A standing frame in the corner for anyone who wants to try a larger quilt. Needles in a tin if you forgot yours.",
+          "style": {
+            "bg": "none"
+          }
+        },
+        {
+          "type": "events",
+          "id": "upcoming",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "life",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Hoop circle",
+              "body": "Eighteen-inch hoops, big stitch or rocking stitch, whatever your hands prefer that week.",
+              "href": "/frames"
+            },
+            {
+              "title": "Standing frame",
+              "body": "A full quilt on poles. Two or three people can sit a side. Sign the sleeve when you add a row."
+            },
+            {
+              "title": "Thimble swap",
+              "body": "Leather, metal, and the ones with a ridge. Try before you buy a new one."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "join_band",
+          "id": "join",
+          "title": "Join {{guild_name}}",
+          "body": "Dues are collected once a year.",
+          "ctaLabel": "See dues",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: A hand-work guild in {{city}}. We do not plug anything in.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "heading": "How we started",
+          "html": "<p><em>Sample text — replace me:</em> {{guild_name}} grew out of a bee that refused to move to machines when the rest of the town did. We still piece on machines at home. The quilting, the part that shows, is done with a needle. Whole cloth, sashiko-adjacent running stitch, and the old rocking stitch all sit at the same table.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "a-year",
+          "variant": "numbered",
+          "items": [
+            {
+              "title": "Spring whole cloth",
+              "body": "One marked top, no piecing, everyone quilts a section at the frame."
+            },
+            {
+              "title": "Summer porch",
+              "body": "Outdoor stitch nights when the room is too warm. Bring a clamp light."
+            },
+            {
+              "title": "Winter slow",
+              "body": "Shorter meetings, heavier thread, wool batting samples on the side table."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          },
+          "heading": "A year with us"
+        }
+      ]
+    },
+    {
+      "slug": "frames",
+      "title": "Hoops and Frames",
+      "nav": true,
+      "navLabel": "Frames",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "s-hero",
+          "variant": "minimal",
+          "title": "Hoops and Frames",
+          "subtitle": "Sample text — replace me: What we keep in the room and what you should bring.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "f-gear",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Hoops",
+              "body": "We have 14 and 18 inch. Q-snaps live in a bin. Bring your own if you are particular about tension."
+            },
+            {
+              "title": "The oak frame",
+              "body": "Takes a queen. We roll together at 7:15. Do not turn a pole without the person on the other side."
+            },
+            {
+              "title": "Thread",
+              "body": "Cotton 28wt and 12wt on the shelf. Silk if you ask. We do not keep polyester in the tin."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "f-note",
+          "variant": "prose",
+          "heading": "Hands",
+          "html": "<p><em>Sample text — replace me:</em> If arthritis has changed your stitch, say so. We have larger needles and a table clamp. Hand quilting here is not a contest for tiny stitches.</p>",
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "why-join",
+      "title": "Join",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "j-hero",
+          "variant": "minimal",
+          "title": "Membership",
+          "subtitle": "Sample text — replace me: Dues keep the room, the tea, and the oak frame in good repair.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "membership_levels",
+          "id": "levels",
+          "variant": "cards",
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "j-faq",
+          "items": [
+            {
+              "q": "May I bring a machine-quilted top to bind?",
+              "a": "Bind at home or at a finishing guild. This night is for stitching in the quilt."
+            },
+            {
+              "q": "I have never hand quilted.",
+              "a": "Sit next to someone on the frame. The first ten minutes are the lesson."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "meetings",
+      "title": "Meetings",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "m-hero",
+          "variant": "minimal",
+          "title": "Meetings",
+          "subtitle": "Sample text — replace me: We meet {{meeting_info}} in {{city}}.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "m-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "events",
+          "id": "m-list",
+          "variant": "list",
+          "heading": "On the calendar",
+          "limit": 8,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
+          "title": "Contact {{guild_name}}",
+          "subtitle": "Sample text — replace me: Programs, dues, and the door code.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-when",
+          "when": "{{meeting_info}}",
+          "where": "the room we rent in {{city}}",
+          "style": {
+            "bg": "dark"
+          }
+        }
+      ]
+    }
+  ]
+}

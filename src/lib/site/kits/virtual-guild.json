@@ -1,0 +1,320 @@
+{
+  "id": "virtual-guild",
+  "name": "Virtual Guild",
+  "audience": "guild",
+  "character": "An online-first guild: bold sans, screen-friendly rhythm, members from forty states who meet on video and swap by mail.",
+  "defaults": {
+    "palette": "modern-slate-lime",
+    "typePair": "spacegrotesk-worksans",
+    "scale": "compact",
+    "shape": { "radius": "sharp", "shadow": "none" },
+    "rhythm": { "spacing": "tight", "container": "normal" },
+    "header": { "variant": "left", "sticky": true, "cta": "join", "overlayHero": false },
+    "footer": { "variant": "columns" },
+    "pattern": { "id": "flying-geese", "opacity": 0.12 }
+  },
+  "imagery": [
+    { "id": "hero-art", "kind": "pattern", "alt": "" }
+  ],
+  "previewSeed": { "guildName": "Patchwork Commons", "city": "Portland, Oregon" },
+  "menu": [
+    { "label": "About", "href": "/about" },
+    { "label": "Join", "href": "/membership" },
+    { "label": "Programs", "href": "/programs" },
+    { "label": "Show & Tell", "href": "/show-and-tell" },
+    { "label": "Bees", "href": "/bees" },
+    { "label": "Events", "href": "/events" },
+    { "label": "Contact", "href": "/contact" }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "welcome",
+          "variant": "pattern",
+          "eyebrow": "An online guild with members in forty states",
+          "title": "{{guild_name}}",
+          "subtitle": "Sample text — replace me: Meetings on video the second Saturday of the month, bees that never need a ride, and swaps that arrive by mail.",
+          "ctaLabel": "Join the guild",
+          "ctaHref": "/membership",
+          "secondaryLabel": "See the programs",
+          "secondaryHref": "/programs",
+          "style": { "bg": "pattern", "width": "wide", "spacing": "airy", "imageId": "hero-art" }
+        },
+        {
+          "type": "meeting_info",
+          "id": "when-where",
+          "heading": "When we meet",
+          "when": "{{meeting_info}}",
+          "where": "On video, from wherever you are",
+          "note": "The link goes out in the newsletter, and recordings post within the week for members in other time zones.",
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "events",
+          "id": "upcoming",
+          "variant": "cards",
+          "heading": "Workshops and sew-alongs",
+          "limit": 3,
+          "style": { "bg": "none", "width": "wide" }
+        },
+        {
+          "type": "feature_grid",
+          "id": "how-it-works",
+          "variant": "icons",
+          "heading": "How the guild works",
+          "items": [
+            { "icon": "🎥", "title": "Monthly meetings", "body": "One hour of program, one of show and tell. Cameras optional, quilts welcome.", "href": "/programs" },
+            { "icon": "✉", "title": "Mail swaps", "body": "Fat quarters, orphan blocks, and quilted postcards, matched by the swap chair.", "href": "/bees" },
+            { "icon": "▶", "title": "The recording library", "body": "Every workshop since 2021 stays available to members, closed-captioned.", "href": "/programs" },
+            { "icon": "🕒", "title": "Time-zone bees", "body": "Three evening bees: Atlantic, Central, and Pacific, so nobody sews alone at midnight.", "href": "/bees" }
+          ],
+          "style": { "bg": "dark", "width": "wide" }
+        },
+        {
+          "type": "gallery",
+          "id": "recent",
+          "variant": "grid",
+          "source": "gallery",
+          "gallerySlug": "show-and-tell",
+          "heading": "From the last meeting",
+          "style": { "bg": "none", "width": "wide" }
+        },
+        {
+          "type": "join_band",
+          "id": "join-home",
+          "title": "Your dues, wherever you are",
+          "body": "Thirty dollars a year covers the programs, the recording library, and every bee.",
+          "ctaLabel": "Join the guild",
+          "style": { "bg": "brand", "width": "full", "align": "center" }
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "about-hero",
+          "variant": "minimal",
+          "eyebrow": "Meeting online since 2020",
+          "title": "About {{guild_name}}",
+          "subtitle": "Sample text — replace me: We started when a local guild went on video for one winter and half of it never went back.",
+          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+        },
+        {
+          "type": "rich_text",
+          "id": "about-body",
+          "variant": "two_column",
+          "heading": "No meeting hall required",
+          "html": "<p>Our members live on farms, in dorms, and on two continents. What holds the guild together is a shared calendar, a mailing list that stays on topic, and a rule that show and tell belongs to everyone: photos count as much as live video.</p><p>We keep one foot on the ground, too. Chapters of two or three meet in person where they can, and the annual retreat is the weekend the whole guild finally shares a room.</p>",
+          "style": { "bg": "tint", "width": "normal" }
+        },
+        {
+          "type": "feature_grid",
+          "id": "about-year",
+          "variant": "numbered",
+          "heading": "How a year looks",
+          "items": [
+            { "title": "Winter", "body": "The retreat weekend and the design-wall challenge, announced in January." },
+            { "title": "Spring", "body": "Guest teachers over video, one per month, recorded for the library." },
+            { "title": "Summer", "body": "Sew-along season: one quilt, ten weeks, a thread for every step." },
+            { "title": "Fall", "body": "The mail-swap reveal meeting and elections that take eleven minutes." }
+          ],
+          "style": { "bg": "none", "width": "wide" }
+        },
+        {
+          "type": "testimonials",
+          "id": "about-quotes",
+          "variant": "grid",
+          "items": [
+            { "quote": "I have not missed a meeting since I joined, and I live four hours from the nearest guild hall.", "author": "Rosa, member since 2021" },
+            { "quote": "My mail-swap partner sent orchid fabric from Hawaii. My block went to Nova Scotia.", "author": "Jean, Atlantic bee" }
+          ],
+          "style": { "bg": "dark", "width": "normal" }
+        }
+      ]
+    },
+    {
+      "slug": "programs",
+      "title": "Programs",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "programs-hero",
+          "variant": "minimal",
+          "title": "Programs and workshops",
+          "subtitle": "Sample text — replace me: Teachers join by video, supply lists post a month ahead, and kits ship where shipping beats driving.",
+          "style": { "bg": "none", "width": "narrow", "align": "center" }
+        },
+        {
+          "type": "events",
+          "id": "programs-list",
+          "variant": "list",
+          "heading": "On the calendar",
+          "limit": 6,
+          "style": { "bg": "tint", "width": "wide" }
+        },
+        {
+          "type": "rich_text",
+          "id": "programs-how",
+          "variant": "prose",
+          "heading": "How a workshop runs",
+          "html": "<p>Register on the event page and the supply list arrives by email. Kit orders ship the week before class. Workshops are recorded and stay in the member library, so a time zone is never a disqualification.</p>",
+          "style": { "bg": "none", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "show-and-tell",
+      "title": "Show & Tell",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "sat-hero",
+          "variant": "minimal",
+          "title": "Show and tell",
+          "subtitle": "Sample text — replace me: The last half hour of every meeting. Photos welcome, wobbly first blocks encouraged.",
+          "style": { "bg": "dark", "width": "wide", "align": "center", "spacing": "airy" }
+        },
+        {
+          "type": "gallery",
+          "id": "sat-gallery",
+          "variant": "grid",
+          "source": "gallery",
+          "gallerySlug": "show-and-tell",
+          "heading": "Recent finishes",
+          "style": { "bg": "none", "width": "wide" }
+        },
+        {
+          "type": "rich_text",
+          "id": "sat-rules",
+          "variant": "prose",
+          "heading": "How it works on a screen",
+          "html": "<p>Hold the quilt close to the camera, then step back so we can see the whole top. Say who pieced it, who quilted it, and what you learned. Send photos ahead to the moderator if your connection is slow, and they will run the slide while you talk.</p>",
+          "style": { "bg": "tint", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "bees",
+      "title": "Bees",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "bees-hero",
+          "variant": "pattern",
+          "title": "Bees that never need a ride",
+          "subtitle": "Sample text — replace me: Small groups on video, one evening bee per time zone, and swaps that keep the mailbox interesting.",
+          "ctaLabel": "Join the guild",
+          "ctaHref": "/membership",
+          "style": { "bg": "pattern", "width": "wide", "align": "center", "imageId": "hero-art" }
+        },
+        {
+          "type": "feature_grid",
+          "id": "bees-list",
+          "variant": "cards",
+          "heading": "Find your evening",
+          "items": [
+            { "title": "Atlantic bee", "body": "Tuesdays at 7 Eastern. Hand piecing and shop talk, cameras down by eight." },
+            { "title": "Central bee", "body": "Wednesdays at 7. Machine piecing with a monthly technique warm-up." },
+            { "title": "Pacific bee", "body": "Thursdays at 7. Long, chatty, and the origin of the guild's mending nights." },
+            { "title": "The swap table", "body": "Quarterly mail swaps matched by the swap chair. Postcard quilts in October." }
+          ],
+          "style": { "bg": "none", "width": "wide" }
+        },
+        {
+          "type": "rich_text",
+          "id": "bees-note",
+          "variant": "prose",
+          "heading": "New to bees",
+          "html": "<p>Every bee keeps two open seats for new members, and the swap chair matches first-timers with a partner who has been warned that you are new. That is the whole initiation.</p>",
+          "style": { "bg": "tint", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "why-join",
+      "title": "Membership",
+      "nav": false,
+      "navLabel": "Join",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "join-hero",
+          "variant": "minimal",
+          "title": "Membership in {{guild_name}}",
+          "subtitle": "Sample text — replace me: Thirty dollars a year, no hall to drive to, and a guild that meets you where your machine is plugged in.",
+          "ctaLabel": "Choose a level",
+          "ctaHref": "/membership",
+          "style": { "bg": "tint", "width": "narrow", "align": "center", "spacing": "airy" }
+        },
+        {
+          "type": "membership_levels",
+          "id": "join-levels",
+          "variant": "cards",
+          "heading": "Levels",
+          "style": { "bg": "none", "width": "wide" }
+        },
+        {
+          "type": "rich_text",
+          "id": "join-includes",
+          "variant": "prose",
+          "heading": "What dues cover",
+          "html": "<p>Monthly meetings and their recordings, every bee, the workshop library, swap matching, and the retreat registration discount. <a href=\"/membership\">Open the membership form</a> and pick a level; the welcome email includes the next meeting link and the current sew-along thread.</p>",
+          "style": { "bg": "tint", "width": "narrow" }
+        },
+        {
+          "type": "faq",
+          "id": "join-faq",
+          "heading": "Before you join",
+          "items": [
+            { "q": "Do I have to be on camera?", "a": "No. Plenty of members sew along with cameras off and send photos for show and tell instead." },
+            { "q": "I am not in the United States. Can I join?", "a": "Yes. We have members in Canada, the UK, and Australia. Workshops post in three time zones on the calendar." },
+            { "q": "Can I cancel?", "a": "Any time, from the members portal. Dues are not prorated, but the recording library stays open through the year you paid for." }
+          ],
+          "style": { "bg": "none", "width": "narrow" }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "contact-hero",
+          "variant": "minimal",
+          "title": "Write to {{guild_name}}",
+          "subtitle": "Sample text — replace me: Program pitches, swap questions, and press requests all land in the same inbox, answered between stitches.",
+          "style": { "bg": "none", "width": "narrow", "align": "center" }
+        },
+        {
+          "type": "contact",
+          "id": "contact-form",
+          "heading": "Send a message",
+          "showDetails": true,
+          "style": { "bg": "tint", "width": "normal" }
+        },
+        {
+          "type": "rich_text",
+          "id": "contact-mail",
+          "variant": "prose",
+          "heading": "For the mail swaps",
+          "html": "<p>Swap parcels go to the guild post office box listed in the newsletter. Put your forum name on the return label so your partner can thank the right quilter.</p>",
+          "style": { "bg": "none", "width": "narrow" }
+        }
+      ]
+    }
+  ]
+}
