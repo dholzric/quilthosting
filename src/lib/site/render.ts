@@ -368,7 +368,10 @@ function telLink(phone: string): string {
 }
 
 function col(title: string, body: string): string {
-  return body ? `<div class="qh-footer__col"><h3>${esc(title)}</h3>${body}</div>` : "";
+  // A footer column heading is level 2: a page whose content is only a
+  // system list (e.g. /events) has no <h2>, so an <h3> here would make the
+  // document jump h1 -> h3. The visual size comes from the class, not the tag.
+  return body ? `<div class="qh-footer__col"><h2 class="qh-footer__heading">${esc(title)}</h2>${body}</div>` : "";
 }
 
 function aboutColumn(args: SitePageArgs, identity: SeoBusiness, profile: SiteProfile, siteName: string): string {

@@ -584,7 +584,7 @@ form.qh-form{display:flex;flex-direction:column;gap:.8rem;max-width:34rem}
 .qh-footer a:hover{color:var(--_primary)}
 .qh-footer--simple .qh-footer__inner{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1rem}
 .qh-footer--columns .qh-footer__cols,.qh-footer--meeting .qh-footer__cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr));gap:2rem;margin-bottom:2rem}
-.qh-footer__col h3{font-family:var(--_body);font-size:.8rem;text-transform:uppercase;letter-spacing:.1em;color:var(--_ink);margin-bottom:.75rem}
+.qh-footer__col h3,.qh-footer__heading{font-family:var(--_body);font-size:.8rem;text-transform:uppercase;letter-spacing:.1em;color:var(--_ink);margin-bottom:.75rem}
 .qh-footer__col ul{list-style:none;margin:0;padding:0}
 .qh-footer__col li a{display:inline-flex;align-items:center;min-height:32px;text-decoration:none}
 .qh-footer__col li a:hover{text-decoration:underline}
