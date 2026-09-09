@@ -12,6 +12,7 @@ import {
   normalizeDomainStatus,
   type OnboardingTenant,
 } from "../lib/onboarding";
+import { featuresSchema, uiSchema } from "../lib/features";
 import { DEFAULT_DESIGN, PATTERN_IDS, deriveRoles, designFontsHref, siteDesignSchema } from "../lib/site/design/tokens";
 import { PALETTES, PALETTE_FAMILIES, PALETTE_FAMILY_LABELS } from "../lib/site/design/palettes";
 import { TYPE_PAIRS } from "../lib/site/design/typePairs";
@@ -347,6 +348,32 @@ export function validateDesignSettings(
   return issues.length ? { ok: false, issues } : { ok: true, settings: out };
 }
 
+/**
+ * Validate the two switch keys a tenant PATCH may carry (phase 3, Task A):
+ * `settings.ui` (the Simple/Advanced switch) and `settings.features` (the
+ * capability flags). Returns the settings with both normalised -- unknown
+ * feature keys dropped so a stale key can never wedge an otherwise valid
+ * save -- or the issues to send back as a 400. Every other key is passed
+ * through untouched; the admin always sends the merged settings object.
+ */
+export function validateSwitchSettings(
+  settings: Record<string, unknown>
+): { ok: true; settings: Record<string, unknown> } | { ok: false; issues: { path: string; message: string }[] } {
+  const out = { ...settings };
+  const issues: { path: string; message: string }[] = [];
+  if (out.ui !== undefined) {
+    const r = uiSchema.safeParse(out.ui);
+    if (r.success) out.ui = r.data;
+    else issues.push(...r.error.issues.map((i) => ({ path: ["settings", "ui", ...i.path].join("."), message: i.message })));
+  }
+  if (out.features !== undefined) {
+    const r = featuresSchema.safeParse(out.features);
+    if (r.success) out.features = r.data;
+    else issues.push(...r.error.issues.map((i) => ({ path: ["settings", "features", ...i.path].join("."), message: i.message })));
+  }
+  return issues.length ? { ok: false, issues } : { ok: true, settings: out };
+}
+
 const SYSTEM_STACK = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
 function fontStackFor(key: string): string {
   return key === "system" ? SYSTEM_STACK : (FONT_OPTIONS[key]?.cssStack ?? FONT_OPTIONS.inter.cssStack);
@@ -482,8 +509,13 @@ tenantRoutes.patch("/:id", async (c) => {
     // renderer; everything else in settings is the tenant's own business.
     const checked = validateDesignSettings(body.settings);
     if (!checked.ok) return c.json({ error: "Invalid settings", issues: checked.issues }, 400);
+    // settings.ui (Simple/Advanced) and settings.features (capability
+    // switches) are validated the same way -- a bad value never reaches the
+    // sidebar or a feature gate.
+    const switched = validateSwitchSettings(checked.settings);
+    if (!switched.ok) return c.json({ error: "Invalid settings", issues: switched.issues }, 400);
     fields.push("settings_json = ?");
-    params.push(JSON.stringify(checked.settings));
+    params.push(JSON.stringify(switched.settings));
   }
   // Deliberately NOT handled here: tenant_type. A tenant owner/admin who
   // could flip their own guild to "business" would drop their member cap

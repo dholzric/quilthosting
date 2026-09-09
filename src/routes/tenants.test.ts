@@ -582,6 +582,65 @@ describe("PATCH /api/tenants/:id — settings.design and settings.site.renderer"
   });
 });
 
+// ---------------------------------------------------------------------------
+// Phase 3 Task A: the same PATCH carries the two switches. settings.ui is the
+// Simple/Advanced sidebar switch, settings.features the capability flags.
+// Both are validated (junk is a 400 with a field path, never a silently
+// stored bad value) and both must survive alongside every other settings key
+// the admin sends in the merged object.
+// ---------------------------------------------------------------------------
+describe("PATCH /api/tenants/:id — settings.ui and settings.features", () => {
+  it("stores both switches and keeps unrelated settings keys", async () => {
+    const { res, writes } = await patchSettings({
+      profile: { description: "keep me" },
+      ui: { advanced: true },
+      features: { reports: true, recipes: false },
+    });
+    expect(res.status).toBe(200);
+    expect(writes).toHaveLength(1);
+    const stored = JSON.parse(writes[0].binds[0] as string);
+    expect(stored.ui).toEqual({ advanced: true });
+    expect(stored.features).toEqual({ reports: true, recipes: false });
+    expect(stored.profile.description).toBe("keep me");
+  });
+
+  it("rejects a non-boolean advanced with an issue under settings.ui", async () => {
+    const { res, writes, body } = await patchSettings({ ui: { advanced: "yes" } });
+    expect(res.status).toBe(400);
+    expect(writes).toHaveLength(0);
+    expect(body.issues.some((i: any) => i.path === "settings.ui.advanced")).toBe(true);
+  });
+
+  it("rejects a non-object ui", async () => {
+    const { res, writes } = await patchSettings({ ui: "advanced" });
+    expect(res.status).toBe(400);
+    expect(writes).toHaveLength(0);
+  });
+
+  it("rejects a non-boolean feature value with an issue under settings.features", async () => {
+    const { res, writes, body } = await patchSettings({ features: { reports: "yes" } });
+    expect(res.status).toBe(400);
+    expect(writes).toHaveLength(0);
+    expect(body.issues.some((i: any) => i.path === "settings.features.reports")).toBe(true);
+  });
+
+  it("drops an unknown feature key instead of failing the save", async () => {
+    const { res, writes } = await patchSettings({ features: { teleport: true, bom: true } });
+    expect(res.status).toBe(200);
+    const stored = JSON.parse(writes[0].binds[0] as string);
+    expect(stored.features).toEqual({ bom: true });
+  });
+
+  it("leaves settings alone when neither switch is present (the off path is unchanged)", async () => {
+    const { res, writes } = await patchSettings({ profile: { description: "hi" } });
+    expect(res.status).toBe(200);
+    const stored = JSON.parse(writes[0].binds[0] as string);
+    expect(stored).toEqual({ profile: { description: "hi" } });
+    expect(stored.ui).toBeUndefined();
+    expect(stored.features).toBeUndefined();
+  });
+});
+
 describe("GET /api/tenants/:id/design-options", () => {
   it("returns the library plus the tenant's current design and renderer", async () => {
     const { db } = fakeCreateDb({

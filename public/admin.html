@@ -47,6 +47,31 @@
     .qh-design-check input { margin: 0; width: auto; }
     .qh-design-renderer { background: var(--brand-soft); padding: 0.75rem 1rem; border-radius: var(--r-sm); margin: 0 0 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; justify-content: space-between; }
     .qh-design-renderer p { margin: 0; flex: 1 1 22rem; font-size: 0.88rem; }
+    /* Grouped sidebar (rendered from ADMIN_NAV by renderSidebarNav) */
+    .sidebar nav .qh-nav-label {
+      font-size: 0.66rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+      color: #8d8172; margin: 0.85rem 0.75rem 0.15rem;
+    }
+    .sidebar nav .qh-nav-label:first-child { margin-top: 0; }
+    .sidebar nav details.qh-nav-more { margin-top: 0.5rem; }
+    .sidebar nav details.qh-nav-more > summary {
+      cursor: pointer; list-style: none; color: #8d8172;
+      font-size: 0.66rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+      padding: 0.35rem 0.75rem; border-radius: var(--r-sm);
+    }
+    .sidebar nav details.qh-nav-more > summary::-webkit-details-marker { display: none; }
+    .sidebar nav details.qh-nav-more > summary::after { content: " ▾"; }
+    .sidebar nav details.qh-nav-more[open] > summary::after { content: " ▴"; }
+    .sidebar nav details.qh-nav-more > summary:hover { background: rgba(255, 255, 255, 0.06); color: #fff; }
+    .sidebar nav details.qh-nav-more a { display: block; }
+    @media (max-width: 860px) { .sidebar nav .qh-nav-label { display: none; } }
+    /* Settings -> Advanced */
+    .qh-adv-group { margin: 1.1rem 0 0.35rem; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-3); }
+    .qh-adv-row { display: flex; gap: 0.6rem; align-items: flex-start; padding: 0.5rem 0; border-top: 1px solid var(--border); }
+    .qh-adv-row input[type="checkbox"] { width: auto; margin: 0.2rem 0 0; flex: 0 0 auto; }
+    .qh-adv-row .qh-adv-text { flex: 1; min-width: 0; }
+    .qh-adv-row .qh-adv-name { display: block; font-weight: 600; font-size: 0.92rem; }
+    .qh-adv-row .qh-adv-why { margin: 0.15rem 0 0; font-size: 0.85rem; color: var(--ink-3); }
     .qh-kit { display: flex; flex-direction: column; gap: 0.25rem; cursor: default; }
     .qh-kit .qh-kit-character { margin: 0; font-size: 0.8rem; flex: 1; }
     .qh-kit button { align-self: flex-start; margin-top: 0.25rem; padding: 0.3rem 0.7rem; font-size: 0.8rem; }
@@ -112,37 +137,11 @@
   <div id="app-view" class="layout hidden">
     <aside class="sidebar">
       <h1><a href="/" style="color:inherit;text-decoration:none"><span class="thread">✦</span> QuiltHosting</a></h1>
-      <nav>
-        <a href="#" data-page="platform" id="nav-platform" class="hidden" style="font-weight:600;color:var(--brand)">Platform</a>
-        <a href="#" data-page="site-pages" id="nav-site-pages" class="business-only hidden">Website</a>
-        <a href="#" data-page="site-theme" id="nav-site-theme" class="business-only hidden">Appearance</a>
-        <a href="#" data-page="site-domain" id="nav-site-domain" class="business-only hidden">Domain &amp; Launch</a>
-        <a href="#" data-page="site-identity" class="business-only hidden">Business details</a>
-        <a href="#" data-page="projects" class="business-only hidden">Projects</a>
-        <a href="#" data-page="project-rates" class="business-only hidden">Quilting rates</a>
-        <a href="#" data-page="dashboard" class="active">Dashboard</a>
-        <a href="#" data-page="members" data-members-label>Members</a>
-        <a href="#" data-page="levels" class="guild-only">Levels</a>
-        <a href="#" data-page="events">Events</a>
-        <a href="#" data-page="store">Store</a>
-        <a href="#" data-page="payments">Payments</a>
-        <a href="#" data-page="invoices">Invoices</a>
-        <a href="#" data-page="comms">Email</a>
-        <a href="#" data-page="automations">Automations</a>
-        <a href="#" data-page="forms">Forms</a>
-        <a href="#" data-page="pages" class="guild-only">Website</a>
-        <a href="#" data-page="blog">Blog</a>
-        <a href="#" data-page="forum" class="guild-only">Forum</a>
-        <a href="#" data-page="files">Documents</a>
-        <a href="#" data-page="galleries">Photos</a>
-        <a href="#" data-page="reports">Reports</a>
-        <a href="#" data-page="sms">SMS</a>
-        <a href="#" data-page="chapters" class="guild-only">Chapters</a>
-        <a href="#" data-page="api">API</a>
-        <a href="#" data-page="webhooks">Zapier</a>
-        <a href="#" data-page="team">Team</a>
-        <a href="#" data-page="settings">Settings</a>
-      </nav>
+      <!-- Built at runtime by renderSidebarNav() from ADMIN_NAV (the mirror of
+           src/lib/adminNav.ts) crossed with the Simple/Advanced switch, the
+           role, the tenant type and settings.features. Do not hand-write
+           links here: src/lib/adminNavGating.test.ts pins the model. -->
+      <nav></nav>
       <div class="guild-tag" id="tenant-label" title="Click to switch guild" style="cursor:pointer" onclick="switchTenant()"></div>
       <p id="platform-badge" class="hidden" style="font-size:0.7rem;color:var(--brand);margin:0.35rem 0.75rem 0;letter-spacing:0.02em">PLATFORM ADMIN</p>
     </aside>
@@ -292,16 +291,169 @@
       if (area === "tenant" || area === "settings") return false;
       return r.write.includes(area);
     }
-    function applyRoleNav() {
-      document.querySelectorAll(".sidebar nav a[data-page]").forEach((a) => {
-        if (a.dataset.page === "platform") {
-          a.style.display = isPlatformAdmin ? "" : "none";
-          a.classList.toggle("hidden", !isPlatformAdmin);
-          return;
+    /* ——— SIDEBAR MODEL (mirror of src/lib/adminNav.ts + src/lib/features.ts).
+       Four gates decide whether an officer ever sees a screen: the
+       Simple/Advanced switch (settings.ui.advanced), her role (the matrix
+       above), the tenant type, and settings.features. Simple is the default:
+       nine everyday screens. src/lib/adminNavGating.test.ts pins these
+       copies to the real modules and re-runs qhVisibleNav against
+       visibleNav(), so drift fails a test instead of shipping. ——— */
+    const NAV_GROUPS = ["Home", "People", "Calendar", "Site", "Money", "Email", "More", "Settings"];
+    const ADMIN_NAV = [
+      {"page":"dashboard","label":"Dashboard","group":"Home","simple":true,"area":"stats"},
+      {"page":"platform","label":"Platform","group":"Home","simple":false},
+      {"page":"members","label":"Members","group":"People","simple":true,"area":"members"},
+      {"page":"levels","label":"Levels","group":"People","simple":true,"tenant":"guild","area":"levels"},
+      {"page":"team","label":"Team","group":"People","simple":true,"area":"team"},
+      {"page":"chapters","label":"Chapters","group":"People","simple":false,"tenant":"guild","area":"chapters"},
+      {"page":"events","label":"Events","group":"Calendar","simple":true,"area":"events"},
+      {"page":"pages","label":"Website","group":"Site","simple":true,"tenant":"guild","area":"pages"},
+      {"page":"site-pages","label":"Website","group":"Site","simple":true,"tenant":"business","area":"pages"},
+      {"page":"site-theme","label":"Appearance","group":"Site","simple":false,"tenant":"business"},
+      {"page":"site-domain","label":"Domain & Launch","group":"Site","simple":false,"tenant":"business","area":"domain"},
+      {"page":"site-identity","label":"Business details","group":"Site","simple":false,"tenant":"business"},
+      {"page":"blog","label":"Blog","group":"Site","simple":false,"area":"pages"},
+      {"page":"galleries","label":"Photos","group":"Site","simple":false,"area":"galleries"},
+      {"page":"files","label":"Documents","group":"Site","simple":false,"area":"files"},
+      {"page":"forum","label":"Forum","group":"Site","simple":false,"tenant":"guild","area":"forum"},
+      {"page":"payments","label":"Payments","group":"Money","simple":true,"area":"payments"},
+      {"page":"invoices","label":"Invoices","group":"Money","simple":false,"area":"invoices"},
+      {"page":"store","label":"Store","group":"Money","simple":false,"area":"products"},
+      {"page":"projects","label":"Projects","group":"Money","simple":false,"tenant":"business","area":"projects"},
+      {"page":"project-rates","label":"Quilting rates","group":"Money","simple":false,"tenant":"business","area":"projects"},
+      {"page":"comms","label":"Email","group":"Email","simple":true,"area":"emails"},
+      {"page":"sms","label":"SMS","group":"Email","simple":false,"area":"sms"},
+      {"page":"automations","label":"Automations","group":"More","simple":false,"area":"automations"},
+      {"page":"forms","label":"Forms","group":"More","simple":false,"area":"forms"},
+      {"page":"reports","label":"Reports","group":"More","simple":false,"area":"stats","feature":"reports"},
+      {"page":"api","label":"API","group":"More","simple":false,"area":"api-keys"},
+      {"page":"webhooks","label":"Zapier","group":"More","simple":false,"area":"webhooks"},
+      {"page":"settings","label":"Settings","group":"Settings","simple":true}
+    ];
+    const FEATURE_DEFAULTS = {"recipes":true,"automations_v2":false,"reports":false,"sample_data":false,"waivers":false,"installments":false,"digital_goods":false,"coupons":false,"library":false,"bom":false,"quilt_show":false,"polls":false,"gifting":false};
+    const FEATURE_CATALOG = [
+      {"key":"recipes","label":"Automation recipes","consequence":"Adds one-click email sequences — welcome, renewal ladder, post-event thank-you — that you can edit afterwards.","group":"Power tools"},
+      {"key":"automations_v2","label":"Automation builder","consequence":"Adds a step-by-step builder for your own automations: pick a trigger, wait a few days, send an email.","group":"Power tools"},
+      {"key":"reports","label":"Reports","consequence":"Adds a Reports screen with member growth, renewal rate and revenue by source, plus an optional monthly board report by email.","group":"Power tools"},
+      {"key":"sample_data","label":"Sample data","consequence":"Fills your guild with a few example members, events and payments so you can try everything before your real data arrives.","group":"Power tools"},
+      {"key":"installments","label":"Deposits and installments","consequence":"Lets a retreat or workshop take a deposit at checkout and charge the balance closer to the date.","group":"Money"},
+      {"key":"digital_goods","label":"Digital downloads","consequence":"Lets a store product deliver a pattern PDF or other file that buyers can re-download from their portal.","group":"Money"},
+      {"key":"coupons","label":"Coupons and gift cards","consequence":"Adds discount codes with expiry dates and usage limits, and gift-card products that mint a code.","group":"Money"},
+      {"key":"gifting","label":"Gift memberships","consequence":"Lets one person buy a membership for someone else, who claims it from an emailed link.","group":"Money"},
+      {"key":"waivers","label":"Event waivers","consequence":"Adds a liability waiver members must accept when they register, stored with the registration and shown on their receipt.","group":"Community"},
+      {"key":"library","label":"Lending library","consequence":"Adds a catalog of books, rulers and dies members can borrow, with due dates and overdue reminders.","group":"Community"},
+      {"key":"bom","label":"Block of the Month","consequence":"Adds monthly block releases, a finished-block gallery and per-member progress for a Block of the Month program.","group":"Community"},
+      {"key":"quilt_show","label":"Quilt show","consequence":"Adds show entries with categories and fees, acceptance status entrants can see, and a vendor booth registry.","group":"Community"},
+      {"key":"polls","label":"Member polls","consequence":"Adds short polls in the member portal so your board can ask a question and see the answers.","group":"Community"}
+    ];
+    // This tenant's switches, refreshed by applyTenantTypeNav() and by a save
+    // on Settings -> Advanced. Defaults until the tenant record is loaded.
+    let uiAdvanced = false;
+    let tenantFeatures = { ...FEATURE_DEFAULTS };
+    let qhNavMoreOpen = false;
+    /* Mirror of readUi()/readFeatures() in src/lib/features.ts: fail safe.
+       Unparsable JSON, a missing key, or a value of the wrong type all read
+       as the default, and a missing feature key means off. */
+    function readTenantSwitches(settingsJson) {
+      let s = null;
+      try {
+        const parsed = JSON.parse(settingsJson || "{}");
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) s = parsed;
+      } catch {}
+      const ui = s && s.ui && typeof s.ui === "object" && !Array.isArray(s.ui) ? s.ui : null;
+      const raw = s && s.features && typeof s.features === "object" && !Array.isArray(s.features) ? s.features : null;
+      const features = { ...FEATURE_DEFAULTS };
+      if (raw) {
+        for (const k of Object.keys(FEATURE_DEFAULTS)) {
+          if (typeof raw[k] === "boolean") features[k] = raw[k];
         }
-        const area = NAV_AREA[a.dataset.page] || a.dataset.page;
-        a.style.display = canReadArea(area) ? "" : "none";
+      }
+      return { advanced: !!(ui && ui.advanced === true), features };
+    }
+    // canAccess(role, area, "GET", "/") from src/lib/permissions.ts, for the
+    // areas ADMIN_NAV actually uses (all of them real matrix areas).
+    function qhNavCanRead(role, area) {
+      const r = ADMIN_AREAS[role];
+      if (!r) return false;
+      if (r.write === "*") return true;
+      return !r.noRead.includes(area);
+    }
+    // Mirror of visibleNav() in src/lib/adminNav.ts.
+    function qhVisibleNav(opts) {
+      return ADMIN_NAV.filter(function (e) {
+        if (!opts.advanced && !e.simple) return false;
+        if (e.tenant && e.tenant !== opts.tenantType) return false;
+        if (e.feature && opts.features[e.feature] !== true) return false;
+        if (e.area && !qhNavCanRead(opts.role, e.area)) return false;
+        return true;
       });
+    }
+    function qhNavLink(entry, activePage) {
+      const a = document.createElement("a");
+      a.href = "#";
+      a.dataset.page = entry.page;
+      a.textContent = entry.label;
+      // "Members" reads as "Customers" on a business tenant (applyMembersLabel).
+      if (entry.page === "members") a.setAttribute("data-members-label", "");
+      if (entry.page === "platform") {
+        a.id = "nav-platform";
+        a.style.fontWeight = "600";
+        a.style.color = "var(--brand)";
+      }
+      if (entry.page === "site-pages") a.id = "nav-site-pages";
+      if (entry.page === "site-theme") a.id = "nav-site-theme";
+      if (entry.page === "site-domain") a.id = "nav-site-domain";
+      if (entry.page === activePage) a.classList.add("active");
+      return a;
+    }
+    /* Rebuilds the whole sidebar from ADMIN_NAV: grouped, with a small
+       uppercase label per group and "More" collapsed behind a disclosure.
+       Safe to call any time — the active link and the disclosure state are
+       carried across. Clicks are handled by one delegated listener on <nav>. */
+    function renderSidebarNav() {
+      const nav = document.querySelector(".sidebar nav");
+      if (!nav) return;
+      const activeEl = nav.querySelector("a.active");
+      const activePage = activeEl ? activeEl.dataset.page : "dashboard";
+      const tenantType = (currentTenant && currentTenant.tenant_type) === "business" ? "business" : "guild";
+      let entries = qhVisibleNav({
+        advanced: uiAdvanced,
+        role: tenantRole,
+        tenantType,
+        features: tenantFeatures,
+      }).filter((e) => e.page !== "platform");
+      // The platform overview is not a tenant screen: platform admins always
+      // see it, nobody else ever does, whatever the switches say.
+      if (isPlatformAdmin) {
+        const p = ADMIN_NAV.find((e) => e.page === "platform");
+        if (p) entries = [p].concat(entries);
+      }
+      nav.textContent = "";
+      for (const group of NAV_GROUPS) {
+        const inGroup = entries.filter((e) => e.group === group);
+        if (!inGroup.length) continue;
+        if (group === "More") {
+          const d = document.createElement("details");
+          d.className = "qh-nav-more";
+          d.open = qhNavMoreOpen;
+          d.addEventListener("toggle", () => { qhNavMoreOpen = d.open; });
+          const s = document.createElement("summary");
+          s.textContent = "More";
+          d.appendChild(s);
+          inGroup.forEach((e) => d.appendChild(qhNavLink(e, activePage)));
+          nav.appendChild(d);
+          continue;
+        }
+        const label = document.createElement("div");
+        label.className = "qh-nav-label";
+        label.textContent = group;
+        nav.appendChild(label);
+        inGroup.forEach((e) => nav.appendChild(qhNavLink(e, activePage)));
+      }
+      applyMembersLabel();
+    }
+    function applyRoleNav() {
+      renderSidebarNav();
       const badge = document.getElementById("platform-badge");
       if (badge) {
         if (isPlatformAdmin) show(badge);
@@ -459,6 +611,14 @@
       } catch {
         currentTenant = null;
       }
+      // The tenant record is also where the two switches live, so this is the
+      // one load point for both: the sidebar is rendered from them below.
+      const sw = readTenantSwitches(currentTenant && currentTenant.settings_json);
+      uiAdvanced = sw.advanced;
+      tenantFeatures = sw.features;
+      // The sidebar itself is rendered from ADMIN_NAV now, not toggled; these
+      // two lines stay for any non-nav element still marked business-only /
+      // guild-only inside a screen.
       const isBusinessTenant = (currentTenant && currentTenant.tenant_type) === "business";
       document.querySelectorAll(".business-only").forEach((el) => {
         el.classList.toggle("hidden", !isBusinessTenant);
@@ -466,6 +626,7 @@
       document.querySelectorAll(".guild-only").forEach((el) => {
         el.classList.toggle("hidden", isBusinessTenant);
       });
+      renderSidebarNav();
       applyMembersLabel();
     }
 
@@ -500,13 +661,15 @@
       navigate("dashboard");
     }
 
-    document.querySelectorAll(".sidebar nav a").forEach((a) => {
-      a.addEventListener("click", (e) => {
-        e.preventDefault();
-        document.querySelectorAll(".sidebar nav a").forEach((x) => x.classList.remove("active"));
-        a.classList.add("active");
-        navigate(a.dataset.page);
-      });
+    // One delegated listener: the links themselves are re-created every time
+    // renderSidebarNav() runs, so per-link handlers would go stale.
+    document.querySelector(".sidebar nav").addEventListener("click", (e) => {
+      const a = e.target.closest ? e.target.closest("a[data-page]") : null;
+      if (!a) return;
+      e.preventDefault();
+      document.querySelectorAll(".sidebar nav a").forEach((x) => x.classList.remove("active"));
+      a.classList.add("active");
+      navigate(a.dataset.page);
     });
 
     async function navigate(page) {
@@ -6586,6 +6749,7 @@
           </div>
           <span id="qbo-msg" class="muted" style="font-size:0.85rem;margin-left:0.25rem"></span>
         </div>
+        <div class="card" id="advanced-card"></div>
         <div class="card">
           <h3 style="margin-bottom:0.5rem">Help &amp; documentation</h3>
           <p class="muted" style="font-size:0.85rem;margin-bottom:0.5rem">Guides for setup, members, payments, website, email, and the public API.</p>
@@ -6618,6 +6782,7 @@
         </div>
       `;
       renderCustomFieldList();
+      renderAdvancedCard();
       // Prefill tax from tenant settings if store card not open
       try {
         const st = settings.store || {};
@@ -6634,6 +6799,139 @@
       });
       const qbo = document.querySelector("#page-content [data-qbo-heading]");
       if (qbo && !canReadArea("qbo")) qbo.closest(".card").classList.add("hidden");
+    }
+    /* Settings -> Advanced: the Simple/Advanced switch plus one row per
+       feature, each saying in one sentence what appears when it is on.
+       Built with DOM APIs (never innerHTML) and saved through the same
+       merged-settings PATCH every other Settings card uses, so no other key
+       is ever dropped. Only owner/admin may write the tenant record, so the
+       controls are disabled (not hidden) for everyone else. */
+    function renderAdvancedCard() {
+      const host = document.getElementById("advanced-card");
+      if (!host) return;
+      const current = readTenantSwitches(JSON.stringify(window._settings || {}));
+      uiAdvanced = current.advanced;
+      tenantFeatures = current.features;
+      const canWrite = canWriteArea("tenant");
+      host.textContent = "";
+      const h = document.createElement("h3");
+      h.style.marginBottom = "0.35rem";
+      h.textContent = "Advanced";
+      host.appendChild(h);
+      const intro = document.createElement("p");
+      intro.className = "muted";
+      intro.style.cssText = "font-size:0.85rem;margin:0 0 0.5rem";
+      intro.textContent =
+        "QuiltHosting starts with the screens most guilds use every week. Turn these on when you need them — nothing you have already set up changes, and you can turn them back off.";
+      host.appendChild(intro);
+
+      const advRow = document.createElement("div");
+      advRow.className = "qh-adv-row";
+      advRow.style.borderTop = "none";
+      const advBox = document.createElement("input");
+      advBox.type = "checkbox";
+      advBox.id = "adv-advanced";
+      advBox.checked = current.advanced;
+      advBox.disabled = !canWrite;
+      const advText = document.createElement("div");
+      advText.className = "qh-adv-text";
+      const advName = document.createElement("label");
+      advName.className = "qh-adv-name";
+      advName.htmlFor = "adv-advanced";
+      advName.textContent = "Show advanced features";
+      const advWhy = document.createElement("p");
+      advWhy.className = "qh-adv-why";
+      advWhy.textContent =
+        "Adds the rest of the screens to the sidebar — Store, Invoices, Automations, Forms, Blog, Forum, Documents, Photos, SMS, Chapters and the developer tools — grouped under their headings.";
+      advText.appendChild(advName);
+      advText.appendChild(advWhy);
+      advRow.appendChild(advBox);
+      advRow.appendChild(advText);
+      host.appendChild(advRow);
+
+      const groups = [];
+      FEATURE_CATALOG.forEach((f) => { if (!groups.includes(f.group)) groups.push(f.group); });
+      for (const group of groups) {
+        const gh = document.createElement("p");
+        gh.className = "qh-adv-group";
+        gh.textContent = group;
+        host.appendChild(gh);
+        FEATURE_CATALOG.filter((f) => f.group === group).forEach((f) => {
+          const row = document.createElement("div");
+          row.className = "qh-adv-row";
+          const box = document.createElement("input");
+          box.type = "checkbox";
+          box.id = "adv-feat-" + f.key;
+          box.checked = current.features[f.key] === true;
+          box.disabled = !canWrite;
+          const text = document.createElement("div");
+          text.className = "qh-adv-text";
+          const name = document.createElement("label");
+          name.className = "qh-adv-name";
+          name.htmlFor = box.id;
+          name.textContent = f.label;
+          const why = document.createElement("p");
+          why.className = "qh-adv-why";
+          why.textContent = f.consequence;
+          text.appendChild(name);
+          text.appendChild(why);
+          row.appendChild(box);
+          row.appendChild(text);
+          host.appendChild(row);
+        });
+      }
+
+      const actions = document.createElement("div");
+      actions.style.cssText = "margin-top:0.9rem;display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap";
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = "Save advanced settings";
+      btn.disabled = !canWrite;
+      btn.addEventListener("click", saveAdvancedSettings);
+      const msg = document.createElement("span");
+      msg.id = "adv-msg";
+      msg.className = "muted";
+      msg.style.fontSize = "0.85rem";
+      actions.appendChild(btn);
+      actions.appendChild(msg);
+      host.appendChild(actions);
+      if (!canWrite) {
+        const note = document.createElement("p");
+        note.className = "qh-adv-why";
+        note.textContent = "Only an owner or admin can change these.";
+        host.appendChild(note);
+      }
+    }
+    async function saveAdvancedSettings() {
+      const msg = document.getElementById("adv-msg");
+      const advBox = document.getElementById("adv-advanced");
+      if (!advBox) return;
+      const features = {};
+      FEATURE_CATALOG.forEach((f) => {
+        const box = document.getElementById("adv-feat-" + f.key);
+        if (box) features[f.key] = box.checked;
+      });
+      const ui = { advanced: !!advBox.checked };
+      const previous = window._settings || {};
+      window._settings = { ...previous, ui, features };
+      if (msg) msg.textContent = "Saving…";
+      try {
+        await saveSettings();
+      } catch (e) {
+        window._settings = previous;
+        if (msg) msg.textContent = e.message;
+        return;
+      }
+      // Re-render the sidebar in place: no reload, and whatever screen the
+      // officer is on stays open.
+      uiAdvanced = ui.advanced;
+      tenantFeatures = { ...FEATURE_DEFAULTS, ...features };
+      if (currentTenant) currentTenant.settings_json = JSON.stringify(window._settings);
+      renderSidebarNav();
+      if (msg) {
+        msg.textContent = "Saved ✓";
+        setTimeout(() => { if (msg.textContent === "Saved ✓") msg.textContent = ""; }, 2500);
+      }
     }
     async function loadDomainStatus() {
       if (!canReadArea("domain")) return;
