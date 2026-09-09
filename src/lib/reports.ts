@@ -204,14 +204,14 @@ export function readReportSettings(settingsJson: string | null | undefined): { m
 }
 
 /**
- * settings.features.reports. Task A's src/lib/features.ts owns the catalog and
- * the defaults (every key false except `recipes`); until it exists this reads
- * the same key directly. Missing key = off.
+ * The Reports screen is not feature-gated: it already existed, and a switch
+ * may hide complexity but never take away something a tenant has. The monthly
+ * board report is the only opt-in, and its toggle lives on the screen itself
+ * (`settings.reports.monthly`), so this stays true and the send path is
+ * governed by that toggle alone.
  */
-export function hasReportsFeature(settingsJson: string | null | undefined): boolean {
-  const features = parseSettings(settingsJson).features;
-  if (!features || typeof features !== "object" || Array.isArray(features)) return false;
-  return (features as Record<string, unknown>).reports === true;
+export function hasReportsFeature(_settingsJson: string | null | undefined): boolean {
+  return true;
 }
 
 // ---------------------------------------------------------------------------

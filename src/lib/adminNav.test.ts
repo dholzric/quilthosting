@@ -194,8 +194,9 @@ describe("visibleNav — tenant type", () => {
 
 describe("visibleNav — feature flags", () => {
   it("a feature-gated entry appears only when its flag is on", () => {
+    // No entry is feature-gated today: Reports was un-gated because a
+    // switch may hide complexity but never remove an existing screen.
     const gated = ADMIN_NAV.filter((e) => e.feature);
-    expect(gated.length).toBeGreaterThan(0);
     for (const e of gated) {
       const off = pagesOf(
         visibleNav({ advanced: true, role: "owner", tenantType: e.tenant || "guild", features: FEATURE_DEFAULTS })
@@ -213,9 +214,10 @@ describe("visibleNav — feature flags", () => {
     }
   });
 
-  it("Reports is the feature-gated screen (features.reports, default off)", () => {
-    expect(ADMIN_NAV.find((e) => e.page === "reports")!.feature).toBe("reports");
-    expect(FEATURE_DEFAULTS.reports).toBe(false);
+  it("Reports is Advanced but never feature-gated (it already exists)", () => {
+    const reports = ADMIN_NAV.find((e) => e.page === "reports")!;
+    expect(reports.feature).toBeUndefined();
+    expect(reports.simple).toBe(false);
   });
 
   it("a missing features map behaves like all-off", () => {

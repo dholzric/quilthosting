@@ -417,16 +417,15 @@
       {"page":"sms","label":"SMS","group":"Email","simple":false,"area":"sms"},
       {"page":"automations","label":"Automations","group":"More","simple":false,"area":"automations"},
       {"page":"forms","label":"Forms","group":"More","simple":false,"area":"forms"},
-      {"page":"reports","label":"Reports","group":"More","simple":false,"area":"stats","feature":"reports"},
+      {"page":"reports","label":"Reports","group":"More","simple":false,"area":"stats"},
       {"page":"api","label":"API","group":"More","simple":false,"area":"api-keys"},
       {"page":"webhooks","label":"Zapier","group":"More","simple":false,"area":"webhooks"},
       {"page":"settings","label":"Settings","group":"Settings","simple":true}
     ];
-    const FEATURE_DEFAULTS = {"recipes":true,"automations_v2":false,"reports":false,"sample_data":false,"waivers":false,"installments":false,"digital_goods":false,"coupons":false,"library":false,"bom":false,"quilt_show":false,"polls":false,"gifting":false};
+    const FEATURE_DEFAULTS = {"recipes":true,"automations_v2":false,"sample_data":false,"waivers":false,"installments":false,"digital_goods":false,"coupons":false,"library":false,"bom":false,"quilt_show":false,"polls":false,"gifting":false};
     const FEATURE_CATALOG = [
       {"key":"recipes","label":"Automation recipes","consequence":"Adds one-click email sequences — welcome, renewal ladder, post-event thank-you — that you can edit afterwards.","group":"Power tools"},
       {"key":"automations_v2","label":"Automation builder","consequence":"Adds a step-by-step builder for your own automations: pick a trigger, wait a few days, send an email.","group":"Power tools"},
-      {"key":"reports","label":"Reports","consequence":"Adds a Reports screen with member growth, renewal rate and revenue by source, plus an optional monthly board report by email.","group":"Power tools"},
       {"key":"sample_data","label":"Sample data","consequence":"Fills your guild with a few example members, events and payments so you can try everything before your real data arrives.","group":"Power tools"},
       {"key":"installments","label":"Deposits and installments","consequence":"Lets a retreat or workshop take a deposit at checkout and charge the balance closer to the date.","group":"Money"},
       {"key":"digital_goods","label":"Digital downloads","consequence":"Lets a store product deliver a pattern PDF or other file that buyers can re-download from their portal.","group":"Money"},

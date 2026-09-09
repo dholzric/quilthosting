@@ -34,7 +34,6 @@ describe("FEATURE_DEFAULTS", () => {
         "polls",
         "quilt_show",
         "recipes",
-        "reports",
         "sample_data",
         "waivers",
       ].sort()
@@ -104,14 +103,14 @@ describe("readFeatures", () => {
   });
 
   it("applies explicit booleans, including turning recipes off", () => {
-    const f = readFeatures('{"features":{"reports":true,"recipes":false}}');
-    expect(f.reports).toBe(true);
+    const f = readFeatures('{"features":{"waivers":true,"recipes":false}}');
+    expect(f.waivers).toBe(true);
     expect(f.recipes).toBe(false);
     expect(f.bom).toBe(false);
   });
 
   it("ignores unknown keys and non-boolean values", () => {
-    const f = readFeatures('{"features":{"teleport":true,"reports":"yes","bom":1}}');
+    const f = readFeatures('{"features":{"teleport":true,"waivers":"yes","bom":1}}');
     expect(f).toEqual(FEATURE_DEFAULTS);
     expect((f as Record<string, unknown>).teleport).toBeUndefined();
   });
@@ -125,11 +124,11 @@ describe("readFeatures", () => {
 describe("hasFeature", () => {
   it("is the defaults for an untouched tenant", () => {
     expect(hasFeature(null, "recipes")).toBe(true);
-    expect(hasFeature(null, "reports")).toBe(false);
+    expect(hasFeature(null, "waivers")).toBe(false);
   });
 
   it("honors an explicit switch either way", () => {
-    expect(hasFeature('{"features":{"reports":true}}', "reports")).toBe(true);
+    expect(hasFeature('{"features":{"waivers":true}}', "waivers")).toBe(true);
     expect(hasFeature('{"features":{"recipes":false}}', "recipes")).toBe(false);
   });
 });
@@ -152,23 +151,23 @@ describe("uiSchema", () => {
 describe("featuresSchema", () => {
   it("accepts an empty object and any subset of known booleans", () => {
     expect(featuresSchema.safeParse({}).success).toBe(true);
-    const r = featuresSchema.safeParse({ reports: true, recipes: false });
+    const r = featuresSchema.safeParse({ waivers: true, recipes: false });
     expect(r.success).toBe(true);
-    if (r.success) expect(r.data).toEqual({ reports: true, recipes: false });
+    if (r.success) expect(r.data).toEqual({ waivers: true, recipes: false });
   });
 
   it("rejects non-boolean values and non-objects", () => {
-    expect(featuresSchema.safeParse({ reports: "yes" }).success).toBe(false);
+    expect(featuresSchema.safeParse({ waivers: "yes" }).success).toBe(false);
     expect(featuresSchema.safeParse({ bom: 1 }).success).toBe(false);
-    expect(featuresSchema.safeParse("reports").success).toBe(false);
+    expect(featuresSchema.safeParse("waivers").success).toBe(false);
     expect(featuresSchema.safeParse(null).success).toBe(false);
   });
 
   it("drops unknown keys rather than failing (a stale key can't wedge a save)", () => {
-    const r = featuresSchema.safeParse({ teleport: true, reports: true });
+    const r = featuresSchema.safeParse({ teleport: true, waivers: true });
     expect(r.success).toBe(true);
     if (r.success) {
-      expect(r.data).toEqual({ reports: true });
+      expect(r.data).toEqual({ waivers: true });
       expect((r.data as Record<string, unknown>).teleport).toBeUndefined();
     }
   });

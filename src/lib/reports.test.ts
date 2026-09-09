@@ -146,12 +146,10 @@ describe("settings readers", () => {
     expect(readReportSettings('{"reports":42}').monthly).toBe(false);
   });
 
-  it("reads settings.features.reports, defaulting to off", () => {
-    expect(hasReportsFeature(null)).toBe(false);
-    expect(hasReportsFeature("{}")).toBe(false);
-    expect(hasReportsFeature('{"features":{"reports":false}}')).toBe(false);
-    expect(hasReportsFeature('{"features":{"reports":true}}')).toBe(true);
-    expect(hasReportsFeature('{"features":{"reports":1}}')).toBe(false);
+  it("never gates the Reports screen — it existed before the switch", () => {
+    expect(hasReportsFeature(null)).toBe(true);
+    expect(hasReportsFeature("{}")).toBe(true);
+    expect(hasReportsFeature('{"features":{}}')).toBe(true);
   });
 });
 
@@ -406,14 +404,14 @@ describe("runMonthlyBoardReports", () => {
     expect(inserted[0].template).toBe("board_report_2026-08");
   });
 
-  it("sends nothing when the reports feature is off", async () => {
+  it("sends nothing when the monthly toggle is off", async () => {
     const { db } = jobDb({
       tenants: [
         {
           id: "t1",
           name: "Prairie Star",
           slug: "prairie",
-          settings_json: JSON.stringify({ reports: { monthly: true } }),
+          settings_json: JSON.stringify({ reports: { monthly: false } }),
         },
       ],
       staff: { t1: [{ email: "owner@example.test", role: "owner" }] },

@@ -22,7 +22,6 @@ import { z } from "zod";
 export type FeatureKey =
   | "recipes"
   | "automations_v2"
-  | "reports"
   | "sample_data"
   | "waivers"
   | "installments"
@@ -37,7 +36,6 @@ export type FeatureKey =
 export const FEATURE_KEYS: readonly FeatureKey[] = [
   "recipes",
   "automations_v2",
-  "reports",
   "sample_data",
   "waivers",
   "installments",
@@ -54,7 +52,6 @@ export const FEATURE_KEYS: readonly FeatureKey[] = [
 export const FEATURE_DEFAULTS: Record<FeatureKey, boolean> = {
   recipes: true,
   automations_v2: false,
-  reports: false,
   sample_data: false,
   waivers: false,
   installments: false,
@@ -96,13 +93,6 @@ export const FEATURE_CATALOG: FeatureMeta[] = [
     label: "Automation builder",
     consequence:
       "Adds a step-by-step builder for your own automations: pick a trigger, wait a few days, send an email.",
-    group: "Power tools",
-  },
-  {
-    key: "reports",
-    label: "Reports",
-    consequence:
-      "Adds a Reports screen with member growth, renewal rate and revenue by source, plus an optional monthly board report by email.",
     group: "Power tools",
   },
   {
@@ -225,7 +215,6 @@ export const uiSchema: z.ZodType<{ advanced: boolean }> = z.object({
 export const featuresSchema: z.ZodType<Partial<Record<FeatureKey, boolean>>> = z.object({
   recipes: z.boolean().optional(),
   automations_v2: z.boolean().optional(),
-  reports: z.boolean().optional(),
   sample_data: z.boolean().optional(),
   waivers: z.boolean().optional(),
   installments: z.boolean().optional(),

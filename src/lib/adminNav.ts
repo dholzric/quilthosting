@@ -91,7 +91,9 @@ export const ADMIN_NAV: NavEntry[] = [
   // More (collapsed behind a disclosure in the sidebar)
   { page: "automations", label: "Automations", group: "More", simple: false, area: "automations" },
   { page: "forms", label: "Forms", group: "More", simple: false, area: "forms" },
-  { page: "reports", label: "Reports", group: "More", simple: false, area: "stats", feature: "reports" },
+  // Reports is an existing screen: Advanced hides it from the default sidebar,
+  // but no feature flag may take it away from a tenant that has it today.
+  { page: "reports", label: "Reports", group: "More", simple: false, area: "stats" },
   { page: "api", label: "API", group: "More", simple: false, area: "api-keys" },
   { page: "webhooks", label: "Zapier", group: "More", simple: false, area: "webhooks" },
   // Settings
