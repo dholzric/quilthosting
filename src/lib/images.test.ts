@@ -49,7 +49,7 @@ describe("parseVariants", () => {
   });
 
   it("exports the canonical variant widths", () => {
-    expect([...VARIANT_WIDTHS]).toEqual([480, 960, 1600, 2400]);
+    expect([...VARIANT_WIDTHS]).toEqual([240, 480, 960, 1600, 2400]);
   });
 });
 

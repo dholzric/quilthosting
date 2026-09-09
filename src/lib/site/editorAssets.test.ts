@@ -61,7 +61,7 @@ describe("admin.html editor phase 2 — functions and contracts", () => {
   });
 
   it("the image pipeline follows the Task B contract", () => {
-    expect(ADMIN).toContain("const WB_VARIANT_WIDTHS = [480, 960, 1600, 2400];");
+    expect(ADMIN).toContain("const WB_VARIANT_WIDTHS = [240, 480, 960, 1600, 2400];");
     expect(ADMIN).toContain("const WB_VARIANT_QUALITY = 0.82;");
     expect(ADMIN).toContain("const WB_IMAGE_MAX_BYTES = 10 * 1024 * 1024;");
     expect(ADMIN).toContain("const WB_VARIANTS_MAX_BYTES = 25 * 1024 * 1024;");

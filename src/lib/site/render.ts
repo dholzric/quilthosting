@@ -28,6 +28,7 @@ import { buildRootVars } from "./theme";
 import { readTenantTheme } from "./themeMigrate";
 import { buildSeoHead, buildLocalBusinessJsonLd, type SeoPage, type SeoBusiness } from "./seo";
 import { buildDesignVars, deriveRoles, designFontsHref, designGround, isDarkDesign } from "./design/tokens";
+import { LOGO_WIDTH, withWidth } from "../images";
 import type { SiteDesign } from "./design/tokens";
 import { readSiteDesign } from "./design/migrate";
 import { renderSections } from "./sections/render";
@@ -318,7 +319,15 @@ function brandLink(siteName: string, logoUrl: string | null | undefined, homeHre
   const safeLogo = logoUrl ? sanitizeUrl(logoUrl, "image") : null;
   // Sized by HEIGHT only, width left to the intrinsic aspect ratio: a fixed
   // square squashed every wordmark. The height attribute still reserves space.
-  const logo = safeLogo ? `<img class="qh-brand__logo" src="${esc(safeLogo)}" alt="" height="44">` : "";
+  // The header box is 44 px tall, so ask for the 240 px variant and offer
+  // the 480 for 2x. A logo is on every page of the site: serving the original
+  // here is the difference between a few KB and the whole upload, every view.
+  // Structured data and og:image keep the canonical URL (args.logoUrl).
+  const logo = safeLogo
+    ? `<img class="qh-brand__logo" src="${esc(withWidth(safeLogo, LOGO_WIDTH))}"` +
+      ` srcset="${esc(withWidth(safeLogo, LOGO_WIDTH))} 1x, ${esc(withWidth(safeLogo, LOGO_WIDTH * 2))} 2x"` +
+      ` alt="" height="44" decoding="async">`
+    : "";
   return `<a class="qh-brand" href="${esc(homeHref)}">${logo}<span>${esc(siteName)}</span></a>`;
 }
 

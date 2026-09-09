@@ -29,8 +29,30 @@ export const ALLOWED_IMAGE_TYPES: Set<string> = new Set([
 export type ImageFormat = "webp" | "jpeg";
 export type ImageVariant = { w: number; format: ImageFormat; key: string; bytes: number };
 
-/** The widths the editor produces; a variant upload may only carry these. */
-export const VARIANT_WIDTHS = [480, 960, 1600, 2400] as const;
+/**
+ * The widths the editor produces; a variant upload may only carry these.
+ *
+ * 240 is here for the small slots — a header logo sits in a 44 px-tall box
+ * and an officer's photo in a thumbnail, and 480 was four times more pixels
+ * than either needs. It is the width every page pays for, so it is the one
+ * worth having.
+ */
+export const VARIANT_WIDTHS = [240, 480, 960, 1600, 2400] as const;
+
+/**
+ * The width to request for a site logo. The header renders it 44 px tall, so
+ * 240 covers a wide wordmark at 2x and is the smallest stored variant. A file
+ * with no variant this small serves the next one up, and a file with none at
+ * all serves the original — which is exactly the case this width exists to
+ * stop being the norm.
+ */
+export const LOGO_WIDTH = 240;
+
+/** `url` with `w=<width>`, keeping any query it already carries. */
+export function withWidth(url: string, width: number): string {
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}w=${width}`;
+}
 
 /** Maximum width/height the server records for an original (guards the columns against junk). */
 export const MAX_IMAGE_DIMENSION = 12000;

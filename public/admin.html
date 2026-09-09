@@ -4520,7 +4520,10 @@
     // 25 MB of variants; the server re-validates every part by magic bytes.
     const WB_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
     const WB_VARIANTS_MAX_BYTES = 25 * 1024 * 1024;
-    const WB_VARIANT_WIDTHS = [480, 960, 1600, 2400];
+    // Mirrors VARIANT_WIDTHS in src/lib/images.ts. 240 is what a header
+    // logo and a thumbnail actually need; without it they pulled 480 at
+    // best and the whole original at worst.
+    const WB_VARIANT_WIDTHS = [240, 480, 960, 1600, 2400];
     const WB_VARIANT_QUALITY = 0.82;
     const WB_VARIANT_FORMATS = [["webp", "image/webp"], ["jpg", "image/jpeg"]];
     // Section thumbnails: line-art on a 64x40 grid, tinted with the tenant
@@ -8171,6 +8174,12 @@
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { out.textContent = data.error || "Upload failed"; return; }
+      // An image uploaded here can end up on the site like any other, so it
+      // gets the same smaller versions the page editor makes.
+      if (data.id && /^image\//.test(f.type || "")) {
+        out.textContent = "Preparing sizes…";
+        await wbMakeVariants(data.id, f, (t) => { out.textContent = t; });
+      }
       navigate("files");
     }
     async function downloadFile(id, filename) {
@@ -8780,10 +8789,41 @@
         window._settings = window._settings || {};
         window._settings.profile = window._settings.profile || {};
         window._settings.profile.logo_file_id = data.logo_file_id;
+        // The logo appears in the header of every page, so it is the one image
+        // whose size is paid on every view. Resize it here the way the page
+        // editor does; without this the original was served forever.
+        if (data.logo_file_id) {
+          if (msg) msg.textContent = "Preparing sizes…";
+          await wbMakeVariants(data.logo_file_id, f, (t) => { if (msg) msg.textContent = t; });
+        }
         if (msg) msg.textContent = "Logo saved.";
         navigate("settings");
       } catch (e) {
         if (msg) msg.textContent = e.message;
+      }
+    }
+
+    /**
+     * Resize an already-uploaded image and attach its variants. Used by the
+     * upload paths that do not go through wbUploadImage (the logo, the Files
+     * screen, and the optimizer below). Best-effort by design: the original
+     * is serviceable on its own, so a failure is reported, never thrown.
+     */
+    async function wbMakeVariants(fileId, file, onNote) {
+      const note = typeof onNote === "function" ? onNote : () => {};
+      if (!/^image\/(png|jpeg|webp)$/.test(file.type || "")) return false;
+      let resized = null;
+      try { resized = await wbResizeImage(file); } catch { resized = null; }
+      if (!resized || !resized.variants.length) {
+        note("Saved. This browser could not make smaller versions, so the full-size file will be used.");
+        return false;
+      }
+      try {
+        await wbUploadVariants(fileId, resized);
+        return true;
+      } catch (e) {
+        note(`Saved, but the smaller versions could not be stored (${e.message}). The full-size file will be used.`);
+        return false;
       }
     }
     async function removeGuildLogo() {

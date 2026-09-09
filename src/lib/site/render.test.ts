@@ -135,9 +135,20 @@ describe("renderPageHtml", () => {
     expect(html).not.toContain("qh-brand__logo");
   });
 
-  it("renders a safe logo sized by height", () => {
+  it("renders a safe logo sized by height, asking for a logo-sized variant", () => {
     const html = renderPageHtml({ ...args, logoUrl: "https://stitchstudioquilting.com/img/logo1" });
-    expect(html).toContain('<img class="qh-brand__logo" src="https://stitchstudioquilting.com/img/logo1" alt="" height="44">');
+    // The box is 44 px tall: the header asks for the 240 px file and offers
+    // 480 for 2x, instead of pulling the whole upload on every page.
+    expect(html).toContain(
+      '<img class="qh-brand__logo" src="https://stitchstudioquilting.com/img/logo1?w=240"' +
+        ' srcset="https://stitchstudioquilting.com/img/logo1?w=240 1x, https://stitchstudioquilting.com/img/logo1?w=480 2x"' +
+        ' alt="" height="44" decoding="async">'
+    );
+  });
+
+  it("sizes a logo URL that already carries a query", () => {
+    const html = renderPageHtml({ ...args, logoUrl: "https://x.test/img/l?v=2" });
+    expect(html).toContain('src="https://x.test/img/l?v=2&amp;w=240"');
   });
 
   it("shows the platform credit when enabled", () => {
