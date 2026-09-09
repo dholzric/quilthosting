@@ -9,6 +9,7 @@
 import type { Context } from "hono";
 import type { Env, Tenant, Project, ProjectLine, AgreementSignature } from "../types";
 import { all, first } from "../lib/db";
+import { APP_VERSION } from "../version";
 import {
   renderSitePage,
   buildMenu,
@@ -653,7 +654,12 @@ export async function serveSite(
     // Each component is percent-encoded BEFORE being joined with ":" so a
     // literal ":" or "%" inside any raw value can never be reparsed into a
     // different (page, tenant, site, bucket) tuple.
-    updatedAt: [row?.updated_at || kind, tenant.updated_at, siteVersion?.v || "0", bucket]
+    //
+    // APP_VERSION is in the key because a renderer change is invisible to
+    // every other component: pages cached for a day kept serving the old
+    // markup after a deploy, so a fix to the site renderer did not reach a
+    // live site until its content happened to change.
+    updatedAt: [row?.updated_at || kind, tenant.updated_at, siteVersion?.v || "0", bucket, APP_VERSION]
       .map((v) => encodeURIComponent(v))
       .join(":"),
     build: () => renderSitePage(args),
