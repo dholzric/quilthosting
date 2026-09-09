@@ -7,130 +7,348 @@
     "palette": "seasonal-winter",
     "typePair": "playfair-lato",
     "scale": "comfortable",
-    "shape": { "radius": "soft", "shadow": "subtle" },
-    "rhythm": { "spacing": "normal", "container": "normal" },
-    "header": { "variant": "centered", "sticky": true, "cta": "join", "overlayHero": false },
-    "footer": { "variant": "meeting" },
-    "pattern": { "id": "flying-geese", "opacity": 0.1 }
+    "shape": {
+      "radius": "soft",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "centered",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "meeting"
+    },
+    "pattern": {
+      "id": "flying-geese",
+      "opacity": 0.1
+    }
   },
-  "imagery": [{ "id": "hero-art", "kind": "pattern", "alt": "" }],
-  "previewSeed": { "guildName": "Sunbelt Stitchers", "city": "Mesa, Arizona" },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Sunbelt Stitchers",
+    "city": "Mesa, Arizona"
+  },
   "pages": [
     {
-      "slug": "home", "title": "Home", "nav": false,
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
       "sections": [
         {
-          "type": "hero", "id": "welcome", "variant": "split",
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
           "eyebrow": "November through April in {{city}}",
           "title": "{{guild_name}}",
           "subtitle": "Sample text — replace me: A guild for people who quilt here in winter and go home in May. We meet {{meeting_info}}.",
-          "ctaLabel": "Join for the season", "ctaHref": "/membership",
-          "secondaryLabel": "The season", "secondaryHref": "/season",
-          "style": { "bg": "dark", "width": "wide", "spacing": "airy", "media": "right", "imageId": "hero-art" }
+          "ctaLabel": "Join for the season",
+          "ctaHref": "/membership",
+          "secondaryLabel": "The season",
+          "secondaryHref": "/season",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "airy",
+            "media": "right",
+            "imageId": "hero-art"
+          }
         },
-        { "type": "meeting_info", "id": "when", "heading": "Winter meetings", "when": "{{meeting_info}}", "where": "{{city}}", "note": "The first meeting is the second week of November. The last is the week before Easter.", "style": { "bg": "none" } },
-        { "type": "events", "id": "upcoming", "variant": "cards", "heading": "This season", "limit": 3, "style": { "bg": "tint", "width": "wide" } },
         {
-          "type": "feature_grid", "id": "paths", "variant": "icons",
-          "items": [
-            { "title": "Seasonal dues", "body": "Pay for the winter you are here. No year-round obligation.", "href": "/why-join" },
-            { "title": "Summer letter", "body": "A monthly email while you are north, so you do not miss the fall program.", "href": "/season" },
-            { "title": "Charity tops", "body": "We leave a stack for the year-round guild next door when we lock up in April." }
-          ],
-          "style": { "bg": "none", "width": "wide" }
+          "type": "meeting_info",
+          "id": "when",
+          "heading": "Winter meetings",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "note": "The first meeting is the second week of November. The last is the week before Easter.",
+          "style": {
+            "bg": "none",
+            "layout": "framed"
+          }
         },
-        { "type": "join_band", "id": "join", "title": "In town for the winter", "body": "Guests sit in on the first November meeting. Dues start in December.", "ctaLabel": "See the seasonal level", "style": { "bg": "brand", "align": "center" } }
+        {
+          "type": "events",
+          "id": "upcoming",
+          "variant": "cards",
+          "heading": "This season",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "paths",
+          "variant": "icons",
+          "items": [
+            {
+              "title": "Seasonal dues",
+              "body": "Pay for the winter you are here. No year-round obligation.",
+              "href": "/why-join"
+            },
+            {
+              "title": "Summer letter",
+              "body": "A monthly email while you are north, so you do not miss the fall program.",
+              "href": "/season"
+            },
+            {
+              "title": "Charity tops",
+              "body": "We leave a stack for the year-round guild next door when we lock up in April."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "join_band",
+          "id": "join",
+          "title": "In town for the winter",
+          "body": "Guests sit in on the first November meeting. Dues start in December.",
+          "ctaLabel": "See the seasonal level",
+          "style": {
+            "bg": "brand",
+            "align": "center",
+            "layout": "framed"
+          }
+        }
       ]
     },
     {
-      "slug": "season", "title": "The Season", "nav": true,
+      "slug": "season",
+      "title": "The Season",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "s-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "s-hero",
+          "variant": "minimal",
           "title": "How the year actually works",
           "subtitle": "Sample text — replace me: Six months of meetings, a spring show-and-tell, then a quiet summer on email.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
         {
-          "type": "feature_grid", "id": "s-year", "variant": "numbered",
+          "type": "feature_grid",
+          "id": "s-year",
+          "variant": "numbered",
           "items": [
-            { "title": "November", "body": "Welcome back. New-member table. The block of the season is handed out." },
-            { "title": "December to March", "body": "Programs, a charity sew day, and a visiting teacher in February." },
-            { "title": "April", "body": "Finish night, officer elections, and keys returned to the hall." },
-            { "title": "May to October", "body": "The newsletter continues. No meetings. Questions go to the summer inbox." }
+            {
+              "title": "November",
+              "body": "Welcome back. New-member table. The block of the season is handed out."
+            },
+            {
+              "title": "December to March",
+              "body": "Programs, a charity sew day, and a visiting teacher in February."
+            },
+            {
+              "title": "April",
+              "body": "Finish night, officer elections, and keys returned to the hall."
+            },
+            {
+              "title": "May to October",
+              "body": "The newsletter continues. No meetings. Questions go to the summer inbox."
+            }
           ],
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "layout": "framed"
+          }
         },
-        { "type": "blog_teaser", "id": "s-letter", "heading": "From the letter", "limit": 3, "style": { "bg": "none" } }
+        {
+          "type": "blog_teaser",
+          "id": "s-letter",
+          "heading": "From the letter",
+          "limit": 3,
+          "style": {
+            "bg": "none"
+          }
+        }
       ]
     },
     {
-      "slug": "about", "title": "About", "nav": true,
+      "slug": "about",
+      "title": "About",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "a-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
           "title": "A guild with two zip codes",
           "subtitle": "Sample text — replace me: {{guild_name}} formed because the year-round guild here could not absorb two hundred extra chairs every January.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
         {
-          "type": "rich_text", "id": "a-body", "variant": "prose",
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
           "html": "<p>We rent the fellowship hall {{meeting_info}} in {{city}}. Members keep a home guild up north and this one for the winter. Officers serve the season, not the calendar year.</p>",
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "layout": "framed"
+          }
         },
         {
-          "type": "testimonials", "id": "a-quote", "variant": "single",
-          "items": [{ "quote": "I do not want a second full-year membership. I want a chair from November to April and someone who understands that.", "author": "A member from Minnesota" }],
-          "style": { "bg": "none" }
+          "type": "testimonials",
+          "id": "a-quote",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "I do not want a second full-year membership. I want a chair from November to April and someone who understands that.",
+              "author": "A member from Minnesota"
+            }
+          ],
+          "style": {
+            "bg": "none"
+          }
         }
       ]
     },
     {
-      "slug": "why-join", "title": "Join", "nav": true, "navLabel": "Join",
+      "slug": "why-join",
+      "title": "Join",
+      "nav": true,
+      "navLabel": "Join",
       "sections": [
         {
-          "type": "hero", "id": "j-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "j-hero",
+          "variant": "minimal",
           "title": "Seasonal membership",
           "subtitle": "Sample text — replace me: One winter level. A small summer-letter add-on if you want the email while you are gone.",
-          "ctaLabel": "Choose a level", "ctaHref": "/membership",
-          "style": { "bg": "brand", "align": "center" }
+          "ctaLabel": "Choose a level",
+          "ctaHref": "/membership",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
         },
-        { "type": "membership_levels", "id": "levels", "variant": "cards", "style": { "bg": "none", "width": "wide" } },
         {
-          "type": "faq", "id": "j-faq",
+          "type": "membership_levels",
+          "id": "levels",
+          "variant": "cards",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "layout": "framed"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "j-faq",
           "items": [
-            { "q": "What if I stay through May?", "a": "Come to April's finish night. After that the hall is released. The summer letter is email only." },
-            { "q": "Can I join in February?", "a": "Yes. Dues are not prorated. You get the remaining meetings and the block of the season." }
+            {
+              "q": "What if I stay through May?",
+              "a": "Come to April's finish night. After that the hall is released. The summer letter is email only."
+            },
+            {
+              "q": "Can I join in February?",
+              "a": "Yes. Dues are not prorated. You get the remaining meetings and the block of the season."
+            }
           ],
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
         }
       ]
     },
     {
-      "slug": "meetings", "title": "Meetings", "nav": true,
+      "slug": "meetings",
+      "title": "Meetings",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "m-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "m-hero",
+          "variant": "minimal",
           "title": "Winter calendar",
           "subtitle": "Sample text — replace me: Meetings, the February workshop, and April finish night.",
-          "ctaLabel": "All events", "ctaHref": "/events",
-          "style": { "bg": "none", "align": "center" }
+          "ctaLabel": "All events",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
-        { "type": "meeting_info", "id": "m-when", "when": "{{meeting_info}}", "where": "{{city}}", "note": "Park on the north lot. The hall is cool; bring a sweater.", "style": { "bg": "tint" } },
-        { "type": "events", "id": "m-list", "variant": "list", "limit": 8, "style": { "bg": "none", "width": "wide" } }
+        {
+          "type": "meeting_info",
+          "id": "m-when",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "note": "Park on the north lot. The hall is cool; bring a sweater.",
+          "style": {
+            "bg": "tint",
+            "layout": "framed"
+          }
+        },
+        {
+          "type": "events",
+          "id": "m-list",
+          "variant": "list",
+          "limit": 8,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
       ]
     },
     {
-      "slug": "contact", "title": "Contact", "nav": true,
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "c-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
           "title": "Write to {{guild_name}}",
           "subtitle": "Sample text — replace me: Winter questions from October. Summer questions still reach us.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
-        { "type": "contact", "id": "form", "showDetails": true, "style": { "bg": "tint" } },
-        { "type": "meeting_info", "id": "c-when", "when": "{{meeting_info}}", "where": "{{city}}", "style": { "bg": "dark" } }
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint",
+            "layout": "framed"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-when",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "style": {
+            "bg": "dark"
+          }
+        }
       ]
     }
   ]

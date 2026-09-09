@@ -73,7 +73,8 @@
           "where": "the room we rent in {{city}}",
           "note": "No unlabeled scraps. Fat quarters and larger. If it is smaller than a fat quarter it goes in the crumb box, not on the swap table.",
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "layout": "framed"
           }
         },
         {
@@ -119,7 +120,8 @@
           "ctaLabel": "See dues",
           "style": {
             "bg": "brand",
-            "align": "center"
+            "align": "center",
+            "layout": "offset"
           }
         }
       ]
@@ -148,7 +150,8 @@
           "html": "<p><em>Sample text — replace me:</em> Stash is not a personality. {{guild_name}} is the guild for people in {{city}} whose cutting tables disappeared under bolts. We still sew. We just refuse to pretend that buying is the same as making.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "offset"
           }
         },
         {
@@ -214,7 +217,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "layout": "offset"
           }
         },
         {
@@ -252,7 +256,8 @@
           "variant": "cards",
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "layout": "offset"
           }
         },
         {
@@ -297,7 +302,8 @@
           "when": "{{meeting_info}}",
           "where": "the room we rent in {{city}}",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "offset"
           }
         },
         {
@@ -334,7 +340,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "offset"
           }
         },
         {

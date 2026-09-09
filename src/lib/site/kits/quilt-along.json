@@ -7,118 +7,313 @@
     "palette": "soft-sky",
     "typePair": "nunito",
     "scale": "comfortable",
-    "shape": { "radius": "round", "shadow": "subtle" },
-    "rhythm": { "spacing": "normal", "container": "normal" },
-    "header": { "variant": "left", "sticky": true, "cta": "none", "overlayHero": false },
-    "footer": { "variant": "columns" },
-    "pattern": { "id": "flying-geese", "opacity": 0.1 }
+    "shape": {
+      "radius": "round",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "none",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "flying-geese",
+      "opacity": 0.1
+    }
   },
-  "imagery": [{ "id": "hero-art", "kind": "pattern", "alt": "" }],
-  "previewSeed": { "guildName": "Clue Club Patterns", "city": "Madison, Wisconsin" },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Clue Club Patterns",
+    "city": "Madison, Wisconsin"
+  },
   "pages": [
     {
-      "slug": "home", "title": "Home", "nav": false,
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
       "sections": [
         {
-          "type": "hero", "id": "welcome", "variant": "split",
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
           "eyebrow": "The 2026 quilt along",
           "title": "One clue a week. A finished top by June.",
           "subtitle": "Sample text — replace me: {{guild_name}} runs a public QAL each spring. Buy the pattern, sew with the calendar, or catch up from the archive.",
-          "ctaLabel": "This year's pattern", "ctaHref": "/patterns",
-          "secondaryLabel": "Schedule", "secondaryHref": "/schedule",
-          "style": { "bg": "pattern", "width": "wide", "media": "right", "imageId": "hero-art" }
+          "ctaLabel": "This year's pattern",
+          "ctaHref": "/patterns",
+          "secondaryLabel": "Schedule",
+          "secondaryHref": "/schedule",
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "media": "right",
+            "imageId": "hero-art"
+          }
         },
-        { "type": "events", "id": "next-clue", "variant": "next_up", "heading": "Next clue", "limit": 1, "style": { "bg": "none" } },
-        { "type": "store_teaser", "id": "home-shop", "heading": "Pattern and extras", "limit": 4, "style": { "bg": "tint", "width": "wide" } },
         {
-          "type": "testimonials", "id": "home-sew", "variant": "grid",
+          "type": "events",
+          "id": "next-clue",
+          "variant": "next_up",
+          "heading": "Next clue",
+          "limit": 1,
+          "style": {
+            "bg": "none"
+          }
+        },
+        {
+          "type": "store_teaser",
+          "id": "home-shop",
+          "heading": "Pattern and extras",
+          "limit": 4,
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "layout": "framed",
+            "divider": "scallop"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "home-sew",
+          "variant": "grid",
           "items": [
-            { "quote": "The clues were actually doable on a weeknight. I am not a fast piecer.", "author": "A 2025 QAL finisher" },
-            { "quote": "Catch-up week in May saved me. I had missed two clues on a work trip.", "author": "A late starter" }
+            {
+              "quote": "The clues were actually doable on a weeknight. I am not a fast piecer.",
+              "author": "A 2025 QAL finisher"
+            },
+            {
+              "quote": "Catch-up week in May saved me. I had missed two clues on a work trip.",
+              "author": "A late starter"
+            }
           ],
-          "style": { "bg": "none" }
+          "style": {
+            "bg": "none"
+          }
         }
       ]
     },
     {
-      "slug": "schedule", "title": "Schedule", "nav": true,
+      "slug": "schedule",
+      "title": "Schedule",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "s-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "s-hero",
+          "variant": "pattern",
           "title": "Clue schedule",
           "subtitle": "Sample text — replace me: Twelve weekly clues, one catch-up, then a finish month. All times are listed as events.",
-          "ctaLabel": "Calendar", "ctaHref": "/calendar",
-          "style": { "bg": "none", "align": "center" }
+          "ctaLabel": "Calendar",
+          "ctaHref": "/calendar",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
-        { "type": "events", "id": "s-list", "variant": "list", "heading": "Clues and live sews", "limit": 12, "style": { "bg": "tint", "width": "wide" } },
         {
-          "type": "rich_text", "id": "s-note", "variant": "prose",
+          "type": "events",
+          "id": "s-list",
+          "variant": "list",
+          "heading": "Clues and live sews",
+          "limit": 12,
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "divider": "scallop"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "s-note",
+          "variant": "prose",
           "html": "<p>Clues post Monday morning. A live sew is Thursday evening on video, optional. The <a href=\"/blog\">newsletter</a> repeats the clue so you do not have to hunt for it.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "layout": "framed"
+          }
         }
       ]
     },
     {
-      "slug": "patterns", "title": "Patterns", "nav": true,
+      "slug": "patterns",
+      "title": "Patterns",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "p-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "p-hero",
+          "variant": "pattern",
           "title": "The pattern shop",
           "subtitle": "Sample text — replace me: This year's QAL, last year's archive, and a few minis that are not on a calendar.",
-          "style": { "bg": "brand", "align": "center" }
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
         },
-        { "type": "store_teaser", "id": "p-shop", "heading": "For sale", "limit": 8, "style": { "bg": "none", "width": "wide" } },
         {
-          "type": "faq", "id": "p-faq",
+          "type": "store_teaser",
+          "id": "p-shop",
+          "heading": "For sale",
+          "limit": 8,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "p-faq",
           "items": [
-            { "q": "Do I have to sew on the calendar?", "a": "No. The full pattern is in the PDF. The calendar is for people who like a weekly nudge." },
-            { "q": "Can a guild sew it together?", "a": "Yes. Buy one pattern per sewist. A guild booking for a live sew is on the workshops page." }
+            {
+              "q": "Do I have to sew on the calendar?",
+              "a": "No. The full pattern is in the PDF. The calendar is for people who like a weekly nudge."
+            },
+            {
+              "q": "Can a guild sew it together?",
+              "a": "Yes. Buy one pattern per sewist. A guild booking for a live sew is on the workshops page."
+            }
           ],
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "layout": "framed",
+            "divider": "scallop"
+          }
         }
       ]
     },
     {
-      "slug": "workshops", "title": "Live Sews", "nav": true,
+      "slug": "workshops",
+      "title": "Live Sews",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "w-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "pattern",
           "title": "Live sews and guild bookings",
           "subtitle": "Sample text — replace me: Thursday evening for the QAL. Private guild dates in the fall.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
-        { "type": "events", "id": "w-list", "variant": "cards", "limit": 6, "style": { "bg": "tint", "width": "wide" } },
-        { "type": "quote_cta", "id": "w-book", "projectType": "custom_quilt", "heading": "Book a guild live sew", "submitLabel": "Send dates", "style": { "bg": "dark" } }
+        {
+          "type": "events",
+          "id": "w-list",
+          "variant": "cards",
+          "limit": 6,
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "divider": "scallop"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "w-book",
+          "projectType": "custom_quilt",
+          "heading": "Book a guild live sew",
+          "submitLabel": "Send dates",
+          "style": {
+            "bg": "dark",
+            "layout": "framed",
+            "divider": "scallop"
+          }
+        }
       ]
     },
     {
-      "slug": "about", "title": "About", "nav": true,
+      "slug": "about",
+      "title": "About",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "a-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "pattern",
           "title": "About {{guild_name}}",
           "subtitle": "Sample text — replace me: A pattern desk in {{city}} and a QAL that started as a newsletter experiment.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
         {
-          "type": "rich_text", "id": "a-body", "variant": "two_column",
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "two_column",
           "html": "<p>I write patterns I can finish in a season of weeknights. The QAL exists because people asked for a shared calendar, not because the math required one.</p><p>Errata go on the blog the same day I find them.</p>",
-          "style": { "bg": "tint" }
+          "style": {
+            "bg": "tint",
+            "divider": "scallop"
+          }
         },
-        { "type": "blog_teaser", "id": "a-blog", "heading": "Notes and errata", "limit": 3, "style": { "bg": "none" } }
+        {
+          "type": "blog_teaser",
+          "id": "a-blog",
+          "heading": "Notes and errata",
+          "limit": 3,
+          "style": {
+            "bg": "none",
+            "layout": "framed"
+          }
+        }
       ]
     },
     {
-      "slug": "contact", "title": "Contact", "nav": true,
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "c-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "pattern",
           "title": "Contact",
           "subtitle": "Sample text — replace me: Pattern questions, guild bookings, and missing-clue emails.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
-        { "type": "contact", "id": "form", "showDetails": true, "style": { "bg": "tint" } },
-        { "type": "cta", "id": "c-shop", "label": "Shop the pattern", "href": "/patterns", "kind": "primary", "style": { "bg": "brand", "align": "center" } }
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint",
+            "divider": "scallop"
+          }
+        },
+        {
+          "type": "cta",
+          "id": "c-shop",
+          "label": "Shop the pattern",
+          "href": "/patterns",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "align": "center",
+            "layout": "framed",
+            "divider": "scallop"
+          }
+        }
       ]
     }
   ]

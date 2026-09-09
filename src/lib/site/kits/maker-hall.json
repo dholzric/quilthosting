@@ -88,7 +88,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           }
         },
         {
@@ -154,7 +155,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           }
         }
       ]
@@ -184,7 +186,8 @@
           "where": "{{city}}",
           "note": "Fob after 8 p.m. for evening-pass holders. The last person vacuums the clippings.",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "framed"
           }
         }
       ]
@@ -212,7 +215,8 @@
           "heading": "Pass type, typical days, and whether you need a house machine",
           "submitLabel": "Ask about a pass",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "framed"
           }
         },
         {
@@ -252,7 +256,8 @@
           "html": "<p><em>Sample text — replace me:</em> I opened {{guild_name}} because sit-down longarm places are for quilting, and dining tables are for dinner. This hall is for piecing, applique, and the kind of mess you cannot make at home. There is no frame in the corner. If you need one, I will name the studio that has it.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "framed"
           }
         },
         {
@@ -292,7 +297,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "framed"
           }
         },
         {

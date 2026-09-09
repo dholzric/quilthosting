@@ -7,23 +7,64 @@
     "palette": "jewel-emerald",
     "typePair": "dmserif-dmsans",
     "scale": "comfortable",
-    "shape": { "radius": "soft", "shadow": "subtle" },
-    "rhythm": { "spacing": "normal", "container": "normal" },
-    "header": { "variant": "left", "sticky": true, "cta": "join", "overlayHero": false },
-    "footer": { "variant": "columns" },
-    "pattern": { "id": "churn-dash", "opacity": 0.08 }
+    "shape": {
+      "radius": "soft",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "churn-dash",
+      "opacity": 0.08
+    }
   },
   "imagery": [
-    { "id": "hero-art", "kind": "pattern", "alt": "" }
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
   ],
-  "previewSeed": { "guildName": "The Piecing Room Academy", "city": "Grand Rapids, Michigan" },
+  "previewSeed": {
+    "guildName": "The Piecing Room Academy",
+    "city": "Grand Rapids, Michigan"
+  },
   "menu": [
-    { "label": "Curriculum", "href": "/curriculum" },
-    { "label": "Faculty", "href": "/faculty" },
-    { "label": "Membership", "href": "/why-join" },
-    { "label": "Events", "href": "/events" },
-    { "label": "About", "href": "/about" },
-    { "label": "Contact", "href": "/contact" }
+    {
+      "label": "Curriculum",
+      "href": "/curriculum"
+    },
+    {
+      "label": "Faculty",
+      "href": "/faculty"
+    },
+    {
+      "label": "Membership",
+      "href": "/why-join"
+    },
+    {
+      "label": "Events",
+      "href": "/events"
+    },
+    {
+      "label": "About",
+      "href": "/about"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    }
   ],
   "pages": [
     {
@@ -39,15 +80,29 @@
           "title": "{{guild_name}}",
           "subtitle": "Sample text — replace me: Four terms a year, twelve machines that behave, and a curriculum that takes you from first seam to finished show quilt.",
           "stats": [
-            { "value": "4", "label": "semesters a year" },
-            { "value": "12", "label": "sewing stations" },
-            { "value": "96%", "label": "of beginners finish their first quilt" }
+            {
+              "value": "4",
+              "label": "semesters a year"
+            },
+            {
+              "value": "12",
+              "label": "sewing stations"
+            },
+            {
+              "value": "96%",
+              "label": "of beginners finish their first quilt"
+            }
           ],
           "ctaLabel": "See the curriculum",
           "ctaHref": "/curriculum",
           "secondaryLabel": "Become a member",
           "secondaryHref": "/why-join",
-          "style": { "bg": "brand", "width": "wide", "spacing": "airy", "align": "center" }
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy",
+            "align": "center"
+          }
         },
         {
           "type": "feature_grid",
@@ -55,19 +110,42 @@
           "variant": "cards",
           "heading": "The four stages",
           "items": [
-            { "title": "Foundations", "body": "Threading, seams, pressing, and the vocabulary that makes instructions make sense.", "href": "/curriculum" },
-            { "title": "Piecing", "body": "Nine-patch to curved seams, with accuracy checked by instructor, not by hope.", "href": "/curriculum" },
-            { "title": "Fine piecing", "body": "Y-seams, fussy cutting, and the blocks people are afraid to start.", "href": "/curriculum" },
-            { "title": "Finishing school", "body": "Basting, machine quilting, binding, and the label that tells the truth.", "href": "/curriculum" }
+            {
+              "title": "Foundations",
+              "body": "Threading, seams, pressing, and the vocabulary that makes instructions make sense.",
+              "href": "/curriculum"
+            },
+            {
+              "title": "Piecing",
+              "body": "Nine-patch to curved seams, with accuracy checked by instructor, not by hope.",
+              "href": "/curriculum"
+            },
+            {
+              "title": "Fine piecing",
+              "body": "Y-seams, fussy cutting, and the blocks people are afraid to start.",
+              "href": "/curriculum"
+            },
+            {
+              "title": "Finishing school",
+              "body": "Basting, machine quilting, binding, and the label that tells the truth.",
+              "href": "/curriculum"
+            }
           ],
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
         },
         {
           "type": "membership_levels",
           "id": "home-membership",
           "variant": "cards",
           "heading": "Studio membership",
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "divider": "points"
+          }
         },
         {
           "type": "rich_text",
@@ -75,7 +153,10 @@
           "variant": "two_column",
           "heading": "How a semester runs",
           "html": "<p>Six-week courses meet once a week for three hours, in cohorts that stay together from Foundations to Finishing. Machines, mats, and irons belong to the academy; fabric lists go out two weeks before the first class, with amounts honest enough to include mistakes.</p><p>Every cohort ends with a finished quilt on the studio wall for one week, photographed for the family group chat and the academy's album alike.</p>",
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         },
         {
           "type": "events",
@@ -83,7 +164,11 @@
           "variant": "cards",
           "heading": "Open houses and intensives",
           "limit": 3,
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "divider": "points"
+          }
         },
         {
           "type": "join_band",
@@ -91,7 +176,12 @@
           "title": "Enroll for the fall term",
           "body": "Foundations cohorts start four times a year, and the waiting list moves every semester.",
           "ctaLabel": "Enroll now",
-          "style": { "bg": "dark", "width": "full", "align": "center" }
+          "style": {
+            "bg": "dark",
+            "width": "full",
+            "align": "center",
+            "divider": "points"
+          }
         }
       ]
     },
@@ -103,10 +193,14 @@
         {
           "type": "hero",
           "id": "curriculum-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "The curriculum",
           "subtitle": "Sample text — replace me: Six-week courses, honest supply lists, and skills that stack in order.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "feature_grid",
@@ -114,13 +208,37 @@
           "variant": "cards",
           "heading": "Courses and fees",
           "items": [
-            { "title": "Foundations 101", "body": "The machine, the quarter-inch, and the first honest pillowcase.", "price": "$180 / 6 wks" },
-            { "title": "Piecing 201", "body": "Nine-patch through stars, with points that meet by week five.", "price": "$210 / 6 wks" },
-            { "title": "Fine piecing 301", "body": "Curves, Y-seams, and the satisfaction of a block nobody believes.", "price": "$240 / 6 wks" },
-            { "title": "Finishing 401", "body": "Basting, walking-foot and free-motion quilting, binding, labels.", "price": "$240 / 6 wks" },
-            { "title": "Saturday intensives", "body": "One skill, one day, for members and alumni.", "price": "$85" }
+            {
+              "title": "Foundations 101",
+              "body": "The machine, the quarter-inch, and the first honest pillowcase.",
+              "price": "$180 / 6 wks"
+            },
+            {
+              "title": "Piecing 201",
+              "body": "Nine-patch through stars, with points that meet by week five.",
+              "price": "$210 / 6 wks"
+            },
+            {
+              "title": "Fine piecing 301",
+              "body": "Curves, Y-seams, and the satisfaction of a block nobody believes.",
+              "price": "$240 / 6 wks"
+            },
+            {
+              "title": "Finishing 401",
+              "body": "Basting, walking-foot and free-motion quilting, binding, labels.",
+              "price": "$240 / 6 wks"
+            },
+            {
+              "title": "Saturday intensives",
+              "body": "One skill, one day, for members and alumni.",
+              "price": "$85"
+            }
           ],
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "divider": "points"
+          }
         },
         {
           "type": "rich_text",
@@ -128,18 +246,34 @@
           "variant": "prose",
           "heading": "Supplies",
           "html": "<p>The academy provides machines, mats, irons, and the classroom stash of neutral thread. Students buy fabric and one good rotary blade; the supply lists say exactly how much, with the mistakes budgeted in.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         },
         {
           "type": "faq",
           "id": "curriculum-faq",
           "heading": "Before enrolling",
           "items": [
-            { "q": "I have never touched a sewing machine.", "a": "Foundations 101 assumes exactly that, and the first class is threading, seams, and not being afraid of the machine yet." },
-            { "q": "Can I miss a week?", "a": "Life happens once per course: the studio reopens on Sunday afternoons for make-up sessions with an instructor present." },
-            { "q": "Is there an age minimum?", "a": "Fifteen for the evening cohorts. Younger stitchers do better in the Saturday family sessions, which run each semester." }
+            {
+              "q": "I have never touched a sewing machine.",
+              "a": "Foundations 101 assumes exactly that, and the first class is threading, seams, and not being afraid of the machine yet."
+            },
+            {
+              "q": "Can I miss a week?",
+              "a": "Life happens once per course: the studio reopens on Sunday afternoons for make-up sessions with an instructor present."
+            },
+            {
+              "q": "Is there an age minimum?",
+              "a": "Fifteen for the evening cohorts. Younger stitchers do better in the Saturday family sessions, which run each semester."
+            }
           ],
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "divider": "points"
+          }
         }
       ]
     },
@@ -151,10 +285,15 @@
         {
           "type": "hero",
           "id": "faculty-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "The faculty",
           "subtitle": "Sample text — replace me: Four teachers between them hold a century of seams, and none of them grades with a red pen.",
-          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "feature_grid",
@@ -162,21 +301,43 @@
           "variant": "cards",
           "heading": "Who teaches here",
           "items": [
-            { "title": "Foundations", "body": "Taught by the academy's founder, who believes everybody's first seam deserves applause." },
-            { "title": "Piecing", "body": "A retired home-ec teacher with forty years of patient corrections and a legendary stash." },
-            { "title": "Fine piecing", "body": "A show judge who teaches precision as kindness: accurate blocks make every later step easier." },
-            { "title": "Finishing school", "body": "A longarm professional who believes bindings are the handshake of the quilt." }
+            {
+              "title": "Foundations",
+              "body": "Taught by the academy's founder, who believes everybody's first seam deserves applause."
+            },
+            {
+              "title": "Piecing",
+              "body": "A retired home-ec teacher with forty years of patient corrections and a legendary stash."
+            },
+            {
+              "title": "Fine piecing",
+              "body": "A show judge who teaches precision as kindness: accurate blocks make every later step easier."
+            },
+            {
+              "title": "Finishing school",
+              "body": "A longarm professional who believes bindings are the handshake of the quilt."
+            }
           ],
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "divider": "points"
+          }
         },
         {
           "type": "testimonials",
           "id": "faculty-quote",
           "variant": "single",
           "items": [
-            { "quote": "I took Foundations to make one pillow and left enrolled in 201. That is either a curriculum or a conspiracy, and the quilt is beautiful either way.", "author": "A spring cohort member" }
+            {
+              "quote": "I took Foundations to make one pillow and left enrolled in 201. That is either a curriculum or a conspiracy, and the quilt is beautiful either way.",
+              "author": "A spring cohort member"
+            }
           ],
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         }
       ]
     },
@@ -189,10 +350,15 @@
         {
           "type": "hero",
           "id": "join-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Studio membership",
           "subtitle": "Sample text — replace me: For alumni and current students: machine hours outside class, the library, and the good cutting tables.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "rich_text",
@@ -200,14 +366,21 @@
           "variant": "prose",
           "heading": "What membership means",
           "html": "<p>Members sew at the academy any open studio hour: machines set up, irons hot, and an instructor on site for the questions that halt a project at nine at night. Membership also holds your place in cohort registration, which fills in the order the list is kept.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         },
         {
           "type": "membership_levels",
           "id": "join-levels",
           "variant": "compact",
           "heading": "The tiers",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "divider": "points"
+          }
         },
         {
           "type": "join_band",
@@ -215,7 +388,12 @@
           "title": "The studio is open late on Thursdays",
           "body": "Members sew until ten, and the kettle follows the cohort schedule.",
           "ctaLabel": "Become a member",
-          "style": { "bg": "brand", "width": "full", "align": "center" }
+          "style": {
+            "bg": "brand",
+            "width": "full",
+            "align": "center",
+            "divider": "points"
+          }
         }
       ]
     },
@@ -227,26 +405,41 @@
         {
           "type": "hero",
           "id": "about-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "About the academy",
           "subtitle": "Sample text — replace me: Founded in a church basement with four card tables, now a storefront studio with twelve stations that all run true.",
-          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "rich_text",
           "id": "about-body",
           "variant": "two_column",
           "html": "<p>The academy began when a community-ed quilting class outgrew its room three times in two years and its teacher decided the curriculum deserved a building. The piecing room still uses the same sequence taught on those card tables, refined by every cohort that has argued with a curve since.</p><p>The school's rule is written over the ironing board: nobody rips alone. Mistakes are repaired in company or not at all.</p>",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "divider": "points"
+          }
         },
         {
           "type": "testimonials",
           "id": "about-quote",
           "variant": "single",
           "items": [
-            { "quote": "I finished my first quilt at fifty-nine and my granddaughter's at sixty-one. The wall of finished quilts is the best advertising in the city.", "author": "A Foundations alum" }
+            {
+              "quote": "I finished my first quilt at fifty-nine and my granddaughter's at sixty-one. The wall of finished quilts is the best advertising in the city.",
+              "author": "A Foundations alum"
+            }
           ],
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         }
       ]
     },
@@ -258,17 +451,24 @@
         {
           "type": "hero",
           "id": "contact-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Contact the academy",
           "subtitle": "Sample text — replace me: Enrollment, studio hours, and visits from people who want to hear the machines before they commit.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "contact",
           "id": "contact-form",
           "heading": "Send a message",
           "showDetails": true,
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         },
         {
           "type": "meeting_info",
@@ -277,7 +477,11 @@
           "when": "Open studio daily; office hours 10 to 2",
           "where": "{{city}}",
           "note": "Come by during any cohort and watch from the back row; nobody minds, and everybody remembers being there.",
-          "style": { "bg": "brand", "width": "wide" }
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "divider": "points"
+          }
         }
       ]
     }

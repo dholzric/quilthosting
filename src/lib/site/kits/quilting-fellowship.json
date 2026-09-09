@@ -7,22 +7,60 @@
     "palette": "naturals-clay",
     "typePair": "librebaskerville-nunitosans",
     "scale": "comfortable",
-    "shape": { "radius": "soft", "shadow": "subtle" },
-    "rhythm": { "spacing": "normal", "container": "normal" },
-    "header": { "variant": "centered", "sticky": true, "cta": "join", "overlayHero": false },
-    "footer": { "variant": "meeting" },
-    "pattern": { "id": "bear-paw", "opacity": 0.1 }
+    "shape": {
+      "radius": "soft",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "centered",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "meeting"
+    },
+    "pattern": {
+      "id": "bear-paw",
+      "opacity": 0.1
+    }
   },
   "imagery": [
-    { "id": "hero-art", "kind": "pattern", "alt": "" }
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
   ],
-  "previewSeed": { "guildName": "Zion Quilting Fellowship", "city": "New Ulm, Minnesota" },
+  "previewSeed": {
+    "guildName": "Zion Quilting Fellowship",
+    "city": "New Ulm, Minnesota"
+  },
   "menu": [
-    { "label": "Our quilts", "href": "/quilts" },
-    { "label": "Events", "href": "/events" },
-    { "label": "Join", "href": "/why-join" },
-    { "label": "About", "href": "/about" },
-    { "label": "Contact", "href": "/contact" }
+    {
+      "label": "Our quilts",
+      "href": "/quilts"
+    },
+    {
+      "label": "Events",
+      "href": "/events"
+    },
+    {
+      "label": "Join",
+      "href": "/why-join"
+    },
+    {
+      "label": "About",
+      "href": "/about"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    }
   ],
   "pages": [
     {
@@ -41,7 +79,12 @@
           "ctaHref": "/why-join",
           "secondaryLabel": "See the quilts",
           "secondaryHref": "/quilts",
-          "style": { "bg": "pattern", "width": "wide", "spacing": "airy", "imageId": "hero-art" }
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "spacing": "airy",
+            "imageId": "hero-art"
+          }
         },
         {
           "type": "meeting_info",
@@ -50,7 +93,11 @@
           "when": "{{meeting_info}}",
           "where": "{{city}}",
           "note": "Come in the north basement door and follow the hum. Thimbles provided; opinions provided free.",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "layout": "offset"
+          }
         },
         {
           "type": "rich_text",
@@ -58,7 +105,10 @@
           "variant": "two_column",
           "heading": "A year of quilts",
           "html": "<p>Every baptized baby gets a quilt, every graduating senior gets a quilt, and every December bazaar raises the fund that keeps the batting shelf full. In between, comfort quilts go where the congregation hears of need, which is to say everywhere.</p><p>The work is shared and the lessons are inherited: the women who taught the frames in 1953 taught the women who teach them now, and the patterns live in in a notebook with a cracked spine that travels to every meeting.</p>",
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         },
         {
           "type": "feature_grid",
@@ -66,12 +116,31 @@
           "variant": "cards",
           "heading": "The four kinds of quilts",
           "items": [
-            { "title": "Baptism quilts", "body": "Soft washable cotton with the child's name and date stitched on the corner.", "href": "/quilts" },
-            { "title": "Graduation quilts", "body": "Tied, sturdy, and packed to survive a dormitory.", "href": "/quilts" },
-            { "title": "Comfort quilts", "body": "For sickness, loss, and hard winters, delivered with a casserole if the timing is right.", "href": "/quilts" },
-            { "title": "Bazaar quilts", "body": "The raffle piece that funds the batting shelf, drawn at the December bazaar.", "href": "/quilts" }
+            {
+              "title": "Baptism quilts",
+              "body": "Soft washable cotton with the child's name and date stitched on the corner.",
+              "href": "/quilts"
+            },
+            {
+              "title": "Graduation quilts",
+              "body": "Tied, sturdy, and packed to survive a dormitory.",
+              "href": "/quilts"
+            },
+            {
+              "title": "Comfort quilts",
+              "body": "For sickness, loss, and hard winters, delivered with a casserole if the timing is right.",
+              "href": "/quilts"
+            },
+            {
+              "title": "Bazaar quilts",
+              "body": "The raffle piece that funds the batting shelf, drawn at the December bazaar.",
+              "href": "/quilts"
+            }
           ],
-          "style": { "bg": "dark", "width": "wide" }
+          "style": {
+            "bg": "dark",
+            "width": "wide"
+          }
         },
         {
           "type": "gallery",
@@ -80,7 +149,11 @@
           "source": "gallery",
           "gallerySlug": "fellowship",
           "heading": "From the frames",
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "layout": "offset"
+          }
         },
         {
           "type": "join_band",
@@ -88,7 +161,11 @@
           "title": "Come quilt a Wednesday",
           "body": "No experience, no membership requirement, and no talent for threading that practice will not fix.",
           "ctaLabel": "Join the fellowship",
-          "style": { "bg": "brand", "width": "full", "align": "center" }
+          "style": {
+            "bg": "brand",
+            "width": "full",
+            "align": "center"
+          }
         }
       ]
     },
@@ -103,7 +180,12 @@
           "variant": "pattern",
           "title": "The quilts",
           "subtitle": "Sample text — replace me: Where they go, how to request one, and the notebook where the patterns live.",
-          "style": { "bg": "pattern", "width": "wide", "align": "center", "imageId": "hero-art" }
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "align": "center",
+            "imageId": "hero-art"
+          }
         },
         {
           "type": "gallery",
@@ -111,7 +193,11 @@
           "variant": "grid",
           "source": "gallery",
           "gallerySlug": "fellowship",
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "layout": "framed"
+          }
         },
         {
           "type": "rich_text",
@@ -119,7 +205,10 @@
           "variant": "prose",
           "heading": "Requesting a quilt",
           "html": "<p>Comfort quilts are requested through the church office, by anyone, for anyone, and no reason is required beyond a hard season. Baptism and graduation quilts find their families automatically. The waiting list is short and the frames are long.</p>",
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -135,7 +224,12 @@
           "variant": "minimal",
           "title": "Join the fellowship",
           "subtitle": "Sample text — replace me: No dues, no experience, and coffee that has been described as structural.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "rich_text",
@@ -143,25 +237,44 @@
           "variant": "prose",
           "heading": "What fellowship means",
           "html": "<p>Materials, machines, and the frame belong to the group; hands belong to whoever brings them. Members give what the season allows, and the quilt that ships to a seminarian in January carries stitches from thirteen different people, which the recipients report is the best part. <a href=\"/membership\">Open the membership form</a> if your hands are interested.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "layout": "framed"
+          }
         },
         {
           "type": "membership_levels",
           "id": "join-levels",
           "variant": "cards",
           "heading": "Supporting levels",
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
         },
         {
           "type": "faq",
           "id": "join-faq",
           "heading": "Before the first Wednesday",
           "items": [
-            { "q": "Do I need to be a church member?", "a": "No. The frames belong to the fellowship and the fellowship belongs to anyone who sits down. Half the strongest stitchers at the frame joined for the company." },
-            { "q": "I have never quilted.", "a": "The Wednesday lesson is real: rock the needle, feel the backing, and by winter your stitches will embarrass your first ones. All materials are provided." },
-            { "q": "Can I help without sewing?", "a": "Yes. The ironing brigade, the bazaar kitchen, and the batting shelf all run on helpers, and the frames would starve without them." }
+            {
+              "q": "Do I need to be a church member?",
+              "a": "No. The frames belong to the fellowship and the fellowship belongs to anyone who sits down. Half the strongest stitchers at the frame joined for the company."
+            },
+            {
+              "q": "I have never quilted.",
+              "a": "The Wednesday lesson is real: rock the needle, feel the backing, and by winter your stitches will embarrass your first ones. All materials are provided."
+            },
+            {
+              "q": "Can I help without sewing?",
+              "a": "Yes. The ironing brigade, the bazaar kitchen, and the batting shelf all run on helpers, and the frames would starve without them."
+            }
           ],
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -176,23 +289,38 @@
           "variant": "minimal",
           "title": "About the fellowship",
           "subtitle": "Sample text — replace me: Organized in 1953 to quilt for the parsonage fund and never quite stopped.",
-          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "rich_text",
           "id": "about-body",
           "variant": "two_column",
           "html": "<p>The minutes from 1953 record the founding purpose as raising funds for new hymnals, with quilt proceeds of eleven dollars and a note that the coffee was excellent. Seventy years later the hymnals were paid off long ago, the coffee is still excellent, and the frames have quilted through four pastors, two floods, and one memorable blizzard that turned a Wednesday into a sleepover.</p><p>The fellowship's accounting is posted on the basement door every January, because the bazaar quilt buyers deserve to know that their forty dollars became batting, thread, and comfort quilts in exactly that order.</p>",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "layout": "offset"
+          }
         },
         {
           "type": "testimonials",
           "id": "about-quote",
           "variant": "single",
           "items": [
-            { "quote": "My father's comfort quilt arrived the week of the funeral with thirteen names stitched inside the binding. We read them out loud at Christmas.", "author": "A family from the east side" }
+            {
+              "quote": "My father's comfort quilt arrived the week of the funeral with thirteen names stitched inside the binding. We read them out loud at Christmas.",
+              "author": "A family from the east side"
+            }
           ],
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         }
       ]
     },
@@ -207,14 +335,22 @@
           "variant": "minimal",
           "title": "Contact the fellowship",
           "subtitle": "Sample text — replace me: Quilt requests, visiting quilters, and the perennial question of whether the basement is warm. It is.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "contact",
           "id": "contact-form",
           "heading": "Send a message",
           "showDetails": true,
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal",
+            "layout": "framed"
+          }
         },
         {
           "type": "meeting_info",
@@ -223,7 +359,10 @@
           "when": "{{meeting_info}}",
           "where": "{{city}}",
           "note": "If the north door is locked, knock loudly; the machines are loud too and nobody hears the first knock.",
-          "style": { "bg": "brand", "width": "wide" }
+          "style": {
+            "bg": "brand",
+            "width": "wide"
+          }
         }
       ]
     }

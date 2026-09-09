@@ -73,7 +73,8 @@
           "where": "the room we rent in {{city}}",
           "note": "Put both bolts on the table at the start. If a third sneaks out of the bag we will laugh, then ask you to put it back.",
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "layout": "framed"
           }
         },
         {
@@ -119,7 +120,8 @@
           "ctaLabel": "See dues",
           "style": {
             "bg": "brand",
-            "align": "center"
+            "align": "center",
+            "layout": "framed"
           }
         }
       ]
@@ -148,7 +150,8 @@
           "html": "<p><em>Sample text — replace me:</em> You may sew scrappy rainbows at home. In this room the pleasure is the limit. Two fabrics make the block louder. {{guild_name}} is the night for that volume.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "framed"
           }
         },
         {
@@ -213,7 +216,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "framed"
           }
         },
         {
@@ -251,7 +255,8 @@
           "variant": "cards",
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           }
         },
         {
@@ -296,7 +301,8 @@
           "when": "{{meeting_info}}",
           "where": "the room we rent in {{city}}",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "framed"
           }
         },
         {
@@ -333,7 +339,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "framed"
           }
         },
         {

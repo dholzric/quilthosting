@@ -87,7 +87,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           }
         },
         {
@@ -141,7 +142,8 @@
           "html": "<p><em>Sample text — replace me:</em> A whole county on a throw will lose the house. A single block on a queen will invent streets. I will say which size tells the truth you asked for.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "offset"
           }
         },
         {
@@ -204,7 +206,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "layout": "offset"
           }
         }
       ]
@@ -232,7 +235,8 @@
           "heading": "Place, year if it matters, and which buildings must be findable",
           "submitLabel": "Send details",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "offset"
           }
         },
         {
@@ -272,7 +276,8 @@
           "html": "<p><em>Sample text — replace me:</em> I used to draw plats. People kept asking if the drawing could live on a bed. {{guild_name}} is that stubborn idea: geography you can wash.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "offset"
           }
         },
         {
@@ -312,7 +317,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "offset"
           }
         },
         {

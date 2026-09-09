@@ -7,22 +7,60 @@
     "palette": "modern-slate-lime",
     "typePair": "manrope",
     "scale": "compact",
-    "shape": { "radius": "sharp", "shadow": "none" },
-    "rhythm": { "spacing": "tight", "container": "normal" },
-    "header": { "variant": "left", "sticky": true, "cta": "join", "overlayHero": false },
-    "footer": { "variant": "columns" },
-    "pattern": { "id": "flying-geese", "opacity": 0.1 }
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "tight",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "flying-geese",
+      "opacity": 0.1
+    }
   },
   "imagery": [
-    { "id": "hero-art", "kind": "pattern", "alt": "" }
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
   ],
-  "previewSeed": { "guildName": "The Pattern Drawer", "city": "Madison, Wisconsin" },
+  "previewSeed": {
+    "guildName": "The Pattern Drawer",
+    "city": "Madison, Wisconsin"
+  },
   "menu": [
-    { "label": "The library", "href": "/library" },
-    { "label": "Plans", "href": "/why-join" },
-    { "label": "Journal", "href": "/journal" },
-    { "label": "About", "href": "/about" },
-    { "label": "Contact", "href": "/contact" }
+    {
+      "label": "The library",
+      "href": "/library"
+    },
+    {
+      "label": "Plans",
+      "href": "/why-join"
+    },
+    {
+      "label": "Journal",
+      "href": "/journal"
+    },
+    {
+      "label": "About",
+      "href": "/about"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    }
   ],
   "pages": [
     {
@@ -38,15 +76,29 @@
           "title": "{{guild_name}}",
           "subtitle": "Sample text — replace me: Three hundred patterns, fourteen new every month, yardage charts that include the mistakes.",
           "stats": [
-            { "value": "312", "label": "patterns in the drawer" },
-            { "value": "14", "label": "new every month" },
-            { "value": "$9", "label": "a month, cancel anytime" }
+            {
+              "value": "312",
+              "label": "patterns in the drawer"
+            },
+            {
+              "value": "14",
+              "label": "new every month"
+            },
+            {
+              "value": "$9",
+              "label": "a month, cancel anytime"
+            }
           ],
           "ctaLabel": "See the plans",
           "ctaHref": "/why-join",
           "secondaryLabel": "Browse the library",
           "secondaryHref": "/library",
-          "style": { "bg": "brand", "width": "wide", "spacing": "airy", "align": "center" }
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy",
+            "align": "center"
+          }
         },
         {
           "type": "feature_grid",
@@ -54,29 +106,61 @@
           "variant": "cards",
           "heading": "How the drawer works",
           "items": [
-            { "title": "Searchable", "body": "By size, technique, skill level, and how much fabric you actually have.", "href": "/library" },
-            { "title": "Rated for skill", "body": "Every pattern carries a rating and the yardage, including the mistakes budget.", "href": "/library" },
-            { "title": "Prints anywhere", "body": "Home printers get tiled pages; the copy-shop file is included for the whole top.", "href": "/why-join" },
-            { "title": "Grows monthly", "body": "Fourteen new patterns on the first of the month, chosen by member vote.", "href": "/journal" }
+            {
+              "title": "Searchable",
+              "body": "By size, technique, skill level, and how much fabric you actually have.",
+              "href": "/library"
+            },
+            {
+              "title": "Rated for skill",
+              "body": "Every pattern carries a rating and the yardage, including the mistakes budget.",
+              "href": "/library"
+            },
+            {
+              "title": "Prints anywhere",
+              "body": "Home printers get tiled pages; the copy-shop file is included for the whole top.",
+              "href": "/why-join"
+            },
+            {
+              "title": "Grows monthly",
+              "body": "Fourteen new patterns on the first of the month, chosen by member vote.",
+              "href": "/journal"
+            }
           ],
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
         },
         {
           "type": "membership_levels",
           "id": "home-plans",
           "variant": "cards",
           "heading": "The plans",
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "layout": "framed"
+          }
         },
         {
           "type": "testimonials",
           "id": "home-quotes",
           "variant": "grid",
           "items": [
-            { "quote": "I cancelled two other subscriptions and one fabric club. The drawer is the only thing I open on the first of the month.", "author": "A member since year one" },
-            { "quote": "The guild license paid for itself at the first retreat. Forty printed patterns, zero arguments.", "author": "A retreat organizer" }
+            {
+              "quote": "I cancelled two other subscriptions and one fabric club. The drawer is the only thing I open on the first of the month.",
+              "author": "A member since year one"
+            },
+            {
+              "quote": "The guild license paid for itself at the first retreat. Forty printed patterns, zero arguments.",
+              "author": "A retreat organizer"
+            }
           ],
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         },
         {
           "type": "join_band",
@@ -84,7 +168,11 @@
           "title": "Start with the free month",
           "body": "The first month is free, downloads during it are yours to keep, and cancelling takes one click.",
           "ctaLabel": "Start the free month",
-          "style": { "bg": "dark", "width": "full", "align": "center" }
+          "style": {
+            "bg": "dark",
+            "width": "full",
+            "align": "center"
+          }
         }
       ]
     },
@@ -99,14 +187,21 @@
           "variant": "minimal",
           "title": "The drawer, open",
           "subtitle": "Sample text — replace me: A recent handful from the catalog. Members see and download everything; visitors see this page.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "store_teaser",
           "id": "library-list",
           "heading": "Recent additions",
           "limit": 8,
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
         },
         {
           "type": "rich_text",
@@ -114,7 +209,11 @@
           "variant": "prose",
           "heading": "Downloads",
           "html": "<p>Patterns download as print-at-home PDFs with a one-inch test square, plus the copy-shop file on 36-inch paper. Whatever you download while subscribed stays in your account forever, including after you cancel.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "layout": "framed"
+          }
         }
       ]
     },
@@ -130,7 +229,12 @@
           "variant": "pattern",
           "title": "Plans and licensing",
           "subtitle": "Sample text — replace me: One quilter, a whole guild, or a shop that wants the retreat programs handled.",
-          "style": { "bg": "pattern", "width": "wide", "align": "center", "imageId": "hero-art" }
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "align": "center",
+            "imageId": "hero-art"
+          }
         },
         {
           "type": "rich_text",
@@ -138,25 +242,44 @@
           "variant": "prose",
           "heading": "How the subscription works",
           "html": "<p>One plan, billed monthly, every pattern included. Sell quilts from the patterns at any scale that does not involve a factory. Guild plans cover retreat programs and workshops; shop plans cover teaching. <a href=\"/membership\">Open the membership form</a> to start the free month.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         },
         {
           "type": "membership_levels",
           "id": "join-levels",
           "variant": "cards",
           "heading": "The tiers",
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "layout": "framed"
+          }
         },
         {
           "type": "faq",
           "id": "join-faq",
           "heading": "Subscription questions",
           "items": [
-            { "q": "Can I sell quilts made from the patterns?", "a": "Yes, small-batch and handmade. The one line in the sand is mass production, which no subscriber has ever had the equipment for anyway." },
-            { "q": "Do I keep downloads if I cancel?", "a": "Yes. Everything in your account stays downloaded and yours. The drawer just stops opening to new patterns." },
-            { "q": "Is there a guild license?", "a": "Yes: it covers printing patterns for workshops and retreats up to fifty members a year, which is most guilds and both of the big ones." }
+            {
+              "q": "Can I sell quilts made from the patterns?",
+              "a": "Yes, small-batch and handmade. The one line in the sand is mass production, which no subscriber has ever had the equipment for anyway."
+            },
+            {
+              "q": "Do I keep downloads if I cancel?",
+              "a": "Yes. Everything in your account stays downloaded and yours. The drawer just stops opening to new patterns."
+            },
+            {
+              "q": "Is there a guild license?",
+              "a": "Yes: it covers printing patterns for workshops and retreats up to fifty members a year, which is most guilds and both of the big ones."
+            }
           ],
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -171,14 +294,22 @@
           "variant": "minimal",
           "title": "From the drafting table",
           "subtitle": "Sample text — replace me: Release notes, pattern tests, and the occasional confession about a block that fought back.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "blog_teaser",
           "id": "journal-list",
           "heading": "Recent posts",
           "limit": 3,
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
         },
         {
           "type": "rich_text",
@@ -186,7 +317,11 @@
           "variant": "prose",
           "heading": "Members choose the month",
           "html": "<p>Each month the draft list goes to a member vote, which is why the drawer contains an entire surprising section of feed-sack reproductions and one very popular basket pattern with questionable instructions for the handle. Democracy holds.</p>",
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "layout": "framed"
+          }
         }
       ]
     },
@@ -201,23 +336,38 @@
           "variant": "minimal",
           "title": "About {{guild_name}}",
           "subtitle": "Sample text — replace me: Three pattern designers, one tester list of two hundred, and a shared belief that instructions should never say simply quilt as desired.",
-          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "rich_text",
           "id": "about-body",
           "variant": "two_column",
           "html": "<p>The drawer began as a shared folder between three designers who were tired of writing the same yardage charts separately. The folder became a catalog, the catalog became a subscription, and the subscription funded the testing list, which is the real product: two hundred quilters sew every pattern before it is published.</p><p>Patterns that fail testing get fixed or filed, and the fixes are posted free to everyone who owns the pattern, which is the entire business model wearing a cardigan.</p>",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal"
+          }
         },
         {
           "type": "testimonials",
           "id": "about-quote",
           "variant": "single",
           "items": [
-            { "quote": "Their instructions include the seam you are about to sew wrong. I have never felt so understood by a PDF.", "author": "A tester, cohort three" }
+            {
+              "quote": "Their instructions include the seam you are about to sew wrong. I have never felt so understood by a PDF.",
+              "author": "A tester, cohort three"
+            }
           ],
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal",
+            "layout": "framed"
+          }
         }
       ]
     },
@@ -232,14 +382,21 @@
           "variant": "minimal",
           "title": "Contact the drawer",
           "subtitle": "Sample text — replace me: Account trouble, designer pitches, and guild license questions.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "contact",
           "id": "contact-form",
           "heading": "Send a message",
           "showDetails": true,
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         },
         {
           "type": "rich_text",
@@ -247,7 +404,11 @@
           "variant": "prose",
           "heading": "Designer pitches",
           "html": "<p>Independent designers can pitch patterns for the drawer: the terms are a royalty, a contract you can read in one sitting, and a testing list that will make your instructions better whether or not we publish you.</p>",
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "layout": "framed"
+          }
         }
       ]
     }

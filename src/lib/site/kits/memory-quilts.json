@@ -7,22 +7,60 @@
     "palette": "soft-lavender",
     "typePair": "lora-karla",
     "scale": "comfortable",
-    "shape": { "radius": "round", "shadow": "subtle" },
-    "rhythm": { "spacing": "airy", "container": "normal" },
-    "header": { "variant": "centered", "sticky": true, "cta": "quote", "overlayHero": false },
-    "footer": { "variant": "simple" },
-    "pattern": { "id": "nine-patch", "opacity": 0.08 }
+    "shape": {
+      "radius": "round",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "centered",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "nine-patch",
+      "opacity": 0.08
+    }
   },
   "imagery": [
-    { "id": "hero-art", "kind": "pattern", "alt": "" }
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
   ],
-  "previewSeed": { "guildName": "Held Close Memory Quilts", "city": "Colorado Springs, Colorado" },
+  "previewSeed": {
+    "guildName": "Held Close Memory Quilts",
+    "city": "Colorado Springs, Colorado"
+  },
   "menu": [
-    { "label": "The quilts", "href": "/quilts" },
-    { "label": "Portfolio", "href": "/portfolio" },
-    { "label": "About", "href": "/about" },
-    { "label": "Contact", "href": "/contact" },
-    { "label": "Start your quilt", "href": "/request-a-quote" }
+    {
+      "label": "The quilts",
+      "href": "/quilts"
+    },
+    {
+      "label": "Portfolio",
+      "href": "/portfolio"
+    },
+    {
+      "label": "About",
+      "href": "/about"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    },
+    {
+      "label": "Start your quilt",
+      "href": "/request-a-quote"
+    }
   ],
   "pages": [
     {
@@ -41,7 +79,12 @@
           "ctaHref": "/request-a-quote",
           "secondaryLabel": "What I make",
           "secondaryHref": "/quilts",
-          "style": { "bg": "none", "width": "narrow", "spacing": "airy", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy",
+            "align": "center"
+          }
         },
         {
           "type": "feature_grid",
@@ -49,12 +92,36 @@
           "variant": "cards",
           "heading": "What I make",
           "items": [
-            { "title": "Memory quilts", "body": "Twelve to twenty garments, sashed and quilted, with an embroidered label.", "price": "from $280", "href": "/quilts" },
-            { "title": "Baby-clothes quilts", "body": "The first year, kept whole wherever the fabric allows.", "price": "from $240", "href": "/quilts" },
-            { "title": "Lap quilts", "body": "Smaller and lighter, for someone who naps in the armchair.", "price": "from $220", "href": "/quilts" },
-            { "title": "Small keepsakes", "body": "Pillows and ornaments from the pieces that were too worn to piece.", "price": "$45", "href": "/quilts" }
+            {
+              "title": "Memory quilts",
+              "body": "Twelve to twenty garments, sashed and quilted, with an embroidered label.",
+              "price": "from $280",
+              "href": "/quilts"
+            },
+            {
+              "title": "Baby-clothes quilts",
+              "body": "The first year, kept whole wherever the fabric allows.",
+              "price": "from $240",
+              "href": "/quilts"
+            },
+            {
+              "title": "Lap quilts",
+              "body": "Smaller and lighter, for someone who naps in the armchair.",
+              "price": "from $220",
+              "href": "/quilts"
+            },
+            {
+              "title": "Small keepsakes",
+              "body": "Pillows and ornaments from the pieces that were too worn to piece.",
+              "price": "$45",
+              "href": "/quilts"
+            }
           ],
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "layout": "framed"
+          }
         },
         {
           "type": "gallery",
@@ -63,17 +130,29 @@
           "source": "gallery",
           "gallerySlug": "portfolio",
           "heading": "Recent quilts",
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
         },
         {
           "type": "testimonials",
           "id": "home-quotes",
           "variant": "grid",
           "items": [
-            { "quote": "You found the collar of his flannel in every block. My mother cried and then slept under it that night.", "author": "M., February" },
-            { "quote": "The preschool years came home as a quilt instead of a box in the garage. Thank you for the patience it must take.", "author": "Dana and Paul" }
+            {
+              "quote": "You found the collar of his flannel in every block. My mother cried and then slept under it that night.",
+              "author": "M., February"
+            },
+            {
+              "quote": "The preschool years came home as a quilt instead of a box in the garage. Thank you for the patience it must take.",
+              "author": "Dana and Paul"
+            }
           ],
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal"
+          }
         },
         {
           "type": "quote_cta",
@@ -81,7 +160,12 @@
           "projectType": "memory",
           "heading": "Tell me about the clothes",
           "submitLabel": "Start the conversation",
-          "style": { "bg": "brand", "width": "normal", "align": "center" }
+          "style": {
+            "bg": "brand",
+            "width": "normal",
+            "align": "center",
+            "layout": "framed"
+          }
         }
       ]
     },
@@ -96,7 +180,11 @@
           "variant": "minimal",
           "title": "Quilts and prices",
           "subtitle": "Sample text — replace me: Sizes, garments per quilt, and what happens to everything I do not cut.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "feature_grid",
@@ -104,14 +192,42 @@
           "variant": "cards",
           "heading": "The price list",
           "items": [
-            { "title": "Throw, 60 by 70", "body": "Twelve to twenty garments. The most common size, and the one two people can share.", "price": "$280" },
-            { "title": "Twin, 70 by 90", "body": "Twenty-five to thirty garments, sashing between blocks.", "price": "$420" },
-            { "title": "Queen, 90 by 95", "body": "A whole dresser drawer. Bedskirt-weight backing available.", "price": "$620" },
-            { "title": "Baby-clothes quilt", "body": "One hundred small pieces, kept as whole as they will go.", "price": "from $240" },
-            { "title": "Keepsake pillows", "body": "Two shirts per pillow, for siblings and godparents.", "price": "$45" },
-            { "title": "Embroidered label", "body": "Names, dates, and fifty characters of your own words. Included.", "price": "$0" }
+            {
+              "title": "Throw, 60 by 70",
+              "body": "Twelve to twenty garments. The most common size, and the one two people can share.",
+              "price": "$280"
+            },
+            {
+              "title": "Twin, 70 by 90",
+              "body": "Twenty-five to thirty garments, sashing between blocks.",
+              "price": "$420"
+            },
+            {
+              "title": "Queen, 90 by 95",
+              "body": "A whole dresser drawer. Bedskirt-weight backing available.",
+              "price": "$620"
+            },
+            {
+              "title": "Baby-clothes quilt",
+              "body": "One hundred small pieces, kept as whole as they will go.",
+              "price": "from $240"
+            },
+            {
+              "title": "Keepsake pillows",
+              "body": "Two shirts per pillow, for siblings and godparents.",
+              "price": "$45"
+            },
+            {
+              "title": "Embroidered label",
+              "body": "Names, dates, and fifty characters of your own words. Included.",
+              "price": "$0"
+            }
           ],
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "layout": "framed"
+          }
         },
         {
           "type": "rich_text",
@@ -119,18 +235,33 @@
           "variant": "two_column",
           "heading": "How it works",
           "html": "<p>You send the clothes washed or not; I press and stabilize every cut, so worn spots survive the machine. Before anything is sewn you receive a photograph of the layout, and nothing is final until you approve it.</p><p>Quilts finish six to eight weeks after approval, machine quilted, bound by hand, and shipped with the leftover scraps folded on top, labeled. The label gets names and dates in your own words.</p>",
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         },
         {
           "type": "faq",
           "id": "quilts-faq",
           "heading": "Questions I hear first",
           "items": [
-            { "q": "How many shirts do I need?", "a": "Twelve for a throw, more for bigger quilts. Ties, collars, and pockets all count, and jeans can back the whole quilt." },
-            { "q": "The clothes are fragile. Is that a problem?", "a": "No. Every piece is fused to a lightweight stabilizer before it is cut, so worn thin places stitch down and stay down." },
-            { "q": "Can I keep one garment out of the quilt?", "a": "Of course. Tell me which pieces are off limits and they will go back in the box untouched." }
+            {
+              "q": "How many shirts do I need?",
+              "a": "Twelve for a throw, more for bigger quilts. Ties, collars, and pockets all count, and jeans can back the whole quilt."
+            },
+            {
+              "q": "The clothes are fragile. Is that a problem?",
+              "a": "No. Every piece is fused to a lightweight stabilizer before it is cut, so worn thin places stitch down and stay down."
+            },
+            {
+              "q": "Can I keep one garment out of the quilt?",
+              "a": "Of course. Tell me which pieces are off limits and they will go back in the box untouched."
+            }
           ],
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -145,7 +276,12 @@
           "variant": "minimal",
           "title": "Quilts I have made",
           "subtitle": "Sample text — replace me: Photographed with permission, first names only, because these are other families' albums.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "gallery",
@@ -153,7 +289,11 @@
           "variant": "masonry",
           "source": "gallery",
           "gallerySlug": "portfolio",
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "layout": "framed"
+          }
         },
         {
           "type": "rich_text",
@@ -161,7 +301,10 @@
           "variant": "prose",
           "heading": "A note on privacy",
           "html": "<p>Every quilt here was photographed with its family's permission, and the stories behind them stay with the families. If your quilt appears and you would rather it did not, one message removes it.</p>",
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -176,7 +319,11 @@
           "variant": "minimal",
           "title": "About {{guild_name}}",
           "subtitle": "Sample text — replace me: One sewist, one studio, and the winter I made my mother a quilt from my father's shirts and never really stopped.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "rich_text",
@@ -184,16 +331,26 @@
           "variant": "two_column",
           "heading": "The studio",
           "html": "<p>I sewed professionally for a decade before the first memory quilt, and the difference is the pace. These quilts are waited for, so there is no assembly line here: one quilt at a time, laid out on the long table, photographed, and approved before a seam is sewn.</p><p>The studio is a converted sunroom with good light and a gate at the door for the dog. Visitors are welcome by appointment, and every family gets progress photos, whether or not they asked.</p>",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "layout": "framed"
+          }
         },
         {
           "type": "testimonials",
           "id": "about-quote",
           "variant": "single",
           "items": [
-            { "quote": "She asked what my mother's curtains meant to us before she cut anything. That question is the whole difference.", "author": "L., spring client" }
+            {
+              "quote": "She asked what my mother's curtains meant to us before she cut anything. That question is the whole difference.",
+              "author": "L., spring client"
+            }
           ],
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         }
       ]
     },
@@ -209,7 +366,11 @@
           "variant": "minimal",
           "title": "Start your quilt",
           "subtitle": "Sample text — replace me: Tell me whose clothes these are and roughly how many there are. I reply within two days with sizes, timing, and a quote.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "quote_cta",
@@ -217,18 +378,34 @@
           "projectType": "memory",
           "heading": "Your keepsake",
           "submitLabel": "Send the details",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "layout": "framed"
+          }
         },
         {
           "type": "faq",
           "id": "quote-faq",
           "heading": "Before you write",
           "items": [
-            { "q": "How long does it take?", "a": "Six to eight weeks from your approval of the layout. December finishes fill by October, so holiday quilts should start early." },
-            { "q": "How do the clothes travel?", "a": "I email a prepaid, insured label. Boxes are opened on camera and the inventory list comes back to you the same day." },
-            { "q": "How does payment work?", "a": "Half to reserve your place in the queue, half when you approve the layout photograph." }
+            {
+              "q": "How long does it take?",
+              "a": "Six to eight weeks from your approval of the layout. December finishes fill by October, so holiday quilts should start early."
+            },
+            {
+              "q": "How do the clothes travel?",
+              "a": "I email a prepaid, insured label. Boxes are opened on camera and the inventory list comes back to you the same day."
+            },
+            {
+              "q": "How does payment work?",
+              "a": "Half to reserve your place in the queue, half when you approve the layout photograph."
+            }
           ],
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -243,14 +420,22 @@
           "variant": "minimal",
           "title": "Contact",
           "subtitle": "Sample text — replace me: Questions about a garment, a deadline, or a half-finished project someone else started.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "contact",
           "id": "contact-form",
           "heading": "Write to the studio",
           "showDetails": true,
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal",
+            "layout": "framed"
+          }
         },
         {
           "type": "meeting_info",
@@ -259,7 +444,10 @@
           "when": "By appointment, most weekday mornings",
           "where": "{{city}}",
           "note": "Bring the box if you like; there is tea, and the dog stays behind the gate.",
-          "style": { "bg": "brand", "width": "wide" }
+          "style": {
+            "bg": "brand",
+            "width": "wide"
+          }
         }
       ]
     }

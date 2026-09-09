@@ -62,7 +62,8 @@
             "width": "wide",
             "spacing": "airy",
             "media": "right",
-            "imageId": "hero-art"
+            "imageId": "hero-art",
+            "layout": "bleed"
           }
         },
         {
@@ -84,7 +85,8 @@
           "limit": 3,
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           }
         },
         {
@@ -171,7 +173,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           },
           "heading": "A year with us"
         }
@@ -220,7 +223,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "framed"
           }
         }
       ]
@@ -265,7 +269,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "framed"
           }
         }
       ]
@@ -303,7 +308,8 @@
           "limit": 8,
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           }
         }
       ]
@@ -338,7 +344,8 @@
           "when": "{{meeting_info}}",
           "where": "the room we rent in {{city}}",
           "style": {
-            "bg": "dark"
+            "bg": "dark",
+            "layout": "framed"
           }
         }
       ]

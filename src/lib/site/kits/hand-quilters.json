@@ -84,7 +84,8 @@
           "limit": 3,
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "layout": "offset"
           }
         },
         {
@@ -119,7 +120,8 @@
           "ctaLabel": "See dues",
           "style": {
             "bg": "brand",
-            "align": "center"
+            "align": "center",
+            "divider": "notch"
           }
         }
       ]
@@ -132,7 +134,7 @@
         {
           "type": "hero",
           "id": "a-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "About {{guild_name}}",
           "subtitle": "Sample text — replace me: A hand-work guild in {{city}}. We do not plug anything in.",
           "style": {
@@ -148,7 +150,8 @@
           "html": "<p><em>Sample text — replace me:</em> {{guild_name}} grew out of a bee that refused to move to machines when the rest of the town did. We still piece on machines at home. The quilting, the part that shows, is done with a needle. Whole cloth, sashiko-adjacent running stitch, and the old rocking stitch all sit at the same table.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "divider": "notch"
           }
         },
         {
@@ -171,7 +174,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           },
           "heading": "A year with us"
         }
@@ -186,7 +190,7 @@
         {
           "type": "hero",
           "id": "s-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Hoops and Frames",
           "subtitle": "Sample text — replace me: What we keep in the room and what you should bring.",
           "style": {
@@ -214,7 +218,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "divider": "notch"
           }
         },
         {
@@ -225,7 +230,8 @@
           "html": "<p><em>Sample text — replace me:</em> If arthritis has changed your stitch, say so. We have larger needles and a table clamp. Hand quilting here is not a contest for tiny stitches.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "framed"
           }
         }
       ]
@@ -238,7 +244,7 @@
         {
           "type": "hero",
           "id": "j-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Membership",
           "subtitle": "Sample text — replace me: Dues keep the room, the tea, and the oak frame in good repair.",
           "style": {
@@ -252,7 +258,8 @@
           "variant": "cards",
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "divider": "notch"
           }
         },
         {
@@ -270,7 +277,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "framed"
           }
         }
       ]
@@ -283,7 +291,7 @@
         {
           "type": "hero",
           "id": "m-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Meetings",
           "subtitle": "Sample text — replace me: We meet {{meeting_info}} in {{city}}.",
           "style": {
@@ -297,7 +305,8 @@
           "when": "{{meeting_info}}",
           "where": "the room we rent in {{city}}",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "divider": "notch"
           }
         },
         {
@@ -308,7 +317,8 @@
           "limit": 8,
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           }
         }
       ]
@@ -321,7 +331,7 @@
         {
           "type": "hero",
           "id": "c-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Contact {{guild_name}}",
           "subtitle": "Sample text — replace me: Programs, dues, and the door code.",
           "style": {
@@ -334,7 +344,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "divider": "notch"
           }
         },
         {
@@ -343,7 +354,8 @@
           "when": "{{meeting_info}}",
           "where": "the room we rent in {{city}}",
           "style": {
-            "bg": "dark"
+            "bg": "dark",
+            "layout": "offset"
           }
         }
       ]

@@ -7,130 +7,329 @@
     "palette": "naturals-linen",
     "typePair": "newsreader-ibmplexsans",
     "scale": "editorial",
-    "shape": { "radius": "sharp", "shadow": "none" },
-    "rhythm": { "spacing": "airy", "container": "narrow" },
-    "header": { "variant": "split", "sticky": true, "cta": "quote", "overlayHero": false },
-    "footer": { "variant": "simple" },
-    "pattern": { "id": "none", "opacity": 0 }
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "narrow"
+    },
+    "header": {
+      "variant": "split",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "none",
+      "opacity": 0
+    }
   },
-  "imagery": [{ "id": "hero-art", "kind": "pattern", "alt": "" }],
-  "previewSeed": { "guildName": "The Binding Bar", "city": "Omaha, Nebraska" },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "The Binding Bar",
+    "city": "Omaha, Nebraska"
+  },
   "pages": [
     {
-      "slug": "home", "title": "Home", "nav": false,
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
       "sections": [
         {
-          "type": "hero", "id": "welcome", "variant": "minimal",
+          "type": "hero",
+          "id": "welcome",
+          "variant": "minimal",
           "eyebrow": "Finishing in {{city}}",
           "title": "You quilted it. We will bind it.",
           "subtitle": "Sample text — replace me: {{guild_name}} is a finishing counter, not a longarm. Machine binding, a hanging sleeve, and a Friday pick-up.",
-          "ctaLabel": "See rates", "ctaHref": "/rates",
-          "secondaryLabel": "Drop off", "secondaryHref": "/visit",
-          "style": { "bg": "none", "width": "narrow", "spacing": "airy", "align": "center" }
+          "ctaLabel": "See rates",
+          "ctaHref": "/rates",
+          "secondaryLabel": "Drop off",
+          "secondaryHref": "/visit",
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy",
+            "align": "center"
+          }
         },
         {
-          "type": "feature_grid", "id": "home-menu", "variant": "cards",
+          "type": "feature_grid",
+          "id": "home-menu",
+          "variant": "cards",
           "items": [
-            { "title": "Machine binding", "body": "Double-fold, mitered corners, stitched in the ditch on the front.", "price": "$0.18 / in", "href": "/rates" },
-            { "title": "Flange binding", "body": "A thin flange in a second fabric. You cut both strips or we will.", "price": "$0.24 / in" },
-            { "title": "Hanging sleeve", "body": "A 4-inch sleeve, open at the ends, for a show rod.", "price": "$18" }
+            {
+              "title": "Machine binding",
+              "body": "Double-fold, mitered corners, stitched in the ditch on the front.",
+              "price": "$0.18 / in",
+              "href": "/rates"
+            },
+            {
+              "title": "Flange binding",
+              "body": "A thin flange in a second fabric. You cut both strips or we will.",
+              "price": "$0.24 / in"
+            },
+            {
+              "title": "Hanging sleeve",
+              "body": "A 4-inch sleeve, open at the ends, for a show rod.",
+              "price": "$18"
+            }
           ],
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "layout": "offset"
+          }
         },
         {
-          "type": "testimonials", "id": "home-q", "variant": "single",
-          "items": [{ "quote": "I had three tops in a bag for a year. They came back bound on a Friday and I actually put them on beds.", "author": "A regular drop-off" }],
-          "style": { "bg": "none" }
+          "type": "testimonials",
+          "id": "home-q",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "I had three tops in a bag for a year. They came back bound on a Friday and I actually put them on beds.",
+              "author": "A regular drop-off"
+            }
+          ],
+          "style": {
+            "bg": "none"
+          }
         },
-        { "type": "quote_cta", "id": "home-quote", "projectType": "custom_quilt", "heading": "Perimeter in inches, binding fabric on hand or not", "submitLabel": "Request a slot", "style": { "bg": "brand" } }
+        {
+          "type": "quote_cta",
+          "id": "home-quote",
+          "projectType": "custom_quilt",
+          "heading": "Perimeter in inches, binding fabric on hand or not",
+          "submitLabel": "Request a slot",
+          "style": {
+            "bg": "brand"
+          }
+        }
       ]
     },
     {
-      "slug": "rates", "title": "Rates", "nav": true,
+      "slug": "rates",
+      "title": "Rates",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "r-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "r-hero",
+          "variant": "minimal",
           "title": "Rates",
           "subtitle": "Sample text — replace me: Linear inches around the quilt. Measure twice. We will measure once more at the counter.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
         {
-          "type": "feature_grid", "id": "r-grid", "variant": "cards",
+          "type": "feature_grid",
+          "id": "r-grid",
+          "variant": "cards",
           "items": [
-            { "title": "Machine binding", "body": "Your strips or ours. Solid cotton from the shelf is included in the inch rate if we cut it.", "price": "$0.18 / in" },
-            { "title": "Flange", "body": "Two fabrics. Corners still mitered.", "price": "$0.24 / in" },
-            { "title": "Label", "body": "A printed cotton label, stitched on the back.", "price": "$8" },
-            { "title": "Rush Friday", "body": "In by Monday, out Friday, if the bar is not already full.", "price": "+$25" }
+            {
+              "title": "Machine binding",
+              "body": "Your strips or ours. Solid cotton from the shelf is included in the inch rate if we cut it.",
+              "price": "$0.18 / in"
+            },
+            {
+              "title": "Flange",
+              "body": "Two fabrics. Corners still mitered.",
+              "price": "$0.24 / in"
+            },
+            {
+              "title": "Label",
+              "body": "A printed cotton label, stitched on the back.",
+              "price": "$8"
+            },
+            {
+              "title": "Rush Friday",
+              "body": "In by Monday, out Friday, if the bar is not already full.",
+              "price": "+$25"
+            }
           ],
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "layout": "offset"
+          }
         },
         {
-          "type": "rich_text", "id": "r-prep", "variant": "prose", "heading": "How to bring it in",
+          "type": "rich_text",
+          "id": "r-prep",
+          "variant": "prose",
+          "heading": "How to bring it in",
           "html": "<p>Quilted, trimmed square, threads clipped. If the edges wave, say so. We can stay-stitch before we bind, billed at the inch rate for that pass.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         }
       ]
     },
     {
-      "slug": "visit", "title": "Drop Off", "nav": true,
+      "slug": "visit",
+      "title": "Drop Off",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "v-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "v-hero",
+          "variant": "minimal",
           "title": "Drop-off and pick-up",
           "subtitle": "Sample text — replace me: The counter is open {{meeting_info}} in {{city}}.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
-        { "type": "meeting_info", "id": "v-hours", "heading": "Hours", "when": "{{meeting_info}}", "where": "{{city}}", "note": "Pick-up is Friday afternoon unless we call you. Street parking on the south side.", "style": { "bg": "tint" } },
         {
-          "type": "faq", "id": "v-faq",
+          "type": "meeting_info",
+          "id": "v-hours",
+          "heading": "Hours",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "note": "Pick-up is Friday afternoon unless we call you. Street parking on the south side.",
+          "style": {
+            "bg": "tint",
+            "layout": "offset"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "v-faq",
           "items": [
-            { "q": "Do you quilt?", "a": "No. Bring a quilted sandwich. If you need a longarm, we keep a list of people who will." },
-            { "q": "Can you use my grandmother's leftover binding?", "a": "If there is enough. We will tell you at the counter before we start." }
+            {
+              "q": "Do you quilt?",
+              "a": "No. Bring a quilted sandwich. If you need a longarm, we keep a list of people who will."
+            },
+            {
+              "q": "Can you use my grandmother's leftover binding?",
+              "a": "If there is enough. We will tell you at the counter before we start."
+            }
           ],
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         }
       ]
     },
     {
-      "slug": "quote", "title": "Request a Slot", "nav": true,
+      "slug": "quote",
+      "title": "Request a Slot",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "q-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "q-hero",
+          "variant": "minimal",
           "title": "Request a slot",
           "subtitle": "Sample text — replace me: Perimeter, style, and whether the fabric is coming with the quilt.",
-          "style": { "bg": "none", "align": "center" }
-        },
-        { "type": "quote_cta", "id": "q-form", "projectType": "custom_quilt", "heading": "Inches around, binding style", "submitLabel": "Request a slot", "style": { "bg": "tint" } },
-        { "type": "cta", "id": "q-visit", "label": "Or just come to the counter", "href": "/visit", "kind": "secondary", "style": { "bg": "none", "align": "center" } }
-      ]
-    },
-    {
-      "slug": "about", "title": "About", "nav": true,
-      "sections": [
-        {
-          "type": "hero", "id": "a-hero", "variant": "minimal",
-          "title": "About the bar",
-          "subtitle": "Sample text — replace me: A storefront counter in {{city}} with two machines and a Friday rhythm.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
         {
-          "type": "rich_text", "id": "a-body", "variant": "prose",
-          "html": "<p>Binding is the step people leave in a bag. We opened so that step had a place to go that was not a guild sew night and not a longarm studio that did not want to do it.</p>",
-          "style": { "bg": "tint", "width": "narrow" }
+          "type": "quote_cta",
+          "id": "q-form",
+          "projectType": "custom_quilt",
+          "heading": "Inches around, binding style",
+          "submitLabel": "Request a slot",
+          "style": {
+            "bg": "tint",
+            "layout": "offset"
+          }
+        },
+        {
+          "type": "cta",
+          "id": "q-visit",
+          "label": "Or just come to the counter",
+          "href": "/visit",
+          "kind": "secondary",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         }
       ]
     },
     {
-      "slug": "contact", "title": "Contact", "nav": true,
+      "slug": "about",
+      "title": "About",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "c-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About the bar",
+          "subtitle": "Sample text — replace me: A storefront counter in {{city}} with two machines and a Friday rhythm.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
+          "html": "<p>Binding is the step people leave in a bag. We opened so that step had a place to go that was not a guild sew night and not a longarm studio that did not want to do it.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "layout": "offset"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
           "title": "Contact {{guild_name}}",
           "subtitle": "Sample text — replace me: Slots, lost tickets, and quilts that are already here.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
-        { "type": "contact", "id": "form", "showDetails": true, "style": { "bg": "tint" } },
-        { "type": "meeting_info", "id": "c-hours", "when": "{{meeting_info}}", "where": "{{city}}", "style": { "bg": "brand" } }
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint",
+            "layout": "offset"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-hours",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "style": {
+            "bg": "brand"
+          }
+        }
       ]
     }
   ]

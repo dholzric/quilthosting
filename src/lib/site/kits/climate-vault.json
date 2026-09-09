@@ -88,7 +88,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           }
         },
         {
@@ -154,7 +155,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           }
         }
       ]
@@ -184,7 +186,8 @@
           "where": "{{city}}",
           "note": "No street shoes in the room. Paper booties at the door. This is not theatre. It is dirt.",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "framed"
           }
         }
       ]
@@ -212,7 +215,8 @@
           "heading": "How many quilts, rolled or folded, and whether any are silk or wool",
           "submitLabel": "Ask for a shelf",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "framed"
           }
         },
         {
@@ -252,7 +256,8 @@
           "html": "<p><em>Sample text — replace me:</em> Attics cook. Basements sweat. {{guild_name}} is a small climate I can actually name. I used to volunteer at a documentation day and watch people cry over damage that was only heat. This is the boring fix.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "framed"
           }
         },
         {
@@ -292,7 +297,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "framed"
           }
         },
         {

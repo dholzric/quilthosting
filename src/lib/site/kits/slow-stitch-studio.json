@@ -7,22 +7,60 @@
     "palette": "naturals-sage",
     "typePair": "dmserif-dmsans",
     "scale": "editorial",
-    "shape": { "radius": "soft", "shadow": "none" },
-    "rhythm": { "spacing": "airy", "container": "narrow" },
-    "header": { "variant": "centered", "sticky": true, "cta": "quote", "overlayHero": false },
-    "footer": { "variant": "simple" },
-    "pattern": { "id": "log-cabin", "opacity": 0.07 }
+    "shape": {
+      "radius": "soft",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "narrow"
+    },
+    "header": {
+      "variant": "centered",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "log-cabin",
+      "opacity": 0.07
+    }
   },
   "imagery": [
-    { "id": "hero-art", "kind": "pattern", "alt": "" }
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
   ],
-  "previewSeed": { "guildName": "Nettle & Knot Studio", "city": "Blue Hill, Maine" },
+  "previewSeed": {
+    "guildName": "Nettle & Knot Studio",
+    "city": "Blue Hill, Maine"
+  },
   "menu": [
-    { "label": "Workshops", "href": "/workshops" },
-    { "label": "Kits & patterns", "href": "/shop" },
-    { "label": "About", "href": "/about" },
-    { "label": "Commissions", "href": "/request-a-quote" },
-    { "label": "Contact", "href": "/contact" }
+    {
+      "label": "Workshops",
+      "href": "/workshops"
+    },
+    {
+      "label": "Kits & patterns",
+      "href": "/shop"
+    },
+    {
+      "label": "About",
+      "href": "/about"
+    },
+    {
+      "label": "Commissions",
+      "href": "/request-a-quote"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    }
   ],
   "pages": [
     {
@@ -41,14 +79,22 @@
           "ctaHref": "/shop",
           "secondaryLabel": "Workshops",
           "secondaryHref": "/workshops",
-          "style": { "bg": "none", "width": "narrow", "spacing": "airy", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy",
+            "align": "center"
+          }
         },
         {
           "type": "store_teaser",
           "id": "home-shop",
           "heading": "In the shop",
           "limit": 4,
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal"
+          }
         },
         {
           "type": "events",
@@ -56,7 +102,11 @@
           "variant": "next_up",
           "heading": "The next workshop",
           "limit": 1,
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "layout": "framed"
+          }
         },
         {
           "type": "rich_text",
@@ -64,7 +114,10 @@
           "variant": "two_column",
           "heading": "Why slow",
           "html": "<p>One needle, one thread, one running stitch repeated until the cloth changes. Hand stitching is the part of quilting that cannot be hurried and does not need to be; an evening of Sashiko goes about as fast as a pot of tea.</p><p>Everything here is built for that pace: patterns that fit on one page, kits with the floss cut, and workshops that end with fewer stitches than you expected and better ones.</p>",
-          "style": { "bg": "dark", "width": "normal" }
+          "style": {
+            "bg": "dark",
+            "width": "normal"
+          }
         },
         {
           "type": "quote_cta",
@@ -72,7 +125,11 @@
           "projectType": "commission",
           "heading": "Commission a whole-cloth piece",
           "submitLabel": "Ask about a commission",
-          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center"
+          }
         }
       ]
     },
@@ -87,7 +144,11 @@
           "variant": "minimal",
           "title": "Workshops",
           "subtitle": "Sample text — replace me: Small classes around one table, six seats, and no machine anywhere in the room.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "events",
@@ -95,7 +156,10 @@
           "variant": "cards",
           "heading": "On the calendar",
           "limit": 6,
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal"
+          }
         },
         {
           "type": "feature_grid",
@@ -103,12 +167,32 @@
           "variant": "cards",
           "heading": "The class catalog",
           "items": [
-            { "title": "Sashiko first stitches", "body": "The running stitch, the turn, and how to keep rows honest. Kit included.", "price": "$55" },
-            { "title": "Big-stitch hand quilting", "body": "Perle cotton, a hooped sandwich, and the confidence to stop picking out stitches.", "price": "$65" },
-            { "title": "Whole cloth marking", "body": "Drafting a repeating pattern with chalk and string, the way the old tops were set.", "price": "$70" },
-            { "title": "Boro mending evening", "body": "Bring one worn thing; leave with it patched and a thimble habit.", "price": "$35" }
+            {
+              "title": "Sashiko first stitches",
+              "body": "The running stitch, the turn, and how to keep rows honest. Kit included.",
+              "price": "$55"
+            },
+            {
+              "title": "Big-stitch hand quilting",
+              "body": "Perle cotton, a hooped sandwich, and the confidence to stop picking out stitches.",
+              "price": "$65"
+            },
+            {
+              "title": "Whole cloth marking",
+              "body": "Drafting a repeating pattern with chalk and string, the way the old tops were set.",
+              "price": "$70"
+            },
+            {
+              "title": "Boro mending evening",
+              "body": "Bring one worn thing; leave with it patched and a thimble habit.",
+              "price": "$35"
+            }
           ],
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal",
+            "layout": "framed"
+          }
         },
         {
           "type": "rich_text",
@@ -116,7 +200,10 @@
           "variant": "prose",
           "heading": "A workshop day",
           "html": "<p>Classes run three hours on Saturday afternoons. The kettle stays on, thimbles are tried until one fits, and the last half hour is always quieter than the first, which is the point. Finished practice cloth goes home with everyone, however far it got.</p>",
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -131,14 +218,21 @@
           "variant": "minimal",
           "title": "Kits and patterns",
           "subtitle": "Sample text — replace me: Printed patterns on one page, pre-washed cloth, floss cut to length, and a stitch guide that assumes nothing.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "store_teaser",
           "id": "shop-list",
           "heading": "In stock",
           "limit": 8,
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal"
+          }
         },
         {
           "type": "rich_text",
@@ -146,7 +240,11 @@
           "variant": "prose",
           "heading": "Shipping and shops",
           "html": "<p>Kits ship on Wednesdays in paper packaging. Quilt shops can carry the pattern line: write through the contact page for wholesale terms, and the wholesale box will include the sample stitch-outs for your counter.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "layout": "framed"
+          }
         }
       ]
     },
@@ -161,7 +259,12 @@
           "variant": "minimal",
           "title": "About the studio",
           "subtitle": "Sample text — replace me: Opened after a decade of production sewing and one very quiet sabbatical with a needle and a grain sack.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "rich_text",
@@ -169,16 +272,26 @@
           "variant": "two_column",
           "heading": "How the studio works",
           "html": "<p>For ten years I sewed fast, on deadlines, for other people's labels. The sabbatical was supposed to be a month off and turned into a winter of stitching lines on old linen at a speed my grandmother would have recognized. The studio opened the following spring with one table, six chairs, and the grain sack framed on the wall.</p><p>Everything taught or sold here was tested at that table first. If a pattern cannot be stitched in an evening and a half, it goes back to the drafting paper.</p>",
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         },
         {
           "type": "testimonials",
           "id": "about-quote",
           "variant": "single",
           "items": [
-            { "quote": "I finished my first Sashiko sampler on the porch the week after class, and I have not watched television with empty hands since.", "author": "A workshop regular" }
+            {
+              "quote": "I finished my first Sashiko sampler on the porch the week after class, and I have not watched television with empty hands since.",
+              "author": "A workshop regular"
+            }
           ],
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "layout": "framed"
+          }
         }
       ]
     },
@@ -194,7 +307,11 @@
           "variant": "minimal",
           "title": "Commissions",
           "subtitle": "Sample text — replace me: Whole cloth and Sashiko pieces made to order: a baby quilt, a wedding coverlet, a wall piece in your colors.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "quote_cta",
@@ -202,7 +319,10 @@
           "projectType": "commission",
           "heading": "Describe the piece",
           "submitLabel": "Send the request",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal"
+          }
         },
         {
           "type": "rich_text",
@@ -210,7 +330,11 @@
           "variant": "prose",
           "heading": "How a commission runs",
           "html": "<p>Commissions book about two months out. You describe the room, the occasion, and any colors that matter; I send fabric swatches and a marking plan before a single stitch goes in. The final piece arrives signed, with the leftover thread wound on a card, in case it ever needs mending.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "layout": "framed"
+          }
         }
       ]
     },
@@ -225,14 +349,21 @@
           "variant": "minimal",
           "title": "Write to the studio",
           "subtitle": "Sample text — replace me: Wholesale terms, class questions, and commissions all land in one inbox, answered between stitches.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "contact",
           "id": "contact-form",
           "heading": "Send a message",
           "showDetails": true,
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         },
         {
           "type": "meeting_info",
@@ -241,7 +372,11 @@
           "when": "First Friday evenings, 5 to 8",
           "where": "{{city}}",
           "note": "Bring a hand project or borrow a needle from the basket. The kettle is always on.",
-          "style": { "bg": "brand", "width": "normal" }
+          "style": {
+            "bg": "brand",
+            "width": "normal",
+            "layout": "framed"
+          }
         }
       ]
     }

@@ -7,22 +7,60 @@
     "palette": "naturals-linen",
     "typePair": "lora-karla",
     "scale": "comfortable",
-    "shape": { "radius": "soft", "shadow": "subtle" },
-    "rhythm": { "spacing": "normal", "container": "normal" },
-    "header": { "variant": "left", "sticky": true, "cta": "quote", "overlayHero": false },
-    "footer": { "variant": "columns" },
-    "pattern": { "id": "nine-patch", "opacity": 0.08 }
+    "shape": {
+      "radius": "soft",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "nine-patch",
+      "opacity": 0.08
+    }
   },
   "imagery": [
-    { "id": "hero-art", "kind": "pattern", "alt": "" }
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
   ],
-  "previewSeed": { "guildName": "Sheepshed Batting Company", "city": "Fort Collins, Colorado" },
+  "previewSeed": {
+    "guildName": "Sheepshed Batting Company",
+    "city": "Fort Collins, Colorado"
+  },
   "menu": [
-    { "label": "Batting", "href": "/shop" },
-    { "label": "Wool care", "href": "/wool-care" },
-    { "label": "Wholesale", "href": "/request-a-quote" },
-    { "label": "About", "href": "/about" },
-    { "label": "Contact", "href": "/contact" }
+    {
+      "label": "Batting",
+      "href": "/shop"
+    },
+    {
+      "label": "Wool care",
+      "href": "/wool-care"
+    },
+    {
+      "label": "Wholesale",
+      "href": "/request-a-quote"
+    },
+    {
+      "label": "About",
+      "href": "/about"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    }
   ],
   "pages": [
     {
@@ -38,15 +76,29 @@
           "title": "{{guild_name}}",
           "subtitle": "Sample text — replace me: One mill, one flock, and batting that says exactly on the label how much it will shrink and why that is good.",
           "stats": [
-            { "value": "1948", "label": "first season in the carding room" },
-            { "value": "6", "label": "wool weights on the shelf" },
-            { "value": "0", "label": "polyester in the building" }
+            {
+              "value": "1948",
+              "label": "first season in the carding room"
+            },
+            {
+              "value": "6",
+              "label": "wool weights on the shelf"
+            },
+            {
+              "value": "0",
+              "label": "polyester in the building"
+            }
           ],
           "ctaLabel": "Open a wholesale account",
           "ctaHref": "/request-a-quote",
           "secondaryLabel": "See the rolls",
           "secondaryHref": "/shop",
-          "style": { "bg": "brand", "width": "wide", "spacing": "airy", "align": "center" }
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy",
+            "align": "center"
+          }
         },
         {
           "type": "feature_grid",
@@ -54,12 +106,35 @@
           "variant": "cards",
           "heading": "The rolls",
           "items": [
-            { "title": "Crib roll", "body": "30 yards by 46 inches, needle-punched, no scrim.", "price": "$84", "href": "/shop" },
-            { "title": "Queen roll", "body": "30 yards by 96 inches. The longarm room's favorite.", "price": "$189", "href": "/shop" },
-            { "title": "By the yard", "body": "Cut fresh off the roll at the mill store, any length.", "price": "$3.60", "href": "/shop" },
-            { "title": "Scraps box", "body": "Ten pounds of clean offcuts for placemats, pet beds, and experiments.", "price": "$40", "href": "/shop" }
+            {
+              "title": "Crib roll",
+              "body": "30 yards by 46 inches, needle-punched, no scrim.",
+              "price": "$84",
+              "href": "/shop"
+            },
+            {
+              "title": "Queen roll",
+              "body": "30 yards by 96 inches. The longarm room's favorite.",
+              "price": "$189",
+              "href": "/shop"
+            },
+            {
+              "title": "By the yard",
+              "body": "Cut fresh off the roll at the mill store, any length.",
+              "price": "$3.60",
+              "href": "/shop"
+            },
+            {
+              "title": "Scraps box",
+              "body": "Ten pounds of clean offcuts for placemats, pet beds, and experiments.",
+              "price": "$40",
+              "href": "/shop"
+            }
           ],
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
         },
         {
           "type": "rich_text",
@@ -67,17 +142,30 @@
           "variant": "two_column",
           "heading": "Why wool, and why the shrinkage",
           "html": "<p>Wool quilts warm, quilts easily without a scrim, and drapes the way cotton wishes it could. Ours is needle-punched to the loft on the label, so it holds a hand without basting glue and never needs pre-soaking.</p><p>The label says it shrinks three to five percent when washed, because it does, and that puckered look is the reason your grandmother's quilts feel like your grandmother's quilts. If you want flat, we will tell you which of our blends stays flat and which shop sells it.</p>",
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "divider": "points"
+          }
         },
         {
           "type": "testimonials",
           "id": "home-quotes",
           "variant": "grid",
           "items": [
-            { "quote": "The queen roll quilts like butter on the longarm and my customers ask for it by name now.", "author": "A longarm studio, two towns over" },
-            { "quote": "The scraps box kept my whole after-school club in practice pads for a semester.", "author": "A 4-H leader" }
+            {
+              "quote": "The queen roll quilts like butter on the longarm and my customers ask for it by name now.",
+              "author": "A longarm studio, two towns over"
+            },
+            {
+              "quote": "The scraps box kept my whole after-school club in practice pads for a semester.",
+              "author": "A 4-H leader"
+            }
           ],
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         },
         {
           "type": "quote_cta",
@@ -85,7 +173,12 @@
           "projectType": "wholesale",
           "heading": "Shops and longarm studios",
           "submitLabel": "Ask about wholesale",
-          "style": { "bg": "tint", "width": "normal", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "align": "center",
+            "divider": "points"
+          }
         }
       ]
     },
@@ -97,17 +190,25 @@
         {
           "type": "hero",
           "id": "shop-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "The rolls",
           "subtitle": "Sample text — replace me: What is carded and on the shelf this month, cut fresh or shipped whole.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "store_teaser",
           "id": "shop-list",
           "heading": "On the shelf",
           "limit": 6,
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "divider": "points"
+          }
         },
         {
           "type": "rich_text",
@@ -115,7 +216,10 @@
           "variant": "prose",
           "heading": "Shipping",
           "html": "<p>Rolls leave the mill on Tuesdays, boxed tight and labeled with the loft and lot. By-the-yard orders ride in a tube. Colorado orders often arrive next day by accident of geography rather than by paying for it.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -127,10 +231,15 @@
         {
           "type": "hero",
           "id": "care-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Caring for wool batting",
           "subtitle": "Sample text — replace me: How to wash it, how to store it, and what that first puckered wash will look like.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "rich_text",
@@ -138,18 +247,34 @@
           "variant": "two_column",
           "heading": "The washing question",
           "html": "<p>Wash a wool quilt gently: cold water, mild soap, and the gentlest cycle the machine owns, or the bathtub if the quilt matters. Dry it flat or low, never wrung. The three to five percent shrink is the wool relaxing into the stitches, and it happens once.</p><p>For storage, fold along new lines a few times a year or keep it on a bed. Wool prefers being used; cedar chests and plastic bins are where quilts go to get musty.</p>",
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         },
         {
           "type": "faq",
           "id": "care-faq",
           "heading": "Common questions",
           "items": [
-            { "q": "Does it beard?", "a": "Our carded wool is low-bearding by fleece selection, and the tighter your weave the less it travels. We swap the first roll if a loft fights your fabric." },
-            { "q": "Can it be machine quilted densely?", "a": "Yes. The needle-punch holds, and dense quilting on wool makes the softest stiff, which is a compliment in this building." },
-            { "q": "Is the flock certified?", "a": "The sheep are range-raised on the farm and two partner ranches; the mill runs on the roof solar since 2021. Ask for the lot card and we will tell you which pasture." }
+            {
+              "q": "Does it beard?",
+              "a": "Our carded wool is low-bearding by fleece selection, and the tighter your weave the less it travels. We swap the first roll if a loft fights your fabric."
+            },
+            {
+              "q": "Can it be machine quilted densely?",
+              "a": "Yes. The needle-punch holds, and dense quilting on wool makes the softest stiff, which is a compliment in this building."
+            },
+            {
+              "q": "Is the flock certified?",
+              "a": "The sheep are range-raised on the farm and two partner ranches; the mill runs on the roof solar since 2021. Ask for the lot card and we will tell you which pasture."
+            }
           ],
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "divider": "points"
+          }
         }
       ]
     },
@@ -161,27 +286,42 @@
         {
           "type": "hero",
           "id": "about-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "eyebrow": "Carding since 1948",
           "title": "About the mill",
           "subtitle": "Sample text — replace me: The carder has been running since Eisenhower, outlived two roofs, and still sets the pace of the week.",
-          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "rich_text",
           "id": "about-body",
           "variant": "two_column",
           "html": "<p>The mill started because a wool grower's wife got tired of sending good fleece away and getting mediocre batting back. The carder was bought secondhand from a defunct mill in Ohio, trucked home on a flatbed, and has carded every roll since, including the ones your quilts are sleeping under.</p><p>Three generations later the flock is smaller and the loft standards are stricter. The carding room door still sticks in July, and the family still answers the phone, which is why wholesale accounts get a person and not a portal.</p>",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "divider": "points"
+          }
         },
         {
           "type": "testimonials",
           "id": "about-quote",
           "variant": "single",
           "items": [
-            { "quote": "They told me on the phone which roll would shrink the way my customer wanted. Who else knows their product like that?", "author": "A quilt shop owner" }
+            {
+              "quote": "They told me on the phone which roll would shrink the way my customer wanted. Who else knows their product like that?",
+              "author": "A quilt shop owner"
+            }
           ],
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         }
       ]
     },
@@ -194,10 +334,14 @@
         {
           "type": "hero",
           "id": "quote-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Open a wholesale account",
           "subtitle": "Sample text — replace me: For quilt shops, longarm studios, and guild bulk buys. Tell us what you sell and how much of it.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "quote_cta",
@@ -205,7 +349,11 @@
           "projectType": "wholesale",
           "heading": "Wholesale inquiry",
           "submitLabel": "Send the details",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "divider": "points"
+          }
         },
         {
           "type": "rich_text",
@@ -213,7 +361,10 @@
           "variant": "prose",
           "heading": "The terms, plainly",
           "html": "<p>Net thirty after the first order, no order minimum after the initial case, and a mill-store discount for the drive-in trade. Guild bulk buys ride the wholesale rate with one invoice and one very tall stack of rolls.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -225,17 +376,24 @@
         {
           "type": "hero",
           "id": "contact-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Contact the mill",
           "subtitle": "Sample text — replace me: Loft questions, lot cards, and directions that end with follow the gravel to the wool smell.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "contact",
           "id": "contact-form",
           "heading": "Send a message",
           "showDetails": true,
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         },
         {
           "type": "meeting_info",
@@ -244,7 +402,11 @@
           "when": "First Saturdays, 9 to 1; tours at ten",
           "where": "{{city}}",
           "note": "The carder runs most mornings. Bring earplugs if you want to hear the tour guide.",
-          "style": { "bg": "brand", "width": "wide" }
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "divider": "points"
+          }
         }
       ]
     }

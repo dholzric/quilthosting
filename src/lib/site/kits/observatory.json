@@ -73,7 +73,8 @@
           "where": "the room we rent in {{city}}",
           "note": "White phone lights stay in pockets outside. Red film on the porch flashlights. The quilt is the warmup for the sky.",
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "layout": "framed"
           }
         },
         {
@@ -119,7 +120,8 @@
           "ctaLabel": "See dues",
           "style": {
             "bg": "brand",
-            "align": "center"
+            "align": "center",
+            "layout": "framed"
           }
         }
       ]
@@ -148,7 +150,8 @@
           "html": "<p><em>Sample text — replace me:</em> {{city}} protects the dark. {{guild_name}} sews under that rule. Star blocks are not a theme-park print. They are what you make with your hands before you look up.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "framed"
           }
         },
         {
@@ -214,7 +217,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           }
         }
       ]
@@ -241,7 +245,8 @@
           "variant": "cards",
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           }
         },
         {
@@ -286,7 +291,8 @@
           "when": "{{meeting_info}}",
           "where": "the room we rent in {{city}}",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "framed"
           }
         },
         {
@@ -323,7 +329,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "framed"
           }
         },
         {

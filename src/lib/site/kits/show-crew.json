@@ -61,7 +61,8 @@
             "bg": "dark",
             "width": "wide",
             "media": "right",
-            "imageId": "hero-art"
+            "imageId": "hero-art",
+            "layout": "asym"
           }
         },
         {
@@ -88,7 +89,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           }
         },
         {
@@ -102,7 +104,8 @@
             }
           ],
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "divider": "rule"
           }
         },
         {
@@ -112,7 +115,8 @@
           "heading": "Show dates, quilt count, ceiling height, and whether you have rods",
           "submitLabel": "Request a crew",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "divider": "rule"
           }
         }
       ]
@@ -154,7 +158,9 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed",
+            "divider": "rule"
           }
         }
       ]
@@ -184,7 +190,9 @@
           "limit": 8,
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed",
+            "divider": "rule"
           }
         },
         {
@@ -223,7 +231,9 @@
           "heading": "Show dates, quilt count, ceiling height, and whether you have rods",
           "submitLabel": "Request a crew",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "framed",
+            "divider": "rule"
           }
         },
         {
@@ -263,7 +273,9 @@
           "html": "<p><em>Sample text — replace me:</em> I hung my own guild's show until I realized hanging was the job I liked. {{guild_name}} is four people who will work a union hall or a church gym and leave the politics on the committee table.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "framed",
+            "divider": "rule"
           }
         },
         {
@@ -303,7 +315,9 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "framed",
+            "divider": "rule"
           }
         },
         {
@@ -313,7 +327,8 @@
           "when": "{{meeting_info}}",
           "where": "{{city}}",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "divider": "rule"
           }
         }
       ]

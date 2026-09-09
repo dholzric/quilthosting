@@ -7,153 +7,392 @@
     "palette": "jewel-sapphire",
     "typePair": "playfair-lato",
     "scale": "comfortable",
-    "shape": { "radius": "soft", "shadow": "lifted" },
-    "rhythm": { "spacing": "normal", "container": "normal" },
-    "header": { "variant": "left", "sticky": true, "cta": "quote", "overlayHero": true },
-    "footer": { "variant": "simple" },
-    "pattern": { "id": "none", "opacity": 0 }
+    "shape": {
+      "radius": "soft",
+      "shadow": "lifted"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": true
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "none",
+      "opacity": 0
+    }
   },
-  "imagery": [{ "id": "hero-art", "kind": "pattern", "alt": "" }],
-  "previewSeed": { "guildName": "North Star Longarm", "city": "Fargo, North Dakota" },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "North Star Longarm",
+    "city": "Fargo, North Dakota"
+  },
   "pages": [
     {
-      "slug": "home", "title": "Home", "nav": false,
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
       "sections": [
         {
-          "type": "hero", "id": "welcome", "variant": "split",
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
           "eyebrow": "Longarm quilting in {{city}}",
           "title": "Edge-to-edge and custom, quoted by the square inch",
           "subtitle": "Sample text — replace me: {{guild_name}} quilts tops for guilds, shops, and makers who would rather not load a frame at home.",
-          "ctaLabel": "Request a quote", "ctaHref": "/request-a-quote",
-          "secondaryLabel": "Services", "secondaryHref": "/services",
-          "style": { "bg": "dark", "width": "wide", "spacing": "airy", "media": "right", "imageId": "hero-art" }
+          "ctaLabel": "Request a quote",
+          "ctaHref": "/request-a-quote",
+          "secondaryLabel": "Services",
+          "secondaryHref": "/services",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "airy",
+            "media": "right",
+            "imageId": "hero-art"
+          }
         },
         {
-          "type": "feature_grid", "id": "home-services", "variant": "cards",
+          "type": "feature_grid",
+          "id": "home-services",
+          "variant": "cards",
           "heading": "How I charge",
           "items": [
-            { "title": "Edge-to-edge", "body": "One pantograph, from the backing. Good for charity tops, baby quilts, and anything that should read as texture.", "price": "2.5¢ / in²", "href": "/services" },
-            { "title": "Custom", "body": "Separate designs in borders, blocks, and sashing. A consult is included.", "price": "4–8¢ / in²", "href": "/services" },
-            { "title": "Basting", "body": "For hand quilters who want the sandwich pinned on the frame.", "price": "$45", "href": "/services" }
+            {
+              "title": "Edge-to-edge",
+              "body": "One pantograph, from the backing. Good for charity tops, baby quilts, and anything that should read as texture.",
+              "price": "2.5¢ / in²",
+              "href": "/services"
+            },
+            {
+              "title": "Custom",
+              "body": "Separate designs in borders, blocks, and sashing. A consult is included.",
+              "price": "4–8¢ / in²",
+              "href": "/services"
+            },
+            {
+              "title": "Basting",
+              "body": "For hand quilters who want the sandwich pinned on the frame.",
+              "price": "$45",
+              "href": "/services"
+            }
           ],
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "layout": "framed"
+          }
         },
-        { "type": "gallery", "id": "home-port", "variant": "grid", "source": "gallery", "gallerySlug": "portfolio", "style": { "bg": "tint", "width": "wide" } },
         {
-          "type": "testimonials", "id": "home-quotes", "variant": "grid",
-          "items": [
-            { "quote": "She called before she loaded the top because the borders were tight. That phone call saved the quilt.", "author": "L. Chen, guild member" },
-            { "quote": "Turnaround on an edge-to-edge baby quilt was eight days, including the weekend I delivered it.", "author": "Sam R." }
-          ],
-          "style": { "bg": "none" }
+          "type": "gallery",
+          "id": "home-port",
+          "variant": "grid",
+          "source": "gallery",
+          "gallerySlug": "portfolio",
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
         },
-        { "type": "quote_cta", "id": "home-quote", "projectType": "longarm", "heading": "Send the quilt size and a photo of the top", "submitLabel": "Request a quote", "style": { "bg": "brand", "align": "center" } }
+        {
+          "type": "testimonials",
+          "id": "home-quotes",
+          "variant": "grid",
+          "items": [
+            {
+              "quote": "She called before she loaded the top because the borders were tight. That phone call saved the quilt.",
+              "author": "L. Chen, guild member"
+            },
+            {
+              "quote": "Turnaround on an edge-to-edge baby quilt was eight days, including the weekend I delivered it.",
+              "author": "Sam R."
+            }
+          ],
+          "style": {
+            "bg": "none"
+          }
+        },
+        {
+          "type": "quote_cta",
+          "id": "home-quote",
+          "projectType": "longarm",
+          "heading": "Send the quilt size and a photo of the top",
+          "submitLabel": "Request a quote",
+          "style": {
+            "bg": "brand",
+            "align": "center",
+            "layout": "offset"
+          }
+        }
       ]
     },
     {
-      "slug": "services", "title": "Services & Pricing", "nav": true,
+      "slug": "services",
+      "title": "Services & Pricing",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "s-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "s-hero",
+          "variant": "minimal",
           "title": "Services and pricing",
           "subtitle": "Sample text — replace me: Square-inch rates, thread, batting, and what I need from you before the top arrives.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
         {
-          "type": "feature_grid", "id": "s-grid", "variant": "cards",
+          "type": "feature_grid",
+          "id": "s-grid",
+          "variant": "cards",
           "items": [
-            { "title": "Edge-to-edge", "body": "Pantograph or digitized overall. Density is light, medium, or heavy. You pick from the binder or send a file.", "price": "2.5–3.5¢ / in²" },
-            { "title": "Custom", "body": "Drawn in the hoop of the quilt. Borders, blocks, and sashing can each have their own design.", "price": "4–8¢ / in²" },
-            { "title": "Batting and backing", "body": "Hobbs 80/20 and wool on the shelf. Backing should be 8 inches larger than the top on all sides." },
-            { "title": "Rush", "body": "If the frame is open, a two-week slot can move to one. Rush is a flat fee, not a higher rate.", "price": "+$75" }
+            {
+              "title": "Edge-to-edge",
+              "body": "Pantograph or digitized overall. Density is light, medium, or heavy. You pick from the binder or send a file.",
+              "price": "2.5–3.5¢ / in²"
+            },
+            {
+              "title": "Custom",
+              "body": "Drawn in the hoop of the quilt. Borders, blocks, and sashing can each have their own design.",
+              "price": "4–8¢ / in²"
+            },
+            {
+              "title": "Batting and backing",
+              "body": "Hobbs 80/20 and wool on the shelf. Backing should be 8 inches larger than the top on all sides."
+            },
+            {
+              "title": "Rush",
+              "body": "If the frame is open, a two-week slot can move to one. Rush is a flat fee, not a higher rate.",
+              "price": "+$75"
+            }
           ],
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "layout": "offset"
+          }
         },
         {
-          "type": "rich_text", "id": "s-prep", "variant": "prose", "heading": "How to prepare a top",
+          "type": "rich_text",
+          "id": "s-prep",
+          "variant": "prose",
+          "heading": "How to prepare a top",
           "html": "<p>Press seams. Stay-stitch the edges if they wobble. Clip threads on the back. Do not pin or baste. Fold, do not hang, for the drive over. If the backing is pieced, press that seam open.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         },
-        { "type": "cta", "id": "s-quote", "label": "Request a quote", "href": "/request-a-quote", "kind": "primary", "style": { "bg": "brand", "align": "center" } }
+        {
+          "type": "cta",
+          "id": "s-quote",
+          "label": "Request a quote",
+          "href": "/request-a-quote",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
+        }
       ]
     },
     {
-      "slug": "portfolio", "title": "Portfolio", "nav": true,
+      "slug": "portfolio",
+      "title": "Portfolio",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "p-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "p-hero",
+          "variant": "minimal",
           "title": "Recent quilts",
           "subtitle": "Sample text — replace me: Edge-to-edge and custom, photographed on the frame and after binding.",
-          "ctaLabel": "All albums", "ctaHref": "/galleries",
-          "style": { "bg": "dark", "align": "center" }
+          "ctaLabel": "All albums",
+          "ctaHref": "/galleries",
+          "style": {
+            "bg": "dark",
+            "align": "center"
+          }
         },
-        { "type": "gallery", "id": "p-grid", "variant": "masonry", "source": "gallery", "gallerySlug": "portfolio", "style": { "bg": "none", "width": "wide" } },
-        { "type": "cta", "id": "p-quote", "label": "Start a quote", "href": "/request-a-quote", "kind": "secondary", "style": { "bg": "tint", "align": "center" } }
+        {
+          "type": "gallery",
+          "id": "p-grid",
+          "variant": "masonry",
+          "source": "gallery",
+          "gallerySlug": "portfolio",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "layout": "framed"
+          }
+        },
+        {
+          "type": "cta",
+          "id": "p-quote",
+          "label": "Start a quote",
+          "href": "/request-a-quote",
+          "kind": "secondary",
+          "style": {
+            "bg": "tint",
+            "align": "center"
+          }
+        }
       ]
     },
     {
-      "slug": "about", "title": "About", "nav": true,
+      "slug": "about",
+      "title": "About",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "a-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
           "title": "About {{guild_name}}",
           "subtitle": "Sample text — replace me: One Gammill on a 12-foot frame, in a garage studio on the north side of {{city}}.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
         {
-          "type": "rich_text", "id": "a-body", "variant": "two_column",
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "two_column",
           "html": "<p>I quilted on a domestic machine for a decade before I bought the longarm. Most of the work is still edge-to-edge for guild charity tops and shop samples. Custom slots are booked six to eight weeks out.</p><p>Studio visits are by appointment. The dog stays in the house.</p>",
-          "style": { "bg": "tint" }
+          "style": {
+            "bg": "tint",
+            "layout": "offset"
+          }
         },
         {
-          "type": "meeting_info", "id": "a-hours", "heading": "Hours",
+          "type": "meeting_info",
+          "id": "a-hours",
+          "heading": "Hours",
           "when": "Tuesday through Friday, 10 to 4",
           "where": "{{city}}",
           "note": "Drop-offs are Tuesday and Thursday. Pickups are Friday.",
-          "style": { "bg": "none" }
+          "style": {
+            "bg": "none"
+          }
         }
       ]
     },
     {
-      "slug": "request-a-quote", "title": "Request a Quote", "nav": true,
+      "slug": "request-a-quote",
+      "title": "Request a Quote",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "q-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "q-hero",
+          "variant": "minimal",
           "title": "Request a quote",
           "subtitle": "Sample text — replace me: Width, length, edge-to-edge or custom, and a photo of the top. I reply within two business days.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
-        { "type": "quote_cta", "id": "q-form", "projectType": "longarm", "heading": "Quilt details", "submitLabel": "Send for a quote", "style": { "bg": "tint" } },
         {
-          "type": "faq", "id": "q-faq",
+          "type": "quote_cta",
+          "id": "q-form",
+          "projectType": "longarm",
+          "heading": "Quilt details",
+          "submitLabel": "Send for a quote",
+          "style": {
+            "bg": "tint",
+            "layout": "offset"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "q-faq",
           "items": [
-            { "q": "Do I need to send the quilt first?", "a": "No. A photograph and the measurements are enough for a quote. Bring the quilt when you accept the date." },
-            { "q": "Do you quilt for shops?", "a": "Yes. Shop samples are billed at the edge-to-edge rate with a net-30 invoice." }
+            {
+              "q": "Do I need to send the quilt first?",
+              "a": "No. A photograph and the measurements are enough for a quote. Bring the quilt when you accept the date."
+            },
+            {
+              "q": "Do you quilt for shops?",
+              "a": "Yes. Shop samples are billed at the edge-to-edge rate with a net-30 invoice."
+            }
           ],
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         }
       ]
     },
     {
-      "slug": "faq", "title": "FAQ", "nav": true,
+      "slug": "faq",
+      "title": "FAQ",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "f-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "f-hero",
+          "variant": "minimal",
           "title": "Questions",
           "subtitle": "Sample text — replace me: Loading, thread, batting, and what happens if a seam opens on the frame.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
         {
-          "type": "faq", "id": "f-list",
+          "type": "faq",
+          "id": "f-list",
           "items": [
-            { "q": "What thread do you use?", "a": "Glide for most edge-to-edge. Cotton for custom when the top is cotton. I will not use metallic in the needle without a written note from you." },
-            { "q": "Can you quilt a T-shirt quilt?", "a": "Yes, at the custom rate, because the blocks shift. Stabilize them before you bring the top." },
-            { "q": "What if a seam pops?", "a": "I stop, call, and wait. I do not restitch a seam unless you ask me to in writing." },
-            { "q": "Do you bind?", "a": "Machine binding is $0.18 a linear inch. Hand binding is not offered." }
+            {
+              "q": "What thread do you use?",
+              "a": "Glide for most edge-to-edge. Cotton for custom when the top is cotton. I will not use metallic in the needle without a written note from you."
+            },
+            {
+              "q": "Can you quilt a T-shirt quilt?",
+              "a": "Yes, at the custom rate, because the blocks shift. Stabilize them before you bring the top."
+            },
+            {
+              "q": "What if a seam pops?",
+              "a": "I stop, call, and wait. I do not restitch a seam unless you ask me to in writing."
+            },
+            {
+              "q": "Do you bind?",
+              "a": "Machine binding is $0.18 a linear inch. Hand binding is not offered."
+            }
           ],
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "layout": "offset"
+          }
         },
-        { "type": "cta", "id": "f-quote", "label": "Request a quote", "href": "/request-a-quote", "kind": "primary", "style": { "bg": "none", "align": "center" } }
+        {
+          "type": "cta",
+          "id": "f-quote",
+          "label": "Request a quote",
+          "href": "/request-a-quote",
+          "kind": "primary",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        }
       ]
     }
   ]

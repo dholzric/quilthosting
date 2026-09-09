@@ -62,7 +62,8 @@
             "width": "wide",
             "spacing": "airy",
             "media": "right",
-            "imageId": "hero-art"
+            "imageId": "hero-art",
+            "layout": "asym_reverse"
           }
         },
         {
@@ -84,7 +85,8 @@
           "limit": 3,
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "layout": "offset"
           }
         },
         {
@@ -119,7 +121,8 @@
           "ctaLabel": "See dues",
           "style": {
             "bg": "brand",
-            "align": "center"
+            "align": "center",
+            "divider": "notch"
           }
         }
       ]
@@ -132,7 +135,7 @@
         {
           "type": "hero",
           "id": "a-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "About {{guild_name}}",
           "subtitle": "Sample text — replace me: Quilters who live with salt, tourists, and a bridge that backs up on Fridays.",
           "style": {
@@ -148,7 +151,8 @@
           "html": "<p><em>Sample text — replace me:</em> {{guild_name}} meets in {{city}} because that is where we live, not because it is convenient. Half the members close shops in October. The other half work the restaurants. The guild calendar follows the water more than the school year.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "divider": "notch"
           }
         },
         {
@@ -171,7 +175,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           },
           "heading": "A year with us"
         }
@@ -186,7 +191,7 @@
         {
           "type": "hero",
           "id": "s-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "The Season",
           "subtitle": "Sample text — replace me: How the guild clock changes with the water and the visitors.",
           "style": {
@@ -214,7 +219,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "divider": "notch"
           }
         },
         {
@@ -225,7 +231,8 @@
           "limit": 12,
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           }
         }
       ]
@@ -238,7 +245,7 @@
         {
           "type": "hero",
           "id": "j-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Membership",
           "subtitle": "Sample text — replace me: Dues are the same year-round. Summer members who leave the island still get the newsletter.",
           "style": {
@@ -252,7 +259,8 @@
           "variant": "cards",
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "divider": "notch"
           }
         },
         {
@@ -270,7 +278,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "framed"
           }
         }
       ]
@@ -283,7 +292,7 @@
         {
           "type": "hero",
           "id": "m-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Meetings",
           "subtitle": "Sample text — replace me: We meet {{meeting_info}} in {{city}}.",
           "style": {
@@ -297,7 +306,8 @@
           "when": "{{meeting_info}}",
           "where": "the room we rent in {{city}}",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "divider": "notch"
           }
         },
         {
@@ -308,7 +318,8 @@
           "limit": 8,
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           }
         }
       ]
@@ -321,7 +332,7 @@
         {
           "type": "hero",
           "id": "c-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Contact {{guild_name}}",
           "subtitle": "Sample text — replace me: Programs, dues, and the door code.",
           "style": {
@@ -334,7 +345,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "divider": "notch"
           }
         },
         {
@@ -343,7 +355,8 @@
           "when": "{{meeting_info}}",
           "where": "the room we rent in {{city}}",
           "style": {
-            "bg": "dark"
+            "bg": "dark",
+            "layout": "offset"
           }
         }
       ]

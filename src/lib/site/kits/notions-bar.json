@@ -102,7 +102,8 @@
             }
           ],
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "divider": "points"
           }
         },
         {
@@ -112,7 +113,8 @@
           "heading": "What is dull, broken, or missing, if you cannot come in",
           "submitLabel": "Ask for a tool",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "divider": "points"
           }
         }
       ]
@@ -126,7 +128,7 @@
         {
           "type": "hero",
           "id": "w-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "On the Counter",
           "subtitle": "Sample text — replace me: What I keep in stock, and what I order on Tuesdays.",
           "style": {
@@ -154,7 +156,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "divider": "points"
           }
         }
       ]
@@ -168,7 +171,7 @@
         {
           "type": "hero",
           "id": "w-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "The Counter",
           "subtitle": "Sample text — replace me: {{meeting_info}} in {{city}}. The counter is steel so blades do not roll off.",
           "style": {
@@ -184,7 +187,8 @@
           "where": "{{city}}",
           "note": "Bring the dull blade. I will believe you, but I like to see the damage.",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "divider": "points"
           }
         }
       ]
@@ -197,7 +201,7 @@
         {
           "type": "hero",
           "id": "q-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Request a quote",
           "subtitle": "Sample text — replace me: I will not mail a rotary blade in a greeting card. There is a right box for that.",
           "style": {
@@ -212,7 +216,8 @@
           "heading": "What is dull, broken, or missing, if you cannot come in",
           "submitLabel": "Ask for a tool",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "divider": "points"
           }
         },
         {
@@ -236,7 +241,7 @@
         {
           "type": "hero",
           "id": "a-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "About {{guild_name}}",
           "subtitle": "Sample text — replace me: A hardware store for quilters, without the lumber.",
           "style": {
@@ -252,7 +257,8 @@
           "html": "<p><em>Sample text — replace me:</em> Fabric shops have to sell fabric. That means the good snips live behind a cutting table you have to interrupt. {{guild_name}} is the interruption as a shop. You may come in only for a blade. That is the whole visit.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "divider": "points"
           }
         },
         {
@@ -279,7 +285,7 @@
         {
           "type": "hero",
           "id": "c-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Contact {{guild_name}}",
           "subtitle": "Sample text — replace me: Dates, deposits, and work already in the shop.",
           "style": {
@@ -292,7 +298,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "divider": "points"
           }
         },
         {
@@ -302,7 +309,8 @@
           "when": "{{meeting_info}}",
           "where": "{{city}}",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "divider": "points"
           }
         }
       ]

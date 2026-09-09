@@ -7,22 +7,60 @@
     "palette": "heritage-wheat",
     "typePair": "cormorantgaramond-sourcesans",
     "scale": "comfortable",
-    "shape": { "radius": "soft", "shadow": "subtle" },
-    "rhythm": { "spacing": "airy", "container": "normal" },
-    "header": { "variant": "centered", "sticky": true, "cta": "quote", "overlayHero": false },
-    "footer": { "variant": "meeting" },
-    "pattern": { "id": "log-cabin", "opacity": 0.08 }
+    "shape": {
+      "radius": "soft",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "centered",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "meeting"
+    },
+    "pattern": {
+      "id": "log-cabin",
+      "opacity": 0.08
+    }
   },
   "imagery": [
-    { "id": "hero-art", "kind": "pattern", "alt": "" }
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
   ],
-  "previewSeed": { "guildName": "Hollis Frame Works", "city": "Gap, Pennsylvania" },
+  "previewSeed": {
+    "guildName": "Hollis Frame Works",
+    "city": "Gap, Pennsylvania"
+  },
   "menu": [
-    { "label": "Frames", "href": "/frames" },
-    { "label": "Care", "href": "/care" },
-    { "label": "About", "href": "/about" },
-    { "label": "Contact", "href": "/contact" },
-    { "label": "Order a frame", "href": "/request-a-quote" }
+    {
+      "label": "Frames",
+      "href": "/frames"
+    },
+    {
+      "label": "Care",
+      "href": "/care"
+    },
+    {
+      "label": "About",
+      "href": "/about"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    },
+    {
+      "label": "Order a frame",
+      "href": "/request-a-quote"
+    }
   ],
   "pages": [
     {
@@ -41,7 +79,13 @@
           "ctaHref": "/request-a-quote",
           "secondaryLabel": "See the frames",
           "secondaryHref": "/frames",
-          "style": { "bg": "pattern", "width": "wide", "spacing": "airy", "media": "right", "imageId": "hero-art" }
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "spacing": "airy",
+            "media": "right",
+            "imageId": "hero-art"
+          }
         },
         {
           "type": "feature_grid",
@@ -49,12 +93,35 @@
           "variant": "cards",
           "heading": "The line",
           "items": [
-            { "title": "The kitchen floor frame", "body": "Four legs, four ratchets, and room for two quilters on a side.", "price": "$340", "href": "/frames" },
-            { "title": "The lap hoop", "body": "Bent oak, brass wing nut, and a stand that keeps the hoop at the elbow.", "price": "$64", "href": "/frames" },
-            { "title": "The travel hoop", "body": "Breaks down to the length of a baseball bat for guild trips.", "price": "$78", "href": "/frames" },
-            { "title": "The 1840 reproduction", "body": "Scaled from a Pennsylvania farmstead original, pegged without glue.", "price": "$520", "href": "/frames" }
+            {
+              "title": "The kitchen floor frame",
+              "body": "Four legs, four ratchets, and room for two quilters on a side.",
+              "price": "$340",
+              "href": "/frames"
+            },
+            {
+              "title": "The lap hoop",
+              "body": "Bent oak, brass wing nut, and a stand that keeps the hoop at the elbow.",
+              "price": "$64",
+              "href": "/frames"
+            },
+            {
+              "title": "The travel hoop",
+              "body": "Breaks down to the length of a baseball bat for guild trips.",
+              "price": "$78",
+              "href": "/frames"
+            },
+            {
+              "title": "The 1840 reproduction",
+              "body": "Scaled from a Pennsylvania farmstead original, pegged without glue.",
+              "price": "$520",
+              "href": "/frames"
+            }
           ],
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
         },
         {
           "type": "rich_text",
@@ -62,17 +129,30 @@
           "variant": "two_column",
           "heading": "From the woodshop",
           "html": "<p>Every frame starts as rough oak and one afternoon at the jointer. The rails are planed true, drilled with the same jig their grandfather drilled in 1998, and finished by hand with oil and wax that will not smell up a sewing room.</p><p>Nothing is glued that a screw can hold, so a frame can travel flat, be rebuilt in another kitchen, and tighten up again after twenty winters by the stove.</p>",
-          "style": { "bg": "dark", "width": "wide" }
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "divider": "points"
+          }
         },
         {
           "type": "testimonials",
           "id": "home-quotes",
           "variant": "grid",
           "items": [
-            { "quote": "We quilted on my mother's floor frame until the whole neighborhood had a side. It is on its third family now.", "author": "R., Lititz" },
-            { "quote": "The lap hoop ended my thirty-year argument with my husband's armchair.", "author": "D., Coatesville" }
+            {
+              "quote": "We quilted on my mother's floor frame until the whole neighborhood had a side. It is on its third family now.",
+              "author": "R., Lititz"
+            },
+            {
+              "quote": "The lap hoop ended my thirty-year argument with my husband's armchair.",
+              "author": "D., Coatesville"
+            }
           ],
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         },
         {
           "type": "quote_cta",
@@ -80,7 +160,12 @@
           "projectType": "frame",
           "heading": "The current wait is six weeks",
           "submitLabel": "Join the list",
-          "style": { "bg": "tint", "width": "normal", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "align": "center",
+            "divider": "points"
+          }
         }
       ]
     },
@@ -92,10 +177,14 @@
         {
           "type": "hero",
           "id": "frames-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Frames and hoops",
           "subtitle": "Sample text — replace me: Sizes, prices, and what comes in the crate besides the smell of oak.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "feature_grid",
@@ -103,14 +192,42 @@
           "variant": "cards",
           "heading": "Sizes and prices",
           "items": [
-            { "title": "Floor frame, 3 rail", "body": "Thirty-two inch throat of quilting space. The standard for a reason.", "price": "$340" },
-            { "title": "Floor frame, 2 rail", "body": "Narrower and lighter for smaller rooms and smaller quilts.", "price": "$295" },
-            { "title": "Lap hoop, 14 inch", "body": "The hoop most of the guild learned on, on a stand that swivels.", "price": "$64" },
-            { "title": "Lap hoop, 18 inch", "body": "For whole-cloth hands and borders that want room.", "price": "$72" },
-            { "title": "Thread stand and rail", "body": "Keeps hand-quilting thread off the floor and out of the cat's jurisdiction.", "price": "$38" },
-            { "title": "1840 reproduction frame", "body": "Pegged oak, hand-planed rails, and a story card in every crate.", "price": "$520" }
+            {
+              "title": "Floor frame, 3 rail",
+              "body": "Thirty-two inch throat of quilting space. The standard for a reason.",
+              "price": "$340"
+            },
+            {
+              "title": "Floor frame, 2 rail",
+              "body": "Narrower and lighter for smaller rooms and smaller quilts.",
+              "price": "$295"
+            },
+            {
+              "title": "Lap hoop, 14 inch",
+              "body": "The hoop most of the guild learned on, on a stand that swivels.",
+              "price": "$64"
+            },
+            {
+              "title": "Lap hoop, 18 inch",
+              "body": "For whole-cloth hands and borders that want room.",
+              "price": "$72"
+            },
+            {
+              "title": "Thread stand and rail",
+              "body": "Keeps hand-quilting thread off the floor and out of the cat's jurisdiction.",
+              "price": "$38"
+            },
+            {
+              "title": "1840 reproduction frame",
+              "body": "Pegged oak, hand-planed rails, and a story card in every crate.",
+              "price": "$520"
+            }
           ],
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "divider": "points"
+          }
         },
         {
           "type": "rich_text",
@@ -118,18 +235,34 @@
           "variant": "prose",
           "heading": "In the crate",
           "html": "<p>Every order ships with the frame or hoop, clamps sized to the rails, a canvas? a twill tacking strip already stapled, spare screws in a labeled envelope, and one sheet of instructions worth reading, written after the first fifty crates taught us what to say.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         },
         {
           "type": "faq",
           "id": "frames-faq",
           "heading": "Frame questions",
           "items": [
-            { "q": "How hard is assembly?", "a": "A screwdriver, a free hour, and one other pair of hands for the floor frames. The rails are numbered, the holes are drilled, and the instructions assume you have never done this." },
-            { "q": "Will it fit through my door?", "a": "The widest crate is the width of a standard door frame plus two inches, and it always goes in the long way first. Write with your doorway if you are unsure." },
-            { "q": "Can you sign or date a frame?", "a": "Yes. The underside carries the maker's mark anyway, and a dedication burned into the rail has made more than one anniversary." }
+            {
+              "q": "How hard is assembly?",
+              "a": "A screwdriver, a free hour, and one other pair of hands for the floor frames. The rails are numbered, the holes are drilled, and the instructions assume you have never done this."
+            },
+            {
+              "q": "Will it fit through my door?",
+              "a": "The widest crate is the width of a standard door frame plus two inches, and it always goes in the long way first. Write with your doorway if you are unsure."
+            },
+            {
+              "q": "Can you sign or date a frame?",
+              "a": "Yes. The underside carries the maker's mark anyway, and a dedication burned into the rail has made more than one anniversary."
+            }
           ],
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "divider": "points"
+          }
         }
       ]
     },
@@ -141,10 +274,15 @@
         {
           "type": "hero",
           "id": "care-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Caring for a frame",
           "subtitle": "Sample text — replace me: Oil once a year, keep it off the radiator, and it will outlive the quilts you blame it for.",
-          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "rich_text",
@@ -152,7 +290,11 @@
           "variant": "two_column",
           "heading": "The short list",
           "html": "<p>Wipe the rails with a dry cloth after long projects, especially where hands rest. Feed the wood a coat of the wax included in the crate once a year, and keep the frame away from heat vents and sunny windows, which are harder on oak than quilting is.</p><p>Ratchets want a drop of oil on their birthday. If a rail ever warps, which the shop has seen three times in twenty years, write first; most warped rails are actually loose clamps and tighten back true.</p>",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "divider": "points"
+          }
         },
         {
           "type": "cta",
@@ -160,7 +302,10 @@
           "label": "Order spare clamps or wax",
           "href": "/request-a-quote",
           "kind": "secondary",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         }
       ]
     },
@@ -172,27 +317,42 @@
         {
           "type": "hero",
           "id": "about-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "eyebrow": "In the woodshop since 1998",
           "title": "About {{guild_name}}",
           "subtitle": "Sample text — replace me: One woodworker, two helpers, and a jig older than the apprentices.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "rich_text",
           "id": "about-body",
           "variant": "two_column",
           "html": "<p>The first frame was built for my wife's quilting bee when the shop frames they could buy kept loosening by spring. The bee ordered four more. The bee told two other bees, and the woodshop stopped building kitchen cabinets that year.</p><p>The same jig drills every rail, the same hands rub every finish, and every crate gets the maker's mark under the bottom rail where only the next generation will look for it.</p>",
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         },
         {
           "type": "testimonials",
           "id": "about-quote",
           "variant": "single",
           "items": [
-            { "quote": "We bought the 1840 reproduction for the museum's hands-on room. It has survived eight hundred schoolchildren and still squares up true.", "author": "A historical society curator" }
+            {
+              "quote": "We bought the 1840 reproduction for the museum's hands-on room. It has survived eight hundred schoolchildren and still squares up true.",
+              "author": "A historical society curator"
+            }
           ],
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "divider": "points"
+          }
         }
       ]
     },
@@ -205,10 +365,14 @@
         {
           "type": "hero",
           "id": "quote-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Order a frame",
           "subtitle": "Sample text — replace me: Pick a size, pick a wood if you like, and get on the list. The current wait is about six weeks.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "quote_cta",
@@ -216,7 +380,11 @@
           "projectType": "frame",
           "heading": "Frame order",
           "submitLabel": "Join the list",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "divider": "points"
+          }
         },
         {
           "type": "rich_text",
@@ -224,7 +392,10 @@
           "variant": "prose",
           "heading": "Woods and waits",
           "html": "<p>Oak is standard and always in the pile. Cherry and walnut are cut when the sawmill has them and cost what they cost; the quote will say. Half down holds your place on the list, and the balance is due when the crate is on the truck.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -236,17 +407,24 @@
         {
           "type": "hero",
           "id": "contact-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Contact the shop",
           "subtitle": "Sample text — replace me: Sizing questions, spare parts, and visits from people who want to see the jig.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "contact",
           "id": "contact-form",
           "heading": "Send a message",
           "showDetails": true,
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         },
         {
           "type": "meeting_info",
@@ -255,7 +433,11 @@
           "when": "Weekdays, 8 to 4; Saturdays by chance",
           "where": "{{city}}",
           "note": "Sawdust on the floor and coffee on the warmer. Visitors leave with a free wax tin.",
-          "style": { "bg": "brand", "width": "wide" }
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "divider": "points"
+          }
         }
       ]
     }

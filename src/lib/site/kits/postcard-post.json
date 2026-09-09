@@ -84,7 +84,9 @@
           "limit": 3,
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed",
+            "divider": "scallop"
           }
         },
         {
@@ -119,7 +121,8 @@
           "ctaLabel": "See dues",
           "style": {
             "bg": "brand",
-            "align": "center"
+            "align": "center",
+            "divider": "scallop"
           }
         }
       ]
@@ -132,7 +135,7 @@
         {
           "type": "hero",
           "id": "a-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "About {{guild_name}}",
           "subtitle": "Sample text — replace me: A guild that treats the mail as a gallery.",
           "style": {
@@ -148,7 +151,8 @@
           "html": "<p><em>Sample text — replace me:</em> Paper postcards vanish. Cloth ones get kept on fridges. {{guild_name}} started as a dare to see if the post office would cancel a quilted square. They will, if you stay inside the size and the thickness.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "divider": "scallop"
           }
         },
         {
@@ -171,7 +175,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           },
           "heading": "A year with us"
         }
@@ -186,7 +191,7 @@
         {
           "type": "hero",
           "id": "s-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "How to Mail Cloth",
           "subtitle": "Sample text — replace me: Size, stiffness, stamps, and what happens when a card comes back crumpled.",
           "style": {
@@ -214,7 +219,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "divider": "scallop"
           }
         },
         {
@@ -232,7 +238,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "framed"
           }
         }
       ]
@@ -245,7 +252,7 @@
         {
           "type": "hero",
           "id": "j-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Membership",
           "subtitle": "Sample text — replace me: You need twelve addresses in you, including strangers.",
           "style": {
@@ -259,7 +266,8 @@
           "variant": "cards",
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "divider": "scallop"
           }
         },
         {
@@ -277,7 +285,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "framed"
           }
         }
       ]
@@ -290,7 +299,7 @@
         {
           "type": "hero",
           "id": "m-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Meetings",
           "subtitle": "Sample text — replace me: We meet {{meeting_info}} in {{city}}.",
           "style": {
@@ -304,7 +313,8 @@
           "when": "{{meeting_info}}",
           "where": "the room we rent in {{city}}",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "divider": "scallop"
           }
         },
         {
@@ -315,7 +325,8 @@
           "limit": 8,
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           }
         }
       ]
@@ -328,7 +339,7 @@
         {
           "type": "hero",
           "id": "c-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Contact {{guild_name}}",
           "subtitle": "Sample text — replace me: Programs, dues, and the door.",
           "style": {
@@ -341,7 +352,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "divider": "scallop"
           }
         },
         {
@@ -350,7 +362,9 @@
           "when": "{{meeting_info}}",
           "where": "the room we rent in {{city}}",
           "style": {
-            "bg": "dark"
+            "bg": "dark",
+            "layout": "framed",
+            "divider": "scallop"
           }
         }
       ]

@@ -84,7 +84,9 @@
           "limit": 3,
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed",
+            "divider": "scallop"
           }
         },
         {
@@ -119,7 +121,8 @@
           "ctaLabel": "See dues",
           "style": {
             "bg": "brand",
-            "align": "center"
+            "align": "center",
+            "divider": "scallop"
           }
         }
       ]
@@ -132,7 +135,7 @@
         {
           "type": "hero",
           "id": "a-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "About {{guild_name}}",
           "subtitle": "Sample text — replace me: A guild that treats miniature piecing as the whole craft, not a cute corner.",
           "style": {
@@ -148,7 +151,8 @@
           "html": "<p><em>Sample text — replace me:</em> {{guild_name}} started because the regular guild kept saying tiny work was a phase. It was not. We sew small because the math is the pleasure. A bed quilt here is a year, and we are not sorry.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "divider": "scallop"
           }
         },
         {
@@ -171,7 +175,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           },
           "heading": "A year with us"
         }
@@ -186,7 +191,7 @@
         {
           "type": "hero",
           "id": "s-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "The Inch",
           "subtitle": "Sample text — replace me: Cut size, finished size, and what we will not debate.",
           "style": {
@@ -202,7 +207,8 @@
           "html": "<p><em>Sample text — replace me:</em> We sew 1.5-inch cut squares to finish at one inch. If you want 0.75 finished, that is a private dare. In this room the inch is the inch so we can trade blocks without a calculator.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "divider": "scallop"
           }
         },
         {
@@ -220,7 +226,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "framed"
           }
         }
       ]
@@ -233,7 +240,7 @@
         {
           "type": "hero",
           "id": "j-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Membership",
           "subtitle": "Sample text — replace me: If you need a magnifier, say so. Several of us already wear two pairs of glasses.",
           "style": {
@@ -247,7 +254,8 @@
           "variant": "cards",
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "divider": "scallop"
           }
         },
         {
@@ -265,7 +273,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "framed"
           }
         }
       ]
@@ -278,7 +287,7 @@
         {
           "type": "hero",
           "id": "m-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Meetings",
           "subtitle": "Sample text — replace me: We meet {{meeting_info}} in {{city}}.",
           "style": {
@@ -292,7 +301,8 @@
           "when": "{{meeting_info}}",
           "where": "the room we rent in {{city}}",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "divider": "scallop"
           }
         },
         {
@@ -303,7 +313,8 @@
           "limit": 8,
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           }
         }
       ]
@@ -316,7 +327,7 @@
         {
           "type": "hero",
           "id": "c-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Contact {{guild_name}}",
           "subtitle": "Sample text — replace me: Programs, dues, and the door.",
           "style": {
@@ -329,7 +340,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "divider": "scallop"
           }
         },
         {
@@ -338,7 +350,9 @@
           "when": "{{meeting_info}}",
           "where": "the room we rent in {{city}}",
           "style": {
-            "bg": "dark"
+            "bg": "dark",
+            "layout": "framed",
+            "divider": "scallop"
           }
         }
       ]

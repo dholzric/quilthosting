@@ -7,22 +7,60 @@
     "palette": "heritage-walnut",
     "typePair": "fraunces-inter",
     "scale": "comfortable",
-    "shape": { "radius": "soft", "shadow": "subtle" },
-    "rhythm": { "spacing": "airy", "container": "normal" },
-    "header": { "variant": "left", "sticky": true, "cta": "quote", "overlayHero": false },
-    "footer": { "variant": "columns" },
-    "pattern": { "id": "log-cabin", "opacity": 0.1 }
+    "shape": {
+      "radius": "soft",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "log-cabin",
+      "opacity": 0.1
+    }
   },
   "imagery": [
-    { "id": "hero-art", "kind": "pattern", "alt": "" }
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
   ],
-  "previewSeed": { "guildName": "Thimblewood Retreat House", "city": "Millersburg, Ohio" },
+  "previewSeed": {
+    "guildName": "Thimblewood Retreat House",
+    "city": "Millersburg, Ohio"
+  },
   "menu": [
-    { "label": "The House", "href": "/the-house" },
-    { "label": "Retreats", "href": "/retreats" },
-    { "label": "About", "href": "/about" },
-    { "label": "Book the house", "href": "/request-a-quote" },
-    { "label": "Contact", "href": "/contact" }
+    {
+      "label": "The House",
+      "href": "/the-house"
+    },
+    {
+      "label": "Retreats",
+      "href": "/retreats"
+    },
+    {
+      "label": "About",
+      "href": "/about"
+    },
+    {
+      "label": "Book the house",
+      "href": "/request-a-quote"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    }
   ],
   "pages": [
     {
@@ -41,7 +79,13 @@
           "ctaHref": "/retreats",
           "secondaryLabel": "Rates and rooms",
           "secondaryHref": "/the-house",
-          "style": { "bg": "pattern", "width": "wide", "spacing": "airy", "media": "right", "imageId": "hero-art" }
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "spacing": "airy",
+            "media": "right",
+            "imageId": "hero-art"
+          }
         },
         {
           "type": "feature_grid",
@@ -49,12 +93,32 @@
           "variant": "cards",
           "heading": "Built for a sewing weekend",
           "items": [
-            { "title": "Twelve stations", "body": "Eleven hundred square feet of six-foot tables, central pressing, and two big cutting mats.", "href": "/the-house" },
-            { "title": "Design walls", "body": "Flannel-covered, one across the barn gable and two more that live in the farmhouse hall.", "href": "/the-house" },
-            { "title": "Sleeps ten", "body": "Four bedrooms, real beds, and linen you do not have to pack.", "href": "/the-house" },
-            { "title": "A serious kitchen", "body": "Two ovens, a second fridge, and a list of local cooks who understand a six o'clock sewing deadline.", "href": "/the-house" }
+            {
+              "title": "Twelve stations",
+              "body": "Eleven hundred square feet of six-foot tables, central pressing, and two big cutting mats.",
+              "href": "/the-house"
+            },
+            {
+              "title": "Design walls",
+              "body": "Flannel-covered, one across the barn gable and two more that live in the farmhouse hall.",
+              "href": "/the-house"
+            },
+            {
+              "title": "Sleeps ten",
+              "body": "Four bedrooms, real beds, and linen you do not have to pack.",
+              "href": "/the-house"
+            },
+            {
+              "title": "A serious kitchen",
+              "body": "Two ovens, a second fridge, and a list of local cooks who understand a six o'clock sewing deadline.",
+              "href": "/the-house"
+            }
           ],
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "layout": "framed"
+          }
         },
         {
           "type": "events",
@@ -62,7 +126,10 @@
           "variant": "next_up",
           "heading": "Next open retreat",
           "limit": 1,
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
         },
         {
           "type": "rich_text",
@@ -70,17 +137,30 @@
           "variant": "two_column",
           "heading": "A barn, a farmhouse, and one bar of cell service on the porch rail",
           "html": "<p>The barn milked cows until 1998 and held hay until 2019, when the last stall came out and the tables went in. It has a woodstove, a half bath, and lights that stay on as long as the sewing does. The farmhouse next door sleeps ten and holds the kitchen, the porch, and a hand-quilting frame that has never once stood empty.</p><p>Regulars call the weak cell signal a feature. The wifi reaches the barn, the coffee is on from six, and nobody has to be anywhere.</p>",
-          "style": { "bg": "dark", "width": "wide" }
+          "style": {
+            "bg": "dark",
+            "width": "wide"
+          }
         },
         {
           "type": "testimonials",
           "id": "home-quotes",
           "variant": "grid",
           "items": [
-            { "quote": "We have held our fall retreat here three years running. The design walls stay up all weekend and nobody has to pack an iron.", "author": "Dana, retreat chair of a Columbus bee" },
-            { "quote": "Eleven of us spread out like we were at home, and the coffee never ran out.", "author": "Marge, open-retreat regular" }
+            {
+              "quote": "We have held our fall retreat here three years running. The design walls stay up all weekend and nobody has to pack an iron.",
+              "author": "Dana, retreat chair of a Columbus bee"
+            },
+            {
+              "quote": "Eleven of us spread out like we were at home, and the coffee never ran out.",
+              "author": "Marge, open-retreat regular"
+            }
           ],
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal",
+            "layout": "framed"
+          }
         },
         {
           "type": "quote_cta",
@@ -88,7 +168,12 @@
           "projectType": "retreat",
           "heading": "Hold a weekend",
           "submitLabel": "Ask for dates",
-          "style": { "bg": "tint", "width": "normal", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "align": "center",
+            "layout": "framed"
+          }
         }
       ]
     },
@@ -103,7 +188,11 @@
           "variant": "minimal",
           "title": "The house and the barn",
           "subtitle": "Sample text — replace me: What is here, what it costs, and what to bring. The rest you will have figured out by Friday night.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "feature_grid",
@@ -111,12 +200,28 @@
           "variant": "cards",
           "heading": "Inside",
           "items": [
-            { "title": "The sewing hall", "body": "Twelve six-foot stations with task lighting, two pressing stations, and cutting mats that live in the middle of the room so nobody hoards them." },
-            { "title": "Bedrooms", "body": "Four bedrooms: two kings, four twins, and a daybed. Linen, towels, and a night light on the stairs." },
-            { "title": "The kitchen", "body": "Two ovens, a second refrigerator, dishwasher, and a long table that seats fourteen for supper." },
-            { "title": "Outside", "body": "A screen porch with the hand-quilting frame, a fire pit, and parking for twelve cars behind the barn." }
+            {
+              "title": "The sewing hall",
+              "body": "Twelve six-foot stations with task lighting, two pressing stations, and cutting mats that live in the middle of the room so nobody hoards them."
+            },
+            {
+              "title": "Bedrooms",
+              "body": "Four bedrooms: two kings, four twins, and a daybed. Linen, towels, and a night light on the stairs."
+            },
+            {
+              "title": "The kitchen",
+              "body": "Two ovens, a second refrigerator, dishwasher, and a long table that seats fourteen for supper."
+            },
+            {
+              "title": "Outside",
+              "body": "A screen porch with the hand-quilting frame, a fire pit, and parking for twelve cars behind the barn."
+            }
           ],
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "layout": "framed"
+          }
         },
         {
           "type": "feature_grid",
@@ -124,12 +229,31 @@
           "variant": "cards",
           "heading": "Rates",
           "items": [
-            { "title": "Whole-house weekend", "body": "Friday at 4 pm to Sunday at 4 pm. Sleeps ten, sews twelve.", "price": "$1,850" },
-            { "title": "Weekdays", "body": "Monday morning to Thursday afternoon. Quiet, and the morning light in the barn is worth it.", "price": "$1,150" },
-            { "title": "Day retreat", "body": "Nine to nine, tables and kitchen, no beds. Good for shops and bee days.", "price": "$425" },
-            { "title": "Deposit", "body": "Holds the dates and applies to the balance. Refundable to sixty days out.", "price": "$300" }
+            {
+              "title": "Whole-house weekend",
+              "body": "Friday at 4 pm to Sunday at 4 pm. Sleeps ten, sews twelve.",
+              "price": "$1,850"
+            },
+            {
+              "title": "Weekdays",
+              "body": "Monday morning to Thursday afternoon. Quiet, and the morning light in the barn is worth it.",
+              "price": "$1,150"
+            },
+            {
+              "title": "Day retreat",
+              "body": "Nine to nine, tables and kitchen, no beds. Good for shops and bee days.",
+              "price": "$425"
+            },
+            {
+              "title": "Deposit",
+              "body": "Holds the dates and applies to the balance. Refundable to sixty days out.",
+              "price": "$300"
+            }
           ],
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
         },
         {
           "type": "rich_text",
@@ -137,7 +261,10 @@
           "variant": "prose",
           "heading": "What is included",
           "html": "<p>Tables, chairs, pressing stations, design walls, wifi, coffee, tea, and the shelf of community rulers, mats, and the one purple thimble that has survived nine years. You bring your machine, your project, and your quorum. One well-behaved dog is negotiable.</p>",
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -154,7 +281,12 @@
           "subtitle": "Sample text — replace me: A few weekends each season the house opens by the seat. Bring yourself; leave with ten new addresses.",
           "ctaLabel": "All dates",
           "ctaHref": "/events",
-          "style": { "bg": "pattern", "width": "wide", "align": "center", "imageId": "hero-art" }
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "align": "center",
+            "imageId": "hero-art"
+          }
         },
         {
           "type": "events",
@@ -162,7 +294,11 @@
           "variant": "cards",
           "heading": "This season",
           "limit": 6,
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "layout": "framed"
+          }
         },
         {
           "type": "rich_text",
@@ -170,7 +306,10 @@
           "variant": "prose",
           "heading": "How an open weekend runs",
           "html": "<p>Doors open Friday at four and supper is at seven. Sewing goes as late as the barn lights do. Meals are simple and themed: soup night, taco night, leftover night. The show and tell after Sunday brunch is the real reason to come, and seats are $195 a person for the weekend, bedding included.</p>",
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
         },
         {
           "type": "cta",
@@ -178,7 +317,10 @@
           "label": "Ask about a whole-house weekend",
           "href": "/request-a-quote",
           "kind": "secondary",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         }
       ]
     },
@@ -194,7 +336,11 @@
           "eyebrow": "A working farm since 1911",
           "title": "About {{guild_name}}",
           "subtitle": "Sample text — replace me: Two generations, one barn, and a hostess who will tell you where the good quilt shops are.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "rich_text",
@@ -202,16 +348,26 @@
           "variant": "two_column",
           "heading": "From dairy to design walls",
           "html": "<p>The barn stored hay long after the cows left, and it took a decade of weekends to imagine it full of quilters instead. We host one group at a time, most weekends from September through May, and we live close enough to fix the wifi and far enough to stay out of the way.</p><p>Our favorite weekends end with a finished top laid across the porch rail for a photograph. Send us the picture; we keep a wall of them in the kitchen, and it is the first thing new groups ask about.</p>",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "layout": "framed"
+          }
         },
         {
           "type": "testimonials",
           "id": "about-quote",
           "variant": "single",
           "items": [
-            { "quote": "By Sunday morning nobody wanted to leave, and the hostess had already marked the calendar for next year.", "author": "A guild officer from Akron" }
+            {
+              "quote": "By Sunday morning nobody wanted to leave, and the hostess had already marked the calendar for next year.",
+              "author": "A guild officer from Akron"
+            }
           ],
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         },
         {
           "type": "cta",
@@ -219,7 +375,10 @@
           "label": "Walk the house on a video call",
           "href": "/request-a-quote",
           "kind": "primary",
-          "style": { "bg": "tint", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "align": "center"
+          }
         }
       ]
     },
@@ -235,7 +394,11 @@
           "variant": "minimal",
           "title": "Bring your group",
           "subtitle": "Sample text — replace me: Send your dates and headcount. We reply within two days with availability, a rate, and directions that mention where the gravel starts.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "quote_cta",
@@ -243,19 +406,38 @@
           "projectType": "retreat",
           "heading": "Hold the house",
           "submitLabel": "Send the request",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "layout": "framed"
+          }
         },
         {
           "type": "faq",
           "id": "book-faq",
           "heading": "Booking questions",
           "items": [
-            { "q": "Is there a minimum stay?", "a": "Whole-house bookings are a two-night minimum. Day retreats can be a single day, any day of the week." },
-            { "q": "How do deposits work?", "a": "Three hundred dollars holds the dates and applies to the balance. It is refundable up to sixty days before check-in." },
-            { "q": "Can we bring a caterer?", "a": "Yes. The kitchen binder lists four local cooks who work quilt weekends, or bring your own food and take the leftovers home." },
-            { "q": "What about insurance?", "a": "Groups sign a simple use agreement. Guilds with event coverage can add the house to their certificate; we will send the wording." }
+            {
+              "q": "Is there a minimum stay?",
+              "a": "Whole-house bookings are a two-night minimum. Day retreats can be a single day, any day of the week."
+            },
+            {
+              "q": "How do deposits work?",
+              "a": "Three hundred dollars holds the dates and applies to the balance. It is refundable up to sixty days before check-in."
+            },
+            {
+              "q": "Can we bring a caterer?",
+              "a": "Yes. The kitchen binder lists four local cooks who work quilt weekends, or bring your own food and take the leftovers home."
+            },
+            {
+              "q": "What about insurance?",
+              "a": "Groups sign a simple use agreement. Guilds with event coverage can add the house to their certificate; we will send the wording."
+            }
           ],
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -270,14 +452,22 @@
           "variant": "minimal",
           "title": "Directions and questions",
           "subtitle": "Sample text — replace me: The last two miles are gravel, and the barn lights are on when you arrive.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "contact",
           "id": "contact-form",
           "heading": "Write to the house",
           "showDetails": true,
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal",
+            "layout": "framed"
+          }
         },
         {
           "type": "meeting_info",
@@ -288,7 +478,10 @@
           "address": "County Road 168, four miles north of town",
           "mapUrl": "https://maps.google.com/?q=Millersburg,+Ohio",
           "note": "Park behind the barn. The ramp is at the farmhouse side door.",
-          "style": { "bg": "brand", "width": "wide" }
+          "style": {
+            "bg": "brand",
+            "width": "wide"
+          }
         }
       ]
     }

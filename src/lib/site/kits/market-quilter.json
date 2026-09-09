@@ -7,22 +7,60 @@
     "palette": "soft-sky",
     "typePair": "manrope",
     "scale": "comfortable",
-    "shape": { "radius": "soft", "shadow": "subtle" },
-    "rhythm": { "spacing": "normal", "container": "normal" },
-    "header": { "variant": "left", "sticky": true, "cta": "quote", "overlayHero": false },
-    "footer": { "variant": "simple" },
-    "pattern": { "id": "nine-patch", "opacity": 0.1 }
+    "shape": {
+      "radius": "soft",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "nine-patch",
+      "opacity": 0.1
+    }
   },
   "imagery": [
-    { "id": "hero-art", "kind": "pattern", "alt": "" }
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
   ],
-  "previewSeed": { "guildName": "Hens & Hoops Quilted Goods", "city": "Iowa City, Iowa" },
+  "previewSeed": {
+    "guildName": "Hens & Hoops Quilted Goods",
+    "city": "Iowa City, Iowa"
+  },
   "menu": [
-    { "label": "Shop", "href": "/shop" },
-    { "label": "Market dates", "href": "/markets" },
-    { "label": "About", "href": "/about" },
-    { "label": "Contact", "href": "/contact" },
-    { "label": "Custom orders", "href": "/request-a-quote" }
+    {
+      "label": "Shop",
+      "href": "/shop"
+    },
+    {
+      "label": "Market dates",
+      "href": "/markets"
+    },
+    {
+      "label": "About",
+      "href": "/about"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    },
+    {
+      "label": "Custom orders",
+      "href": "/request-a-quote"
+    }
   ],
   "pages": [
     {
@@ -41,7 +79,14 @@
           "ctaHref": "/markets",
           "secondaryLabel": "Custom orders",
           "secondaryHref": "/request-a-quote",
-          "style": { "bg": "pattern", "width": "wide", "spacing": "airy", "media": "right", "imageId": "hero-art" }
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "spacing": "airy",
+            "media": "right",
+            "imageId": "hero-art",
+            "layout": "asym"
+          }
         },
         {
           "type": "events",
@@ -49,14 +94,22 @@
           "variant": "next_up",
           "heading": "Find the booth this weekend",
           "limit": 1,
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "layout": "framed",
+            "divider": "rule"
+          }
         },
         {
           "type": "store_teaser",
           "id": "home-shop",
           "heading": "Fresh off the table",
           "limit": 4,
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
         },
         {
           "type": "feature_grid",
@@ -64,12 +117,36 @@
           "variant": "icons",
           "heading": "What comes to the booth",
           "items": [
-            { "icon": "🧸", "title": "Baby quilts", "body": "Forty by forty, cotton batting, machine washable, and named after their colors.", "href": "/shop" },
-            { "icon": "🏷", "title": "Table runners", "body": "Seasonal and reversible, sized for real tables instead of photo shoots.", "href": "/shop" },
-            { "icon": "☕", "title": "Potholders and trivets", "body": "The impulse buys by the cash box, in the fabrics too pretty to waste.", "href": "/shop" },
-            { "icon": "📋", "title": "The custom list", "body": "Two custom slots open each month. The clipboard fills by noon.", "href": "/request-a-quote" }
+            {
+              "icon": "🧸",
+              "title": "Baby quilts",
+              "body": "Forty by forty, cotton batting, machine washable, and named after their colors.",
+              "href": "/shop"
+            },
+            {
+              "icon": "🏷",
+              "title": "Table runners",
+              "body": "Seasonal and reversible, sized for real tables instead of photo shoots.",
+              "href": "/shop"
+            },
+            {
+              "icon": "☕",
+              "title": "Potholders and trivets",
+              "body": "The impulse buys by the cash box, in the fabrics too pretty to waste.",
+              "href": "/shop"
+            },
+            {
+              "icon": "📋",
+              "title": "The custom list",
+              "body": "Two custom slots open each month. The clipboard fills by noon.",
+              "href": "/request-a-quote"
+            }
           ],
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "divider": "rule"
+          }
         },
         {
           "type": "quote_cta",
@@ -77,7 +154,12 @@
           "projectType": "custom",
           "heading": "Order something made to measure",
           "submitLabel": "Ask about a custom piece",
-          "style": { "bg": "none", "width": "normal", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "normal",
+            "align": "center",
+            "layout": "framed"
+          }
         }
       ]
     },
@@ -92,14 +174,23 @@
           "variant": "minimal",
           "title": "What is on the table",
           "subtitle": "Sample text — replace me: Everything listed here is in stock, or one sewing weekend away.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "store_teaser",
           "id": "shop-list",
           "heading": "In stock",
           "limit": 8,
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "layout": "framed",
+            "divider": "rule"
+          }
         },
         {
           "type": "rich_text",
@@ -107,7 +198,10 @@
           "variant": "prose",
           "heading": "Care, briefly",
           "html": "<p>Everything is pre-washed, machine quilted, and labeled, and it can all go in the machine again: cold water, gentle cycle, dry flat for the runners. Stock changes weekly, and restocks are announced at the market booth first.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -122,7 +216,12 @@
           "variant": "pattern",
           "title": "Market dates",
           "subtitle": "Sample text — replace me: Where the booth lands this season, with hours, parking, and what is new on the table.",
-          "style": { "bg": "pattern", "width": "wide", "align": "center", "imageId": "hero-art" }
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "align": "center",
+            "imageId": "hero-art"
+          }
         },
         {
           "type": "events",
@@ -130,7 +229,11 @@
           "variant": "cards",
           "heading": "This season",
           "limit": 6,
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "layout": "framed"
+          }
         },
         {
           "type": "rich_text",
@@ -138,7 +241,11 @@
           "variant": "prose",
           "heading": "At the booth",
           "html": "<p>There is a card reader, a hold list for end-of-day bargains, and a mending corner: bring a quilt from the closet with a wobbly binding and I will quote the repair while you shop. Special orders taken at markets start the custom queue with the online requests.</p>",
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "divider": "rule"
+          }
         }
       ]
     },
@@ -153,7 +260,12 @@
           "variant": "minimal",
           "title": "About {{guild_name}}",
           "subtitle": "Sample text — replace me: One sewist, a dining-room studio, and a habit of finishing quilts faster than one household can use them.",
-          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "rich_text",
@@ -161,16 +273,27 @@
           "variant": "two_column",
           "heading": "How this started",
           "html": "<p>The first market was an accident: a winter of sewing for a new niece and nephew left a stack of baby quilts that one household could not absorb, so a neighbor rented me half a table at the school craft fair. The stack sold out by eleven, and the permission to make more was the real purchase.</p><p>Everything is still sewn at home, one at a time, with the day job on weekdays and production runs on Sundays. Nothing here was made in a factory, and it shows in the small wobbles, which we call signature seams.</p>",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "layout": "framed",
+            "divider": "rule"
+          }
         },
         {
           "type": "testimonials",
           "id": "about-quote",
           "variant": "single",
           "items": [
-            { "quote": "The crib quilt survived two kids, one dog, and ninety washes. I came back and bought the next size up.", "author": "A market regular" }
+            {
+              "quote": "The crib quilt survived two kids, one dog, and ninety washes. I came back and bought the next size up.",
+              "author": "A market regular"
+            }
           ],
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         }
       ]
     },
@@ -186,7 +309,11 @@
           "variant": "minimal",
           "title": "Custom orders",
           "subtitle": "Sample text — replace me: Two custom slots a month: crib quilts in nursery colors, runners cut to your table, throws to fit a reading chair.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "quote_cta",
@@ -194,7 +321,11 @@
           "projectType": "custom",
           "heading": "Your custom piece",
           "submitLabel": "Send the details",
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal",
+            "layout": "framed"
+          }
         },
         {
           "type": "rich_text",
@@ -202,7 +333,11 @@
           "variant": "prose",
           "heading": "Lead times and deposits",
           "html": "<p>Custom pieces take three to five weeks from fabric approval. Half down books the slot, the balance is due at pickup or shipping, and photos of the cut fabrics go out before any sewing so there are no surprises but the good kind.</p>",
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "divider": "rule"
+          }
         }
       ]
     },
@@ -217,14 +352,23 @@
           "variant": "minimal",
           "title": "Contact",
           "subtitle": "Sample text — replace me: Restock questions, market applications, custom quotes, and repairs on quilts that came from anywhere.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "contact",
           "id": "contact-form",
           "heading": "Send a message",
           "showDetails": true,
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "layout": "framed",
+            "divider": "rule"
+          }
         },
         {
           "type": "meeting_info",
@@ -233,7 +377,11 @@
           "when": "Most Saturday mornings, between market setups",
           "where": "{{city}}",
           "note": "It is also the dining room, so email first and bring photos of the quilt in question.",
-          "style": { "bg": "brand", "width": "wide" }
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "divider": "rule"
+          }
         }
       ]
     }

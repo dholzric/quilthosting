@@ -88,7 +88,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           }
         },
         {
@@ -155,7 +156,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "layout": "offset"
           }
         }
       ]
@@ -192,7 +194,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "offset"
           }
         }
       ]
@@ -220,7 +223,8 @@
           "heading": "Due date, crib or play mat, and whether the palette is already chosen",
           "submitLabel": "Send details",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "offset"
           }
         },
         {
@@ -260,7 +264,8 @@
           "html": "<p><em>Sample text — replace me:</em> Parents kept asking for something that could live in a crib and a washer. The memory-quilt shops did not want to hear about bleach. {{guild_name}} is new fabric, a known size, and a label with a name.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "offset"
           }
         },
         {
@@ -300,7 +305,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "offset"
           }
         },
         {

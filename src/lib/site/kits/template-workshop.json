@@ -7,22 +7,60 @@
     "palette": "modern-indigo-mustard",
     "typePair": "spacegrotesk-worksans",
     "scale": "compact",
-    "shape": { "radius": "sharp", "shadow": "none" },
-    "rhythm": { "spacing": "tight", "container": "normal" },
-    "header": { "variant": "left", "sticky": true, "cta": "quote", "overlayHero": false },
-    "footer": { "variant": "simple" },
-    "pattern": { "id": "flying-geese", "opacity": 0.1 }
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "tight",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "flying-geese",
+      "opacity": 0.1
+    }
   },
   "imagery": [
-    { "id": "hero-art", "kind": "pattern", "alt": "" }
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
   ],
-  "previewSeed": { "guildName": "Plumb Line Templates", "city": "Lowell, Massachusetts" },
+  "previewSeed": {
+    "guildName": "Plumb Line Templates",
+    "city": "Lowell, Massachusetts"
+  },
   "menu": [
-    { "label": "Shop", "href": "/shop" },
-    { "label": "Tutorials", "href": "/tutorials" },
-    { "label": "About", "href": "/about" },
-    { "label": "Contact", "href": "/contact" },
-    { "label": "Custom work", "href": "/request-a-quote" }
+    {
+      "label": "Shop",
+      "href": "/shop"
+    },
+    {
+      "label": "Tutorials",
+      "href": "/tutorials"
+    },
+    {
+      "label": "About",
+      "href": "/about"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    },
+    {
+      "label": "Custom work",
+      "href": "/request-a-quote"
+    }
   ],
   "pages": [
     {
@@ -41,14 +79,24 @@
           "ctaHref": "/shop",
           "secondaryLabel": "Custom work",
           "secondaryHref": "/request-a-quote",
-          "style": { "bg": "pattern", "width": "wide", "spacing": "airy", "media": "right", "imageId": "hero-art" }
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "spacing": "airy",
+            "media": "right",
+            "imageId": "hero-art"
+          }
         },
         {
           "type": "store_teaser",
           "id": "home-shop",
           "heading": "Bestsellers",
           "limit": 4,
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "layout": "framed"
+          }
         },
         {
           "type": "feature_grid",
@@ -56,12 +104,35 @@
           "variant": "icons",
           "heading": "Cut different here",
           "items": [
-            { "icon": "📐", "title": "To the thousandth", "body": "Laser-cut acrylic, edges polished, seam allowances etched not printed.", "href": "/shop" },
-            { "icon": "🧩", "title": "Sets that nest", "body": "Sizes share edges, so one ruler does the work of four.", "href": "/shop" },
-            { "icon": "📏", "title": "The math included", "body": "Every set ships with the yardage chart and the finished-size table.", "href": "/tutorials" },
-            { "icon": "⚙", "title": "One-offs welcome", "body": "A shape from your sketch, cut in acrylic, in about a week.", "href": "/request-a-quote" }
+            {
+              "icon": "📐",
+              "title": "To the thousandth",
+              "body": "Laser-cut acrylic, edges polished, seam allowances etched not printed.",
+              "href": "/shop"
+            },
+            {
+              "icon": "🧩",
+              "title": "Sets that nest",
+              "body": "Sizes share edges, so one ruler does the work of four.",
+              "href": "/shop"
+            },
+            {
+              "icon": "📏",
+              "title": "The math included",
+              "body": "Every set ships with the yardage chart and the finished-size table.",
+              "href": "/tutorials"
+            },
+            {
+              "icon": "⚙",
+              "title": "One-offs welcome",
+              "body": "A shape from your sketch, cut in acrylic, in about a week.",
+              "href": "/request-a-quote"
+            }
           ],
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
         },
         {
           "type": "rich_text",
@@ -69,7 +140,10 @@
           "variant": "two_column",
           "heading": "The shop floor",
           "html": "<p>Half the building is a 1963 machine shop that used to make textile mill parts; the other half is a quilt room where the prototypes get sewn. If a template cannot survive a beginner's rotary cutter and an expert's stash? an expert's stash, it does not get etched, packed, or sold.</p>",
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         },
         {
           "type": "quote_cta",
@@ -77,7 +151,12 @@
           "projectType": "custom",
           "heading": "Send a shape",
           "submitLabel": "Get a quote",
-          "style": { "bg": "dark", "width": "normal", "align": "center" }
+          "style": {
+            "bg": "dark",
+            "width": "normal",
+            "align": "center",
+            "layout": "framed"
+          }
         }
       ]
     },
@@ -92,14 +171,22 @@
           "variant": "minimal",
           "title": "The catalog",
           "subtitle": "Sample text — replace me: Rulers, nesting sets, and the specialty shapes that only exist because a quilt asked for them.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "store_teaser",
           "id": "shop-list",
           "heading": "In the catalog",
           "limit": 8,
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "layout": "framed"
+          }
         },
         {
           "type": "rich_text",
@@ -107,7 +194,10 @@
           "variant": "prose",
           "heading": "Shops and wholesale",
           "html": "<p>Quilt shops carry the line on net-thirty terms with a counter display that ships flat. Write through the contact page and the wholesale sheet comes back the same week, with the display and the first dozen sets priced to try.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -122,14 +212,23 @@
           "variant": "minimal",
           "title": "Tutorials",
           "subtitle": "Sample text — replace me: How to read the etched lines, cut with the grain? with confidence, and get the math right the first time.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "blog_teaser",
           "id": "tutorials-list",
           "heading": "From the workbench",
           "limit": 3,
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "layout": "framed"
+          }
         },
         {
           "type": "rich_text",
@@ -137,7 +236,10 @@
           "variant": "prose",
           "heading": "Start here",
           "html": "<p>New to acrylic? Read the seam-allowance guide before the first cut: the etched lines are the stitching line, the solid edge is the cutting line, and everything else on the ruler is a bonus you will earn later.</p>",
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -152,23 +254,38 @@
           "variant": "minimal",
           "title": "About {{guild_name}}",
           "subtitle": "Sample text — replace me: A machinist, a quilter, a marriage, and one argument about whether 0.015 of an inch matters. It does.",
-          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "rich_text",
           "id": "about-body",
           "variant": "two_column",
           "html": "<p>The shop ran three shifts making spindle parts until the mills closed. The quilter in the family inherited the laser along with the building, and the first template was a hexagon cut for her guild because the paper ones kept drifting. The guild ordered forty. The mill parts line never came back, and nobody here misses it.</p><p>Every design is sewn before it is sold, on the long arm in the quilt room, by the same hands that etch the lines. The tolerances are a family inheritance; the yardage charts are pure apology for every template that ever shipped without one.</p>",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "layout": "framed"
+          }
         },
         {
           "type": "testimonials",
           "id": "about-quote",
           "variant": "single",
           "items": [
-            { "quote": "I sent a crayon sketch of an odd kite shape and got back a template better than the original block. The math sheet alone taught me something.", "author": "A scrappy quilter, Lowell" }
+            {
+              "quote": "I sent a crayon sketch of an odd kite shape and got back a template better than the original block. The math sheet alone taught me something.",
+              "author": "A scrappy quilter, Lowell"
+            }
           ],
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         }
       ]
     },
@@ -184,7 +301,11 @@
           "variant": "minimal",
           "title": "Custom work",
           "subtitle": "Sample text — replace me: One-offs, small runs, and replacement pieces for templates the dog ate. Sketches are a fine starting point.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "quote_cta",
@@ -192,18 +313,34 @@
           "projectType": "custom",
           "heading": "Describe the shape",
           "submitLabel": "Get a quote",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "layout": "framed"
+          }
         },
         {
           "type": "faq",
           "id": "quote-faq",
           "heading": "Custom questions",
           "items": [
-            { "q": "What can I send instead of a drawing?", "a": "A photograph of the block, a paper template taped to graph paper, or the worn original you want duplicated. The laser needs one clean dimension to start from, and we will find it together." },
-            { "q": "How small a run do you take?", "a": "One. A single template is a real order here; the setup is the work and the setup is already paid for." },
-            { "q": "How long does it take?", "a": "Most customs cut within a week and ship polished and wrapped. December customs should start their conversation at Thanksgiving." }
+            {
+              "q": "What can I send instead of a drawing?",
+              "a": "A photograph of the block, a paper template taped to graph paper, or the worn original you want duplicated. The laser needs one clean dimension to start from, and we will find it together."
+            },
+            {
+              "q": "How small a run do you take?",
+              "a": "One. A single template is a real order here; the setup is the work and the setup is already paid for."
+            },
+            {
+              "q": "How long does it take?",
+              "a": "Most customs cut within a week and ship polished and wrapped. December customs should start their conversation at Thanksgiving."
+            }
           ],
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -218,14 +355,22 @@
           "variant": "minimal",
           "title": "Contact the shop",
           "subtitle": "Sample text — replace me: Wholesale, customs, and questions about which ruler your pattern actually meant.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "contact",
           "id": "contact-form",
           "heading": "Send a message",
           "showDetails": true,
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal",
+            "layout": "framed"
+          }
         },
         {
           "type": "rich_text",
@@ -233,7 +378,10 @@
           "variant": "prose",
           "heading": "The machine shop annex",
           "html": "<p>The laser runs weekdays; the quilt room runs whenever the light is good. Write before you drive: the front door is the one with the hexagon etched in the glass, and the parking is on the mill yard side.</p>",
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
         }
       ]
     }

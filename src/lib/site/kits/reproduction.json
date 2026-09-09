@@ -84,7 +84,8 @@
           "limit": 3,
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "divider": "points"
           }
         },
         {
@@ -119,7 +120,8 @@
           "ctaLabel": "See dues",
           "style": {
             "bg": "brand",
-            "align": "center"
+            "align": "center",
+            "divider": "points"
           }
         }
       ]
@@ -132,7 +134,7 @@
         {
           "type": "hero",
           "id": "a-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "About {{guild_name}}",
           "subtitle": "Sample text — replace me: A study guild, not a living-history troupe.",
           "style": {
@@ -148,7 +150,8 @@
           "html": "<p><em>Sample text — replace me:</em> {{guild_name}} is for people who want the print to be right, or to know how it is wrong. We sew reproduction quilts. We also sew modern quilts at home. In this room the question is always: what did the maker have, and what are we pretending.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "divider": "points"
           }
         },
         {
@@ -186,7 +189,7 @@
         {
           "type": "hero",
           "id": "s-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Documents",
           "subtitle": "Sample text — replace me: How we cite a print, a quilt, and a guess.",
           "style": {
@@ -202,7 +205,8 @@
           "html": "<p><em>Sample text — replace me:</em> Bring the book, the accession number, or the photograph with a date. If you found it on a phone, say so. We would rather have a weak source than a confident story with no paper.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "divider": "points"
           }
         },
         {
@@ -233,7 +237,7 @@
         {
           "type": "hero",
           "id": "j-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Membership",
           "subtitle": "Sample text — replace me: Dues cover the room and the catalog orders. Your reproduction fabric is a personal problem we will happily discuss.",
           "style": {
@@ -247,7 +251,8 @@
           "variant": "cards",
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "divider": "points"
           }
         },
         {
@@ -278,7 +283,7 @@
         {
           "type": "hero",
           "id": "m-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Meetings",
           "subtitle": "Sample text — replace me: We meet {{meeting_info}} in {{city}}.",
           "style": {
@@ -292,7 +297,8 @@
           "when": "{{meeting_info}}",
           "where": "the room we rent in {{city}}",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "divider": "points"
           }
         },
         {
@@ -316,7 +322,7 @@
         {
           "type": "hero",
           "id": "c-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Contact {{guild_name}}",
           "subtitle": "Sample text — replace me: Programs, dues, and the door code.",
           "style": {
@@ -329,7 +335,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "divider": "points"
           }
         },
         {
@@ -338,7 +345,8 @@
           "when": "{{meeting_info}}",
           "where": "the room we rent in {{city}}",
           "style": {
-            "bg": "dark"
+            "bg": "dark",
+            "divider": "points"
           }
         }
       ]

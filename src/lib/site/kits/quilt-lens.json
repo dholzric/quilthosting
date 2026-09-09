@@ -61,7 +61,8 @@
             "bg": "dark",
             "width": "wide",
             "media": "right",
-            "imageId": "hero-art"
+            "imageId": "hero-art",
+            "layout": "bleed"
           }
         },
         {
@@ -102,7 +103,8 @@
             }
           ],
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "framed"
           }
         },
         {
@@ -223,7 +225,8 @@
           "kind": "secondary",
           "style": {
             "bg": "none",
-            "align": "center"
+            "align": "center",
+            "layout": "framed"
           }
         }
       ]
@@ -266,7 +269,8 @@
             }
           ],
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "layout": "framed"
           }
         }
       ]
@@ -302,7 +306,8 @@
           "when": "{{meeting_info}}",
           "where": "{{city}}",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "layout": "framed"
           }
         }
       ]

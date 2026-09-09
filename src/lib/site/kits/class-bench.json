@@ -88,7 +88,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           },
           "heading": "What we teach"
         },
@@ -143,7 +144,8 @@
           "limit": 8,
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "layout": "offset"
           }
         },
         {
@@ -184,7 +186,8 @@
           "where": "{{city}}",
           "note": "Street parking after 6. The door is on the alley if the front is blocked by the cafe line.",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "offset"
           }
         }
       ]
@@ -212,7 +215,8 @@
           "heading": "Class name, dates, and whether you have a machine",
           "submitLabel": "Ask about a seat",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "offset"
           }
         },
         {
@@ -252,7 +256,8 @@
           "html": "<p><em>Sample text — replace me:</em> I taught in quilt shops until the shops needed me to sell fat quarters more than they needed me to watch a seam. {{guild_name}} is the room I rented so the watching could be the job.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "offset"
           }
         },
         {
@@ -292,7 +297,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "offset"
           }
         },
         {

@@ -7,22 +7,60 @@
     "palette": "dark-ink-rose",
     "typePair": "newsreader-ibmplexsans",
     "scale": "editorial",
-    "shape": { "radius": "sharp", "shadow": "none" },
-    "rhythm": { "spacing": "airy", "container": "normal" },
-    "header": { "variant": "left", "sticky": true, "cta": "join", "overlayHero": false },
-    "footer": { "variant": "simple" },
-    "pattern": { "id": "none", "opacity": 0 }
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "none",
+      "opacity": 0
+    }
   },
   "imagery": [
-    { "id": "hero-art", "kind": "pattern", "alt": "" }
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
   ],
-  "previewSeed": { "guildName": "Unbroken Thread Films", "city": "Missoula, Montana" },
+  "previewSeed": {
+    "guildName": "Unbroken Thread Films",
+    "city": "Missoula, Montana"
+  },
   "menu": [
-    { "label": "Screenings", "href": "/screenings" },
-    { "label": "The film", "href": "/the-story" },
-    { "label": "The circle", "href": "/producers" },
-    { "label": "About", "href": "/about" },
-    { "label": "Contact", "href": "/contact" }
+    {
+      "label": "Screenings",
+      "href": "/screenings"
+    },
+    {
+      "label": "The film",
+      "href": "/the-story"
+    },
+    {
+      "label": "The circle",
+      "href": "/producers"
+    },
+    {
+      "label": "About",
+      "href": "/about"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    }
   ],
   "pages": [
     {
@@ -33,7 +71,7 @@
         {
           "type": "hero",
           "id": "welcome",
-          "variant": "minimal",
+          "variant": "pattern",
           "eyebrow": "A documentary eight years in the making",
           "title": "{{guild_name}}",
           "subtitle": "Sample text — replace me: Three towns, nine quilters, and the quilts that held them together, filmed in kitchens and church basements across the state.",
@@ -41,7 +79,12 @@
           "ctaHref": "/screenings",
           "secondaryLabel": "About the film",
           "secondaryHref": "/the-story",
-          "style": { "bg": "none", "width": "narrow", "spacing": "airy", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy",
+            "align": "center"
+          }
         },
         {
           "type": "rich_text",
@@ -49,7 +92,11 @@
           "variant": "two_column",
           "heading": "The film",
           "html": "<p>The Long Thread follows nine quilt makers across three towns for eight years: a rodeo seamstress, a retired telephone operator, a father learning his late mother's patterns, and the guild hall that kept the lights on for all of them. It is a film about cloth that records time, and the people who keep recording it.</p><p>Shot on film because the subject deserved the same care, restored by the producer's circle when the lab closed, and finished in 2026 with the last fourteen reels paid for by members.</p>",
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "divider": "points"
+          }
         },
         {
           "type": "events",
@@ -57,17 +104,30 @@
           "variant": "cards",
           "heading": "Screenings",
           "limit": 3,
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
         },
         {
           "type": "testimonials",
           "id": "home-press",
           "variant": "grid",
           "items": [
-            { "quote": "The rare documentary that understands its subject is not the quilts. It is the hands.", "author": "A festival program note" },
-            { "quote": "Our whole guild went on a bus. Half of us are in the film's credits under a thank-you that made us cry in the parking lot.", "author": "A Montana guild" }
+            {
+              "quote": "The rare documentary that understands its subject is not the quilts. It is the hands.",
+              "author": "A festival program note"
+            },
+            {
+              "quote": "Our whole guild went on a bus. Half of us are in the film's credits under a thank-you that made us cry in the parking lot.",
+              "author": "A Montana guild"
+            }
           ],
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "divider": "points"
+          }
         },
         {
           "type": "join_band",
@@ -75,7 +135,12 @@
           "title": "The producer's circle kept the film alive",
           "body": "Members funded the final reels, the restoration, and every small-town screening on the calendar.",
           "ctaLabel": "Join the circle",
-          "style": { "bg": "brand", "width": "full", "align": "center" }
+          "style": {
+            "bg": "brand",
+            "width": "full",
+            "align": "center",
+            "divider": "points"
+          }
         }
       ]
     },
@@ -87,10 +152,14 @@
         {
           "type": "hero",
           "id": "screenings-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Screenings",
           "subtitle": "Sample text — replace me: Theaters, guild halls, and one grange with legendary pie. Most screenings end with a talk-back and a quilt on display.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "events",
@@ -98,7 +167,11 @@
           "variant": "list",
           "heading": "Where it shows next",
           "limit": 6,
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "divider": "points"
+          }
         },
         {
           "type": "rich_text",
@@ -106,7 +179,10 @@
           "variant": "prose",
           "heading": "Host a screening",
           "html": "<p>Guilds, libraries, and small theaters can book the film with the community license: the projector specs, the discussion guide, and one of the quilts from the film, if the route allows it to travel. Write through the contact page and the calendar answers within the week.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -118,10 +194,15 @@
         {
           "type": "hero",
           "id": "story-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "The long thread",
           "subtitle": "Sample text — replace me: Eight years, ninety-one hours of footage, and three towns that adopted a camera crew.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "rich_text",
@@ -129,7 +210,10 @@
           "variant": "two_column",
           "heading": "How it was made",
           "html": "<p>Shooting began as an archive project: record the guild's oldest members telling where their quilts came from. The archive became an obsession, the obsession became footage, and the footage became a film the length of a feature once the editors stopped being able to cut the women out.</p><p>Everything in the film is true, including the argument in the second act, which the participants have now seen twice and still disagree about, exactly as filmed.</p>",
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         },
         {
           "type": "gallery",
@@ -138,7 +222,11 @@
           "source": "gallery",
           "gallerySlug": "stills",
           "heading": "Stills",
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "divider": "points"
+          }
         }
       ]
     },
@@ -150,17 +238,26 @@
         {
           "type": "hero",
           "id": "producers-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "The producer's circle",
           "subtitle": "Sample text — replace me: The members who paid for the last reels, the restoration, and the bus routes to small towns.",
-          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "membership_levels",
           "id": "producers-levels",
           "variant": "cards",
           "heading": "Circle levels",
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "divider": "points"
+          }
         },
         {
           "type": "rich_text",
@@ -168,7 +265,10 @@
           "variant": "prose",
           "heading": "Where the money went",
           "html": "<p>The circle bought the last fourteen reels of film when the lab closed, funded the frame-by-frame restoration, and underwrites the small-town screening routes where ticket sales never cover the projector bulb. The ledger is posted in the members' area, down to the film stock.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         },
         {
           "type": "cta",
@@ -176,7 +276,12 @@
           "label": "Write to the directors",
           "href": "/contact",
           "kind": "secondary",
-          "style": { "bg": "tint", "width": "normal", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "align": "center",
+            "divider": "points"
+          }
         }
       ]
     },
@@ -188,26 +293,41 @@
         {
           "type": "hero",
           "id": "about-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "The filmmakers",
           "subtitle": "Sample text — replace me: Two documentarians who came for a weekend and stayed for eight years.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "rich_text",
           "id": "about-body",
           "variant": "two_column",
           "html": "<p>We came to record one guild's fortieth-anniversary quilt and stayed because the interview kept going after the tape technically stopped. Neither of us quilted when we arrived; both of us have opinionated stashes now, which we are told is the real graduation.</p><p>The film is independent, the circle is its only backer, and the crew list still fits on one page, which is how we intend to keep it.</p>",
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         },
         {
           "type": "testimonials",
           "id": "about-quote",
           "variant": "single",
           "items": [
-            { "quote": "They filmed my mother's hands for two hours and used forty seconds. It is the forty seconds everyone talks about.", "author": "A film subject's daughter" }
+            {
+              "quote": "They filmed my mother's hands for two hours and used forty seconds. It is the forty seconds everyone talks about.",
+              "author": "A film subject's daughter"
+            }
           ],
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "divider": "points"
+          }
         }
       ]
     },
@@ -219,17 +339,24 @@
         {
           "type": "hero",
           "id": "contact-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Contact the studio",
           "subtitle": "Sample text — replace me: Screening licenses, press kits, and festival inquiries answered from a post-production desk with a design wall.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "contact",
           "id": "contact-form",
           "heading": "Send a message",
           "showDetails": true,
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         },
         {
           "type": "rich_text",
@@ -237,7 +364,11 @@
           "variant": "prose",
           "heading": "Press",
           "html": "<p>Stills, the press kit, and interview requests live one email away. Stills are delivered with the makers credited by name, because that was the entire point of the film.</p>",
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "divider": "points"
+          }
         }
       ]
     }

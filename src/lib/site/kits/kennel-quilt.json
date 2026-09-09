@@ -61,7 +61,8 @@
             "bg": "dark",
             "width": "wide",
             "media": "right",
-            "imageId": "hero-art"
+            "imageId": "hero-art",
+            "layout": "asym"
           }
         },
         {
@@ -88,7 +89,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           }
         },
         {
@@ -102,7 +104,8 @@
             }
           ],
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "divider": "rule"
           }
         },
         {
@@ -112,7 +115,8 @@
           "heading": "Crate size or couch, fabric you can bear to see covered in hair",
           "submitLabel": "Request a quote",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "divider": "rule"
           }
         }
       ]
@@ -154,7 +158,9 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed",
+            "divider": "rule"
           }
         }
       ]
@@ -191,7 +197,9 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "framed",
+            "divider": "rule"
           }
         }
       ]
@@ -219,7 +227,9 @@
           "heading": "Crate size or couch, fabric you can bear to see covered in hair",
           "submitLabel": "Send details",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "framed",
+            "divider": "rule"
           }
         },
         {
@@ -259,7 +269,9 @@
           "html": "<p><em>Sample text — replace me:</em> People kept asking the baby-quilt studio for something a Labrador could ruin. That studio was right to say no. {{guild_name}} says yes, with batting that can take a dryer and a binding that expects teeth.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "framed",
+            "divider": "rule"
           }
         },
         {
@@ -299,7 +311,9 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "framed",
+            "divider": "rule"
           }
         },
         {
@@ -309,7 +323,8 @@
           "when": "{{meeting_info}}",
           "where": "{{city}}",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "divider": "rule"
           }
         }
       ]

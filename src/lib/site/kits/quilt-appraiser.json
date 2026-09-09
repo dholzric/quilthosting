@@ -7,22 +7,60 @@
     "palette": "jewel-garnet",
     "typePair": "cormorantgaramond-sourcesans",
     "scale": "editorial",
-    "shape": { "radius": "sharp", "shadow": "none" },
-    "rhythm": { "spacing": "airy", "container": "narrow" },
-    "header": { "variant": "left", "sticky": true, "cta": "quote", "overlayHero": false },
-    "footer": { "variant": "columns" },
-    "pattern": { "id": "churn-dash", "opacity": 0.06 }
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "narrow"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "churn-dash",
+      "opacity": 0.06
+    }
   },
   "imagery": [
-    { "id": "hero-art", "kind": "pattern", "alt": "" }
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
   ],
-  "previewSeed": { "guildName": "Fairchild Quilt Appraisals", "city": "Georgetown, Kentucky" },
+  "previewSeed": {
+    "guildName": "Fairchild Quilt Appraisals",
+    "city": "Georgetown, Kentucky"
+  },
   "menu": [
-    { "label": "Services", "href": "/services" },
-    { "label": "About", "href": "/about" },
-    { "label": "Questions", "href": "/faq" },
-    { "label": "Contact", "href": "/contact" },
-    { "label": "Book an appraisal", "href": "/request-a-quote" }
+    {
+      "label": "Services",
+      "href": "/services"
+    },
+    {
+      "label": "About",
+      "href": "/about"
+    },
+    {
+      "label": "Questions",
+      "href": "/faq"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    },
+    {
+      "label": "Book an appraisal",
+      "href": "/request-a-quote"
+    }
   ],
   "pages": [
     {
@@ -33,7 +71,7 @@
         {
           "type": "hero",
           "id": "welcome",
-          "variant": "minimal",
+          "variant": "pattern",
           "eyebrow": "Certified quilt appraiser",
           "title": "{{guild_name}}",
           "subtitle": "Sample text — replace me: Written values for insurance and estates, honest condition reports, and restoration plans that respect a quilt's age.",
@@ -41,7 +79,12 @@
           "ctaHref": "/request-a-quote",
           "secondaryLabel": "Services and fees",
           "secondaryHref": "/services",
-          "style": { "bg": "none", "width": "narrow", "spacing": "airy", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy",
+            "align": "center"
+          }
         },
         {
           "type": "feature_grid",
@@ -49,11 +92,30 @@
           "variant": "cards",
           "heading": "Three ways I help",
           "items": [
-            { "title": "Appraisals", "body": "Insurance, fair-market, and donation values, written to stand behind a claim years from now.", "price": "$65 a quilt", "href": "/services" },
-            { "title": "Restoration counsel", "body": "Stabilization plans, conservator referrals, and the honest advice to sometimes leave a quilt alone.", "price": "by the hour", "href": "/services" },
-            { "title": "Lectures", "body": "Dating quilts by their cloth, for guilds, libraries, and historical societies.", "price": "from $300", "href": "/services" }
+            {
+              "title": "Appraisals",
+              "body": "Insurance, fair-market, and donation values, written to stand behind a claim years from now.",
+              "price": "$65 a quilt",
+              "href": "/services"
+            },
+            {
+              "title": "Restoration counsel",
+              "body": "Stabilization plans, conservator referrals, and the honest advice to sometimes leave a quilt alone.",
+              "price": "by the hour",
+              "href": "/services"
+            },
+            {
+              "title": "Lectures",
+              "body": "Dating quilts by their cloth, for guilds, libraries, and historical societies.",
+              "price": "from $300",
+              "href": "/services"
+            }
           ],
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "divider": "notch"
+          }
         },
         {
           "type": "rich_text",
@@ -61,17 +123,31 @@
           "variant": "two_column",
           "heading": "What an appraisal includes",
           "html": "<p>Every appraisal is a signed document built from close looking: photographs, fibers and dyes identified, construction and quilting density described, condition reported without flattering anyone, and a value supported by comparable sales.</p><p>You leave with the original and I keep a scan on file, which has quietly settled more than one estate conversation and one very stubborn insurance adjuster.</p>",
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal",
+            "layout": "framed"
+          }
         },
         {
           "type": "testimonials",
           "id": "home-quotes",
           "variant": "grid",
           "items": [
-            { "quote": "The appraisal was accepted without a single question, and the check covered the number on the page.", "author": "An estate attorney" },
-            { "quote": "She talked me out of washing my grandmother's quilt, and that probably saved it.", "author": "A client from three counties over" }
+            {
+              "quote": "The appraisal was accepted without a single question, and the check covered the number on the page.",
+              "author": "An estate attorney"
+            },
+            {
+              "quote": "She talked me out of washing my grandmother's quilt, and that probably saved it.",
+              "author": "A client from three counties over"
+            }
           ],
-          "style": { "bg": "dark", "width": "normal" }
+          "style": {
+            "bg": "dark",
+            "width": "normal",
+            "divider": "notch"
+          }
         },
         {
           "type": "quote_cta",
@@ -79,7 +155,12 @@
           "projectType": "appraisal",
           "heading": "Ask about a quilt",
           "submitLabel": "Request an appointment",
-          "style": { "bg": "tint", "width": "normal", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "align": "center",
+            "divider": "notch"
+          }
         }
       ]
     },
@@ -91,10 +172,14 @@
         {
           "type": "hero",
           "id": "services-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Services and fees",
           "subtitle": "Sample text — replace me: Written appraisals, condition reports, restoration planning, and talks that make dating cloth less mysterious.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "feature_grid",
@@ -102,13 +187,37 @@
           "variant": "cards",
           "heading": "The fee schedule",
           "items": [
-            { "title": "Insurance appraisal", "body": "Replacement value, documented and signed for your carrier or your agent.", "price": "$65" },
-            { "title": "Fair-market appraisal", "body": "For estates, donations, and sales. Includes comparable sales in writing.", "price": "$75" },
-            { "title": "Condition report", "body": "What is strong, what is fragile, and what to do about either. No value given.", "price": "$40" },
-            { "title": "Restoration consult", "body": "A stabilization plan in writing, with referrals to conservators when a quilt deserves better than me.", "price": "$50 a visit" },
-            { "title": "Guild lecture", "body": "Ninety minutes on dating quilts by their cloth, with the show-and-tell of reproductions.", "price": "from $300" }
+            {
+              "title": "Insurance appraisal",
+              "body": "Replacement value, documented and signed for your carrier or your agent.",
+              "price": "$65"
+            },
+            {
+              "title": "Fair-market appraisal",
+              "body": "For estates, donations, and sales. Includes comparable sales in writing.",
+              "price": "$75"
+            },
+            {
+              "title": "Condition report",
+              "body": "What is strong, what is fragile, and what to do about either. No value given.",
+              "price": "$40"
+            },
+            {
+              "title": "Restoration consult",
+              "body": "A stabilization plan in writing, with referrals to conservators when a quilt deserves better than me.",
+              "price": "$50 a visit"
+            },
+            {
+              "title": "Guild lecture",
+              "body": "Ninety minutes on dating quilts by their cloth, with the show-and-tell of reproductions.",
+              "price": "from $300"
+            }
           ],
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "divider": "notch"
+          }
         },
         {
           "type": "rich_text",
@@ -116,7 +225,11 @@
           "variant": "two_column",
           "heading": "How an appointment runs",
           "html": "<p>Bring the quilt folded cloth-to-cloth, in a pillowcase rather than plastic, along with whatever provenance exists: a letter, a label, a memory of whose hope chest it came out of. Provenance does not change the stitching, but it changes the story and sometimes the value.</p><p>An appraisal takes about forty-five minutes per quilt. Estate days can be booked by the half day when a whole closet needs documenting at once.</p>",
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal",
+            "layout": "framed"
+          }
         },
         {
           "type": "cta",
@@ -124,7 +237,11 @@
           "label": "Book an appointment",
           "href": "/request-a-quote",
           "kind": "primary",
-          "style": { "bg": "tint", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "align": "center",
+            "divider": "notch"
+          }
         }
       ]
     },
@@ -136,10 +253,15 @@
         {
           "type": "hero",
           "id": "about-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "About {{guild_name}}",
           "subtitle": "Sample text — replace me: Certified in 2014, two thousand quilts appraised, and a training that began with my own family's mislabeled heirloom.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "rich_text",
@@ -147,16 +269,26 @@
           "variant": "two_column",
           "heading": "Why appraising",
           "html": "<p>My family called ours a Civil War quilt for forty years. The cloth said 1930, the feed sacks said 1938, and the appraisal course said both of those were interesting enough. I took the training to learn the answer and stayed for the quilts other people trust me to read.</p><p>Certification is maintained with continuing education every year, and the reference shelf runs from pattern books to auction records. When a quilt deserves a conservator rather than an appraiser, the referral is part of the service.</p>",
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         },
         {
           "type": "testimonials",
           "id": "about-quote",
           "variant": "single",
           "items": [
-            { "quote": "She read the fabric at arm's length and had the decade before she touched it. The room went quiet.", "author": "A county museum curator" }
+            {
+              "quote": "She read the fabric at arm's length and had the decade before she touched it. The room went quiet.",
+              "author": "A county museum curator"
+            }
           ],
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "layout": "offset"
+          }
         }
       ]
     },
@@ -168,22 +300,45 @@
         {
           "type": "hero",
           "id": "faq-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Questions",
           "subtitle": "Sample text — replace me: What a value is based on, whether to wash, and how to store what you cannot bear to use.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "faq",
           "id": "faq-list",
           "items": [
-            { "q": "What is my quilt worth?", "a": "It depends on cloth, condition, construction, and provenance, which is exactly why the written appraisal exists. Guesses do not hold up to an adjuster or an executor." },
-            { "q": "Should I wash it first?", "a": "Almost never before an appraisal. Stains and sizing tell the date story. Bring it as it is; cleaning advice comes with the report." },
-            { "q": "How should I store it?", "a": "Acid-free tissue, flat when possible, refolded along new lines a few times a year, and never in plastic or a cedar chest. Both do real damage." },
-            { "q": "Can you repair it?", "a": "I stabilize and plan; a small circle of conservators and restorers does the fine work. Sometimes the right repair is none at all." },
-            { "q": "Do you travel?", "a": "Guild appraisal days happen anywhere five quilts can gather, with travel shared across the bookings." }
+            {
+              "q": "What is my quilt worth?",
+              "a": "It depends on cloth, condition, construction, and provenance, which is exactly why the written appraisal exists. Guesses do not hold up to an adjuster or an executor."
+            },
+            {
+              "q": "Should I wash it first?",
+              "a": "Almost never before an appraisal. Stains and sizing tell the date story. Bring it as it is; cleaning advice comes with the report."
+            },
+            {
+              "q": "How should I store it?",
+              "a": "Acid-free tissue, flat when possible, refolded along new lines a few times a year, and never in plastic or a cedar chest. Both do real damage."
+            },
+            {
+              "q": "Can you repair it?",
+              "a": "I stabilize and plan; a small circle of conservators and restorers does the fine work. Sometimes the right repair is none at all."
+            },
+            {
+              "q": "Do you travel?",
+              "a": "Guild appraisal days happen anywhere five quilts can gather, with travel shared across the bookings."
+            }
           ],
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "divider": "notch"
+          }
         },
         {
           "type": "cta",
@@ -191,7 +346,11 @@
           "label": "Book an appraisal",
           "href": "/request-a-quote",
           "kind": "secondary",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center",
+            "layout": "framed"
+          }
         }
       ]
     },
@@ -204,10 +363,14 @@
         {
           "type": "hero",
           "id": "quote-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Book an appraisal",
           "subtitle": "Sample text — replace me: One quilt or a whole estate. Tell me how many and where; I bring the forms, you bring the quilts and their stories.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "quote_cta",
@@ -215,7 +378,11 @@
           "projectType": "appraisal",
           "heading": "Appointment request",
           "submitLabel": "Send the request",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "divider": "notch"
+          }
         },
         {
           "type": "rich_text",
@@ -223,7 +390,11 @@
           "variant": "prose",
           "heading": "Studio days and travel",
           "html": "<p>Appointments at the studio run Tuesdays and Thursdays. Guild appraisal days travel anywhere five quilts can gather, and estate documentation is booked by the half day with a discount the fee schedule does not advertise.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "layout": "framed"
+          }
         }
       ]
     },
@@ -235,17 +406,24 @@
         {
           "type": "hero",
           "id": "contact-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Contact",
           "subtitle": "Sample text — replace me: Appointments, lecture bookings, and questions about quilts you have not met yet.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "contact",
           "id": "contact-form",
           "heading": "Send a message",
           "showDetails": true,
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         },
         {
           "type": "meeting_info",
@@ -254,7 +432,11 @@
           "when": "Tuesdays and Thursdays, 10 to 3, by appointment",
           "where": "{{city}}",
           "note": "Parking is behind the brick building. Carry quilts flat when you can; the front steps are worth it.",
-          "style": { "bg": "brand", "width": "normal" }
+          "style": {
+            "bg": "brand",
+            "width": "normal",
+            "layout": "offset"
+          }
         }
       ]
     }

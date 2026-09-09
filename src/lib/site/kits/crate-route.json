@@ -61,7 +61,8 @@
             "bg": "dark",
             "width": "wide",
             "media": "right",
-            "imageId": "hero-art"
+            "imageId": "hero-art",
+            "layout": "asym_reverse"
           }
         },
         {
@@ -102,7 +103,8 @@
             }
           ],
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "offset"
           }
         },
         {
@@ -126,7 +128,7 @@
         {
           "type": "hero",
           "id": "w-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "The Crate",
           "subtitle": "Sample text — replace me: How a quilt is packed, and what we will not do.",
           "style": {
@@ -154,7 +156,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "divider": "notch"
           }
         }
       ]
@@ -168,7 +171,7 @@
         {
           "type": "hero",
           "id": "w-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "The Route",
           "subtitle": "Sample text — replace me: Midwest halls we already know the dock at.",
           "style": {
@@ -184,7 +187,8 @@
           "limit": 8,
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "divider": "notch"
           }
         },
         {
@@ -195,7 +199,8 @@
           "html": "<p><em>Sample text — replace me:</em> If you need rods and a 60-inch line, that is a different invoice and a different morning.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "framed"
           }
         }
       ]
@@ -208,7 +213,7 @@
         {
           "type": "hero",
           "id": "q-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Request a quote",
           "subtitle": "Sample text — replace me: A date window is required. A hope is not a receiving day.",
           "style": {
@@ -223,7 +228,8 @@
           "heading": "Show name, quilt size, sleeve or no sleeve, and the hall's receiving dates",
           "submitLabel": "Request a crate",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "divider": "notch"
           }
         },
         {
@@ -234,7 +240,8 @@
           "kind": "secondary",
           "style": {
             "bg": "none",
-            "align": "center"
+            "align": "center",
+            "layout": "framed"
           }
         }
       ]
@@ -247,7 +254,7 @@
         {
           "type": "hero",
           "id": "a-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "About {{guild_name}}",
           "subtitle": "Sample text — replace me: A crate company that has been to intake.",
           "style": {
@@ -263,7 +270,8 @@
           "html": "<p><em>Sample text — replace me:</em> I used to volunteer at a receiving table and watch quilts arrive in grocery bags. {{guild_name}} is the boring professional version: a crate, a label, a call. Show-crew hangs. We move.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "divider": "notch"
           }
         },
         {
@@ -277,7 +285,8 @@
             }
           ],
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "layout": "framed"
           }
         }
       ]
@@ -290,7 +299,7 @@
         {
           "type": "hero",
           "id": "c-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Contact {{guild_name}}",
           "subtitle": "Sample text — replace me: Dates, deposits, and work already in the shop.",
           "style": {
@@ -303,7 +312,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "divider": "notch"
           }
         },
         {
@@ -313,7 +323,8 @@
           "when": "{{meeting_info}}",
           "where": "{{city}}",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "layout": "offset"
           }
         }
       ]

@@ -7,128 +7,326 @@
     "palette": "heritage-walnut",
     "typePair": "bitter-opensans",
     "scale": "comfortable",
-    "shape": { "radius": "soft", "shadow": "none" },
-    "rhythm": { "spacing": "normal", "container": "wide" },
-    "header": { "variant": "left", "sticky": true, "cta": "join", "overlayHero": false },
-    "footer": { "variant": "columns" },
-    "pattern": { "id": "churn-dash", "opacity": 0.12 }
+    "shape": {
+      "radius": "soft",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "churn-dash",
+      "opacity": 0.12
+    }
   },
-  "imagery": [{ "id": "hero-art", "kind": "pattern", "alt": "" }],
-  "previewSeed": { "guildName": "Stingy Piecers Guild", "city": "Akron, Ohio" },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Stingy Piecers Guild",
+    "city": "Akron, Ohio"
+  },
   "pages": [
     {
-      "slug": "home", "title": "Home", "nav": false,
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
       "sections": [
         {
-          "type": "hero", "id": "welcome", "variant": "pattern",
+          "type": "hero",
+          "id": "welcome",
+          "variant": "pattern",
           "eyebrow": "{{city}}",
           "title": "Nothing goes in the trash if it will make a 1.5-inch square",
           "subtitle": "Sample text — replace me: {{guild_name}} sews crumb, string, and postage-stamp quilts. We meet {{meeting_info}}.",
-          "ctaLabel": "Join", "ctaHref": "/membership",
-          "secondaryLabel": "Scrap night", "secondaryHref": "/scrap-night",
-          "style": { "bg": "pattern", "width": "wide", "align": "center", "imageId": "hero-art" }
+          "ctaLabel": "Join",
+          "ctaHref": "/membership",
+          "secondaryLabel": "Scrap night",
+          "secondaryHref": "/scrap-night",
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "align": "center",
+            "imageId": "hero-art"
+          }
         },
-        { "type": "meeting_info", "id": "when", "when": "{{meeting_info}}", "where": "{{city}}", "note": "The scrap bins open thirty minutes early. Take what you will use. Leave what you will not.", "style": { "bg": "none" } },
-        { "type": "events", "id": "upcoming", "variant": "list", "heading": "On the calendar", "limit": 3, "style": { "bg": "tint" } },
         {
-          "type": "feature_grid", "id": "kinds", "variant": "cards",
-          "items": [
-            { "title": "Crumb night", "body": "No pattern. A bag of bits, a leader-and-ender, and a design wall.", "href": "/scrap-night" },
-            { "title": "String blocks", "body": "Newspaper foundations optional. We keep a stack of 8-inch papers by the iron." },
-            { "title": "Charity from leftovers", "body": "Finished crumb tops go to the children's hospital. They like the busy prints.", "href": "/why-join" }
-          ],
-          "style": { "bg": "dark", "width": "wide" }
+          "type": "meeting_info",
+          "id": "when",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "note": "The scrap bins open thirty minutes early. Take what you will use. Leave what you will not.",
+          "style": {
+            "bg": "none"
+          }
         },
-        { "type": "join_band", "id": "join", "title": "Bring a bag of scraps, not a fat quarter bundle", "ctaLabel": "Membership", "style": { "bg": "brand", "align": "center" } }
+        {
+          "type": "events",
+          "id": "upcoming",
+          "variant": "list",
+          "heading": "On the calendar",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "divider": "points"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "kinds",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Crumb night",
+              "body": "No pattern. A bag of bits, a leader-and-ender, and a design wall.",
+              "href": "/scrap-night"
+            },
+            {
+              "title": "String blocks",
+              "body": "Newspaper foundations optional. We keep a stack of 8-inch papers by the iron."
+            },
+            {
+              "title": "Charity from leftovers",
+              "body": "Finished crumb tops go to the children's hospital. They like the busy prints.",
+              "href": "/why-join"
+            }
+          ],
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "divider": "points"
+          }
+        },
+        {
+          "type": "join_band",
+          "id": "join",
+          "title": "Bring a bag of scraps, not a fat quarter bundle",
+          "ctaLabel": "Membership",
+          "style": {
+            "bg": "brand",
+            "align": "center",
+            "divider": "points"
+          }
+        }
       ]
     },
     {
-      "slug": "about", "title": "About", "nav": true,
+      "slug": "about",
+      "title": "About",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "a-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "pattern",
           "title": "A guild for leftover fabric",
           "subtitle": "Sample text — replace me: We formed because the other guilds in town were buying new solids for every BOM.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
         {
-          "type": "rich_text", "id": "a-body", "variant": "two_column",
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "two_column",
           "html": "<p>{{guild_name}} meets {{meeting_info}} in {{city}}. The program is usually a string-block demo or a crumb-quilt show and tell. New fabric is allowed. Boasting about yardage is not.</p><p>The library is a wall of bins labeled by color, not by designer. Take a scoop. Bring a scoop back.</p>",
-          "style": { "bg": "tint" }
+          "style": {
+            "bg": "tint",
+            "divider": "points"
+          }
         },
         {
-          "type": "testimonials", "id": "a-quotes", "variant": "grid",
+          "type": "testimonials",
+          "id": "a-quotes",
+          "variant": "grid",
           "items": [
-            { "quote": "I used to throw selvedges away. Now they are the binding on a charity quilt.", "author": "Pat R." },
-            { "quote": "Nobody asks what the original pattern was. That is the point.", "author": "Chris M." }
+            {
+              "quote": "I used to throw selvedges away. Now they are the binding on a charity quilt.",
+              "author": "Pat R."
+            },
+            {
+              "quote": "Nobody asks what the original pattern was. That is the point.",
+              "author": "Chris M."
+            }
           ],
-          "style": { "bg": "none" }
+          "style": {
+            "bg": "none"
+          }
         }
       ]
     },
     {
-      "slug": "scrap-night", "title": "Scrap Night", "nav": true,
+      "slug": "scrap-night",
+      "title": "Scrap Night",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "n-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "n-hero",
+          "variant": "pattern",
           "title": "Scrap night",
           "subtitle": "Sample text — replace me: The extra evening between meetings. Bins out, irons hot, no business.",
-          "ctaLabel": "Dates", "ctaHref": "/events",
-          "style": { "bg": "dark", "align": "center" }
+          "ctaLabel": "Dates",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "dark",
+            "align": "center"
+          }
         },
         {
-          "type": "rich_text", "id": "n-body", "variant": "prose",
+          "type": "rich_text",
+          "id": "n-body",
+          "variant": "prose",
           "html": "<p>Scrap night is listed on the <a href=\"/events\">events page</a>. Bring a bag of leftovers or use the guild bins. We do not cut into yardage that still has a bolt fold. Crumbs, strings, and orphan blocks only.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         },
-        { "type": "events", "id": "n-list", "variant": "cards", "limit": 6, "style": { "bg": "tint", "width": "wide" } }
-      ]
-    },
-    {
-      "slug": "why-join", "title": "Join", "nav": true, "navLabel": "Join",
-      "sections": [
         {
-          "type": "hero", "id": "j-hero", "variant": "minimal",
-          "title": "Membership",
-          "subtitle": "Sample text — replace me: Dues buy batting for charity tops and keep the scrap bins stocked.",
-          "ctaLabel": "Levels", "ctaHref": "/membership",
-          "style": { "bg": "none", "align": "center" }
-        },
-        { "type": "membership_levels", "id": "levels", "variant": "cards", "style": { "bg": "tint", "width": "wide" } },
-        {
-          "type": "faq", "id": "j-faq",
-          "items": [
-            { "q": "Do I have to sew crumbs?", "a": "No. String blocks, postage stamps, and orphan-block medallions all count. The rule is leftover fabric, not a technique." },
-            { "q": "Can I donate scraps without joining?", "a": "Yes. Leave a labeled bag at any meeting. Join if you want the bins and the newsletter." }
-          ],
-          "style": { "bg": "none", "width": "narrow" }
+          "type": "events",
+          "id": "n-list",
+          "variant": "cards",
+          "limit": 6,
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "divider": "points"
+          }
         }
       ]
     },
     {
-      "slug": "gallery", "title": "Gallery", "nav": true,
+      "slug": "why-join",
+      "title": "Join",
+      "nav": true,
+      "navLabel": "Join",
       "sections": [
         {
-          "type": "hero", "id": "g-hero", "variant": "minimal",
-          "title": "Finished leftovers",
-          "subtitle": "Sample text — replace me: Charity tops and the occasional bed quilt that started as a bag of selvedges.",
-          "ctaLabel": "Albums", "ctaHref": "/galleries",
-          "style": { "bg": "none", "align": "center" }
+          "type": "hero",
+          "id": "j-hero",
+          "variant": "pattern",
+          "title": "Membership",
+          "subtitle": "Sample text — replace me: Dues buy batting for charity tops and keep the scrap bins stocked.",
+          "ctaLabel": "Levels",
+          "ctaHref": "/membership",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
-        { "type": "gallery", "id": "g-grid", "variant": "masonry", "source": "gallery", "gallerySlug": "scraps", "style": { "bg": "tint", "width": "wide" } }
+        {
+          "type": "membership_levels",
+          "id": "levels",
+          "variant": "cards",
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "divider": "points"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "j-faq",
+          "items": [
+            {
+              "q": "Do I have to sew crumbs?",
+              "a": "No. String blocks, postage stamps, and orphan-block medallions all count. The rule is leftover fabric, not a technique."
+            },
+            {
+              "q": "Can I donate scraps without joining?",
+              "a": "Yes. Leave a labeled bag at any meeting. Join if you want the bins and the newsletter."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
       ]
     },
     {
-      "slug": "contact", "title": "Contact", "nav": true,
+      "slug": "gallery",
+      "title": "Gallery",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "c-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "g-hero",
+          "variant": "pattern",
+          "title": "Finished leftovers",
+          "subtitle": "Sample text — replace me: Charity tops and the occasional bed quilt that started as a bag of selvedges.",
+          "ctaLabel": "Albums",
+          "ctaHref": "/galleries",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "gallery",
+          "id": "g-grid",
+          "variant": "masonry",
+          "source": "gallery",
+          "gallerySlug": "scraps",
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "divider": "points"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "pattern",
           "title": "Contact {{guild_name}}",
           "subtitle": "Sample text — replace me: Scrap donations, leftover batting, and new-member questions.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
-        { "type": "contact", "id": "form", "showDetails": true, "style": { "bg": "tint" } },
-        { "type": "meeting_info", "id": "c-when", "when": "{{meeting_info}}", "where": "{{city}}", "style": { "bg": "brand" } }
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint",
+            "divider": "points"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-when",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "style": {
+            "bg": "brand",
+            "divider": "points"
+          }
+        }
       ]
     }
   ]

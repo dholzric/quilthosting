@@ -88,7 +88,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           }
         },
         {
@@ -142,7 +143,8 @@
           "html": "<p><em>Sample text — replace me:</em> A name and a year will still be true in fifty years. A joke about a president will not. I will weave the joke if you insist. I will also send a second label with just the name.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "framed"
           }
         },
         {
@@ -202,7 +204,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           }
         }
       ]
@@ -230,7 +233,8 @@
           "heading": "Wording, quantity, and whether it must match a binding",
           "submitLabel": "Order labels",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "framed"
           }
         },
         {
@@ -270,7 +274,8 @@
           "html": "<p><em>Sample text — replace me:</em> Quilts lose their people. {{guild_name}} is a label that takes longer to make so it takes longer to vanish. I will not print your name on a sticker and call it history.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "framed"
           }
         },
         {
@@ -310,7 +315,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "framed"
           }
         },
         {

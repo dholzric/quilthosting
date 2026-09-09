@@ -61,7 +61,8 @@
             "bg": "dark",
             "width": "wide",
             "media": "right",
-            "imageId": "hero-art"
+            "imageId": "hero-art",
+            "layout": "asym"
           }
         },
         {
@@ -87,7 +88,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           }
         },
         {
@@ -101,7 +103,8 @@
             }
           ],
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "divider": "rule"
           }
         },
         {
@@ -111,7 +114,8 @@
           "heading": "Pattern name, unfinished block count, and a photo of the kit",
           "submitLabel": "Request a quote",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "divider": "rule"
           }
         }
       ]
@@ -156,7 +160,9 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed",
+            "divider": "rule"
           }
         },
         {
@@ -204,7 +210,9 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "framed",
+            "divider": "rule"
           }
         }
       ]
@@ -232,7 +240,9 @@
           "heading": "Pattern name, unfinished block count, and a photo of the kit",
           "submitLabel": "Send details",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "framed",
+            "divider": "rule"
           }
         },
         {
@@ -272,7 +282,9 @@
           "html": "<p><em>Sample text — replace me:</em> I like the part before the sandwich. {{guild_name}} exists because people buy kits, lose a month, and then hate the top. I do not hate the top. I press it and return it folded, with the leftover bits in a bag.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "framed",
+            "divider": "rule"
           }
         },
         {
@@ -312,7 +324,9 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "framed",
+            "divider": "rule"
           }
         },
         {
@@ -322,7 +336,8 @@
           "when": "{{meeting_info}}",
           "where": "{{city}}",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "divider": "rule"
           }
         }
       ]

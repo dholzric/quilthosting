@@ -7,22 +7,60 @@
     "palette": "seasonal-summer",
     "typePair": "bitter-opensans",
     "scale": "comfortable",
-    "shape": { "radius": "soft", "shadow": "subtle" },
-    "rhythm": { "spacing": "normal", "container": "wide" },
-    "header": { "variant": "split", "sticky": true, "cta": "quote", "overlayHero": false },
-    "footer": { "variant": "columns" },
-    "pattern": { "id": "churn-dash", "opacity": 0.08 }
+    "shape": {
+      "radius": "soft",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "split",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "churn-dash",
+      "opacity": 0.08
+    }
   },
   "imagery": [
-    { "id": "hero-art", "kind": "pattern", "alt": "" }
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
   ],
-  "previewSeed": { "guildName": "Argyle & Anchor Quilt Voyages", "city": "Seattle, Washington" },
+  "previewSeed": {
+    "guildName": "Argyle & Anchor Quilt Voyages",
+    "city": "Seattle, Washington"
+  },
   "menu": [
-    { "label": "Voyages", "href": "/voyages" },
-    { "label": "Teachers", "href": "/teachers" },
-    { "label": "About", "href": "/about" },
-    { "label": "Contact", "href": "/contact" },
-    { "label": "Reserve a cabin", "href": "/request-a-quote" }
+    {
+      "label": "Voyages",
+      "href": "/voyages"
+    },
+    {
+      "label": "Teachers",
+      "href": "/teachers"
+    },
+    {
+      "label": "About",
+      "href": "/about"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    },
+    {
+      "label": "Reserve a cabin",
+      "href": "/request-a-quote"
+    }
   ],
   "pages": [
     {
@@ -38,15 +76,29 @@
           "title": "Classrooms at sea",
           "subtitle": "Sample text — replace me: Machines set up and left standing all week, teachers who teach all day, and ports every other morning.",
           "stats": [
-            { "value": "14", "label": "voyages next season" },
-            { "value": "24", "label": "hours of class per sailing" },
-            { "value": "0", "label": "machines you have to pack" }
+            {
+              "value": "14",
+              "label": "voyages next season"
+            },
+            {
+              "value": "24",
+              "label": "hours of class per sailing"
+            },
+            {
+              "value": "0",
+              "label": "machines you have to pack"
+            }
           ],
           "ctaLabel": "Reserve a cabin",
           "ctaHref": "/request-a-quote",
           "secondaryLabel": "See the voyages",
           "secondaryHref": "/voyages",
-          "style": { "bg": "brand", "width": "wide", "spacing": "airy", "align": "center" }
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy",
+            "align": "center"
+          }
         },
         {
           "type": "events",
@@ -54,7 +106,10 @@
           "variant": "cards",
           "heading": "Next to sail",
           "limit": 3,
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
         },
         {
           "type": "feature_grid",
@@ -62,12 +117,37 @@
           "variant": "cards",
           "heading": "What a fare includes",
           "items": [
-            { "title": "The classroom", "body": "A dedicated conference room converted for sewing: machines, irons, cutting stations, and a design wall that has survived eleven storms.", "price": "included", "href": "/voyages" },
-            { "title": "Classes", "body": "Two teachers, four sessions, kits cut before boarding.", "price": "included", "href": "/teachers" },
-            { "title": "Your cabin", "body": "Balcony cabins for two, single supplements handled honestly.", "price": "from $1,899", "href": "/voyages" },
-            { "title": "Ports", "body": "A morning ashore between every two sewing days, with fabric shop intel gathered the honest way.", "price": "included", "href": "/voyages" }
+            {
+              "title": "The classroom",
+              "body": "A dedicated conference room converted for sewing: machines, irons, cutting stations, and a design wall that has survived eleven storms.",
+              "price": "included",
+              "href": "/voyages"
+            },
+            {
+              "title": "Classes",
+              "body": "Two teachers, four sessions, kits cut before boarding.",
+              "price": "included",
+              "href": "/teachers"
+            },
+            {
+              "title": "Your cabin",
+              "body": "Balcony cabins for two, single supplements handled honestly.",
+              "price": "from $1,899",
+              "href": "/voyages"
+            },
+            {
+              "title": "Ports",
+              "body": "A morning ashore between every two sewing days, with fabric shop intel gathered the honest way.",
+              "price": "included",
+              "href": "/voyages"
+            }
           ],
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "layout": "framed",
+            "divider": "scallop"
+          }
         },
         {
           "type": "rich_text",
@@ -75,17 +155,30 @@
           "variant": "two_column",
           "heading": "The classroom, in practice",
           "html": "<p>Leave your machine at home. The classroom holds twenty-four set up machines that stay standing all week, so mid-voyage you sew exactly where you left off instead of at a folding table wedged between dinner seats.</p><p>Sewing days run 9 to 5 with the buffet two decks up. Sea days are for the top; port mornings are for the ship's photographer and the local quilt shop, if the port has one, which we have checked.</p>",
-          "style": { "bg": "dark", "width": "wide" }
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "divider": "scallop"
+          }
         },
         {
           "type": "testimonials",
           "id": "home-quotes",
           "variant": "grid",
           "items": [
-            { "quote": "I finished the top, watched whales from the design wall, and did not carry a machine onto a single airplane.", "author": "P., 2025 Alaska sailing" },
-            { "quote": "My husband fished. I sewed. We met for dinner and both had stories.", "author": "D., Caribbean voyage" }
+            {
+              "quote": "I finished the top, watched whales from the design wall, and did not carry a machine onto a single airplane.",
+              "author": "P., 2025 Alaska sailing"
+            },
+            {
+              "quote": "My husband fished. I sewed. We met for dinner and both had stories.",
+              "author": "D., Caribbean voyage"
+            }
           ],
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         }
       ]
     },
@@ -97,10 +190,14 @@
         {
           "type": "hero",
           "id": "voyages-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "The voyage calendar",
           "subtitle": "Sample text — replace me: Every sailing with its teachers, ports, and what is being made on board this year.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "events",
@@ -108,7 +205,11 @@
           "variant": "list",
           "heading": "All sailings",
           "limit": 6,
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "divider": "scallop"
+          }
         },
         {
           "type": "rich_text",
@@ -116,7 +217,11 @@
           "variant": "prose",
           "heading": "How booking works",
           "html": "<p>A deposit holds the cabin and the classroom seat. Final payment follows the cruise line's schedule, and transfers to another sailing are free up to ninety days out. Cabins are held for solo quilters willing to share, matched by the office with more success than luck.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "layout": "framed"
+          }
         }
       ]
     },
@@ -131,7 +236,12 @@
           "variant": "pattern",
           "title": "Who teaches at sea",
           "subtitle": "Sample text — replace me: Teachers who pack their own seam rippers and have never once lost a class to seasickness.",
-          "style": { "bg": "pattern", "width": "wide", "align": "center", "imageId": "hero-art" }
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "align": "center",
+            "imageId": "hero-art"
+          }
         },
         {
           "type": "feature_grid",
@@ -139,21 +249,44 @@
           "variant": "cards",
           "heading": "This season's roster",
           "items": [
-            { "title": "Foundation paper piecing", "body": "Precise, portable, and immune to the ship's gentle roll. Materials ship ahead." },
-            { "title": "Hand applique mornings", "body": "On the veranda before the ports, with coffee that arrives whether you asked or not." },
-            { "title": "Color and stash", "body": "Bring twelve fabrics from home in a gallon bag and leave with a plan for the rest of it." },
-            { "title": "The evening social quilt", "body": "One block a night, group-assembled on the last sea day, auctioned for the crew welfare fund." }
+            {
+              "title": "Foundation paper piecing",
+              "body": "Precise, portable, and immune to the ship's gentle roll. Materials ship ahead."
+            },
+            {
+              "title": "Hand applique mornings",
+              "body": "On the veranda before the ports, with coffee that arrives whether you asked or not."
+            },
+            {
+              "title": "Color and stash",
+              "body": "Bring twelve fabrics from home in a gallon bag and leave with a plan for the rest of it."
+            },
+            {
+              "title": "The evening social quilt",
+              "body": "One block a night, group-assembled on the last sea day, auctioned for the crew welfare fund."
+            }
           ],
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
         },
         {
           "type": "testimonials",
           "id": "teachers-quote",
           "variant": "single",
           "items": [
-            { "quote": "Twenty-four students, six days, and not one unfinished kit went home. That has never happened in a hotel ballroom.", "author": "A returning teacher" }
+            {
+              "quote": "Twenty-four students, six days, and not one unfinished kit went home. That has never happened in a hotel ballroom.",
+              "author": "A returning teacher"
+            }
           ],
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "layout": "framed",
+            "divider": "scallop"
+          }
         }
       ]
     },
@@ -165,10 +298,15 @@
         {
           "type": "hero",
           "id": "about-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "About {{guild_name}}",
           "subtitle": "Sample text — replace me: Two travel agents who married quilters, one charter contract, and a filing cabinet of packing lists that work.",
-          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "rich_text",
@@ -176,16 +314,27 @@
           "variant": "two_column",
           "heading": "How the office runs",
           "html": "<p>We are a licensed travel agency that books only groups it can sit with at dinner. The cabin contracts, the classroom freight, the teachers' airfare, and the machine maintenance contract all live in one binder that has survived every sailing so far.</p><p>The rule we steer by: nobody sews alone, nobody carries a machine, and nobody misses the ship because a fabric shop was two blocks past the meeting point. That last one now has a fifteen-minute buffer built into every port plan.</p>",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "divider": "scallop"
+          }
         },
         {
           "type": "testimonials",
           "id": "about-quote",
           "variant": "single",
           "items": [
-            { "quote": "They moved fourteen people and two sewing machines across a port strike without one of us opening the cruise line app.", "author": "A group organizer, Miami" }
+            {
+              "quote": "They moved fourteen people and two sewing machines across a port strike without one of us opening the cruise line app.",
+              "author": "A group organizer, Miami"
+            }
           ],
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal",
+            "layout": "framed"
+          }
         }
       ]
     },
@@ -198,10 +347,14 @@
         {
           "type": "hero",
           "id": "quote-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Reserve a cabin",
           "subtitle": "Sample text — replace me: Tell us the voyage, your cabin preference, and whether anyone is traveling with you and their sewing intentions.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "quote_cta",
@@ -209,19 +362,39 @@
           "projectType": "cruise",
           "heading": "Cabin request",
           "submitLabel": "Send the request",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "divider": "scallop"
+          }
         },
         {
           "type": "faq",
           "id": "quote-faq",
           "heading": "Cabin questions",
           "items": [
-            { "q": "Do I need a passport?", "a": "Closed-loop sailings accept a birth certificate and photo ID, but we recommend the passport; the one time a year it matters, it really matters." },
-            { "q": "Can a non-sewing partner come?", "a": "A fifth of every voyage is here for the buffet and the excursions. There is a shore plan for partners and a standing table at dinner." },
-            { "q": "What if I get seasick?", "a": "The classroom sits mid-ship on a low deck, the stabilizers do most of the work, and the office mails ginger chews with your documents. Bring what your doctor recommends." },
-            { "q": "Is there a solo option?", "a": "Yes: a small number of single cabins, and a share program matched by the office with better results than chance." }
+            {
+              "q": "Do I need a passport?",
+              "a": "Closed-loop sailings accept a birth certificate and photo ID, but we recommend the passport; the one time a year it matters, it really matters."
+            },
+            {
+              "q": "Can a non-sewing partner come?",
+              "a": "A fifth of every voyage is here for the buffet and the excursions. There is a shore plan for partners and a standing table at dinner."
+            },
+            {
+              "q": "What if I get seasick?",
+              "a": "The classroom sits mid-ship on a low deck, the stabilizers do most of the work, and the office mails ginger chews with your documents. Bring what your doctor recommends."
+            },
+            {
+              "q": "Is there a solo option?",
+              "a": "Yes: a small number of single cabins, and a share program matched by the office with better results than chance."
+            }
           ],
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "layout": "framed"
+          }
         }
       ]
     },
@@ -233,17 +406,24 @@
         {
           "type": "hero",
           "id": "contact-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Contact the office",
           "subtitle": "Sample text — replace me: Cabin questions, teacher applications, and charter inquiries for guilds big enough to fill a classroom.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "contact",
           "id": "contact-form",
           "heading": "Send a message",
           "showDetails": true,
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         },
         {
           "type": "meeting_info",
@@ -252,7 +432,12 @@
           "when": "Monday to Friday, 9 to 4 Pacific",
           "where": "{{city}}",
           "note": "When a voyage is at sea the reply may come from the ship's internet, which is honest but slow.",
-          "style": { "bg": "brand", "width": "wide" }
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "layout": "framed",
+            "divider": "scallop"
+          }
         }
       ]
     }

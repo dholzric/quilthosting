@@ -49,7 +49,7 @@
         {
           "type": "hero",
           "id": "welcome",
-          "variant": "minimal",
+          "variant": "pattern",
           "eyebrow": "Late-night quilting in {{city}}",
           "title": "{{guild_name}}",
           "subtitle": "Sample text — replace me: {{guild_name}} meets {{meeting_info}}, which is later than other guilds on purpose. If you work a restaurant, a hospital, or a closing shift, this is the room.",
@@ -83,7 +83,8 @@
           "limit": 3,
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "divider": "points"
           }
         },
         {
@@ -118,7 +119,8 @@
           "ctaLabel": "See dues",
           "style": {
             "bg": "brand",
-            "align": "center"
+            "align": "center",
+            "divider": "points"
           }
         }
       ]
@@ -131,7 +133,7 @@
         {
           "type": "hero",
           "id": "a-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "About {{guild_name}}",
           "subtitle": "Sample text — replace me: A guild that refuses to meet when night workers are still on the floor.",
           "style": {
@@ -147,7 +149,8 @@
           "html": "<p><em>Sample text — replace me:</em> Daytime guilds are not hostile. They are timed for people who are free at 6. {{guild_name}} is timed for the rest of {{city}}. We still have show and tell. We still have dues. We do not apologize for starting when the dinner shift ends.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "divider": "points"
           }
         },
         {
@@ -185,7 +188,7 @@
         {
           "type": "hero",
           "id": "s-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "How Late",
           "subtitle": "Sample text — replace me: The clock, the building, and how we keep the last hour quiet.",
           "style": {
@@ -201,7 +204,8 @@
           "html": "<p><em>Sample text — replace me:</em> From 10 p.m. we sew. Announcements already happened. If you arrive at 10:05 you sit down and stitch. Questions go to a note on the design wall, not a room-wide pause.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "divider": "points"
           }
         },
         {
@@ -225,7 +229,7 @@
         {
           "type": "hero",
           "id": "j-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Membership",
           "subtitle": "Sample text — replace me: Dues cover a room that other groups do not want at that hour, which is why we can afford it.",
           "style": {
@@ -239,7 +243,8 @@
           "variant": "cards",
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "divider": "points"
           }
         },
         {
@@ -270,7 +275,7 @@
         {
           "type": "hero",
           "id": "m-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Meetings",
           "subtitle": "Sample text — replace me: We meet {{meeting_info}} in {{city}}.",
           "style": {
@@ -284,7 +289,8 @@
           "when": "{{meeting_info}}",
           "where": "the room we rent in {{city}}",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "divider": "points"
           }
         },
         {
@@ -308,7 +314,7 @@
         {
           "type": "hero",
           "id": "c-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Contact {{guild_name}}",
           "subtitle": "Sample text — replace me: Programs, dues, and the door code.",
           "style": {
@@ -321,7 +327,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "divider": "points"
           }
         },
         {
@@ -330,7 +337,8 @@
           "when": "{{meeting_info}}",
           "where": "the room we rent in {{city}}",
           "style": {
-            "bg": "dark"
+            "bg": "dark",
+            "divider": "points"
           }
         }
       ]

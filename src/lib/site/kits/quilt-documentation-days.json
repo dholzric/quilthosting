@@ -7,22 +7,60 @@
     "palette": "heritage-madder",
     "typePair": "fraunces-inter",
     "scale": "comfortable",
-    "shape": { "radius": "sharp", "shadow": "none" },
-    "rhythm": { "spacing": "normal", "container": "normal" },
-    "header": { "variant": "left", "sticky": true, "cta": "join", "overlayHero": false },
-    "footer": { "variant": "columns" },
-    "pattern": { "id": "nine-patch", "opacity": 0.07 }
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "nine-patch",
+      "opacity": 0.07
+    }
   },
   "imagery": [
-    { "id": "hero-art", "kind": "pattern", "alt": "" }
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
   ],
-  "previewSeed": { "guildName": "The Quilt Registry Project", "city": "Columbia, Missouri" },
+  "previewSeed": {
+    "guildName": "The Quilt Registry Project",
+    "city": "Columbia, Missouri"
+  },
   "menu": [
-    { "label": "Documentation days", "href": "/days" },
-    { "label": "The archive", "href": "/the-archive" },
-    { "label": "Volunteer", "href": "/volunteer" },
-    { "label": "About", "href": "/about" },
-    { "label": "Contact", "href": "/contact" }
+    {
+      "label": "Documentation days",
+      "href": "/days"
+    },
+    {
+      "label": "The archive",
+      "href": "/the-archive"
+    },
+    {
+      "label": "Volunteer",
+      "href": "/volunteer"
+    },
+    {
+      "label": "About",
+      "href": "/about"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    }
   ],
   "pages": [
     {
@@ -38,15 +76,29 @@
           "title": "{{guild_name}}",
           "subtitle": "Sample text — replace me: Every quilt photographed, described, and heard: who made it, when, and what it was for, before the story and the cloth wear out together.",
           "stats": [
-            { "value": "2,340", "label": "quilts documented" },
-            { "value": "31", "label": "counties visited" },
-            { "value": "15 min", "label": "of recording per quilt, if the maker will talk" }
+            {
+              "value": "2,340",
+              "label": "quilts documented"
+            },
+            {
+              "value": "31",
+              "label": "counties visited"
+            },
+            {
+              "value": "15 min",
+              "label": "of recording per quilt, if the maker will talk"
+            }
           ],
           "ctaLabel": "Come to a documentation day",
           "ctaHref": "/days",
           "secondaryLabel": "Browse the archive",
           "secondaryHref": "/the-archive",
-          "style": { "bg": "brand", "width": "wide", "spacing": "airy", "align": "center" }
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy",
+            "align": "center"
+          }
         },
         {
           "type": "rich_text",
@@ -54,7 +106,11 @@
           "variant": "two_column",
           "heading": "What documentation is",
           "html": "<p>A documentation day is three tables and fifteen minutes per quilt. At the first table the quilt is examined: fabrics dated, techniques described, condition recorded honestly. At the second it is photographed square-on, front and back. At the third, if the maker or the family is willing, the story is recorded: who made it, when, and what it was for.</p><p>The owner leaves with a folder and a digital file. A copy joins the archive, which is how a state keeps track of what its hands have done.</p>",
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "layout": "framed"
+          }
         },
         {
           "type": "events",
@@ -62,7 +118,10 @@
           "variant": "list",
           "heading": "Documentation days coming up",
           "limit": 3,
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
         },
         {
           "type": "feature_grid",
@@ -70,12 +129,31 @@
           "variant": "cards",
           "heading": "Four ways in",
           "items": [
-            { "title": "Bring a quilt", "body": "Family quilts, show quilts, and the one in the cedar chest nobody can identify. Especially that one.", "href": "/days" },
-            { "title": "Volunteer a table", "body": "Scribes, photographers, and the pressing table that makes every quilt look its age honestly.", "href": "/volunteer" },
-            { "title": "Host a day", "body": "Church halls, libraries, and fairground buildings with good light and parking.", "href": "/volunteer" },
-            { "title": "Become a Friend", "body": "Friends fund the travel and the archival printing. The ledger is read at the annual meeting.", "href": "/membership" }
+            {
+              "title": "Bring a quilt",
+              "body": "Family quilts, show quilts, and the one in the cedar chest nobody can identify. Especially that one.",
+              "href": "/days"
+            },
+            {
+              "title": "Volunteer a table",
+              "body": "Scribes, photographers, and the pressing table that makes every quilt look its age honestly.",
+              "href": "/volunteer"
+            },
+            {
+              "title": "Host a day",
+              "body": "Church halls, libraries, and fairground buildings with good light and parking.",
+              "href": "/volunteer"
+            },
+            {
+              "title": "Become a Friend",
+              "body": "Friends fund the travel and the archival printing. The ledger is read at the annual meeting.",
+              "href": "/membership"
+            }
           ],
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
         },
         {
           "type": "gallery",
@@ -84,7 +162,11 @@
           "source": "gallery",
           "gallerySlug": "documented",
           "heading": "Recently documented",
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "layout": "framed"
+          }
         },
         {
           "type": "join_band",
@@ -92,7 +174,12 @@
           "title": "The stories run out before the quilts do",
           "body": "Friends membership funds documentation days in the counties that have not been visited yet.",
           "ctaLabel": "Become a Friend",
-          "style": { "bg": "dark", "width": "full", "align": "center" }
+          "style": {
+            "bg": "dark",
+            "width": "full",
+            "align": "center",
+            "layout": "framed"
+          }
         }
       ]
     },
@@ -107,7 +194,11 @@
           "variant": "minimal",
           "title": "Documentation days",
           "subtitle": "Sample text — replace me: Free, by appointment, three quilts per family per day so the line stays kind.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "events",
@@ -115,7 +206,11 @@
           "variant": "cards",
           "heading": "On the calendar",
           "limit": 6,
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "layout": "framed"
+          }
         },
         {
           "type": "rich_text",
@@ -123,7 +218,10 @@
           "variant": "prose",
           "heading": "What a day looks like",
           "html": "<p>Intake at the door assigns your quilt a number and a cotton bag. The pressing table steams it gently; the exam table reads it; the camera table photographs it; and the recording table asks the questions, which are written down whether or not the microphone is on. You leave with everything you brought, plus the folder.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -138,7 +236,12 @@
           "variant": "minimal",
           "title": "The archive",
           "subtitle": "Sample text — replace me: Every record since 2011, searchable by county, decade, pattern name, and the maker's first name when that is all anyone remembers.",
-          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "gallery",
@@ -146,7 +249,11 @@
           "variant": "grid",
           "source": "gallery",
           "gallerySlug": "documented",
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "layout": "framed"
+          }
         },
         {
           "type": "rich_text",
@@ -154,7 +261,10 @@
           "variant": "prose",
           "heading": "Using the records",
           "html": "<p>Records live with the county historical societies and in the master set at the university library. Owners may request their full file any time, and researchers write to the registrar for access to the rest, which arrives with the same rule every archive uses: the makers are cited by name.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -169,7 +279,11 @@
           "variant": "minimal",
           "title": "Volunteer at a day",
           "subtitle": "Sample text — replace me: Four tables, one training session, and the best seat in the county for other people's quilt stories.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "feature_grid",
@@ -177,12 +291,28 @@
           "variant": "numbered",
           "heading": "The four tables",
           "items": [
-            { "title": "Intake", "body": "Numbers, cotton bags, and the gentle art of asking what the quilt is called at home." },
-            { "title": "The pressing table", "body": "Steam, patience, and the discovery that most quilts photograph better than they fear." },
-            { "title": "Examination", "body": "Trained eyes date the cloth and describe the stitches. Training is one Saturday and a practice binder." },
-            { "title": "The recording table", "body": "A microphone, fifteen minutes, and the questions that make people forget the microphone." }
+            {
+              "title": "Intake",
+              "body": "Numbers, cotton bags, and the gentle art of asking what the quilt is called at home."
+            },
+            {
+              "title": "The pressing table",
+              "body": "Steam, patience, and the discovery that most quilts photograph better than they fear."
+            },
+            {
+              "title": "Examination",
+              "body": "Trained eyes date the cloth and describe the stitches. Training is one Saturday and a practice binder."
+            },
+            {
+              "title": "The recording table",
+              "body": "A microphone, fifteen minutes, and the questions that make people forget the microphone."
+            }
           ],
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "layout": "framed"
+          }
         },
         {
           "type": "rich_text",
@@ -190,7 +320,10 @@
           "variant": "prose",
           "heading": "Training",
           "html": "<p>New volunteers shadow one full day before taking a seat, and the practice binder teaches the vocabulary: the difference between stitching and tying, between a feed sack and a copy. Nobody examines alone until the registrar says so, and the registrar is kind about it.</p>",
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
         },
         {
           "type": "join_band",
@@ -198,7 +331,11 @@
           "title": "Join the roster",
           "body": "Volunteers get first claim on documentation days near home, and the annual supper.",
           "ctaLabel": "Join the project",
-          "style": { "bg": "brand", "width": "full", "align": "center" }
+          "style": {
+            "bg": "brand",
+            "width": "full",
+            "align": "center"
+          }
         }
       ]
     },
@@ -213,23 +350,38 @@
           "variant": "minimal",
           "title": "About the project",
           "subtitle": "Sample text — replace me: Started with two folding tables at a county fair in 2011 and a clipboard that has never been empty since.",
-          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "rich_text",
           "id": "about-body",
           "variant": "two_column",
           "html": "<p>The first documentation day recorded nineteen quilts in a fairground exhibition hall, including one brought in a feed sack that turned out to date to the 1870s and to have a name: the maker's initials, quilted into the border, read aloud for the first time in a century.</p><p>The project is run by volunteers and a registrar who drives the good van. Funding comes from Friends memberships, two small grants, and the annual document-a-thon that sells archival folders to the counties that have run out of them.</p>",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "layout": "framed"
+          }
         },
         {
           "type": "testimonials",
           "id": "about-quote",
           "variant": "single",
           "items": [
-            { "quote": "My mother could not tell us where her mother's quilts came from. The registry found the church records that could.", "author": "A quilt owner, Boone County" }
+            {
+              "quote": "My mother could not tell us where her mother's quilts came from. The registry found the church records that could.",
+              "author": "A quilt owner, Boone County"
+            }
           ],
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         }
       ]
     },
@@ -244,14 +396,22 @@
           "variant": "minimal",
           "title": "Contact the registry",
           "subtitle": "Sample text — replace me: Appointments, hosting requests, research access, and one registrar who answers between counties.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "contact",
           "id": "contact-form",
           "heading": "Send a message",
           "showDetails": true,
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal",
+            "layout": "framed"
+          }
         },
         {
           "type": "meeting_info",
@@ -260,7 +420,10 @@
           "when": "Weekdays, 9 to 3",
           "where": "{{city}}",
           "note": "The good van is usually in the lot on weekdays, and always smells faintly of cedar.",
-          "style": { "bg": "brand", "width": "wide" }
+          "style": {
+            "bg": "brand",
+            "width": "wide"
+          }
         }
       ]
     }

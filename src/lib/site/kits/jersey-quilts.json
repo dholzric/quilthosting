@@ -88,7 +88,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           }
         },
         {
@@ -154,7 +155,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "layout": "offset"
           }
         }
       ]
@@ -184,7 +186,8 @@
           "gallerySlug": "jerseys",
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "layout": "offset"
           }
         }
       ]
@@ -212,7 +215,8 @@
           "heading": "Jersey count, bed size, and whether names may sit in sashing",
           "submitLabel": "Send details",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "offset"
           }
         },
         {
@@ -252,7 +256,8 @@
           "html": "<p><em>Sample text — replace me:</em> There is a good T-shirt quilt shop in this town. I send those piles there. {{guild_name}} is jerseys: hockey, football, soccer, the high-school closet. Knit, heavy trim, numbers that people will argue about if you bisect them.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "offset"
           }
         },
         {
@@ -292,7 +297,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "offset"
           }
         },
         {

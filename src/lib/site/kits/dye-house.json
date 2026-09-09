@@ -88,7 +88,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           },
           "heading": "On the rack"
         },
@@ -155,7 +156,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "layout": "offset"
           }
         },
         {
@@ -203,7 +205,8 @@
           "where": "{{city}}",
           "note": "Alley door. Text when you park. Wet cloth is not released until it is dry and labeled.",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "offset"
           }
         }
       ]
@@ -231,7 +234,8 @@
           "heading": "Fiber, yards, and a color you can live with",
           "submitLabel": "Send details",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "offset"
           }
         },
         {
@@ -271,7 +275,8 @@
           "html": "<p><em>Sample text — replace me:</em> I dye because I wanted cloth that did not already exist on a bolt wall. {{guild_name}} is one person, one garage, lots numbered so you can come back to a cousin of a color, not a clone.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "offset"
           }
         },
         {
@@ -311,7 +316,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "offset"
           }
         },
         {

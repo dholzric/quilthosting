@@ -7,122 +7,336 @@
     "palette": "naturals-clay",
     "typePair": "librebaskerville-nunitosans",
     "scale": "comfortable",
-    "shape": { "radius": "soft", "shadow": "none" },
-    "rhythm": { "spacing": "airy", "container": "wide" },
-    "header": { "variant": "left", "sticky": true, "cta": "join", "overlayHero": false },
-    "footer": { "variant": "meeting" },
-    "pattern": { "id": "nine-patch", "opacity": 0.1 }
+    "shape": {
+      "radius": "soft",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "meeting"
+    },
+    "pattern": {
+      "id": "nine-patch",
+      "opacity": 0.1
+    }
   },
-  "imagery": [{ "id": "hero-art", "kind": "pattern", "alt": "" }],
-  "previewSeed": { "guildName": "Prairie Star Quilt Guild", "city": "Lincoln, Nebraska" },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Prairie Star Quilt Guild",
+    "city": "Lincoln, Nebraska"
+  },
   "pages": [
     {
-      "slug": "home", "title": "Home", "nav": false,
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
       "sections": [
         {
-          "type": "hero", "id": "welcome", "variant": "split",
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
           "eyebrow": "Quilters around {{city}}",
           "title": "{{guild_name}}",
           "subtitle": "Sample text — replace me: Rural and town quilters, a long drive apart, who still fill the hall {{meeting_info}}.",
-          "ctaLabel": "Join us", "ctaHref": "/membership",
-          "secondaryLabel": "Meetings", "secondaryHref": "/meetings",
-          "style": { "bg": "pattern", "width": "wide", "spacing": "airy", "media": "right", "imageId": "hero-art" }
+          "ctaLabel": "Join us",
+          "ctaHref": "/membership",
+          "secondaryLabel": "Meetings",
+          "secondaryHref": "/meetings",
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "spacing": "airy",
+            "media": "right",
+            "imageId": "hero-art"
+          }
         },
-        { "type": "meeting_info", "id": "when", "heading": "When we gather", "when": "{{meeting_info}}", "where": "{{city}}", "note": "Carpools are arranged on the members list the week before.", "style": { "bg": "none" } },
-        { "type": "events", "id": "upcoming", "variant": "cards", "heading": "On the calendar", "limit": 3, "style": { "bg": "tint", "width": "wide" } },
         {
-          "type": "feature_grid", "id": "life", "variant": "cards",
-          "items": [
-            { "title": "Bees", "body": "Daytime bees in farm kitchens and an evening bee in town.", "href": "/bees" },
-            { "title": "Library", "body": "Patterns, rulers, and back issues of the newsletter you can check out for a month.", "href": "/library" },
-            { "title": "County fair", "body": "We hang a row at the fair each August and sit the booth in pairs." }
-          ],
-          "style": { "bg": "dark", "width": "wide" }
+          "type": "meeting_info",
+          "id": "when",
+          "heading": "When we gather",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "note": "Carpools are arranged on the members list the week before.",
+          "style": {
+            "bg": "none"
+          }
         },
-        { "type": "join_band", "id": "join", "title": "New members from any town", "body": "If you can make the monthly meeting, you belong here.", "ctaLabel": "See dues", "style": { "bg": "brand", "align": "center" } }
+        {
+          "type": "events",
+          "id": "upcoming",
+          "variant": "cards",
+          "heading": "On the calendar",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "divider": "points"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "life",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Bees",
+              "body": "Daytime bees in farm kitchens and an evening bee in town.",
+              "href": "/bees"
+            },
+            {
+              "title": "Library",
+              "body": "Patterns, rulers, and back issues of the newsletter you can check out for a month.",
+              "href": "/library"
+            },
+            {
+              "title": "County fair",
+              "body": "We hang a row at the fair each August and sit the booth in pairs."
+            }
+          ],
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "divider": "points"
+          }
+        },
+        {
+          "type": "join_band",
+          "id": "join",
+          "title": "New members from any town",
+          "body": "If you can make the monthly meeting, you belong here.",
+          "ctaLabel": "See dues",
+          "style": {
+            "bg": "brand",
+            "align": "center",
+            "divider": "points"
+          }
+        }
       ]
     },
     {
-      "slug": "meetings", "title": "Meetings", "nav": true,
+      "slug": "meetings",
+      "title": "Meetings",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "m-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "m-hero",
+          "variant": "pattern",
           "title": "Meetings and workshops",
           "subtitle": "Sample text — replace me: Business, a program, and a long show and tell. Workshops on the fifth Saturday when there is one.",
-          "ctaLabel": "All events", "ctaHref": "/events",
-          "style": { "bg": "brand", "align": "center" }
+          "ctaLabel": "All events",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
         },
-        { "type": "meeting_info", "id": "m-place", "when": "{{meeting_info}}", "where": "{{city}}", "note": "The hall is on the square. Use the south door in winter.", "style": { "bg": "none" } },
-        { "type": "events", "id": "m-list", "variant": "list", "limit": 8, "style": { "bg": "tint", "width": "wide" } }
+        {
+          "type": "meeting_info",
+          "id": "m-place",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "note": "The hall is on the square. Use the south door in winter.",
+          "style": {
+            "bg": "none"
+          }
+        },
+        {
+          "type": "events",
+          "id": "m-list",
+          "variant": "list",
+          "limit": 8,
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "divider": "points"
+          }
+        }
       ]
     },
     {
-      "slug": "why-join", "title": "Join", "nav": true, "navLabel": "Join",
+      "slug": "why-join",
+      "title": "Join",
+      "nav": true,
+      "navLabel": "Join",
       "sections": [
         {
-          "type": "hero", "id": "j-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "j-hero",
+          "variant": "pattern",
           "title": "Membership",
           "subtitle": "Sample text — replace me: Individual and household. Distance members pay the same dues and get the newsletter by email.",
-          "ctaLabel": "Join now", "ctaHref": "/membership",
-          "style": { "bg": "none", "align": "center" }
+          "ctaLabel": "Join now",
+          "ctaHref": "/membership",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
         {
-          "type": "rich_text", "id": "j-body", "variant": "prose",
+          "type": "rich_text",
+          "id": "j-body",
+          "variant": "prose",
           "html": "<p>Dues cover the hall, the newsletter, and member pricing on the fall retreat. <a href=\"/membership\">Choose a level</a> and you will get the current block of the month by mail if you ask.</p>",
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "divider": "points"
+          }
         },
-        { "type": "membership_levels", "id": "levels", "variant": "cards", "style": { "bg": "none", "width": "wide" } }
+        {
+          "type": "membership_levels",
+          "id": "levels",
+          "variant": "cards",
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
       ]
     },
     {
-      "slug": "bees", "title": "Bees", "nav": true,
+      "slug": "bees",
+      "title": "Bees",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "b-hero", "variant": "pattern",
+          "type": "hero",
+          "id": "b-hero",
+          "variant": "pattern",
           "title": "Bees across the county",
           "subtitle": "Sample text — replace me: Day bees, night bees, and a handwork bee that meets before the guild meeting.",
-          "style": { "bg": "pattern", "align": "center", "imageId": "hero-art" }
+          "style": {
+            "bg": "pattern",
+            "align": "center",
+            "imageId": "hero-art"
+          }
         },
         {
-          "type": "feature_grid", "id": "b-list", "variant": "numbered",
+          "type": "feature_grid",
+          "id": "b-list",
+          "variant": "numbered",
           "items": [
-            { "title": "North bee", "body": "First Thursday, 9 to 3, rotating farmhouses. Bring a dish to share." },
-            { "title": "Town bee", "body": "Second Monday, 6:30, at the library meeting room." },
-            { "title": "Handwork", "body": "English paper piecing in the hallway before the monthly meeting." }
+            {
+              "title": "North bee",
+              "body": "First Thursday, 9 to 3, rotating farmhouses. Bring a dish to share."
+            },
+            {
+              "title": "Town bee",
+              "body": "Second Monday, 6:30, at the library meeting room."
+            },
+            {
+              "title": "Handwork",
+              "body": "English paper piecing in the hallway before the monthly meeting."
+            }
           ],
-          "style": { "bg": "none" }
+          "style": {
+            "bg": "none"
+          }
         },
-        { "type": "join_band", "id": "b-join", "title": "Ask the bee chair after you join", "ctaLabel": "Membership", "style": { "bg": "dark", "align": "center" } }
+        {
+          "type": "join_band",
+          "id": "b-join",
+          "title": "Ask the bee chair after you join",
+          "ctaLabel": "Membership",
+          "style": {
+            "bg": "dark",
+            "align": "center",
+            "divider": "points"
+          }
+        }
       ]
     },
     {
-      "slug": "library", "title": "Library", "nav": true,
+      "slug": "library",
+      "title": "Library",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "lib-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "lib-hero",
+          "variant": "pattern",
           "title": "The guild library",
           "subtitle": "Sample text — replace me: Books, rulers, and die cutters checked out for four weeks.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
         {
-          "type": "rich_text", "id": "lib-body", "variant": "prose",
+          "type": "rich_text",
+          "id": "lib-body",
+          "variant": "prose",
           "html": "<p>The catalog lives in the members area. Returns are due at the next meeting. Late books stay in the family; we do not fine, we just ask.</p>",
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "divider": "points"
+          }
         },
-        { "type": "cta", "id": "lib-portal", "label": "Members area", "href": "/portal", "kind": "secondary", "style": { "bg": "none", "align": "center" } }
+        {
+          "type": "cta",
+          "id": "lib-portal",
+          "label": "Members area",
+          "href": "/portal",
+          "kind": "secondary",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        }
       ]
     },
     {
-      "slug": "contact", "title": "Contact", "nav": true,
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "c-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "pattern",
           "title": "Write to {{guild_name}}",
           "subtitle": "Sample text — replace me: Speakers, fair booth help, and new-member questions.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
-        { "type": "contact", "id": "form", "showDetails": true, "style": { "bg": "tint" } },
-        { "type": "meeting_info", "id": "c-when", "when": "{{meeting_info}}", "where": "{{city}}", "style": { "bg": "brand" } }
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint",
+            "divider": "points"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-when",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "style": {
+            "bg": "brand",
+            "divider": "points"
+          }
+        }
       ]
     }
   ]

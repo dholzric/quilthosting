@@ -7,22 +7,60 @@
     "palette": "soft-blush",
     "typePair": "playfair-lato",
     "scale": "comfortable",
-    "shape": { "radius": "round", "shadow": "subtle" },
-    "rhythm": { "spacing": "normal", "container": "normal" },
-    "header": { "variant": "centered", "sticky": true, "cta": "quote", "overlayHero": false },
-    "footer": { "variant": "simple" },
-    "pattern": { "id": "nine-patch", "opacity": 0.09 }
+    "shape": {
+      "radius": "round",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "centered",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "nine-patch",
+      "opacity": 0.09
+    }
   },
   "imagery": [
-    { "id": "hero-art", "kind": "pattern", "alt": "" }
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
   ],
-  "previewSeed": { "guildName": "The Signature Table", "city": "Athens, Georgia" },
+  "previewSeed": {
+    "guildName": "The Signature Table",
+    "city": "Athens, Georgia"
+  },
   "menu": [
-    { "label": "How it works", "href": "/how-it-works" },
-    { "label": "Portfolio", "href": "/portfolio" },
-    { "label": "About", "href": "/about" },
-    { "label": "Contact", "href": "/contact" },
-    { "label": "Start a quilt", "href": "/request-a-quote" }
+    {
+      "label": "How it works",
+      "href": "/how-it-works"
+    },
+    {
+      "label": "Portfolio",
+      "href": "/portfolio"
+    },
+    {
+      "label": "About",
+      "href": "/about"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    },
+    {
+      "label": "Start a quilt",
+      "href": "/request-a-quote"
+    }
   ],
   "pages": [
     {
@@ -41,7 +79,12 @@
           "ctaHref": "/request-a-quote",
           "secondaryLabel": "How it works",
           "secondaryHref": "/how-it-works",
-          "style": { "bg": "none", "width": "narrow", "spacing": "airy", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy",
+            "align": "center"
+          }
         },
         {
           "type": "feature_grid",
@@ -49,12 +92,28 @@
           "variant": "numbered",
           "heading": "Four steps, four weeks",
           "items": [
-            { "title": "Pick your palette", "body": "From your colors, your venue's light, or the flowers in season." },
-            { "title": "Squares arrive", "body": "Sixty prepared squares and tested pens in the mail, with instructions for the table." },
-            { "title": "Guests sign", "body": "At the shower, the reception, or the retirement party. Heat-set at home, ten minutes." },
-            { "title": "The quilt returns", "body": "Pieced, quilted, labeled, and shipped four weeks after your squares come back." }
+            {
+              "title": "Pick your palette",
+              "body": "From your colors, your venue's light, or the flowers in season."
+            },
+            {
+              "title": "Squares arrive",
+              "body": "Sixty prepared squares and tested pens in the mail, with instructions for the table."
+            },
+            {
+              "title": "Guests sign",
+              "body": "At the shower, the reception, or the retirement party. Heat-set at home, ten minutes."
+            },
+            {
+              "title": "The quilt returns",
+              "body": "Pieced, quilted, labeled, and shipped four weeks after your squares come back."
+            }
           ],
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "layout": "framed"
+          }
         },
         {
           "type": "gallery",
@@ -63,17 +122,29 @@
           "source": "gallery",
           "gallerySlug": "signatures",
           "heading": "Quilts that went to parties",
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
         },
         {
           "type": "testimonials",
           "id": "home-quotes",
           "variant": "grid",
           "items": [
-            { "quote": "Every anniversary we find a new message in the blocks. The paper guest book from my sister's wedding lives in a drawer.", "author": "M., married in 2023" },
-            { "quote": "Forty-one years of students signed their squares, and the quilt hangs outside the principal's office now.", "author": "A retiring teacher" }
+            {
+              "quote": "Every anniversary we find a new message in the blocks. The paper guest book from my sister's wedding lives in a drawer.",
+              "author": "M., married in 2023"
+            },
+            {
+              "quote": "Forty-one years of students signed their squares, and the quilt hangs outside the principal's office now.",
+              "author": "A retiring teacher"
+            }
           ],
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal"
+          }
         },
         {
           "type": "quote_cta",
@@ -81,7 +152,12 @@
           "projectType": "signature",
           "heading": "Tell us the date",
           "submitLabel": "Start a quilt",
-          "style": { "bg": "brand", "width": "normal", "align": "center" }
+          "style": {
+            "bg": "brand",
+            "width": "normal",
+            "align": "center",
+            "layout": "framed"
+          }
         }
       ]
     },
@@ -96,7 +172,11 @@
           "variant": "minimal",
           "title": "How it works",
           "subtitle": "Sample text — replace me: Squares, pens, heat, and patience, in exactly that order.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "rich_text",
@@ -104,19 +184,38 @@
           "variant": "two_column",
           "heading": "The practical details",
           "html": "<p>Your squares arrive pre-cut, pre-washed, and backed with freezer paper so pens glide and nothing frays on the table. The pens are fabric pens we have tested through the wash; a spare set rides along for the enthusiastic.</p><p>After signing, squares heat-set in the dryer on high for twenty minutes or with an iron, whichever fits the party. Then everything goes back in the mailer and the sewing begins. You get a layout photo before a single seam is sewn.</p>",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "layout": "framed"
+          }
         },
         {
           "type": "faq",
           "id": "how-faq",
           "heading": "Questions from the party",
           "items": [
-            { "q": "How many squares should we order?", "a": "Sixty is standard and finishes at throw size. Order more rather than fewer: unsigned squares become the backing, not leftovers." },
-            { "q": "What if someone writes in ballpoint?", "a": "It happens at every event. Ballpoint sets fine on our squares; the pen police are off duty once the ink is dry." },
-            { "q": "Can we add squares after the fact?", "a": "Yes. Six blank squares travel with the spares kit for the cousin who missed the wedding, and the quilt can come back for one more block." },
-            { "q": "Do you ship to the couple or the host?", "a": "Whichever address you give us. Plenty of quilts are secretly quilted during the honeymoon and waiting at home." }
+            {
+              "q": "How many squares should we order?",
+              "a": "Sixty is standard and finishes at throw size. Order more rather than fewer: unsigned squares become the backing, not leftovers."
+            },
+            {
+              "q": "What if someone writes in ballpoint?",
+              "a": "It happens at every event. Ballpoint sets fine on our squares; the pen police are off duty once the ink is dry."
+            },
+            {
+              "q": "Can we add squares after the fact?",
+              "a": "Yes. Six blank squares travel with the spares kit for the cousin who missed the wedding, and the quilt can come back for one more block."
+            },
+            {
+              "q": "Do you ship to the couple or the host?",
+              "a": "Whichever address you give us. Plenty of quilts are secretly quilted during the honeymoon and waiting at home."
+            }
           ],
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -131,7 +230,12 @@
           "variant": "minimal",
           "title": "Quilts that went to parties",
           "subtitle": "Sample text — replace me: Weddings, retirements, graduations, and one very emotional bingo league farewell.",
-          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "gallery",
@@ -139,7 +243,11 @@
           "variant": "masonry",
           "source": "gallery",
           "gallerySlug": "signatures",
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "layout": "framed"
+          }
         },
         {
           "type": "rich_text",
@@ -147,7 +255,10 @@
           "variant": "prose",
           "heading": "Privacy first",
           "html": "<p>Signatures belong to the people who wrote them, so photographs here show patterns and palettes with the handwriting out of focus, and nothing is posted without the family's yes.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -162,23 +273,38 @@
           "variant": "minimal",
           "title": "About the studio",
           "subtitle": "Sample text — replace me: The first signature quilt was for my sister's wedding, and the second was for everyone who heard about hers.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "rich_text",
           "id": "about-body",
           "variant": "two_column",
           "html": "<p>My sister's wedding guest book was a binder that nobody has opened since. The quilt I made from its squares, signed at the bridal shower in a hasty plan B, has been on her couch through two houses and one very destructive dog. That comparison is the entire business plan.</p><p>Since then the studio has stitched several hundred party quilts: weddings, retirements, ordinations, farewell tours, and one championship bowling season. Each one is sewn here, one at a time, and photographed before it ships.</p>",
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal",
+            "layout": "framed"
+          }
         },
         {
           "type": "testimonials",
           "id": "about-quote",
           "variant": "single",
           "items": [
-            { "quote": "She asked who was likely to write something funny and put those squares in the middle. The woman knows parties.", "author": "A mother of the bride" }
+            {
+              "quote": "She asked who was likely to write something funny and put those squares in the middle. The woman knows parties.",
+              "author": "A mother of the bride"
+            }
           ],
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal"
+          }
         }
       ]
     },
@@ -194,7 +320,11 @@
           "variant": "minimal",
           "title": "Start a quilt",
           "subtitle": "Sample text — replace me: The date, the head count, and the colors. That is all it takes to hold a spot on the sewing calendar.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "quote_cta",
@@ -202,7 +332,11 @@
           "projectType": "signature",
           "heading": "The party details",
           "submitLabel": "Send the details",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "layout": "framed"
+          }
         },
         {
           "type": "rich_text",
@@ -210,7 +344,10 @@
           "variant": "prose",
           "heading": "Timing",
           "html": "<p>Squares ship two weeks before your event, and quilts finish four weeks after the signed squares return. June and September fill early; holiday party quilts should start their conversation by October.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -225,14 +362,22 @@
           "variant": "minimal",
           "title": "Contact",
           "subtitle": "Sample text — replace me: Pen questions, timing questions, and one very good idea for a farewell quilt you have not told anyone yet.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "contact",
           "id": "contact-form",
           "heading": "Send a message",
           "showDetails": true,
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal",
+            "layout": "framed"
+          }
         },
         {
           "type": "meeting_info",
@@ -241,7 +386,10 @@
           "when": "Weekday mornings, by appointment",
           "where": "{{city}}",
           "note": "Come feel the palettes in person; the squares look different in real light.",
-          "style": { "bg": "brand", "width": "wide" }
+          "style": {
+            "bg": "brand",
+            "width": "wide"
+          }
         }
       ]
     }

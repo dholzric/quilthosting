@@ -88,7 +88,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           }
         },
         {
@@ -154,7 +155,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           }
         },
         {
@@ -195,7 +197,8 @@
           "html": "<p><em>Sample text — replace me:</em> Mileage at the IRS rate, hotel at a cap we agree in the contract, and meals I do not charge if I ate with the guild. I fly when the drive is more than eight hours. I do not require a banquet.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "framed"
           }
         }
       ]
@@ -223,7 +226,8 @@
           "heading": "Guild name, date window, lecture or trunk, and the room size",
           "submitLabel": "Request a date",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "framed"
           }
         },
         {
@@ -263,7 +267,8 @@
           "html": "<p><em>Sample text — replace me:</em> I pieced for a living, then I talked about piecing, then the talking paid the gas. {{guild_name}} is the calendar and the trunk. I still sew in the studio on weeks that are not packed.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "framed"
           }
         },
         {
@@ -303,7 +308,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "framed"
           }
         },
         {

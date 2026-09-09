@@ -73,7 +73,8 @@
           "where": "the room we rent in {{city}}",
           "note": "Altitude is in the name. Bring water. The room is at the community center, not someone's cabin.",
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "layout": "framed"
           }
         },
         {
@@ -119,7 +120,8 @@
           "ctaLabel": "See dues",
           "style": {
             "bg": "brand",
-            "align": "center"
+            "align": "center",
+            "layout": "offset"
           }
         }
       ]
@@ -148,7 +150,8 @@
           "html": "<p><em>Sample text — replace me:</em> People quilt in {{city}} because the winters are long and the fabric shops are a canyon away. {{guild_name}} is small on purpose. We would rather know who is on the road than fill folding chairs with people who cannot get home.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "offset"
           }
         },
         {
@@ -202,7 +205,8 @@
           "html": "<p><em>Sample text — replace me:</em> If the pass is closed, the meeting is closed. If the pass is open and icy, the meeting is optional and the secretary notes who stayed home without a fuss. Nobody earns a badge for sliding into a ditch with a sewing machine.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "offset"
           }
         },
         {
@@ -243,7 +247,8 @@
           "variant": "cards",
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "layout": "offset"
           }
         },
         {
@@ -288,7 +293,8 @@
           "when": "{{meeting_info}}",
           "where": "the room we rent in {{city}}",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "offset"
           }
         },
         {
@@ -325,7 +331,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "layout": "offset"
           }
         },
         {

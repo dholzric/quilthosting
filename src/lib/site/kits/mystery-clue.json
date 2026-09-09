@@ -62,7 +62,8 @@
             "width": "wide",
             "spacing": "airy",
             "media": "right",
-            "imageId": "hero-art"
+            "imageId": "hero-art",
+            "layout": "asym_reverse"
           }
         },
         {
@@ -84,7 +85,8 @@
           "limit": 3,
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "layout": "offset"
           }
         },
         {
@@ -120,7 +122,8 @@
           "ctaLabel": "See dues",
           "style": {
             "bg": "brand",
-            "align": "center"
+            "align": "center",
+            "divider": "notch"
           }
         }
       ]
@@ -133,7 +136,7 @@
         {
           "type": "hero",
           "id": "a-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "About {{guild_name}}",
           "subtitle": "Sample text — replace me: A guild whose program is not knowing.",
           "style": {
@@ -149,7 +152,8 @@
           "html": "<p><em>Sample text — replace me:</em> Pattern designers sell mysteries. This is a guild that lives inside one together. {{guild_name}} writes its own clues or licenses one and then obeys it as a group, which is harder than it sounds.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "divider": "notch"
           }
         },
         {
@@ -172,7 +176,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           },
           "heading": "A year with us"
         }
@@ -187,7 +192,7 @@
         {
           "type": "hero",
           "id": "s-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Clues",
           "subtitle": "Sample text — replace me: How a clue is written, sealed, and not spoiled in the group chat.",
           "style": {
@@ -203,7 +208,8 @@
           "html": "<p><em>Sample text — replace me:</em> The group chat is for missing rotary blades, not for reverse-engineering clue four from a shadow on the floor. If you figure it out, keep it. Bragging is a spoiler.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "divider": "notch"
           }
         },
         {
@@ -221,7 +227,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "framed"
           }
         }
       ]
@@ -234,7 +241,7 @@
         {
           "type": "hero",
           "id": "j-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Membership",
           "subtitle": "Sample text — replace me: Join before the fabric list if you can. Mid-year joiners sew last year's mystery as a catch-up.",
           "style": {
@@ -248,7 +255,8 @@
           "variant": "cards",
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "divider": "notch"
           }
         },
         {
@@ -266,7 +274,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "layout": "framed"
           }
         }
       ]
@@ -279,7 +288,7 @@
         {
           "type": "hero",
           "id": "m-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Meetings",
           "subtitle": "Sample text — replace me: We meet {{meeting_info}} in {{city}}.",
           "style": {
@@ -293,7 +302,8 @@
           "when": "{{meeting_info}}",
           "where": "the room we rent in {{city}}",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "divider": "notch"
           }
         },
         {
@@ -304,7 +314,8 @@
           "limit": 8,
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "layout": "framed"
           }
         }
       ]
@@ -317,7 +328,7 @@
         {
           "type": "hero",
           "id": "c-hero",
-          "variant": "minimal",
+          "variant": "pattern",
           "title": "Contact {{guild_name}}",
           "subtitle": "Sample text — replace me: Programs, dues, and the door.",
           "style": {
@@ -330,7 +341,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "divider": "notch"
           }
         },
         {
@@ -339,7 +351,8 @@
           "when": "{{meeting_info}}",
           "where": "the room we rent in {{city}}",
           "style": {
-            "bg": "dark"
+            "bg": "dark",
+            "layout": "offset"
           }
         }
       ]

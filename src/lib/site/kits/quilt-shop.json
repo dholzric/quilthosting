@@ -7,124 +7,332 @@
     "palette": "seasonal-summer",
     "typePair": "manrope",
     "scale": "comfortable",
-    "shape": { "radius": "soft", "shadow": "subtle" },
-    "rhythm": { "spacing": "normal", "container": "normal" },
-    "header": { "variant": "left", "sticky": true, "cta": "none", "overlayHero": false },
-    "footer": { "variant": "columns" },
-    "pattern": { "id": "churn-dash", "opacity": 0.1 }
+    "shape": {
+      "radius": "soft",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "none",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "churn-dash",
+      "opacity": 0.1
+    }
   },
-  "imagery": [{ "id": "hero-art", "kind": "pattern", "alt": "" }],
-  "previewSeed": { "guildName": "The Cotton Drawer", "city": "Madison, Wisconsin" },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "The Cotton Drawer",
+    "city": "Madison, Wisconsin"
+  },
   "pages": [
     {
-      "slug": "home", "title": "Home", "nav": false,
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
       "sections": [
         {
-          "type": "hero", "id": "welcome", "variant": "split",
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
           "eyebrow": "Fabric, classes, and longarm in {{city}}",
           "title": "{{guild_name}}",
           "subtitle": "Sample text — replace me: Bolts, precuts, and a classroom in the back. We are open {{meeting_info}}.",
-          "ctaLabel": "This week's classes", "ctaHref": "/classes",
-          "secondaryLabel": "Visit", "secondaryHref": "/visit",
-          "style": { "bg": "pattern", "width": "wide", "media": "right", "imageId": "hero-art" }
+          "ctaLabel": "This week's classes",
+          "ctaHref": "/classes",
+          "secondaryLabel": "Visit",
+          "secondaryHref": "/visit",
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "media": "right",
+            "imageId": "hero-art",
+            "layout": "bleed"
+          }
         },
-        { "type": "meeting_info", "id": "hours", "heading": "Hours", "when": "{{meeting_info}}", "where": "{{city}}", "note": "Street parking on the north side. The ramp is at the alley door.", "style": { "bg": "none" } },
-        { "type": "store_teaser", "id": "arrivals", "heading": "New on the shelf", "limit": 4, "style": { "bg": "tint", "width": "wide" } },
-        { "type": "events", "id": "classes-teaser", "variant": "cards", "heading": "Upcoming classes", "limit": 3, "style": { "bg": "none", "width": "wide" } },
-        { "type": "cta", "id": "news", "label": "Read the shop letter", "href": "/blog", "kind": "primary", "style": { "bg": "brand", "align": "center" } }
+        {
+          "type": "meeting_info",
+          "id": "hours",
+          "heading": "Hours",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "note": "Street parking on the north side. The ramp is at the alley door.",
+          "style": {
+            "bg": "none"
+          }
+        },
+        {
+          "type": "store_teaser",
+          "id": "arrivals",
+          "heading": "New on the shelf",
+          "limit": 4,
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "layout": "framed"
+          }
+        },
+        {
+          "type": "events",
+          "id": "classes-teaser",
+          "variant": "cards",
+          "heading": "Upcoming classes",
+          "limit": 3,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "cta",
+          "id": "news",
+          "label": "Read the shop letter",
+          "href": "/blog",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
+        }
       ]
     },
     {
-      "slug": "classes", "title": "Classes", "nav": true,
+      "slug": "classes",
+      "title": "Classes",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "c-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
           "title": "Classes",
           "subtitle": "Sample text — replace me: Beginner piecing, paper piecing, and a monthly sit-and-sew. Machines are here if you do not want to carry yours.",
-          "ctaLabel": "All dates", "ctaHref": "/events",
-          "style": { "bg": "none", "align": "center" }
+          "ctaLabel": "All dates",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
-        { "type": "events", "id": "c-list", "variant": "list", "heading": "On the calendar", "limit": 8, "style": { "bg": "tint", "width": "wide" } },
         {
-          "type": "faq", "id": "c-faq",
+          "type": "events",
+          "id": "c-list",
+          "variant": "list",
+          "heading": "On the calendar",
+          "limit": 8,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "c-faq",
           "items": [
-            { "q": "Do I bring a machine?", "a": "You may. We also have six classroom machines, pre-threaded, for a small fee." },
-            { "q": "What if a class is full?", "a": "Join the waitlist on the event page. We open a second date when four people are waiting." }
+            {
+              "q": "Do I bring a machine?",
+              "a": "You may. We also have six classroom machines, pre-threaded, for a small fee."
+            },
+            {
+              "q": "What if a class is full?",
+              "a": "Join the waitlist on the event page. We open a second date when four people are waiting."
+            }
           ],
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "layout": "framed"
+          }
         }
       ]
     },
     {
-      "slug": "services", "title": "Services", "nav": true,
+      "slug": "services",
+      "title": "Services",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "s-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "s-hero",
+          "variant": "minimal",
           "title": "Longarm and finishing",
           "subtitle": "Sample text — replace me: Edge-to-edge on the shop longarm, binding, and a die-cutter you can rent by the hour.",
-          "style": { "bg": "dark", "align": "center" }
+          "style": {
+            "bg": "dark",
+            "align": "center"
+          }
         },
         {
-          "type": "feature_grid", "id": "s-grid", "variant": "cards",
+          "type": "feature_grid",
+          "id": "s-grid",
+          "variant": "cards",
           "items": [
-            { "title": "Edge-to-edge", "body": "Shop samples and customer tops. Book at the counter.", "price": "2.75¢ / in²" },
-            { "title": "Binding", "body": "Machine binding, flange optional.", "price": "$0.20 / in" },
-            { "title": "Die cutter", "body": "AccuQuilt sitting in the classroom. Dies in the drawer.", "price": "$12 / hour" }
+            {
+              "title": "Edge-to-edge",
+              "body": "Shop samples and customer tops. Book at the counter.",
+              "price": "2.75¢ / in²"
+            },
+            {
+              "title": "Binding",
+              "body": "Machine binding, flange optional.",
+              "price": "$0.20 / in"
+            },
+            {
+              "title": "Die cutter",
+              "body": "AccuQuilt sitting in the classroom. Dies in the drawer.",
+              "price": "$12 / hour"
+            }
           ],
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
         },
-        { "type": "quote_cta", "id": "s-quote", "projectType": "longarm", "heading": "Ask about a longarm date", "submitLabel": "Send details", "style": { "bg": "tint" } }
+        {
+          "type": "quote_cta",
+          "id": "s-quote",
+          "projectType": "longarm",
+          "heading": "Ask about a longarm date",
+          "submitLabel": "Send details",
+          "style": {
+            "bg": "tint",
+            "layout": "framed"
+          }
+        }
       ]
     },
     {
-      "slug": "about", "title": "About", "nav": true,
+      "slug": "about",
+      "title": "About",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "a-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
           "title": "About the shop",
           "subtitle": "Sample text — replace me: {{guild_name}} opened in a former bakery. The classroom is the old proofing room.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
         {
-          "type": "rich_text", "id": "a-body", "variant": "prose",
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
           "html": "<p>We buy bolts we would sew with: cotton prints, a wall of solids, and a modest wool section. Precuts are cut here, not ordered in boxes. The staff will help you find a backing that is actually wide enough.</p>",
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
         },
         {
-          "type": "testimonials", "id": "a-quotes", "variant": "single",
-          "items": [{ "quote": "They talked me out of a border print that was going to fight the blocks. That is the kind of shop this is.", "author": "A regular, Saturday morning" }],
-          "style": { "bg": "none" }
+          "type": "testimonials",
+          "id": "a-quotes",
+          "variant": "single",
+          "items": [
+            {
+              "quote": "They talked me out of a border print that was going to fight the blocks. That is the kind of shop this is.",
+              "author": "A regular, Saturday morning"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "layout": "framed"
+          }
         }
       ]
     },
     {
-      "slug": "visit", "title": "Visit", "nav": true,
+      "slug": "visit",
+      "title": "Visit",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "v-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "v-hero",
+          "variant": "minimal",
           "title": "Visit the shop",
           "subtitle": "Sample text — replace me: {{city}}. Look for the green awning.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
-        { "type": "meeting_info", "id": "v-hours", "heading": "Hours and parking", "when": "{{meeting_info}}", "where": "{{city}}", "note": "Closed Sunday and Monday. The alley door has a ramp and a bell.", "style": { "bg": "tint" } },
         {
-          "type": "rich_text", "id": "v-note", "variant": "prose",
+          "type": "meeting_info",
+          "id": "v-hours",
+          "heading": "Hours and parking",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "note": "Closed Sunday and Monday. The alley door has a ramp and a bell.",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "v-note",
+          "variant": "prose",
           "html": "<p>Groups of six or more, including guild bees, should write ahead so we can set the classroom. Out-of-town quilters can ask for a cutting table and an iron.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "layout": "framed"
+          }
         }
       ]
     },
     {
-      "slug": "contact", "title": "Contact", "nav": true,
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "co-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "co-hero",
+          "variant": "minimal",
           "title": "Contact {{guild_name}}",
           "subtitle": "Sample text — replace me: Class waitlists, special orders, and longarm bookings.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
-        { "type": "contact", "id": "form", "showDetails": true, "style": { "bg": "tint" } },
-        { "type": "blog_teaser", "id": "letter", "heading": "From the shop letter", "limit": 3, "style": { "bg": "none" } }
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "blog_teaser",
+          "id": "letter",
+          "heading": "From the shop letter",
+          "limit": 3,
+          "style": {
+            "bg": "none",
+            "layout": "framed"
+          }
+        }
       ]
     }
   ]
