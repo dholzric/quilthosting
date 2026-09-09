@@ -146,6 +146,32 @@ describe("admin.html inline scripts parse", () => {
   it("each compiles (the vitest form of node --check)", () => {
     for (const src of scripts) expect(() => new Function(src)).not.toThrow();
   });
+
+  // Parsing is not enough. `window.foo = foo;` where foo no longer exists is
+  // valid syntax and a ReferenceError at load, which stops the rest of the
+  // script — including sign-in. That shipped once, when a removed dialog left
+  // its export line behind.
+  it("every window.* export names something the script declares", () => {
+    const body = scripts.join("\n");
+    const declared = new Set<string>();
+    const add = (list: string) => {
+      for (const part of list.split(",")) {
+        const id = /^\s*(?:\.\.\.)?([A-Za-z_$][\w$]*)/.exec(part);
+        if (id) declared.add(id[1]);
+      }
+    };
+    for (const m of body.matchAll(/\n\s*(?:async\s+)?(?:function|const|let|var|class)\s+([A-Za-z_$][\w$]*)/g)) {
+      declared.add(m[1]);
+    }
+    // A name in scope can also be a parameter or a destructured binding.
+    for (const m of body.matchAll(/\n\s*(?:async\s+)?function\s+[A-Za-z_$][\w$]*\s*\(([^)]*)\)/g)) add(m[1]);
+    for (const m of body.matchAll(/\b(?:const|let|var)\s*[{[]([^}\]]*)[}\]]\s*=/g)) add(m[1]);
+    const missing: string[] = [];
+    for (const m of body.matchAll(/\n\s*window\.([A-Za-z_$][\w$]*)\s*=\s*([A-Za-z_$][\w$]*)\s*;/g)) {
+      if (!declared.has(m[2])) missing.push(`window.${m[1]} = ${m[2]}`);
+    }
+    expect(missing, "exported but never declared").toEqual([]);
+  });
 });
 
 describe("admin.html thumbnails and defaults mirror the section schema", () => {
