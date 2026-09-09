@@ -112,12 +112,12 @@
   <!-- Login -->
   <div id="login-view" class="login-box">
     <h1><a href="/" style="color:inherit;text-decoration:none"><span style="color:var(--brand)">✦</span> QuiltHosting</a></h1>
-    <div id="login-error" class="error hidden"></div>
+    <div id="login-error" class="error hidden" role="alert" aria-live="assertive"></div>
     <div id="password-login">
-      <label>Email</label>
-      <input type="email" id="login-email" placeholder="you@guild.org" />
-      <label>Password</label>
-      <input type="password" id="login-password" placeholder="••••••••" />
+      <label for="login-email">Email</label>
+      <input type="email" id="login-email" autocomplete="email" aria-describedby="login-error" placeholder="you@guild.org" />
+      <label for="login-password">Password</label>
+      <input type="password" id="login-password" autocomplete="current-password" aria-describedby="login-error" placeholder="••••••••" />
       <button onclick="doLogin()" style="width:100%;margin-top:0.5rem">Sign In</button>
       <div style="display:flex;align-items:center;gap:0.75rem;margin:1rem 0">
         <hr style="flex:1;border:none;border-top:1px solid var(--border)">
@@ -134,7 +134,7 @@
   <!-- Guild picker / first-guild creation -->
   <div id="guild-view" class="login-box hidden">
     <h1>Your Guilds</h1>
-    <div id="guild-error" class="error hidden"></div>
+    <div id="guild-error" class="error hidden" role="alert" aria-live="assertive"></div>
     <div id="guild-list"></div>
     <p id="guild-create-toggle" class="hidden" style="margin:0.75rem 0 0">
       <a href="#" onclick="show(document.getElementById('guild-create'));hide(document.getElementById('guild-create-toggle'));return false" style="font-size:0.9rem">+ Create a new guild</a>
@@ -199,7 +199,7 @@
       <h1><span class="thread">✦</span> QuiltHosting</h1>
       <ol class="fr-steps" id="fr-steps"></ol>
     </div>
-    <div id="fr-error" class="error hidden"></div>
+    <div id="fr-error" class="error hidden" role="alert" aria-live="assertive"></div>
     <div id="fr-body" class="fr-card"></div>
     <p style="text-align:center;margin-top:1rem">
       <a href="#" onclick="frExit();return false" style="font-size:0.85rem;color:var(--muted)">Save and finish later</a>
@@ -208,18 +208,19 @@
 
   <!-- App -->
   <div id="app-view" class="layout hidden">
+    <a class="qh-skip" href="#page-content">Skip to content</a>
     <aside class="sidebar">
-      <h1><a href="/" style="color:inherit;text-decoration:none"><span class="thread">✦</span> QuiltHosting</a></h1>
+      <h1><a href="/" style="color:inherit;text-decoration:none"><span class="thread" aria-hidden="true">✦</span> QuiltHosting</a></h1>
       <!-- Built at runtime by renderSidebarNav() from ADMIN_NAV (the mirror of
            src/lib/adminNav.ts) crossed with the Simple/Advanced switch, the
            role, the tenant type and settings.features. Do not hand-write
            links here: src/lib/adminNavGating.test.ts pins the model. -->
       <nav></nav>
-      <div class="guild-tag" id="tenant-label" title="Click to switch guild" style="cursor:pointer" onclick="switchTenant()"></div>
+      <div class="guild-tag" id="tenant-label" role="button" tabindex="0" title="Click to switch guild" style="cursor:pointer" onclick="switchTenant()"></div>
       <p id="platform-badge" class="hidden" style="font-size:0.7rem;color:var(--brand);margin:0.35rem 0.75rem 0;letter-spacing:0.02em">PLATFORM ADMIN</p>
     </aside>
     <main class="main">
-      <div id="page-content"></div>
+      <div id="page-content" tabindex="-1"></div>
     </main>
   </div>
 
@@ -683,6 +684,9 @@
     function renderSidebarNav() {
       const nav = document.querySelector(".sidebar nav");
       if (!nav) return;
+      // Named here, not in the markup: adminNavGating.test.ts pins `<nav></nav>`
+      // as empty so nobody hand-writes links into it.
+      nav.setAttribute("aria-label", "Admin sections");
       const activeEl = nav.querySelector("a.active");
       const activePage = activeEl ? activeEl.dataset.page : "dashboard";
       const tenantType = (currentTenant && currentTenant.tenant_type) === "business" ? "business" : "guild";
@@ -730,6 +734,46 @@
         else hide(badge);
       }
     }
+    /* ---------- accessibility: label linking, dialogs, canvas focus ----------
+     * Nearly every admin screen writes `<label>Name</label><input id="…">`,
+     * which reads as an unnamed field. Rather than hand-edit ~90 call sites in
+     * screens three people are editing at once, one observer walks anything the
+     * app renders and links each orphan label to the control that follows it.
+     * It only ever adds attributes — no markup is moved. */
+    function qhLinkLabels(root) {
+      const host = root || document.body;
+      if (!host || !host.querySelectorAll) return;
+      let seq = 0;
+      host.querySelectorAll("label:not([for]):not([data-qh-lbl])").forEach((label) => {
+        label.dataset.qhLbl = "1";
+        // A label that wraps its own control (checkbox rows) is already correct.
+        if (label.querySelector("input,select,textarea")) return;
+        let n = label.nextElementSibling;
+        // Skip hint paragraphs and spans between the label and its field.
+        while (n && !/^(INPUT|SELECT|TEXTAREA)$/.test(n.tagName) && /^(P|SPAN|SMALL|DIV)$/.test(n.tagName) && !n.querySelector("input,select,textarea")) n = n.nextElementSibling;
+        if (n && /^(DIV)$/.test(n.tagName)) n = n.querySelector("input,select,textarea");
+        if (!n || !/^(INPUT|SELECT|TEXTAREA)$/.test(n.tagName)) return;
+        if (n.type === "hidden") return;
+        if (!n.id) n.id = "qh-f-" + Date.now().toString(36) + "-" + (seq++);
+        // Never steal a control another label already owns.
+        if (document.querySelector('label[for="' + CSS.escape(n.id) + '"]')) return;
+        label.setAttribute("for", n.id);
+      });
+    }
+    // Everything in the admin is rendered after load, so watch instead of
+    // calling this from each of the ~30 render functions.
+    (function watchLabels() {
+      let queued = false;
+      const run = () => { queued = false; try { qhLinkLabels(document.body); } catch (e) { /* never break a render */ } };
+      new MutationObserver(() => { if (!queued) { queued = true; setTimeout(run, 60); } })
+        .observe(document.body, { childList: true, subtree: true });
+      run();
+    })();
+    // The guild tag switches guilds on click; role=button needs the keyboard too.
+    document.getElementById("tenant-label")?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); switchTenant(); }
+    });
+
     // After a screen renders: for roles without write access, disable the
     // buttons that would change data and say so once at the top.
     const WRITE_BUTTON_RE = /\b(save|publish|delete|remove|create|add|send|invite|upload|schedule|cancel|archive|restore|retry|discard|new |connect|revoke|refund|import|mark|pin|enable|disable|test|replay|generate|check in|sign|re-?send|assign|clear)\b/i;
@@ -5512,7 +5556,7 @@
       let dlg = document.getElementById("qh-upgrade-dlg");
       if (!dlg) {
         dlg = document.createElement("dialog");
-        dlg.id = "qh-upgrade-dlg"; dlg.className = "qh-upgrade-dlg"; dlg.setAttribute("aria-label", "Try the new design");
+        dlg.id = "qh-upgrade-dlg"; dlg.className = "qh-upgrade-dlg"; dlg.setAttribute("role", "dialog"); dlg.setAttribute("aria-modal", "true"); dlg.setAttribute("aria-label", "Try the new design");
         document.body.appendChild(dlg);
       }
       dlg.replaceChildren();
@@ -5889,7 +5933,9 @@
           </details>
           <div class="wb-grid" id="wb-edit-mode">
             <aside class="wb-palette" aria-label="Add a section">
-              <h4>Add a section</h4>
+              <!-- The tag is h4 for the existing type scale; aria-level places
+                   it correctly in the outline (h1 shell → 2 → 3 groups). -->
+              <h4 role="heading" aria-level="2">Add a section</h4>
               <div id="wb-palette-list">${wbPaletteHtml()}</div>
               <p class="muted" style="font-size:0.75rem;margin-top:0.75rem">Click to add at the end, or drag onto the page.</p>
             </aside>
@@ -5918,8 +5964,8 @@
             <div class="wb-preview-stage"><iframe id="wb-preview-frame" title="Page preview" sandbox="allow-scripts allow-same-origin allow-forms"></iframe></div>
           </div>
         </div>
-        <dialog id="wb-library" aria-label="Image library"></dialog>
-        <dialog id="wb-history-dlg" aria-label="Page history"></dialog>`;
+        <dialog id="wb-library" role="dialog" aria-modal="true" aria-label="Image library"></dialog>
+        <dialog id="wb-history-dlg" role="dialog" aria-modal="true" aria-label="Page history"></dialog>`;
 
       // Wire top bar.
       document.getElementById("wb-back").addEventListener("click", async () => { await wbFlushSave(); WB.view = "list"; WB.onBack(); });
@@ -5991,7 +6037,7 @@
       return WB_GROUPS.map((g) => {
         const types = g.types.filter((t) => wbTypesForTenant().includes(t));
         if (!types.length) return "";
-        return `<h5>${esc(g.name)}</h5>${types.map((t) => chip(t, WB_BLOCK_META[t].label, WB_BLOCK_META[t].icon, WB_BLOCK_META[t].hint)).join("")}`;
+        return `<h5 role="heading" aria-level="3">${esc(g.name)}</h5>${types.map((t) => chip(t, WB_BLOCK_META[t].label, WB_BLOCK_META[t].icon, WB_BLOCK_META[t].hint)).join("")}`;
       }).join("");
     }
     // Section picker for a section document: a search box, the catalog's
@@ -6020,7 +6066,7 @@
         (cat.groups || []).forEach((g) => {
           const types = cat.types.filter((t) => t.group === g && (!q || `${t.label} ${t.hint || ""} ${t.type}`.toLowerCase().includes(q)));
           if (!types.length) return;
-          const h = document.createElement("h5"); h.textContent = g; list.appendChild(h);
+          const h = document.createElement("h5"); h.setAttribute("role", "heading"); h.setAttribute("aria-level", "3"); h.textContent = g; list.appendChild(h);
           types.forEach((t) => {
             const variants = (t.variants || []).filter((v) => v);
             const chip = document.createElement("button");
@@ -6380,6 +6426,13 @@
           <div class="wb-drop" data-insert="${i + 1}"></div>`;
       });
       page.innerHTML = html;
+      // The canvas is an editing surface, not a live page: the rendered
+      // preview's own links, buttons and inputs would otherwise put dozens of
+      // dead stops between one section and the next (and activating one would
+      // navigate away from the editor). The section itself and its toolbar
+      // stay focusable; everything inside the preview body does not.
+      page.querySelectorAll('.wb-block-body a[href], .wb-block-body button, .wb-block-body input, .wb-block-body select, .wb-block-body textarea, .wb-block-body summary, .wb-block-body [tabindex]')
+        .forEach((n) => n.setAttribute("tabindex", "-1"));
       page.querySelectorAll(".wb-block").forEach((el) => {
         const i = Number(el.dataset.bi);
         el.addEventListener("click", (e) => {
@@ -6538,6 +6591,7 @@
       const b = typeof i === "number" ? WB.blocks[i] : null;
       panel.replaceChildren();
       const h = document.createElement("h4");
+      h.setAttribute("role", "heading"); h.setAttribute("aria-level", "2");
       if (!b) {
         h.textContent = "Section settings";
         panel.appendChild(h);

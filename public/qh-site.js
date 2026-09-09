@@ -47,6 +47,13 @@
     return h ? h.textContent.trim() : "";
   }
   function busy(node, on) { if (on) node.setAttribute("aria-busy", "true"); else node.removeAttribute("aria-busy"); }
+  /** Point (or, with id null, unpoint) every field in `root` at error summary `forId`. */
+  function describe(root, id, forId) {
+    $$("input,select,textarea", root).forEach(function (i) {
+      if (id) i.setAttribute("aria-describedby", id);
+      else if (i.getAttribute("aria-describedby") === forId) i.removeAttribute("aria-describedby");
+    });
+  }
   /** The single network path: resolves {ok, status, data}; a non-JSON body becomes {}. */
   function api(path, init) {
     return fetch(qhBase + "/public/" + encodeURIComponent(qhSlug) + path, init).then(function (r) {
@@ -104,6 +111,8 @@
   }
   /** Shared wiring for every <dialog>: Escape (both key and native cancel), focus trap, focus restore. */
   function wireDialog(d, onKey) {
+    // showModal() implies both, but stating them serves older AT (and a11y.test.ts).
+    d.setAttribute("role", "dialog"); d.setAttribute("aria-modal", "true");
     d.addEventListener("keydown", function (e) {
       if (e.key === "Escape") { e.preventDefault(); closeModal(d); }
       else if (onKey) onKey(e);
@@ -124,15 +133,19 @@
     close.addEventListener("click", function () { closeModal(d); });
     head.append(h, close);
     var err = el("p", "qh-form__error");
+    err.id = "qh-dialog-err-" + dialogSeq;
     err.setAttribute("role", "alert");
+    err.setAttribute("aria-live", "assertive");
     err.hidden = true;
     d.append(head, body, err);
     wireDialog(d);
     return {
-      el: d, title: h, body: body,
-      open: function (opener) { err.hidden = true; openModal(d, opener); },
+      el: d, title: h, body: body, errId: err.id,
+      // The error summary is announced (role=alert) and, once shown, pointed at
+      // from every field so reading a control repeats why it was rejected.
+      open: function (opener) { err.hidden = true; describe(d, null, err.id); openModal(d, opener); },
       close: function () { closeModal(d); },
-      fail: function (msg) { err.textContent = msg; err.hidden = false; },
+      fail: function (msg) { err.textContent = msg; err.hidden = false; describe(d, err.id, err.id); },
     };
   }
   /** Join custom fields and event questions share one shape: {key,label,type,required,options}. */
@@ -209,6 +222,8 @@
     var panel = drawer.querySelector(".qh-drawer__panel") || drawer, isDialog = drawer.tagName === "DIALOG";
     if (!drawer.id) drawer.id = "qh-drawer";
     toggle.setAttribute("aria-controls", drawer.id); toggle.setAttribute("aria-expanded", "false");
+    drawer.setAttribute("role", "dialog"); drawer.setAttribute("aria-modal", "true");
+    if (!drawer.getAttribute("aria-label")) drawer.setAttribute("aria-label", "Menu");
     function isOpen() { return isDialog ? drawer.open : drawer.hasAttribute("open"); }
     function open() {
       if (isDialog && typeof drawer.showModal === "function") { if (!drawer.open) drawer.showModal(); } else drawer.setAttribute("open", "");
@@ -556,6 +571,8 @@
       var list = document.getElementById(input.getAttribute("data-directory-filter"));
       if (!list) return;
       var items = $$(".qh-directory__member", list), count = document.querySelector("[data-directory-count]");
+      // The result count is the only feedback a filter gives; announce it.
+      if (count) { count.setAttribute("role", "status"); count.setAttribute("aria-live", "polite"); }
       input.addEventListener("input", function () {
         var q = input.value.trim().toLowerCase(), shown = 0;
         items.forEach(function (it) { var hit = !q || it.textContent.toLowerCase().indexOf(q) >= 0; it.hidden = !hit; if (hit) shown++; });
@@ -613,7 +630,8 @@
       var msg = el("textarea"); msg.name = "message"; msg.placeholder = "How can I help?"; msg.rows = 5;
       var btn = el("button", "btn", node.getAttribute("data-submit-label") || "Send");
       btn.type = "submit";
-      form.append(name, email, msg, btn);
+      // A placeholder is not a label: every control gets a real <label>.
+      form.append(labelled("Your name", name), labelled("Your email", email), labelled("Message", msg), btn);
       form.addEventListener("submit", function (e) {
         e.preventDefault();
         btn.disabled = true;
@@ -633,7 +651,8 @@
     var form = el("form", "card");
     var name = textInput("text", "name", "Your name", true), email = textInput("email", "email", "Your email", true);
     var phone = textInput("text", "phone", "Phone (optional)");
-    form.append(el("h3", "", node.getAttribute("data-heading") || "Request a quote"), name, email, phone);
+    form.append(el("h3", "", node.getAttribute("data-heading") || "Request a quote"),
+      labelled("Your name", name), labelled("Your email", email), labelled("Phone (optional)", phone));
     function num(placeholder, max) {
       var i = textInput("number", "", placeholder); i.min = "1"; i.max = String(max); return i;
     }
@@ -642,7 +661,8 @@
     [["edge_to_edge", "Edge to edge"], ["custom", "Custom quilting"]].forEach(function (pair) {
       var o = el("option", "", pair[1]); o.value = pair[0]; level.appendChild(o);
     });
-    if (tshirt) form.appendChild(blocks); else form.append(width, height, level);
+    if (tshirt) form.appendChild(labelled("How many T-shirt blocks?", blocks));
+    else form.append(labelled("Quilt width (inches)", width), labelled("Quilt height (inches)", height), labelled("Quilting style", level));
     var addons = {};
     [["batting", "Batting"], ["thread", "Thread"], ["binding", "Binding"],
      ["backingPrep", "Backing preparation"], ["rush", "Rush turnaround"]].forEach(function (pair) {
@@ -656,6 +676,9 @@
     var photoLabel = el("label"), photoInput = el("input"), photoError = el("p", "muted", "");
     photoInput.type = "file"; photoInput.multiple = true;
     photoInput.accept = "image/png,image/jpeg,image/gif,image/webp,image/avif";
+    photoError.id = "qh-intake-photo-err-" + (++dialogSeq);
+    photoError.setAttribute("role", "status"); photoError.setAttribute("aria-live", "polite");
+    photoInput.setAttribute("aria-describedby", photoError.id);
     photoLabel.append(photoInput, document.createTextNode(" Photos (optional)"));
     form.append(photoLabel, el("p", "muted", "Up to " + MAX_PHOTOS + " photos, 10MB each." +
       (tshirt ? " A photo of the shirts really helps." : "")), photoError);
@@ -669,6 +692,7 @@
     photoInput.addEventListener("change", function () { photoError.textContent = validatePhotos(photoInput.files) || ""; });
     var btn = el("button", "btn", node.getAttribute("data-submit-label") || "Get my estimate"), out = el("div", "muted");
     btn.type = "submit";
+    out.setAttribute("role", "status"); out.setAttribute("aria-live", "polite");
     form.append(btn, out);
     var PHOTO_FAIL = " but the photos didn't attach. Please contact us directly to send them, and mention your reference number.";
     form.addEventListener("submit", function (ev) {

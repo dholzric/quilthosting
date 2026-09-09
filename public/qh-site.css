@@ -64,7 +64,13 @@ a:hover{color:var(--_primary-hover)}
 img,video,svg,iframe{max-width:100%}
 img,video{height:auto;display:block}
 button,input,select,textarea{font:inherit;color:inherit}
-:focus-visible{outline:2px solid var(--_focus);outline-offset:2px;border-radius:2px}
+/* The focus ring is token-driven so a dark or image ground can flip it to
+   currentColor. The `currentColor` fallback is load-bearing: this sheet is
+   also loaded (rescoped under .wb-page) by the admin's editor canvas, where
+   .qh-site never matches and --_focus is therefore unset — without it the
+   declaration would be invalid at computed-value time and every control in
+   the canvas would lose its ring. */
+:focus-visible{outline:2px solid var(--_focus,currentColor);outline-offset:2px;border-radius:2px}
 .qh-lead{font-size:var(--_fs5);color:var(--_muted);max-width:60ch}
 .qh-muted,.muted{color:var(--_muted)}
 .qh-eyebrow{text-transform:uppercase;letter-spacing:.1em;font-size:.8rem;font-weight:600;
@@ -99,7 +105,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .qh-btn--ghost{background:transparent;color:inherit;border-color:transparent;text-decoration:underline;text-underline-offset:.2em}
 .qh-btn--ghost:hover{background:var(--_tint);color:inherit}
 .qh-btn--accent{background:var(--_accent);color:var(--_on-accent);border-color:var(--_accent)}
-.qh-btn:focus-visible,.btn:focus-visible{outline:2px solid var(--_focus);outline-offset:3px}
+.qh-btn:focus-visible,.btn:focus-visible{outline:2px solid var(--_focus,currentColor);outline-offset:3px}
 .qh-btn[disabled],.btn[disabled]{opacity:.6;cursor:progress}
 .qh-btn--block{width:100%}
 .qh-card,.card{background:var(--_surface);border:1px solid var(--_border);border-radius:var(--_radius);
@@ -209,8 +215,12 @@ html{scroll-padding-top:calc(var(--_header-h) + 1rem)}
 /* On colored grounds: text, links, muted text, and buttons inherit the ground's ink. */
 :is(.qh-s--bg-brand,.qh-s--bg-dark,.qh-s--bg-image) :is(a,.qh-eyebrow,.qh-muted,.muted,.qh-lead){color:inherit}
 :is(.qh-s--bg-brand,.qh-s--bg-dark,.qh-s--bg-image) :is(.qh-muted,.muted,.qh-lead){opacity:.85}
-.qh-s--bg-brand .qh-btn--primary{background:var(--_on-primary);color:var(--_primary);border-color:var(--_on-primary)}
-:is(.qh-s--bg-dark,.qh-s--bg-image) .qh-btn--primary{background:var(--_on-dark);color:var(--_dark);border-color:var(--_on-dark)}
+/* The inverted primary button is a light chip on a dark ground, so its
+   currentColor is dark — and the ring is drawn *outside* it (offset 3px), on
+   the dark ground. Point --_focus back at the ground's ink or the ring
+   disappears into the section behind the button. */
+.qh-s--bg-brand .qh-btn--primary{background:var(--_on-primary);color:var(--_primary);border-color:var(--_on-primary);--_focus:var(--_on-primary)}
+:is(.qh-s--bg-dark,.qh-s--bg-image) .qh-btn--primary{background:var(--_on-dark);color:var(--_dark);border-color:var(--_on-dark);--_focus:var(--_on-dark)}
 :is(.qh-s--bg-brand,.qh-s--bg-dark,.qh-s--bg-image) .qh-btn--secondary{color:inherit;border-color:currentColor}
 :is(.qh-s--bg-brand,.qh-s--bg-dark,.qh-s--bg-image) .qh-btn:hover{background:rgb(255 255 255/.9);color:var(--_dark)}
 .qh-s--align-center{text-align:center}
@@ -323,7 +333,11 @@ html{scroll-padding-top:calc(var(--_header-h) + 1rem)}
 .qh-gallery--grid .qh-gallery__item img{aspect-ratio:1;object-fit:cover}
 .qh-gallery--masonry .qh-gallery__items{columns:3;column-gap:.75rem}
 .qh-gallery--masonry .qh-gallery__item{break-inside:avoid;margin-bottom:.75rem}
-.qh-lightbox{border:0;padding:0;background:rgb(0 0 0/.92);max-width:100vw;max-height:100vh;width:100%;height:100%}
+/* Near-black ground: the close/prev/next controls and their focus ring have to
+   switch to the on-dark ink or they are invisible against the backdrop. */
+.qh-lightbox{border:0;padding:0;background:rgb(0 0 0/.92);max-width:100vw;max-height:100vh;width:100%;height:100%;
+  color:var(--_on-dark);--_focus:currentColor}
+.qh-lightbox .qh-btn{color:inherit}
 .qh-lightbox img{max-width:100%;max-height:100vh;margin:auto;object-fit:contain}
 
 /* ---- Section: events (cards | list | calendar | next_up) ---------------- */
@@ -376,7 +390,7 @@ html{scroll-padding-top:calc(var(--_header-h) + 1rem)}
 .qh-join-band .qh-join-band__body{max-width:40rem;margin-inline:auto}
 .qh-join-band h2{font-size:var(--_fs3);color:inherit}
 .qh-join-band p{opacity:.9;margin-bottom:1.5rem}
-.qh-join-band .qh-btn--primary{background:var(--_on-primary);color:var(--_primary);border-color:var(--_on-primary)}
+.qh-join-band .qh-btn--primary{background:var(--_on-primary);color:var(--_primary);border-color:var(--_on-primary);--_focus:var(--_on-primary)}
 .qh-join-band .qh-btn:hover{background:rgb(255 255 255/.9);color:var(--_primary)}
 .qh-join-band a{color:inherit}
 
@@ -417,7 +431,7 @@ form.qh-form{display:flex;flex-direction:column;gap:.8rem;max-width:34rem}
   border:1px solid var(--_border);border-radius:var(--_radius);background:var(--_surface);color:var(--_ink)}
 :is(.qh-form,.qh-contact,.qh-quote-cta,.qh-block-project-intake,.qh-block-contact-form) textarea{min-height:6rem}
 :is(.qh-form,.qh-contact,.qh-quote-cta,.qh-block-project-intake,.qh-block-contact-form) :is(input,select,textarea):focus-visible{
-  outline:2px solid var(--_primary);outline-offset:1px}
+  outline:2px solid var(--_focus,currentColor);outline-offset:1px}
 :is(.qh-form,.qh-contact,.qh-quote-cta,.qh-block-project-intake,.qh-block-contact-form) label{
   display:flex;flex-direction:column;align-items:flex-start;gap:.35rem;font-weight:500}
 :is(.qh-form,.qh-contact,.qh-quote-cta,.qh-block-project-intake,.qh-block-contact-form) label:has(input[type="checkbox"]){

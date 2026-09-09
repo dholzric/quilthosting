@@ -19,9 +19,10 @@
   </style>
 </head>
 <body class="has-fleet-footer">
+  <a class="qh-skip" href="#portal-main">Skip to content</a>
   <header class="portal-header">
     <div class="inner">
-      <h1><a href="/" style="color:inherit;text-decoration:none" title="QuiltHosting home"><span style="color:var(--gold)">✦</span></a> <span id="guild-title">Member Portal</span></h1>
+      <h1><a href="/" style="color:inherit;text-decoration:none" title="QuiltHosting home" aria-label="QuiltHosting home"><span aria-hidden="true" style="color:var(--gold)">✦</span></a> <span id="guild-title">Member Portal</span></h1>
       <div class="row" style="justify-content:flex-end">
         <span id="user-email" style="color:#a89a83;font-size:0.85rem"></span>
         <a href="#" id="switch-guild-btn" class="hidden" onclick="switchGuild();return false">Switch guild</a>
@@ -31,9 +32,9 @@
   </header>
 
   <!-- Event registration: collects the event's custom questions before POSTing -->
-  <dialog id="reg-dialog">
+  <dialog id="reg-dialog" role="dialog" aria-modal="true" aria-labelledby="reg-title">
     <h3 id="reg-title" style="margin-top:0"></h3>
-    <div id="reg-error" class="error hidden"></div>
+    <div id="reg-error" class="error hidden" role="alert" aria-live="assertive"></div>
     <div id="reg-questions"></div>
     <div class="row" style="justify-content:flex-end;margin-top:1.2rem">
       <button class="secondary" type="button" onclick="document.getElementById('reg-dialog').close()">Cancel</button>
@@ -41,16 +42,16 @@
     </div>
   </dialog>
 
-  <div class="wrap">
+  <main class="wrap" id="portal-main">
     <!-- Login -->
     <div id="login-view" class="card">
       <h2>Sign in</h2>
       <p class="muted" style="margin-bottom:1rem">Use the email associated with your guild membership.</p>
-      <div id="login-error" class="error hidden"></div>
-      <label>Email</label>
-      <input type="email" id="login-email" placeholder="you@example.com" />
-      <label>Password</label>
-      <input type="password" id="login-password" placeholder="••••••••" />
+      <div id="login-error" class="error hidden" role="alert" aria-live="assertive"></div>
+      <label for="login-email">Email</label>
+      <input type="email" id="login-email" autocomplete="email" aria-describedby="login-error" placeholder="you@example.com" />
+      <label for="login-password">Password</label>
+      <input type="password" id="login-password" autocomplete="current-password" aria-describedby="login-error" placeholder="••••••••" />
       <div class="row" style="margin-top:0.5rem">
         <button onclick="doLogin()">Sign in</button>
         <button class="secondary" onclick="doMagicLink()">Email me a login link</button>
@@ -60,29 +61,31 @@
       </p>
     </div>
 
-    <!-- Portal -->
+    <!-- Portal. The tabs are a real ARIA tablist: each button owns its panel,
+         aria-selected tracks the active one (showTab), and each panel names
+         itself from its tab. -->
     <div id="portal-view" class="hidden">
-      <div class="tabs">
-        <button class="active" data-tab="home" onclick="showTab('home')">Home</button>
-        <button data-tab="events" onclick="showTab('events')">Events</button>
-        <button data-tab="invoices" onclick="showTab('invoices')">Invoices</button>
-        <button data-tab="documents" onclick="showTab('documents')">Documents</button>
-        <button data-tab="directory" onclick="showTab('directory')">Directory</button>
-        <button data-tab="forum" onclick="showTab('forum')">Forum</button>
-        <button data-tab="pages" onclick="showTab('pages')">Guild Info</button>
-        <button data-tab="profile" onclick="showTab('profile')">Profile</button>
+      <div class="tabs" role="tablist" aria-label="Member portal sections">
+        <button class="active" role="tab" id="tabbtn-home" aria-selected="true" aria-controls="tab-home" data-tab="home" onclick="showTab('home')">Home</button>
+        <button role="tab" id="tabbtn-events" aria-selected="false" aria-controls="tab-events" data-tab="events" onclick="showTab('events')">Events</button>
+        <button role="tab" id="tabbtn-invoices" aria-selected="false" aria-controls="tab-invoices" data-tab="invoices" onclick="showTab('invoices')">Invoices</button>
+        <button role="tab" id="tabbtn-documents" aria-selected="false" aria-controls="tab-documents" data-tab="documents" onclick="showTab('documents')">Documents</button>
+        <button role="tab" id="tabbtn-directory" aria-selected="false" aria-controls="tab-directory" data-tab="directory" onclick="showTab('directory')">Directory</button>
+        <button role="tab" id="tabbtn-forum" aria-selected="false" aria-controls="tab-forum" data-tab="forum" onclick="showTab('forum')">Forum</button>
+        <button role="tab" id="tabbtn-pages" aria-selected="false" aria-controls="tab-pages" data-tab="pages" onclick="showTab('pages')">Guild Info</button>
+        <button role="tab" id="tabbtn-profile" aria-selected="false" aria-controls="tab-profile" data-tab="profile" onclick="showTab('profile')">Profile</button>
       </div>
 
-      <div id="tab-home"></div>
-      <div id="tab-events" class="hidden"></div>
-      <div id="tab-invoices" class="hidden"></div>
-      <div id="tab-documents" class="hidden"></div>
-      <div id="tab-directory" class="hidden"></div>
-      <div id="tab-forum" class="hidden"></div>
-      <div id="tab-pages" class="hidden"></div>
-      <div id="tab-profile" class="hidden"></div>
+      <div id="tab-home" role="tabpanel" aria-labelledby="tabbtn-home"></div>
+      <div id="tab-events" class="hidden" role="tabpanel" aria-labelledby="tabbtn-events"></div>
+      <div id="tab-invoices" class="hidden" role="tabpanel" aria-labelledby="tabbtn-invoices"></div>
+      <div id="tab-documents" class="hidden" role="tabpanel" aria-labelledby="tabbtn-documents"></div>
+      <div id="tab-directory" class="hidden" role="tabpanel" aria-labelledby="tabbtn-directory"></div>
+      <div id="tab-forum" class="hidden" role="tabpanel" aria-labelledby="tabbtn-forum"></div>
+      <div id="tab-pages" class="hidden" role="tabpanel" aria-labelledby="tabbtn-pages"></div>
+      <div id="tab-profile" class="hidden" role="tabpanel" aria-labelledby="tabbtn-profile"></div>
     </div>
-  </div>
+  </main>
 
   <script src="/qh-cal.js"></script>
   <script>
@@ -119,6 +122,7 @@
         if (w) w.close();
         const msg = document.createElement("p");
         msg.className = "error";
+        msg.setAttribute("role", "alert");
         msg.textContent = e.message || "Could not open link";
         document.body.prepend(msg);
         setTimeout(() => msg.remove(), 5000);
@@ -223,17 +227,19 @@
       location.reload();
     });
 
-    function showTab(name) {
-      ["home", "events", "invoices", "documents", "directory", "forum", "pages", "profile"].forEach((t) => {
+    const TABS = ["home", "events", "invoices", "documents", "directory", "forum", "pages", "profile"];
+    function showTab(name, focusTab) {
+      TABS.forEach((t) => {
         const panel = document.getElementById("tab-" + t);
         const btn = document.querySelector(`.tabs button[data-tab="${t}"]`);
-        if (t === name) {
-          show(panel);
-          btn.classList.add("active");
-        } else {
-          hide(panel);
-          btn.classList.remove("active");
-        }
+        const on = t === name;
+        if (on) show(panel); else hide(panel);
+        btn.classList.toggle("active", on);
+        // ARIA tablist contract: one selected tab, and only it is tab-reachable
+        // (arrow keys move between tabs — see the keydown handler below).
+        btn.setAttribute("aria-selected", on ? "true" : "false");
+        btn.tabIndex = on ? 0 : -1;
+        if (on && focusTab) btn.focus();
       });
       if (name === "events") loadEvents();
       if (name === "invoices") loadInvoices();
@@ -243,6 +249,17 @@
       if (name === "pages") loadGuildPages();
       if (name === "profile") loadProfile();
     }
+
+    document.querySelector(".tabs")?.addEventListener("keydown", (e) => {
+      const step = { ArrowRight: 1, ArrowLeft: -1, Home: "first", End: "last" }[e.key];
+      if (step === undefined) return;
+      e.preventDefault();
+      const at = TABS.indexOf(e.target.dataset.tab);
+      const next = step === "first" ? 0 : step === "last" ? TABS.length - 1
+        : (at + step + TABS.length) % TABS.length;
+      showTab(TABS[next], true);
+    });
+    showTab("home"); // normalise aria-selected / roving tabindex before first paint
 
     function elBuild(tag, className, text) {
       const n = document.createElement(tag);
@@ -388,12 +405,12 @@
         el.innerHTML = `
           <div class="card">
             <h2>Member forum</h2>
-            <label>New topic title</label>
+            <label for="f-title">New topic title</label>
             <input id="f-title" placeholder="Show & tell ideas" />
-            <label>Body</label>
+            <label for="f-body">Body</label>
             <textarea id="f-body" rows="3" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px;font:inherit"></textarea>
             <button onclick="postTopic()" style="margin-top:0.5rem">Post topic</button>
-            <span id="f-msg" class="muted" style="margin-left:0.5rem"></span>
+            <span id="f-msg" class="muted" role="status" aria-live="polite" style="margin-left:0.5rem"></span>
           </div>
           <div class="card">
             ${topics.length === 0 ? "<p class='muted'>No topics yet — start one!</p>" : topics.map((t) => `
@@ -440,7 +457,7 @@
             <hr />
             ${posts.map((p) => `<p style="font-size:0.95rem"><strong>${esc([p.first_name,p.last_name].filter(Boolean).join(" ")||"Member")}</strong>
               <span class="muted" style="font-size:0.8rem">${new Date(p.created_at).toLocaleString()}</span><br>${esc(p.body)}</p>`).join("") || "<p class='muted'>No replies yet.</p>"}
-            <label>Reply</label>
+            <label for="f-reply">Reply</label>
             <textarea id="f-reply" rows="2" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px;font:inherit"></textarea>
             <button onclick='replyTopic(${JSON.stringify(id)})' style="margin-top:0.5rem">Reply</button>
           </div>`;
@@ -681,6 +698,7 @@
       for (const q of questions) {
         const label = document.createElement("label");
         label.textContent = q.label + (q.required ? " *" : "");
+        label.htmlFor = "reg-q-" + q.key;
         box.appendChild(label);
         let input;
         if (q.type === "select") {
@@ -701,6 +719,10 @@
           input.maxLength = 500;
         }
         input.dataset.qKey = q.key;
+        input.id = "reg-q-" + q.key;
+        // The error summary is announced (role=alert) and named by every field
+        // it can be about, so reading a control repeats why it was rejected.
+        input.setAttribute("aria-describedby", "reg-error");
         if (q.required) input.required = true;
         box.appendChild(input);
       }
@@ -783,7 +805,7 @@
                     <td>${esc(i.type)}</td>
                     <td>${money(i.amount_cents)}</td>
                     <td><span class="badge ${i.status === "succeeded" ? "active" : "pending"}">${i.status}</span></td>
-                    <td><a href="#" onclick="openSignedLink('/api/portal/${esc(slug)}/receipts/${esc(i.id)}/link');return false;">Receipt</a></td>
+                    <td><a href="#" aria-label="Receipt for ${esc(i.type)} on ${esc(new Date(i.created_at).toLocaleDateString())}" onclick="openSignedLink('/api/portal/${esc(slug)}/receipts/${esc(i.id)}/link');return false;">Receipt</a></td>
                   </tr>
                 `).join("")}
               </tbody>
@@ -807,40 +829,40 @@
         el.innerHTML = `
           <div class="card">
             <h2>Your profile</h2>
-            <label>First name</label>
-            <input id="p-first" value="${esc(m.first_name || "")}" />
-            <label>Last name</label>
-            <input id="p-last" value="${esc(m.last_name || "")}" />
-            <label>Phone</label>
-            <input id="p-phone" value="${esc(m.phone || "")}" />
+            <label for="p-first">First name</label>
+            <input id="p-first" autocomplete="given-name" value="${esc(m.first_name || "")}" />
+            <label for="p-last">Last name</label>
+            <input id="p-last" autocomplete="family-name" value="${esc(m.last_name || "")}" />
+            <label for="p-phone">Phone</label>
+            <input id="p-phone" type="tel" autocomplete="tel" value="${esc(m.phone || "")}" />
             <label style="display:flex;align-items:center;gap:0.4rem;margin-top:0.75rem">
               <input type="checkbox" id="p-directory" style="width:auto" ${m.directory_visible !== 0 ? "checked" : ""} />
               Show me in the member directory
             </label>
-            <label>Bio (directory showcase)</label>
+            <label for="p-bio">Bio (directory showcase)</label>
             <textarea id="p-bio" rows="2" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px;font:inherit">${esc(m.bio || "")}</textarea>
-            <label>Headline</label>
+            <label for="p-headline">Headline</label>
             <input id="p-headline" value="${esc((() => { try { return JSON.parse(m.showcase_json||"{}").headline||""; } catch { return ""; } })())}" placeholder="Longarm quilter · BOM fan" />
-            <label>Interests</label>
+            <label for="p-interests">Interests</label>
             <input id="p-interests" value="${esc((() => { try { return JSON.parse(m.showcase_json||"{}").interests||""; } catch { return ""; } })())}" placeholder="Scrappy quilts, hand binding" />
-            <label>Photo</label>
-            <input type="file" id="p-photo" accept="image/*" />
+            <label for="p-photo">Photo</label>
+            <input type="file" id="p-photo" accept="image/*" aria-describedby="p-photo-msg" />
             <button class="secondary" type="button" onclick="uploadPhoto()" style="margin-top:0.35rem">Upload photo</button>
-            <span id="p-photo-msg" class="muted" style="margin-left:0.5rem;font-size:0.85rem"></span>
+            <span id="p-photo-msg" class="muted" role="status" aria-live="polite" style="margin-left:0.5rem;font-size:0.85rem"></span>
             ${data.membership && data.membership.status === "active" ? `
             <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border)">
               <h3 style="font-size:1rem;margin:0 0 0.5rem">Membership &amp; payment method</h3>
               <p class="muted" style="font-size:0.9rem">${esc(data.membership.level_name || "")}
                 ${data.membership.end_date ? " · ends " + new Date(data.membership.end_date).toLocaleDateString() : ""}</p>
-              <div id="p-card-box" class="muted" style="font-size:0.9rem;margin:0.5rem 0">Loading card…</div>
+              <div id="p-card-box" class="muted" role="status" aria-live="polite" style="font-size:0.9rem;margin:0.5rem 0">Loading card…</div>
               <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.5rem">
                 <button class="secondary" onclick="updateCard()">Update card on file</button>
                 <button class="secondary" onclick="cancelAutoRenew()">Cancel auto-renew</button>
               </div>
-              <span id="p-renew-msg" class="muted" style="margin-left:0.15rem;font-size:0.85rem"></span>
+              <span id="p-renew-msg" class="muted" role="status" aria-live="polite" style="margin-left:0.15rem;font-size:0.85rem"></span>
             </div>` : ""}
-            <label>Email</label>
-            <input value="${esc(m.email)}" disabled />
+            <label for="p-email">Email</label>
+            <input id="p-email" value="${esc(m.email)}" disabled />
             <div style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid var(--border)">
               <h3 style="font-size:1rem;margin:0 0 0.35rem">Email preferences</h3>
               <label style="display:flex;align-items:center;gap:0.4rem;margin:0.25rem 0">
@@ -852,7 +874,7 @@
             </div>
             <div id="p-custom"></div>
             <button onclick="saveProfile()" style="margin-top:0.5rem">Save</button>
-            <span id="profile-msg" class="muted" style="margin-left:0.75rem"></span>
+            <span id="profile-msg" class="muted" role="status" aria-live="polite" style="margin-left:0.75rem"></span>
           </div>`;
         // Guild-defined fields
         try {
@@ -863,6 +885,7 @@
           for (const f of info.join_fields || []) {
             const label = document.createElement("label");
             label.textContent = f.label;
+            label.htmlFor = "p-cf-" + f.key;
             box.appendChild(label);
             let input;
             if (f.type === "select") {
@@ -879,6 +902,7 @@
               input = document.createElement("input");
             }
             input.dataset.cfKey = f.key;
+            input.id = "p-cf-" + f.key;
             input.value = vals[f.key] || "";
             box.appendChild(input);
           }
@@ -1045,8 +1069,14 @@
       h.textContent = "Which guild are you a member of?";
       const p = document.createElement("p");
       p.className = "muted";
+      p.id = "pick-guild-hint";
       p.textContent = "Enter your guild's web address (ask your guild admin if unsure).";
+      const lab = document.createElement("label");
+      lab.htmlFor = "pick-guild-slug";
+      lab.textContent = "Guild web address";
       const input = document.createElement("input");
+      input.id = "pick-guild-slug";
+      input.setAttribute("aria-describedby", "pick-guild-hint");
       input.placeholder = "e.g. test-guild";
       const btn = document.createElement("button");
       btn.style.marginTop = "0.75rem";
@@ -1057,7 +1087,7 @@
       };
       btn.addEventListener("click", go);
       input.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
-      box.append(h, p, input, btn);
+      box.append(h, p, lab, input, btn);
     }
 
     // Hide the unusable password login when the server is Google-only,
