@@ -396,6 +396,8 @@ describe("Task 8 system pages — serveSite's routing table opens on a launched 
     "/photos",
     "/blog",
     "/blog/spring-show-recap",
+    "/directory",
+    "/donate",
     "/qh-site.js",
   ];
 

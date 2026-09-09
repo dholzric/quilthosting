@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { systemPageSections, formatEventWhen, descriptionToHtml } from "./system";
+import { systemPageSections, formatEventWhen, descriptionToHtml, googleCalendarUrl, eventIcsPath, DONATE_AMOUNTS_CENTS } from "./system";
 import type { SystemPageKind } from "./system";
 import { DEFAULT_DESIGN } from "../design/tokens";
 import type { Tenant } from "../../../types";
@@ -110,10 +110,10 @@ describe("systemPageSections: events / calendar", () => {
 });
 
 describe("systemPageSections: event detail", () => {
-  it("hero + rich_text + pricing grid + register cta with the register-<id> convention", () => {
+  it("hero + rich_text + calendar links + pricing grid + register cta with the register-<id> convention", () => {
     const r = page("event", { events: [event] }, event.id);
     expect(r.title).toBe(event.title);
-    expect(types(r)).toEqual(["hero", "rich_text", "feature_grid", "cta"]);
+    expect(types(r)).toEqual(["hero", "rich_text", "rich_text", "feature_grid", "cta"]);
 
     const hero = r.sections[0];
     if (hero.type !== "hero") throw new Error("hero");
@@ -130,7 +130,7 @@ describe("systemPageSections: event detail", () => {
     // sanitizeHtml canonicalizes text-node entities: `&amp;` stays, a quote is emitted literally.
     expect(body.html).toBe('<p>Bring your rotary cutter &amp; a 12" ruler.</p><p>Lunch is on your own.</p>');
 
-    const grid = r.sections[2];
+    const grid = r.sections[3];
     if (grid.type !== "feature_grid") throw new Error("feature_grid");
     expect(grid.variant).toBe("icons");
     expect(grid.items.map((i) => [i.title, i.price])).toEqual([
@@ -138,7 +138,7 @@ describe("systemPageSections: event detail", () => {
       ["Non-members", "$15.00"],
     ]);
 
-    const cta = r.sections[3];
+    const cta = r.sections[4];
     if (cta.type !== "cta") throw new Error("cta");
     expect(cta.label).toBe("Register");
     expect(cta.href).toBe("#");
@@ -146,9 +146,39 @@ describe("systemPageSections: event detail", () => {
     expect(cta.id).toBe("register-ev_ABC123");
   });
 
-  it("omits the rich_text when the event has no description and the cta when registration is closed", () => {
+  it("calendar links: an origin-relative .ics download and a Google Calendar template URL, as secondary buttons", () => {
+    const r = page("event", { events: [event] }, event.id);
+    const links = r.sections[2];
+    if (links.type !== "rich_text") throw new Error("rich_text");
+    expect(links.id).toBe("event-calendar");
+    expect(links.html).toContain('<a class="qh-btn qh-btn--secondary" href="/public/hillcountry/events/ev_ABC123/ics">Add to calendar</a>');
+    expect(links.html).toContain(
+      'href="https://calendar.google.com/calendar/render?action=TEMPLATE&amp;text=October%20Workshop%3A%20Paper%20Piecing&amp;dates=20261003T150000Z/20261003T180000Z&amp;location=Community%20Center%2C%20Room%20B&amp;details='
+    );
+    expect(links.html).toContain('target="_blank" rel="noopener noreferrer">Google Calendar</a>');
+    // Sanitized like any rich_text: no id, no data-*, class kept.
+    expect(links.html).not.toContain("<script");
+  });
+
+  it("volunteer block only when the event has volunteer slots: rich_text 'Volunteer' + cta volunteer-<id>", () => {
+    const without = page("event", { events: [{ ...event, volunteer_slots: 0 }] }, event.id);
+    expect(types(without)).toEqual(["hero", "rich_text", "rich_text", "feature_grid", "cta"]);
+    const r = page("event", { events: [{ ...event, volunteer_slots: 3 }] }, event.id);
+    expect(types(r)).toEqual(["hero", "rich_text", "rich_text", "feature_grid", "cta", "rich_text", "cta"]);
+    const block = r.sections[5];
+    if (block.type !== "rich_text") throw new Error("rich_text");
+    expect(block.heading).toBe("Volunteer");
+    expect(block.html).toContain("<p>");
+    const cta = r.sections[6];
+    if (cta.type !== "cta") throw new Error("cta");
+    expect(cta.id).toBe("volunteer-ev_ABC123");
+    expect(cta.href).toBe("#");
+    expect(cta.kind).toBe("secondary");
+  });
+
+  it("omits the description rich_text when the event has none and the register cta when registration is closed", () => {
     const r = page("event", { events: [{ ...event, description: null, registration_open: 0 }] }, event.id);
-    expect(types(r)).toEqual(["hero", "feature_grid"]);
+    expect(types(r)).toEqual(["hero", "rich_text", "feature_grid"]);
   });
 
   it("falls back to not_found (404) when the event is missing", () => {
@@ -267,6 +297,75 @@ describe("systemPageSections: blog / post", () => {
   });
 });
 
+describe("systemPageSections: directory", () => {
+  const members = [
+    { id: "m1", first_name: "Ada", last_name: "Lovelace", bio: "Paper piecing & EPP.", photo_file_id: "f-ada", showcase: { headline: "Modern <quilter>", interests: "Hand quilting", website: "https://ada.example" } },
+    { id: "m2", first_name: null, last_name: null, bio: null, photo_file_id: null, showcase: { website: "javascript:alert(1)" } },
+  ];
+
+  it("renders the members-only stack when the directory is not public", () => {
+    const r = page("directory", { profile: { directory_public: false }, directory: members });
+    expect(r.title).toBe("Members only");
+    expect(r.noindex).toBe(true);
+    expect(r.rawHtml).toBeUndefined();
+    expect(page("directory", { directory: members }).title).toBe("Members only");
+  });
+
+  it("public: hero + rawHtml list with a search box, escaped names, photo, showcase fields, safe website only", () => {
+    const r = page("directory", { profile: { directory_public: true }, directory: members });
+    expect(r.title).toBe("Members");
+    expect(r.noindex).toBeUndefined();
+    expect(types(r)).toEqual(["hero"]);
+    const raw = r.rawHtml ?? "";
+    expect(raw).toContain('<section id="directory" class="qh-s ');
+    expect(raw).toContain('<input type="search" data-directory-filter="directory-list"');
+    expect(raw).toContain('data-directory-count>2 members</p>');
+    expect(raw).toContain('id="directory-list"');
+    expect(raw).toContain('<h3 class="qh-directory__name">Ada Lovelace</h3>');
+    expect(raw).toContain('src="/public/hillcountry/member-photo/f-ada"');
+    expect(raw).toContain("Modern &lt;quilter&gt;");
+    expect(raw).toContain("Paper piecing &amp; EPP.");
+    expect(raw).toContain("<strong>Interests:</strong> Hand quilting");
+    expect(raw).toContain('<a href="https://ada.example" target="_blank" rel="noopener nofollow">Website</a>');
+    expect(raw).toContain('<h3 class="qh-directory__name">Member</h3>');
+    expect(raw).not.toContain("javascript:");
+    expect((raw.match(/qh-directory__member/g) ?? []).length).toBe(2);
+  });
+
+  it("public but empty: explains instead of an empty grid", () => {
+    const r = page("directory", { profile: { directory_public: true }, directory: [] });
+    expect(types(r)).toEqual(["hero", "rich_text"]);
+    expect(r.rawHtml).toBeUndefined();
+  });
+});
+
+describe("systemPageSections: donate", () => {
+  it("hero + where gifts go + a donate section with the suggested amounts, id 'donate'", () => {
+    const r = page("donate", { profile: { description: "A guild of 120 quilters.", donations_enabled: true } });
+    expect(r.title).toBe("Donate");
+    expect(types(r)).toEqual(["hero", "rich_text", "donate"]);
+    const hero = r.sections[0];
+    if (hero.type !== "hero") throw new Error("hero");
+    expect(hero.title).toBe("Support Hill Country Quilt Guild");
+    const body = r.sections[1];
+    if (body.type !== "rich_text") throw new Error("rich_text");
+    expect(body.html).toContain("A guild of 120 quilters.");
+    const strip = r.sections[2];
+    if (strip.type !== "donate") throw new Error("donate");
+    expect(strip.id).toBe("donate");
+    expect(strip.amounts).toEqual([...DONATE_AMOUNTS_CENTS]);
+    expect(strip.amounts).toEqual([1000, 2500, 5000, 10000]);
+  });
+
+  it("falls back to guild copy without a description and 404s when donations are off", () => {
+    const r = page("donate", {});
+    const body = r.sections[1];
+    if (body.type !== "rich_text") throw new Error("rich_text");
+    expect(body.html).toContain("Hill Country Quilt Guild is run by volunteers");
+    expect(page("donate", { profile: { donations_enabled: false } }).status).toBe(404);
+  });
+});
+
 describe("systemPageSections: members_only / not_found", () => {
   it("members_only: hero + rich_text + sign-in cta, noindex", () => {
     const r = page("members_only");
@@ -293,12 +392,14 @@ describe("systemPageSections: members_only / not_found", () => {
 });
 
 describe("invariants", () => {
-  const kinds: SystemPageKind[] = ["membership", "events", "event", "calendar", "galleries", "gallery", "blog", "post", "members_only", "not_found"];
+  const kinds: SystemPageKind[] = ["membership", "events", "event", "calendar", "galleries", "gallery", "blog", "post", "directory", "donate", "members_only", "not_found"];
   const data: SiteData = {
-    events: [event],
+    events: [{ ...event, volunteer_slots: 2 }],
     posts: [{ slug: "p", title: "P", published_at: "2026-01-01T00:00:00Z", excerpt: "x" }],
     gallery: { slug: "g", title: "G", description: null, photos: [] },
     galleries: [],
+    profile: { directory_public: true, donations_enabled: true },
+    directory: [{ id: "m1", first_name: "Ada", last_name: null, bio: null, photo_file_id: null, showcase: {} }],
   };
   const paramFor = (kind: SystemPageKind) => (kind === "event" ? event.id : kind === "post" ? "p" : kind === "gallery" ? "g" : undefined);
 
@@ -351,6 +452,14 @@ describe("helpers", () => {
   it("formatEventWhen survives an invalid timezone and an invalid date", () => {
     expect(formatEventWhen(event, "Not/AZone")).toContain("October 3, 2026");
     expect(formatEventWhen({ ...event, start_at: "garbage" }, "UTC")).toBe("Community Center, Room B");
+  });
+
+  it("googleCalendarUrl uses UTC basic dates, a 2-hour default end, and null for a bad start", () => {
+    expect(googleCalendarUrl({ ...event, end_at: null, location: null, description: null })).toBe(
+      "https://calendar.google.com/calendar/render?action=TEMPLATE&text=October%20Workshop%3A%20Paper%20Piecing&dates=20261003T150000Z/20261003T170000Z"
+    );
+    expect(googleCalendarUrl({ ...event, start_at: "garbage" })).toBeNull();
+    expect(eventIcsPath("hill country", "ev/1")).toBe("/public/hill%20country/events/ev%2F1/ics");
   });
 
   it("descriptionToHtml escapes, wraps paragraphs on blank lines and keeps single newlines as breaks", () => {

@@ -16,7 +16,7 @@ const siteLines = siteNoComments.split("\n");
 
 const MODULES = [
   "initNav", "initJoin", "initRegister", "initCart", "initDonate",
-  "initCalendar", "initLightbox", "initVolunteer", "initNewsletter",
+  "initCalendar", "initLightbox", "initVolunteer", "initNewsletter", "initDirectorySearch",
 ];
 
 describe("public/qh-site.js — shape", () => {
@@ -31,8 +31,8 @@ describe("public/qh-site.js — shape", () => {
     expect(site).toContain('"use strict"');
   });
 
-  it("stays under the ~740 line budget (700 + the phase-2 newsletter island)", () => {
-    expect(site.split("\n").length).toBeLessThan(740);
+  it("stays under the ~760 line budget (700 + the phase-2 newsletter and directory-search islands)", () => {
+    expect(site.split("\n").length).toBeLessThan(760);
   });
 
   it.each(MODULES)("defines module %s as a named function", (name) => {
@@ -87,8 +87,8 @@ describe("public/qh-site.js — safety rules", () => {
 describe("public/qh-site.js — hooks and endpoints", () => {
   it.each([
     "[data-join]", "[data-register]", '[id^="register-"]', "[data-buy]", "[data-add]",
-    "[data-donate]", "a[data-lightbox]", ".qh-events--calendar", "[data-volunteer]",
-    ".qh-nav-toggle", ".qh-drawer", "form[data-newsletter]",
+    "[data-donate]", "a[data-lightbox]", ".qh-events--calendar", "[data-volunteer]", '[id^="volunteer-"]',
+    ".qh-nav-toggle", ".qh-drawer", "form[data-newsletter]", "[data-directory-filter]", "[data-directory-count]",
   ])("consumes hook %s", (hook) => {
     expect(site).toContain(hook);
   });

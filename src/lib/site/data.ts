@@ -35,9 +35,13 @@ import type {
   SiteGallery,
   SiteProfile,
   SiteDocument,
+  SiteDirectoryMember,
 } from "./data.types";
 
-export type { SiteData, DataNeed, SiteLevel, SiteEvent, SiteProduct, SitePost, SiteGallerySummary, SiteGallery, SiteProfile, SiteDocument };
+export type { SiteData, DataNeed, SiteLevel, SiteEvent, SiteProduct, SitePost, SiteGallerySummary, SiteGallery, SiteProfile, SiteDocument, SiteDirectoryMember };
+
+/** Most members the `directory` loader returns (same cap as GET /public/:slug/directory). */
+export const DIRECTORY_MAX = 500;
 
 /** Most shared files the `documents` loader returns (the section's own `limit` trims further). */
 export const DOCUMENTS_MAX = 50;
@@ -107,9 +111,46 @@ export type LoadOpts = {
    * leave `data.documents` undefined and the section shows a sign-in prompt.
    */
   memberView?: boolean;
+  /**
+   * Event detail: satisfy the `events` need with this ONE public event by id
+   * (past or upcoming -- the detail page must outlive the listing window)
+   * plus its volunteer slot count, instead of the upcoming list. `data.events`
+   * is `[event]` or `[]` when the id is unknown / not public.
+   */
+  eventId?: string;
 };
 
 type DocumentRow = { id: string; filename: string; size: number | null };
+type DirectoryRow = { id: string; first_name: string | null; last_name: string | null; bio: string | null; photo_file_id: string | null; showcase_json: string | null };
+
+/** Same SELECT as GET /public/:slug/directory (src/routes/public.ts): active, directory-visible members. */
+function directoryStatement(db: D1Database, tenantId: string, limit: number): D1PreparedStatement {
+  return db
+    .prepare(
+      `SELECT id, first_name, last_name, bio, photo_file_id, showcase_json FROM members
+       WHERE tenant_id = ? AND status = 'active'
+         AND coalesce(directory_visible, 1) = 1
+       ORDER BY last_name, first_name LIMIT ?`
+    )
+    .bind(tenantId, limit);
+}
+
+/** One public event by id; the same columns as `eventsStatement`, minus the listing window. */
+function eventByIdStatement(db: D1Database, tenantId: string, eventId: string): D1PreparedStatement {
+  return db
+    .prepare(
+      `SELECT id, title, description, location, start_at, end_at,
+              member_price_cents, non_member_price_cents, capacity, registration_open,
+              settings_json
+       FROM events WHERE id = ? AND tenant_id = ? AND is_public = 1`
+    )
+    .bind(eventId, tenantId);
+}
+
+/** How many volunteer sign-up slots an event has (migrations/0012, `volunteer_slots`). */
+function volunteerSlotCountStatement(db: D1Database, tenantId: string, eventId: string): D1PreparedStatement {
+  return db.prepare(`SELECT COUNT(*) AS n FROM volunteer_slots WHERE tenant_id = ? AND event_id = ?`).bind(tenantId, eventId);
+}
 
 /** Shared files members can download: staff uploads only (same predicate as the portal's file list). */
 function documentsStatement(db: D1Database, tenantId: string, limit: number): D1PreparedStatement {
@@ -148,7 +189,7 @@ function galleryPhotosBySlugStatement(db: D1Database, tenantId: string, galleryS
 }
 
 /** Batch slot order. Fixed so results can be read back positionally. */
-const NEED_ORDER: readonly Exclude<DataNeed, "profile">[] = ["levels", "events", "products", "posts", "galleries", "gallery", "documents"];
+const NEED_ORDER: readonly Exclude<DataNeed, "profile">[] = ["levels", "events", "products", "posts", "galleries", "gallery", "documents", "directory"];
 
 export async function loadSiteData(env: Env, tenant: Tenant, needs: Set<DataNeed>, opts: LoadOpts = {}): Promise<SiteData> {
   const data: SiteData = {};
@@ -164,9 +205,17 @@ export async function loadSiteData(env: Env, tenant: Tenant, needs: Set<DataNeed
       case "levels":
         slots.push({ need, index: statements.push(levelsStatement(env.DB, tenant.id)) - 1 });
         break;
-      case "events":
+      case "events": {
+        if (opts.eventId) {
+          // Two statements back to back: the event row, then its slot count.
+          const index = statements.push(eventByIdStatement(env.DB, tenant.id, opts.eventId)) - 1;
+          statements.push(volunteerSlotCountStatement(env.DB, tenant.id, opts.eventId));
+          slots.push({ need, index });
+          break;
+        }
         slots.push({ need, index: statements.push(eventsStatement(env.DB, tenant.id, { limit })) - 1 });
         break;
+      }
       case "products":
         slots.push({ need, index: statements.push(productsStatement(env.DB, tenant.id)) - 1 });
         break;
@@ -189,6 +238,11 @@ export async function loadSiteData(env: Env, tenant: Tenant, needs: Set<DataNeed
         if (!opts.memberView) break;
         slots.push({ need, index: statements.push(documentsStatement(env.DB, tenant.id, DOCUMENTS_MAX)) - 1 });
         break;
+      case "directory":
+        // Same gate as the JSON endpoint: no query at all unless the guild opted in.
+        if (!readProfile(tenant.settings_json).directory_public) break;
+        slots.push({ need, index: statements.push(directoryStatement(env.DB, tenant.id, DIRECTORY_MAX)) - 1 });
+        break;
     }
   }
 
@@ -204,6 +258,11 @@ export async function loadSiteData(env: Env, tenant: Tenant, needs: Set<DataNeed
         break;
       case "events":
         data.events = rowsAt<EventRow>(index).map(toEvent);
+        if (opts.eventId) {
+          const count = rowsAt<{ n: number | string | null }>(index + 1)[0];
+          const n = Number(count?.n) || 0;
+          for (const ev of data.events) ev.volunteer_slots = n;
+        }
         break;
       case "products":
         data.products = rowsAt<ProductRow>(index).map(toProduct);
@@ -229,6 +288,9 @@ export async function loadSiteData(env: Env, tenant: Tenant, needs: Set<DataNeed
       case "documents":
         data.documents = rowsAt<DocumentRow>(index).map(toDocument);
         break;
+      case "directory":
+        data.directory = rowsAt<DirectoryRow>(index).map(toDirectoryMember);
+        break;
     }
   }
 
@@ -237,6 +299,29 @@ export async function loadSiteData(env: Env, tenant: Tenant, needs: Set<DataNeed
 
 function toDocument(r: DocumentRow): SiteDocument {
   return { id: r.id, filename: r.filename, size: r.size == null ? null : Number(r.size) };
+}
+
+function toDirectoryMember(r: DirectoryRow): SiteDirectoryMember {
+  const showcase: SiteDirectoryMember["showcase"] = {};
+  try {
+    const parsed = JSON.parse(r.showcase_json || "{}") as Record<string, unknown>;
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      for (const key of ["headline", "interests", "website"] as const) {
+        const v = parsed[key];
+        if (typeof v === "string" && v.trim()) showcase[key] = v.trim();
+      }
+    }
+  } catch {
+    // junk showcase_json: no showcase
+  }
+  return {
+    id: r.id,
+    first_name: r.first_name ?? null,
+    last_name: r.last_name ?? null,
+    bio: r.bio ?? null,
+    photo_file_id: r.photo_file_id ?? null,
+    showcase,
+  };
 }
 
 // ---------------------------------------------------------------------------

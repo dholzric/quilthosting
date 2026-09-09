@@ -294,10 +294,35 @@ describe("renderSitePage", () => {
     expect(quoteOnPage).toContain('qh-header__cta" href="#q">Request a quote</a>');
     const quoteInMenu = renderSitePage(siteArgs({ design: design({ header: { ...DEFAULT_DESIGN.header, cta: "quote" } }), menu: [{ label: "Quote", href: "/request-a-quote" }] }));
     expect(quoteInMenu).toContain('qh-header__cta" href="/request-a-quote">Request a quote</a>');
-    const donate = renderSitePage(siteArgs({ design: design({ header: { ...DEFAULT_DESIGN.header, cta: "donate" } }) }));
-    expect(donate).toContain('qh-header__cta" href="#donate">Donate</a>');
     const none = renderSitePage(siteArgs({ design: design({ header: { ...DEFAULT_DESIGN.header, cta: "none" } }) }));
     expect(none).not.toContain("qh-header__cta");
+  });
+
+  it("resolves the donate CTA to the first donate section on the page, else to the /donate system page under the base", () => {
+    const d = design({ header: { ...DEFAULT_DESIGN.header, cta: "donate" } });
+    const strip: Section = { type: "donate", heading: "Give", amounts: [1000, 2500], style: { ...DEFAULT_STYLE }, id: "give-strip" };
+    const onPage = renderSitePage(siteArgs({ design: d, page: { title: "Home", slug: "", sections: [heroMinimal, strip] } }));
+    expect(onPage).toContain('qh-header__cta" href="#give-strip">Donate</a>');
+    expect(renderSitePage(siteArgs({ design: d }))).toContain('qh-header__cta" href="/donate">Donate</a>');
+    expect(renderSitePage(siteArgs({ design: d, baseUrl: "/g/hcqg" }))).toContain('qh-header__cta" href="/g/hcqg/donate">Donate</a>');
+    expect(renderSitePage(siteArgs({ design: d, baseUrl: "https://hcqg.org" }))).toContain('qh-header__cta" href="https://hcqg.org/donate">Donate</a>');
+  });
+
+  it("appends extra JSON-LD blocks to the head and rawHtml after the sections inside main", () => {
+    const html = renderSitePage(
+      siteArgs({
+        jsonLd: ['<script type="application/ld+json">{"@type":"Organization"}</script>'],
+        rawHtml: '<section id="directory" class="qh-s"><input type="search" data-directory-filter="directory-list"></section>',
+      })
+    );
+    const head = html.slice(0, html.indexOf("</head>"));
+    expect(head).toContain('{"@type":"Organization"}');
+    const main = html.slice(html.indexOf('<main id="main"'), html.indexOf("</main>"));
+    expect(main.indexOf('<section id="hero"')).toBeGreaterThan(-1);
+    expect(main.indexOf('<section id="directory"')).toBeGreaterThan(main.indexOf('<section id="hero"'));
+    expect(main).toContain('data-directory-filter="directory-list"');
+    const plain = renderSitePage(siteArgs());
+    expect(plain).not.toContain("directory-list");
   });
 
   it("footer columns include About, Links, Members (sign-in) and Contact", () => {

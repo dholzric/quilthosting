@@ -21,21 +21,37 @@
  *   The island bundle (public/qh-site.js, `register` module) binds
  *   `[id^="register-"]`, reads the event id from the suffix and opens the
  *   registration dialog; without JS the button is inert, which is why the
- *   href is `#` and not a route.
+ *   href is `#` and not a route. The volunteer button follows the same
+ *   convention with the `volunteer-<eventId>` id (`volunteer` module).
+ * - `rich_text.html` is sanitized and emitted verbatim -- the section
+ *   renderer does NOT rewrite root-relative hrefs inside it (it only prefixes
+ *   the hrefs of link-carrying sections such as `cta`). That is why the
+ *   event "Add to calendar" link can be the origin-relative
+ *   `/public/<slug>/events/<id>/ics`: the public API is mounted at the origin
+ *   of every host (src/index.ts passes `/public/` through on tenant hosts and
+ *   serves it directly on the platform host), never under `/g/<slug>`.
+ * - `rawHtml` is platform-authored markup `serveSite` appends after the
+ *   sections, inside `<main>`, for the few things the sanitizer cannot carry
+ *   (a search input, `data-*` hooks). Every tenant string inside it is
+ *   escaped here; nothing tenant-authored is emitted raw.
  * - A detail kind (`event`, `gallery`, `post`) whose `param` does not match
  *   the loaded data returns the `not_found` stack with `status: 404`, so
  *   callers get one shape regardless of the lookup outcome.
  * - `members_only` is `noindex: true`; `not_found` is `status: 404`.
+ * - `directory` renders the members-only stack unless
+ *   `profile.directory_public`; `donate` is `not_found` when
+ *   `profile.donations_enabled === false`.
  */
 
 import type { Tenant } from "../../../types";
 import type { SiteDesign } from "../design/tokens";
-import type { SiteData, SiteEvent, SiteGallery, SitePost } from "../data.types";
+import type { SiteData, SiteDirectoryMember, SiteEvent, SiteGallery, SitePost } from "../data.types";
 import type { Section, SectionStyle } from "../sections/schema";
 import { DEFAULT_STYLE } from "../sections/schema";
 import { escapeHtml } from "../../blocks";
-import { sanitizeHtml } from "../../sanitize";
+import { sanitizeHtml, sanitizeUrl } from "../../sanitize";
 import { formatMoney } from "../../utils/money";
+import { toIcsDate } from "../../ical";
 
 export type SystemPageKind =
   | "membership"
@@ -46,6 +62,8 @@ export type SystemPageKind =
   | "gallery"
   | "blog"
   | "post"
+  | "directory"
+  | "donate"
   | "members_only"
   | "not_found";
 
@@ -62,10 +80,21 @@ export type SystemPage = {
   sections: Section[];
   noindex?: boolean;
   status?: number;
+  /** Platform-authored markup appended after the sections; see the header comment. */
+  rawHtml?: string;
 };
 
 /** Prefix used on the event detail register button; see the header comment. */
 export const REGISTER_CTA_ID_PREFIX = "register-";
+
+/** Prefix used on the event detail volunteer button; the island binds `.qh-cta[id^="volunteer-"]`. */
+export const VOLUNTEER_CTA_ID_PREFIX = "volunteer-";
+
+/** Suggested one-time gifts on the donate page (cents); "Other amount" is always offered too. */
+export const DONATE_AMOUNTS_CENTS: readonly number[] = [1000, 2500, 5000, 10000];
+
+/** Section id of the donate strip on the `/donate` page; the header CTA targets it. */
+export const DONATE_SECTION_ID = "donate";
 
 /** Used when a guild has not set `settings.timezone`. Workers run in UTC anyway. */
 const DEFAULT_TIMEZONE = "UTC";
@@ -181,6 +210,36 @@ function plural(n: number, one: string, many: string): string {
   return `${n} ${n === 1 ? one : many}`;
 }
 
+/** `/public/<slug>/events/<id>/ics` -- the single-event download public.ts serves at the origin of every host. */
+export function eventIcsPath(slug: string, eventId: string): string {
+  return `/public/${encodeURIComponent(slug)}/events/${encodeURIComponent(eventId)}/ics`;
+}
+
+/**
+ * Google Calendar's "add this event" template URL, built from the event
+ * fields: UTC basic dates (`YYYYMMDDTHHmmssZ`), a two-hour default end like
+ * the .ics feed, location and details when present. Null when the start
+ * date does not parse. The `/` between the dates stays literal; everything
+ * else is percent-encoded.
+ */
+export function googleCalendarUrl(ev: Pick<SiteEvent, "title" | "start_at" | "end_at" | "location" | "description">): string | null {
+  const start = toIcsDate(ev.start_at);
+  if (!start) return null;
+  const end = (ev.end_at && toIcsDate(ev.end_at)) || toIcsDate(new Date(new Date(ev.start_at).getTime() + 2 * 3600_000).toISOString());
+  const parts = [`action=TEMPLATE`, `text=${encodeURIComponent(ev.title)}`, `dates=${start}/${end}`];
+  const location = ev.location?.trim();
+  if (location) parts.push(`location=${encodeURIComponent(location)}`);
+  const details = ev.description?.trim();
+  if (details) parts.push(`details=${encodeURIComponent(details.slice(0, 1000))}`);
+  return `https://calendar.google.com/calendar/render?${parts.join("&")}`;
+}
+
+/** Only an absolute http(s) URL may be linked from a member's showcase. */
+function showcaseWebsite(raw: string | undefined): string | null {
+  const clean = raw ? sanitizeUrl(raw, "link") : null;
+  return clean && /^https?:\/\//i.test(clean) ? clean : null;
+}
+
 // ---------------------------------------------------------------------------
 // Section factories
 // ---------------------------------------------------------------------------
@@ -241,10 +300,25 @@ function calendarPage(): SystemPage {
   };
 }
 
+/** "Add to calendar" (.ics download) and "Google Calendar" as secondary buttons in a prose section. */
+function calendarLinks(ctx: SystemPageContext, ev: SiteEvent): Section {
+  const links = [`<a class="qh-btn qh-btn--secondary" href="${escapeHtml(eventIcsPath(ctx.tenant.slug, ev.id))}">Add to calendar</a>`];
+  const google = googleCalendarUrl(ev);
+  if (google) links.push(`<a class="qh-btn qh-btn--secondary" href="${escapeHtml(google)}" target="_blank" rel="noopener">Google Calendar</a>`);
+  return {
+    type: "rich_text",
+    variant: "prose",
+    html: sanitizeHtml(`<p class="qh-actions">${links.join("")}</p>`),
+    style: style({ width: "narrow", spacing: "tight" }),
+    id: "event-calendar",
+  };
+}
+
 function eventPage(ctx: SystemPageContext, ev: SiteEvent, timeZone: string): SystemPage {
   const sections: Section[] = [hero("event-hero", ev.title, formatEventWhen(ev, timeZone))];
   const body = descriptionToHtml(ev.description);
   if (body) sections.push(prose("event-description", body));
+  sections.push(calendarLinks(ctx, ev));
   sections.push({
     type: "feature_grid",
     variant: "icons",
@@ -259,6 +333,20 @@ function eventPage(ctx: SystemPageContext, ev: SiteEvent, timeZone: string): Sys
   if (ev.registration_open) {
     // See the header comment: the register island binds [id^="register-"].
     sections.push(cta(`${REGISTER_CTA_ID_PREFIX}${ev.id}`, "Register", "#", "primary"));
+  }
+  if ((ev.volunteer_slots ?? 0) > 0) {
+    sections.push({
+      type: "rich_text",
+      variant: "prose",
+      heading: "Volunteer",
+      html: sanitizeHtml(
+        "<p>This event runs on volunteers. Pick a slot that suits you — setup, refreshments, a show shift — and we'll save you a spot.</p>"
+      ),
+      style: style({ width: "narrow", bg: "tint" }),
+      id: "event-volunteer",
+    });
+    // The volunteer island binds .qh-cta[id^="volunteer-"] and opens the sign-up dialog.
+    sections.push(cta(`${VOLUNTEER_CTA_ID_PREFIX}${ev.id}`, "Volunteer sign-up", "#", "secondary"));
   }
   return { title: ev.title, sections };
 }
@@ -325,6 +413,78 @@ function postPage(post: SitePost, timeZone: string): SystemPage {
   return { title: post.title, sections };
 }
 
+/**
+ * One directory card per member: name, optional photo (served by the public
+ * member-photo route, which re-checks directory visibility), headline, bio,
+ * interests and website from the showcase. Rendered as rawHtml because the
+ * search box above the list is an `<input>` the sanitizer would drop.
+ */
+function directoryHtml(ctx: SystemPageContext, members: SiteDirectoryMember[]): string {
+  const slug = encodeURIComponent(ctx.tenant.slug);
+  const cards = members.map((m) => {
+    const name = [m.first_name, m.last_name].map((s) => (s ?? "").trim()).filter(Boolean).join(" ") || "Member";
+    const photo = m.photo_file_id
+      ? `<img class="qh-directory__photo" src="/public/${slug}/member-photo/${encodeURIComponent(m.photo_file_id)}" alt="" width="96" height="96" loading="lazy">`
+      : "";
+    const headline = m.showcase.headline ? `<p class="qh-muted qh-directory__headline">${escapeHtml(m.showcase.headline)}</p>` : "";
+    const bio = m.bio?.trim() ? `<p class="qh-directory__bio">${escapeHtml(m.bio.trim())}</p>` : "";
+    const interests = m.showcase.interests ? `<p class="qh-directory__interests"><strong>Interests:</strong> ${escapeHtml(m.showcase.interests)}</p>` : "";
+    const site = showcaseWebsite(m.showcase.website);
+    const website = site ? `<p><a href="${escapeHtml(site)}" target="_blank" rel="noopener nofollow">Website</a></p>` : "";
+    return `<article class="qh-card qh-directory__member">${photo}<h3 class="qh-directory__name">${escapeHtml(name)}</h3>${headline}${bio}${interests}${website}</article>`;
+  });
+  return (
+    `<section id="directory" class="qh-s qh-s--bg-none qh-s--w-normal qh-s--sp-normal qh-s--media-right qh-directory">` +
+    `<div class="qh-form qh-directory__search"><label><span>Search members</span>` +
+    `<input type="search" data-directory-filter="directory-list" placeholder="Name, interest, or town" autocomplete="off"></label></div>` +
+    `<p class="qh-muted qh-directory__count" data-directory-count>${plural(members.length, "member", "members")}</p>` +
+    `<div class="qh-grid qh-grid--2 qh-directory__list" id="directory-list">${cards.join("")}</div>` +
+    `</section>`
+  );
+}
+
+function directoryPage(ctx: SystemPageContext): SystemPage {
+  if (!ctx.data.profile?.directory_public) return membersOnlyPage(ctx);
+  const guild = ctx.tenant.name;
+  const members = ctx.data.directory ?? [];
+  const sections: Section[] = [hero("directory-hero", "Members", `${guild} members who chose to be listed.`)];
+  if (!members.length) {
+    sections.push(prose("directory-empty", "<p>No members are listed yet. Members can add themselves from the member portal.</p>"));
+    return { title: "Members", sections };
+  }
+  return { title: "Members", sections, rawHtml: directoryHtml(ctx, members) };
+}
+
+/**
+ * Support page: a hero, where gifts go (the profile description when there
+ * is one) and the `donate` section whose buttons the donate island binds
+ * (`[data-donate=cents]`; "Other amount" prompts). The header CTA resolves
+ * to `#donate` here and to `/donate` everywhere else (render.ts).
+ */
+function donatePage(ctx: SystemPageContext): SystemPage {
+  if (ctx.data.profile?.donations_enabled === false) return notFoundPage(ctx);
+  const guild = ctx.tenant.name;
+  const about = ctx.data.profile?.description?.trim() || `${guild} is run by volunteers, and every gift goes straight to the guild's work.`;
+  return {
+    title: "Donate",
+    sections: [
+      hero("donate-hero", `Support ${guild}`, "Your gift keeps our meetings, workshops, and community programs going."),
+      prose(
+        "donate-body",
+        sanitizeHtml(`<p>${escapeHtml(about)}</p><p>Donations are one-time and processed securely by Stripe. You'll get a receipt by email.</p>`)
+      ),
+      {
+        type: "donate",
+        heading: "Make a one-time gift",
+        body: "Choose an amount, or enter your own.",
+        amounts: [...DONATE_AMOUNTS_CENTS],
+        style: style({ bg: "tint", align: "center", width: "narrow" }),
+        id: DONATE_SECTION_ID,
+      },
+    ],
+  };
+}
+
 function membersOnlyPage(ctx: SystemPageContext): SystemPage {
   const guild = ctx.tenant.name;
   return {
@@ -384,6 +544,10 @@ export function systemPageSections(kind: SystemPageKind, ctx: SystemPageContext)
       const post = ctx.param ? ctx.data.posts?.find((p) => p.slug === ctx.param) : undefined;
       return post ? postPage(post, timeZone) : notFoundPage(ctx);
     }
+    case "directory":
+      return directoryPage(ctx);
+    case "donate":
+      return donatePage(ctx);
     case "members_only":
       return membersOnlyPage(ctx);
     case "not_found":

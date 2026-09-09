@@ -5,6 +5,8 @@ import {
   canonicalUrl,
   buildSeoHead,
   buildLocalBusinessJsonLd,
+  buildOrganizationJsonLd,
+  buildEventJsonLd,
 } from "./seo";
 
 const page = { title: "Longarm Quilting", slug: "services" };
@@ -119,5 +121,65 @@ describe("buildLocalBusinessJsonLd", () => {
     const ld = buildLocalBusinessJsonLd({ name: "X" }, "https://x.com");
     expect(ld).not.toContain("telephone");
     expect(ld).not.toContain("addressLocality");
+  });
+});
+
+describe("buildOrganizationJsonLd", () => {
+  it("emits an Organization with the site url and an optional logo", () => {
+    const ld = buildOrganizationJsonLd("Hill Country Quilt Guild", "https://hcqg.org/", "https://hcqg.org/img/logo");
+    expect(ld.startsWith('<script type="application/ld+json">')).toBe(true);
+    expect(ld).toContain('"@type":"Organization"');
+    expect(ld).toContain('"name":"Hill Country Quilt Guild"');
+    expect(ld).toContain('"url":"https://hcqg.org/"');
+    expect(ld).toContain('"logo":"https://hcqg.org/img/logo"');
+    expect(buildOrganizationJsonLd("X", "https://x.org")).not.toContain("logo");
+  });
+
+  it("escapes < so the name cannot close the script tag", () => {
+    const ld = buildOrganizationJsonLd("</script><script>alert(1)", "https://x.org");
+    expect(ld).not.toContain("</script><script>");
+    expect(ld).toContain("\\u003c/script>");
+  });
+});
+
+describe("buildEventJsonLd", () => {
+  const event = {
+    id: "ev_1",
+    title: "October Workshop",
+    description: "Bring a rotary cutter.",
+    location: "Community Center, Room B",
+    start_at: "2026-10-03T15:00:00Z",
+    end_at: "2026-10-03T18:00:00Z",
+    member_price_cents: 0,
+    non_member_price_cents: 1500,
+    registration_open: 1,
+  };
+
+  it("emits a schema.org Event with dates, place, url and an offer when priced", () => {
+    const ld = buildEventJsonLd(event, "https://hcqg.org");
+    expect(ld).toContain('"@type":"Event"');
+    expect(ld).toContain('"name":"October Workshop"');
+    expect(ld).toContain('"startDate":"2026-10-03T15:00:00.000Z"');
+    expect(ld).toContain('"endDate":"2026-10-03T18:00:00.000Z"');
+    expect(ld).toContain('"url":"https://hcqg.org/events/ev_1"');
+    expect(ld).toContain('"location":{"@type":"Place","name":"Community Center, Room B"');
+    expect(ld).toContain('"offers":{"@type":"Offer","price":"15.00","priceCurrency":"USD"');
+    expect(ld).toContain('"availability":"https://schema.org/InStock"');
+    expect(ld).not.toContain("isAccessibleForFree");
+  });
+
+  it("marks a free event accessible for free, omits missing end/location, and tolerates a bad date", () => {
+    const ld = buildEventJsonLd({ ...event, non_member_price_cents: 0, end_at: null, location: null, start_at: "garbage" }, "https://hcqg.org/");
+    expect(ld).toContain('"isAccessibleForFree":true');
+    expect(ld).not.toContain("offers");
+    expect(ld).not.toContain("endDate");
+    expect(ld).not.toContain("startDate");
+    expect(ld).not.toContain('"location"');
+  });
+
+  it("escapes < in tenant strings", () => {
+    const ld = buildEventJsonLd({ ...event, title: "</script><script>alert(1)", description: "<b>x</b>" }, "https://hcqg.org");
+    expect(ld).not.toContain("</script><script>");
+    expect(ld).not.toContain("<b>");
   });
 });

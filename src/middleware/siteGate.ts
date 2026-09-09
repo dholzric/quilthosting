@@ -130,7 +130,7 @@ const TENANT_IMAGE_PATH_RE = /^\/img\/[a-z0-9_-]{1,64}$/;
  * index pages and one optional detail segment. Matched against the
  * normalized (lowercased) path like TENANT_IMAGE_PATH_RE above.
  */
-const SITE_SYSTEM_PATH_RE = /^\/(membership|join|join-renew|events|calendar|galleries|photos|blog)(\/[a-z0-9_.-]{1,120})?$/;
+const SITE_SYSTEM_PATH_RE = /^\/(membership|join|join-renew|events|calendar|galleries|photos|blog|directory|donate)(\/[a-z0-9_.-]{1,120})?$/;
 
 /**
  * Allowlist for a launched business tenant's own hostname: everything a
@@ -153,7 +153,8 @@ export function isLaunchedSitePath(rawPath: string, tenantSlug: string): boolean
 
   // 2b. The renderer's system pages (Task 8, serveSite's routing table):
   //     /membership, /join, /join-renew, /events, /events/<id>, /calendar,
-  //     /galleries, /galleries/<slug>, /photos, /blog, /blog/<slug>. Rule 5
+  //     /galleries, /galleries/<slug>, /photos, /blog, /blog/<slug>,
+  //     /directory, /donate. Rule 5
   //     would pass these today too (none is a reserved prefix), but they are
   //     named here so a future reservation of "/events" or "/blog" as a
   //     platform prefix cannot silently close a launched site's own pages.

@@ -25,6 +25,12 @@ export type SiteEvent = {
   non_member_price_cents: number;
   registration_open: number;
   capacity: number | null;
+  /**
+   * Number of volunteer sign-up slots on the event. Only the single-event
+   * loader (`LoadOpts.eventId`) fills it in; list loads leave it undefined.
+   * The event detail stack shows a Volunteer block when it is > 0.
+   */
+  volunteer_slots?: number;
 };
 
 export type SiteProduct = {
@@ -74,6 +80,20 @@ export type SiteDocument = {
   size: number | null;
 };
 
+/**
+ * One row of the public member directory: the same fields
+ * `GET /public/:slug/directory` returns (`showcase` is the parsed
+ * `members.showcase_json`, keys the portal writes).
+ */
+export type SiteDirectoryMember = {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  bio: string | null;
+  photo_file_id: string | null;
+  showcase: { headline?: string; interests?: string; website?: string };
+};
+
 export type SiteData = {
   levels?: SiteLevel[];
   events?: SiteEvent[];
@@ -88,6 +108,12 @@ export type SiteData = {
    * renderer shows a sign-in prompt while it is undefined.
    */
   documents?: SiteDocument[];
+  /**
+   * Public member directory. Loaded only when `settings.profile.directory_public`
+   * is true (the same rule as the JSON endpoint); otherwise left undefined and
+   * the `/directory` route renders the members-only stack.
+   */
+  directory?: SiteDirectoryMember[];
 };
 
 export type DataNeed = keyof SiteData;

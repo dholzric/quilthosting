@@ -65,6 +65,10 @@ type State = {
   files: { id: string; tenant_id: string; r2_key: string; content_type: string }[];
   batchCalls: number;
   sql: string[];
+  /** volunteer_slots rows per event id (COUNT(*) answers from here). */
+  volunteerSlots?: Record<string, number>;
+  /** members rows for the public directory. */
+  members?: { id: string; tenant_id: string; first_name: string | null; last_name: string | null; bio: string | null; photo_file_id: string | null; showcase_json: string | null }[];
 };
 
 function makeTenant(overrides: Partial<Tenant> = {}): Tenant {
@@ -185,6 +189,13 @@ function makeDb(state: State): D1Database {
     }
     if (sql.includes("FROM membership_levels")) {
       return { results: state.levels.filter((l) => l.tenant_id === binds[0]) };
+    }
+    // After membership_levels: "FROM members" is a prefix of that table name.
+    if (sql.includes("FROM members")) {
+      return { results: (state.members ?? []).filter((m) => m.tenant_id === binds[0]) };
+    }
+    if (sql.includes("FROM volunteer_slots")) {
+      return { results: [{ n: state.volunteerSlots?.[binds[1] as string] ?? 0 }] };
     }
     if (sql.includes("FROM events")) {
       if (sql.includes("WHERE id = ?")) {
@@ -332,6 +343,9 @@ describe("resolveSiteRoute", () => {
     ["/galleries/spring-show", { kind: "gallery", param: "spring-show" }],
     ["/blog", { kind: "blog" }],
     ["/blog/hello-world", { kind: "post", param: "hello-world" }],
+    ["/directory", { kind: "directory" }],
+    ["/donate", { kind: "donate" }],
+    ["/directory/x", { kind: "not_found", slug: "directory/x" }],
     ["/about", { kind: "page", slug: "about" }],
     ["/about/", { kind: "page", slug: "about" }],
     ["/about/team", { kind: "not_found", slug: "about/team" }],
@@ -425,6 +439,116 @@ describe("serveSite on a tenant host", () => {
     expect(past.res.status).toBe(200);
     expect(past.html).toContain("Last year&#39;s retreat");
     expect(past.html).not.toContain('id="register-ev_past"');
+  });
+
+  it("/events/:id carries the calendar links, the volunteer button only with slots, and Event JSON-LD -- from ONE batch", async () => {
+    const state = makeState();
+    const { app, env } = tenantHostApp(makeTenant(), state);
+    const { html } = await get(app, env, `${HOST}/events/ev_workshop`);
+    // The .ics link is origin-relative (public.ts is mounted on every host), never under a base path.
+    expect(html).toContain('href="/public/riverbend/events/ev_workshop/ics">Add to calendar</a>');
+    expect(html).toContain(
+      'href="https://calendar.google.com/calendar/render?action=TEMPLATE&amp;text=Free-motion%20workshop&amp;dates=20991003T170000Z/20991003T200000Z&amp;location=Grange%20Hall&amp;details=Bring%20your%20machine." target="_blank" rel="noopener noreferrer">Google Calendar</a>'
+    );
+    expect(html).not.toContain('id="volunteer-ev_workshop"');
+    expect(html).toContain('"@type":"Event"');
+    expect(html).toContain('"url":"https://riverbend.quilthosting.com/events/ev_workshop"');
+    expect(html).toContain('"startDate":"2099-10-03T17:00:00.000Z"');
+    expect(html).toContain('"offers":{"@type":"Offer","price":"15.00"');
+    expect(state.batchCalls).toBe(1);
+    expect(state.sql.some((s) => s.includes("FROM volunteer_slots"))).toBe(true);
+
+    state.volunteerSlots = { ev_workshop: 2 };
+    const withSlots = await get(app, env, `${HOST}/events/ev_workshop`);
+    expect(withSlots.html).toContain('id="volunteer-ev_workshop"');
+    expect(withSlots.html).toContain(">Volunteer sign-up</a>");
+    expect(withSlots.html).toContain("Volunteer</h2>");
+  });
+
+  it("guild pages carry Organization JSON-LD with an absolute url (and the logo when set); event 404s carry no Event", async () => {
+    const state = makeState();
+    const t = makeTenant({ settings_json: JSON.stringify({ assets: { logo_file_id: "f-logo" } }) });
+    const { app, env } = tenantHostApp(t, state);
+    const home = await get(app, env, `${HOST}/`);
+    expect(home.html).toContain('"@type":"Organization"');
+    expect(home.html).toContain('"name":"River Bend Quilters"');
+    expect(home.html).toContain('"url":"https://riverbend.quilthosting.com/"');
+    expect(home.html).toContain('"logo":"https://riverbend.quilthosting.com/img/f-logo"');
+    expect(home.html).not.toContain('"@type":"Event"');
+    const missing = await get(app, env, `${HOST}/events/nope`);
+    expect(missing.html).not.toContain('"@type":"Event"');
+  });
+
+  it("/directory renders the members-only stack unless profile.directory_public, then the searchable member list", async () => {
+    const state = makeState();
+    state.members = [
+      { id: "m1", tenant_id: "tnt_guild", first_name: "Ada", last_name: "Lovelace", bio: "Paper piecing.", photo_file_id: "f-ada", showcase_json: JSON.stringify({ website: "https://ada.example" }) },
+      { id: "m2", tenant_id: "tnt_other", first_name: "Other", last_name: "Tenant", bio: null, photo_file_id: null, showcase_json: null },
+    ];
+    const closed = tenantHostApp(makeTenant(), state);
+    const priv = await get(closed.app, closed.env, `${HOST}/directory`);
+    expect(priv.res.status).toBe(200);
+    expect(priv.html).toContain("<title>Members only");
+    expect(priv.html).toContain('<meta name="robots" content="noindex, nofollow">');
+    expect(priv.html).not.toContain("Ada Lovelace");
+    expect(state.sql.some((s) => s.includes("FROM members "))).toBe(false);
+
+    const open = tenantHostApp(makeTenant({ settings_json: JSON.stringify({ profile: { directory_public: true } }) }), state);
+    const pub = await get(open.app, open.env, `${HOST}/directory`);
+    expect(pub.res.status).toBe(200);
+    expect(pub.html).toContain("<title>Members");
+    expect(pub.html).toContain('data-directory-filter="directory-list"');
+    expect(pub.html).toContain("Ada Lovelace");
+    expect(pub.html).toContain('src="/public/riverbend/member-photo/f-ada"');
+    expect(pub.html).toContain('href="https://ada.example"');
+    expect(pub.html).not.toContain("Other Tenant");
+    // The rawHtml lands inside <main>, after the hero.
+    const main = pub.html.slice(pub.html.indexOf('<main id="main"'), pub.html.indexOf("</main>"));
+    expect(main.indexOf('id="directory"')).toBeGreaterThan(main.indexOf('id="directory-hero"'));
+  });
+
+  it("/donate renders the support page with the donate strip; 404 when donations are off", async () => {
+    const state = makeState();
+    const { app, env } = tenantHostApp(makeTenant(), state);
+    const { res, html } = await get(app, env, `${HOST}/donate`);
+    expect(res.status).toBe(200);
+    expect(html).toContain("<title>Donate");
+    expect(html).toContain("Support River Bend Quilters");
+    expect(html).toContain('<section id="donate" class="qh-s ');
+    expect(html).toContain('data-donate="2500"');
+    expect(html).toContain('data-donate="0"');
+    const off = tenantHostApp(makeTenant({ settings_json: JSON.stringify({ profile: { donations_enabled: false } }) }), state);
+    expect((await get(off.app, off.env, `${HOST}/donate`)).res.status).toBe(404);
+  });
+
+  it("sitemap.xml is an empty urlset for an unlaunched tenant and the full inventory for a launched one", async () => {
+    const state = makeState();
+    const guild = tenantHostApp(makeTenant(), state);
+    const empty = await get(guild.app, guild.env, `${HOST}/sitemap.xml`);
+    expect(empty.res.status).toBe(200);
+    expect(empty.res.headers.get("content-type")).toContain("application/xml");
+    expect(empty.html).toContain('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>');
+
+    state.pages.push(makePage({ id: "page-home", slug: "home", title: "Home", updated_at: "2026-08-15T00:00:00.000Z" }));
+    state.pages.push(makePage({ id: "page-noindex", slug: "hidden-from-google", title: "Hidden", noindex: 1 }));
+    const biz = makeTenant({ tenant_type: "business", public_launched: 1 });
+    const launched = tenantHostApp(biz, state);
+    const { html } = await get(launched.app, launched.env, `${HOST}/sitemap.xml`);
+    const locs = [...html.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+    expect(locs[0]).toBe("https://riverbend.quilthosting.com/");
+    expect(html).toContain("<url><loc>https://riverbend.quilthosting.com/</loc><lastmod>2026-08-15</lastmod></url>");
+    for (const p of ["/events", "/calendar", "/galleries", "/blog", "/about"]) {
+      expect(locs).toContain(`https://riverbend.quilthosting.com${p}`);
+    }
+    expect(html).toContain("<loc>https://riverbend.quilthosting.com/about</loc><lastmod>2026-08-01</lastmod>");
+    // Blog posts live under /blog/<slug>, never at /<slug>.
+    expect(locs).toContain("https://riverbend.quilthosting.com/blog/spring-show-recap");
+    expect(locs).not.toContain("https://riverbend.quilthosting.com/spring-show-recap");
+    expect(html).toContain("<loc>https://riverbend.quilthosting.com/events/ev_workshop</loc><lastmod>2099-10-03</lastmod>");
+    for (const absent of ["/minutes", "/hidden-from-google", "/home", "/membership", "/directory", "/donate"]) {
+      expect(locs).not.toContain(`https://riverbend.quilthosting.com${absent}`);
+    }
+    expect(new Set(locs).size).toBe(locs.length);
   });
 
   it("/events/:id for an unknown or non-public event is the 404 stack", async () => {

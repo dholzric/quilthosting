@@ -1098,7 +1098,9 @@ describe("serveBusinessSite — pages, trash, redirects", () => {
     expect(home).not.toContain("/ghost");
 
     const sitemap = await (await app.request("http://stitchstudioquilting.test/sitemap.xml", {}, env)).text();
-    expect(sitemap).toContain("/home</loc>");
+    // The "home" page is the site root, exactly as buildMenu links it.
+    expect(sitemap).toContain("<loc>https://stitchstudio.quilthosting.com/</loc>");
+    expect(sitemap).not.toContain("/home</loc>");
     expect(sitemap).not.toContain("/ghost");
     expect(sitemap).not.toContain("/gone");
   });

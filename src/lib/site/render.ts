@@ -69,8 +69,18 @@ export type SitePageArgs = {
   design: SiteDesign;
   data: SiteData;
   imgUrl: RenderContext["imgUrl"];
+  /** Intrinsic size + focal point per uploaded image id (serveSite fills it). */
+  imgMeta?: RenderContext["imgMeta"];
   /** Extra markup for <head>, e.g. noindex while gated. Emitted verbatim: platform-authored only. */
   extraHead?: string;
+  /** Additional `<script type="application/ld+json">` blocks (seo.ts builders) appended to <head>. */
+  jsonLd?: string[];
+  /**
+   * Platform-authored markup appended after the sections inside <main>
+   * (pages/system.ts `SystemPage.rawHtml`). Emitted verbatim: the caller has
+   * escaped every tenant string in it.
+   */
+  rawHtml?: string;
 };
 
 // Encodes & < > " ' -- every interpolation below is either a text node or a
@@ -275,8 +285,12 @@ function resolveCta(args: SitePageArgs, sections: Section[]): Cta {
       const inMenu = flatten(args.menu).find((m) => !m.external && pathOf(m.href) === `${basePath}/request-a-quote`);
       return { label: "Request a quote", href: inMenu ? inMenu.href : `${base}/contact` };
     }
-    case "donate":
-      return { label: "Donate", href: "#donate" };
+    case "donate": {
+      // The first donate section on this page, else the system /donate page
+      // (pages/system.ts), which carries one with the id "donate".
+      const onPage = sections.find((s) => s.type === "donate");
+      return { label: "Donate", href: onPage ? `#${onPage.id}` : `${base}/donate` };
+    }
     default:
       return null;
   }
@@ -433,7 +447,14 @@ export function renderSitePage(args: SitePageArgs): string {
   const roles = deriveRoles(design.palette.input, isDarkDesign(design));
   const sections = page.sections ?? [];
 
-  const ctx: RenderContext = { slug: tenant.slug, baseUrl, design, data: args.data, imgUrl: args.imgUrl };
+  const ctx: RenderContext = {
+    slug: tenant.slug,
+    baseUrl,
+    design,
+    data: args.data,
+    imgUrl: args.imgUrl,
+    imgMeta: args.imgMeta,
+  };
   let bodyHtml = renderSections(sections, ctx);
   const overlay = !!design.header.overlayHero && firstImageHero(sections);
   if (overlay) {
@@ -446,7 +467,8 @@ export function renderSitePage(args: SitePageArgs): string {
   const heroImageId = sections[0]?.type === "hero" ? sections[0].style?.imageId : undefined;
   const ogImageUrl = args.ogImageUrl || (heroImageId ? args.imgUrl(heroImageId, 1200) : null);
   const seoHead = buildSeoHead({ page: seoPage, siteName, baseUrl, bodyHtml, ogImageUrl });
-  const jsonLd = tenant.tenant_type === "business" ? buildLocalBusinessJsonLd({ ...identity, name: siteName }, baseUrl) : "";
+  const localBusiness = tenant.tenant_type === "business" ? buildLocalBusinessJsonLd({ ...identity, name: siteName }, baseUrl) : "";
+  const jsonLd = [localBusiness, ...(args.jsonLd ?? [])].filter(Boolean).join("\n");
 
   const fontsHref = designFontsHref(design);
   const fontLinks = fontsHref
@@ -478,7 +500,7 @@ ${jsonLd}
 <a class="qh-skip" href="#main">Skip to content</a>
 ${renderHeader(args, siteName, current, cta, overlay)}
 <main id="main" class="qh-main">
-${bodyHtml}
+${bodyHtml}${args.rawHtml ? `\n${args.rawHtml}` : ""}
 </main>
 ${renderFooter(args, siteName, identity, profile, portalUrl)}
 <script src="/qh-site.js" defer></script>

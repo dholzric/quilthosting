@@ -3,8 +3,8 @@
  * in the page. Context: <body data-qh-slug data-qh-base data-qh-type>; every
  * request goes to `${qhBase}/public/${qhSlug}/…`. DOM APIs only — no innerHTML.
  * Modules: initNav, initJoin, initRegister, initCart, initDonate, initCalendar,
- * initLightbox, initVolunteer, initNewsletter (+ initReturnFlags and the legacy
- * .qh-block-* hydration from the business renderer), booted from boot(). */
+ * initLightbox, initVolunteer, initNewsletter, initDirectorySearch (+ initReturnFlags
+ * and the legacy .qh-block-* hydration from the business renderer), booted from boot(). */
 (function () {
   "use strict";
 
@@ -461,8 +461,9 @@
       links.forEach(function (a, i) { a.addEventListener("click", function (e) { e.preventDefault(); ensureLightbox().open(links, i, a); }); });
     });
   }
-  // ---- Module: volunteer ([data-volunteer="eventId"]) ------------------------
-  // A button/link opens the sign-up dialog; any other element becomes the inline slot list.
+  // ---- Module: volunteer ([data-volunteer="eventId"], .qh-cta[id^="volunteer-"]) ----
+  // A button/link (or the event page's volunteer cta section) opens the sign-up
+  // dialog; any other [data-volunteer] element becomes the inline slot list.
   var volunteer = null;
   function loadSlots(eventId) {
     return api("/events/" + encodeURIComponent(eventId) + "/volunteers").then(function (r) { return (r.ok && r.data.slots) || []; }, function () { return []; });
@@ -532,10 +533,11 @@
     });
   }
   function initVolunteer() {
-    $$("[data-volunteer]").forEach(function (node) {
-      var eventId = node.getAttribute("data-volunteer");
+    $$('[data-volunteer], .qh-cta[id^="volunteer-"]').forEach(function (hook) {
+      var eventId = hook.getAttribute("data-volunteer") || hook.id.replace(/^volunteer-/, "");
+      var node = hook.matches("a,button") ? hook : hook.classList.contains("qh-cta") ? hook.querySelector("a,button") : null;
       if (!eventId) return;
-      if (!node.matches("a,button")) { renderSlotList(node, eventId); return; }
+      if (!node) { renderSlotList(hook, eventId); return; }
       node.addEventListener("click", function (e) {
         e.preventDefault();
         busy(node, true);
@@ -544,6 +546,20 @@
           if (!slots.length) { toast("err", "No volunteer slots are open for this event."); return; }
           openVolunteer(eventId, slots, null, node);
         });
+      });
+    });
+  }
+  // ---- Module: directory search ([data-directory-filter="listId"]) ----------
+  // Plain text filter over the public member directory's cards; the count line updates.
+  function initDirectorySearch() {
+    $$("[data-directory-filter]").forEach(function (input) {
+      var list = document.getElementById(input.getAttribute("data-directory-filter"));
+      if (!list) return;
+      var items = $$(".qh-directory__member", list), count = document.querySelector("[data-directory-count]");
+      input.addEventListener("input", function () {
+        var q = input.value.trim().toLowerCase(), shown = 0;
+        items.forEach(function (it) { var hit = !q || it.textContent.toLowerCase().indexOf(q) >= 0; it.hidden = !hit; if (hit) shown++; });
+        if (count) count.textContent = shown + (shown === 1 ? " member" : " members");
       });
     });
   }
@@ -709,6 +725,7 @@
     initLightbox();
     initVolunteer();
     initNewsletter();
+    initDirectorySearch();
     initReturnFlags();
     initLegacyBlocks();
   }

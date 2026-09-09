@@ -19,9 +19,11 @@ import {
 } from "../lib/site/render";
 import { readSiteDesign } from "../lib/site/design/migrate";
 import { needsFor, loadSiteData, readProfile, excerptFromHtml } from "../lib/site/data";
-import type { DataNeed, SiteData, SiteEvent, SitePost, SiteProfile } from "../lib/site/data";
+import type { DataNeed, SiteData, SitePost, SiteProfile } from "../lib/site/data";
 import { systemPageSections, type SystemPageKind } from "../lib/site/pages/system";
+import { buildOrganizationJsonLd, buildEventJsonLd } from "../lib/site/seo";
 import { sectionsFromPage } from "../lib/site/sections/normalize";
+import type { ImgMeta } from "../lib/site/sections/render";
 import { DEFAULT_STYLE, type Section, type SectionStyle } from "../lib/site/sections/schema";
 import { isLaunched } from "../lib/tenantType";
 import { cachedRender } from "../lib/site/cache";
@@ -47,7 +49,7 @@ import { generateId } from "../lib/utils/id";
 // itself now lives in lib/images.ts (serveImage enforces it); re-exported
 // here for the routes written against this import.
 export { ALLOWED_IMAGE_TYPES } from "../lib/images";
-import { ALLOWED_IMAGE_TYPES, IMAGE_ROW_COLUMNS, serveImage, type ImageRow } from "../lib/images";
+import { ALLOWED_IMAGE_TYPES, IMAGE_ROW_COLUMNS, serveImage, type ImageRow, parseFocal } from "../lib/images";
 
 // A shop that never finished configuring its agreement can't produce a
 // signable estimate -- shown on GET and enforced again on POST (Task 10 fix
@@ -279,6 +281,10 @@ export function resolveSiteRoute(path: string): SiteRoute | null {
         return { kind: "galleries" };
       case "blog":
         return { kind: "blog" };
+      case "directory":
+        return { kind: "directory" };
+      case "donate":
+        return { kind: "donate" };
       default:
         return { kind: "page", slug: head };
     }
@@ -364,12 +370,14 @@ export function defaultHomeSections(tenant: Pick<Tenant, "name">, profile: SiteP
 const SYSTEM_NEEDS: Record<SystemPageKind, DataNeed[]> = {
   membership: ["levels", "profile"],
   events: ["events"],
-  event: [], // looked up by id directly -- eventsStatement only lists upcoming events
+  event: ["events"], // with LoadOpts.eventId: the one event by id (past or upcoming) + its volunteer slot count
   calendar: ["events"],
   galleries: ["galleries"],
   gallery: ["gallery"],
   blog: ["posts"],
   post: [], // the post row is looked up by slug directly
+  directory: ["profile", "directory"], // the directory loader only queries when profile.directory_public
+  donate: ["profile"],
   members_only: [],
   not_found: [],
 };
@@ -386,43 +394,6 @@ function pageLimit(sections: Section[]): number | undefined {
     }
   }
   return max;
-}
-
-type EventDetailRow = {
-  id: string;
-  title: string;
-  description: string | null;
-  location: string | null;
-  start_at: string;
-  end_at: string | null;
-  member_price_cents: number;
-  non_member_price_cents: number;
-  capacity: number | null;
-  registration_open: number;
-};
-
-/** One public event by id, past or upcoming (the detail page must outlive the listing window). */
-async function loadEventById(env: Env, tenant: Tenant, id: string): Promise<SiteEvent | null> {
-  const r = await first<EventDetailRow>(
-    env.DB.prepare(
-      `SELECT id, title, description, location, start_at, end_at,
-              member_price_cents, non_member_price_cents, capacity, registration_open
-       FROM events WHERE id = ? AND tenant_id = ? AND is_public = 1`
-    ).bind(id, tenant.id)
-  );
-  if (!r) return null;
-  return {
-    id: r.id,
-    title: r.title,
-    start_at: r.start_at,
-    end_at: r.end_at ?? null,
-    location: r.location ?? null,
-    description: r.description ?? null,
-    member_price_cents: Number(r.member_price_cents) || 0,
-    non_member_price_cents: Number(r.non_member_price_cents) || 0,
-    registration_open: Number(r.registration_open) || 0,
-    capacity: r.capacity == null ? null : Number(r.capacity),
-  };
 }
 
 function postFromRow(row: SitePageRow): SitePost {
@@ -538,11 +509,10 @@ export async function serveSite(
   const data: SiteData = await loadSiteData(c.env, tenant, needs, {
     limit,
     gallerySlug: kind === "gallery" ? param : undefined,
+    // The detail page must outlive the upcoming-events window, so the loader
+    // fetches this one event by id (plus its volunteer slot count) instead.
+    eventId: kind === "event" ? param : undefined,
   });
-  if (kind === "event" && param) {
-    const ev = await loadEventById(c.env, tenant, param);
-    data.events = ev ? [ev] : [];
-  }
   if (kind === "post" && row) data.posts = [postFromRow(row)];
   if (!data.profile && needs.has("profile")) data.profile = profile;
 
@@ -552,6 +522,7 @@ export async function serveSite(
   let status = 200;
   let membersOnly = false;
   let noindex = 0;
+  let rawHtml: string | undefined;
   let seo: Pick<SitePageRow, "seo_title" | "seo_description" | "og_image_file_id"> = {
     seo_title: null,
     seo_description: null,
@@ -566,13 +537,17 @@ export async function serveSite(
     const system = systemPageSections(kind, { tenant, design, data, param });
     title = system.title;
     sections = kind === "post" && system.status !== 404 ? [...system.sections, ...pageSectionsForRoute] : system.sections;
-    if (kind === "members_only") sections = sections.map((s) => pinPortalLink(s, onTenantHost ? baseUrl : c.env.APP_URL));
+    // Every stack, not only members_only: a private directory renders the
+    // same sign-in stack (pages/system.ts) and its portal CTA needs the same pin.
+    sections = sections.map((s) => pinPortalLink(s, onTenantHost ? baseUrl : c.env.APP_URL));
     status = system.status ?? 200;
     membersOnly = kind === "members_only";
     noindex = system.noindex ? 1 : 0;
+    rawHtml = system.rawHtml;
     if (kind === "post" && row) seo = row;
   }
-  const cacheable = status === 200 && !membersOnly && kind !== "not_found";
+  // noindex stacks (members-only, the private directory) are per-visitor prompts, not cacheable pages.
+  const cacheable = status === 200 && !membersOnly && !noindex && kind !== "not_found";
 
   // -- Shell: menu, branding, image URLs -----------------------------------
   const navRows = await all<{ slug: string; title: string; nav_label: string | null; show_in_nav: number }>(
@@ -590,12 +565,32 @@ export async function serveSite(
   const imgUrl: SitePageArgs["imgUrl"] = onTenantHost
     ? (id, w) => `${baseUrl}/img/${id}${q(w)}`
     : (id, w) => `/public/${encodeURIComponent(tenant.slug)}/img/${id}${q(w)}`;
+  // Intrinsic size + focal point for every uploaded image the page renders,
+  // in one query, so <img> can carry width/height (no layout shift) and
+  // object-position. Pattern references ("pattern:<id>") are not files.
+  const imageIds = collectImageIds(sections);
+  const imgMeta = await loadImgMeta(c.env, tenant.id, imageIds);
+
   const logoFileId = String(((parseSettings(settings).assets || {}) as { logo_file_id?: unknown }).logo_file_id || "");
   const logoUrl = logoFileId ? imgUrl(logoFileId) : null;
   const ogImageUrl = seo.og_image_file_id ? imgUrl(seo.og_image_file_id) : null;
   // Never let an unlaunched site into an index, whichever host it renders on.
   const extraHead = isLaunched(tenant) ? undefined : `<meta name="robots" content="noindex">`;
   const slug = path === "/" ? "" : path.replace(/^\/+/, "").replace(/\/+$/, "");
+
+  // Structured data: Organization on every guild page (businesses get
+  // LocalBusiness from render.ts) and Event on a found event detail. The
+  // urls in it must be absolute, so under /g/<slug> they are built on APP_URL.
+  const appOrigin = (c.env.APP_URL || "").replace(/\/+$/, "");
+  const absoluteBase = onTenantHost ? baseUrl : `${appOrigin}${basePath}`;
+  const jsonLd: string[] = [];
+  if (tenant.tenant_type !== "business") {
+    const absoluteLogo = logoUrl && logoUrl.startsWith("/") ? `${appOrigin}${logoUrl}` : logoUrl;
+    jsonLd.push(buildOrganizationJsonLd(tenant.name, absoluteBase, absoluteLogo));
+  }
+  if (kind === "event" && status === 200 && data.events?.[0]) {
+    jsonLd.push(buildEventJsonLd(data.events[0], absoluteBase));
+  }
 
   const args: SitePageArgs = {
     tenant: { name: tenant.name, slug: tenant.slug, settings_json: settings, tenant_type: tenant.tenant_type === "business" ? "business" : "guild" },
@@ -618,7 +613,10 @@ export async function serveSite(
     design,
     data,
     imgUrl,
+    imgMeta,
     extraHead,
+    jsonLd,
+    rawHtml,
   };
 
   if (!cacheable) {
@@ -689,24 +687,79 @@ async function serveTenantImage(c: Context<{ Bindings: Env }>, tenant: Tenant, f
   return res ?? new Response("Not found", { status: 404 });
 }
 
+function xmlEscape(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+}
+
+/** `YYYY-MM-DD` from an ISO timestamp; undefined when there is nothing usable (the tag is then omitted). */
+function lastmodOf(iso: string | null | undefined): string | undefined {
+  const day = (iso || "").slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : undefined;
+}
+
+type SitemapPageRow = { slug: string; updated_at: string; page_type: string };
+type SitemapEventRow = { id: string; start_at: string; updated_at: string | null };
+
+/**
+ * sitemap.xml for a tenant host: everything a crawler may index. The home,
+ * the system indexes (`/events`, `/calendar`, `/galleries`, `/blog`, and for
+ * a guild `/membership` plus `/directory` / `/donate` when they are turned
+ * on), every published, public, indexable page, each published blog post at
+ * `/blog/<slug>` (where it actually lives) and each upcoming public event at
+ * `/events/<id>`. `<lastmod>` is the row's `updated_at` (an event falls back
+ * to `start_at`). An unlaunched tenant renders every page noindex, so its
+ * sitemap is an empty urlset rather than a list of pages it asks crawlers
+ * to skip.
+ */
 async function serveSitemap(c: Context<{ Bindings: Env }>, tenant: Tenant, baseUrl: string): Promise<Response> {
-  const rows = await all<{ slug: string; updated_at: string }>(
-    c.env.DB.prepare(
-      `SELECT slug, updated_at FROM pages
-       WHERE tenant_id = ? AND published = 1 AND is_members_only = 0
-         AND deleted_at IS NULL
-         AND coalesce(noindex, 0) = 0
-       ORDER BY sort_order, title`
-    ).bind(tenant.id)
-  );
-  const urls = rows
-    .map((r) => {
-      const loc = r.slug ? `${baseUrl}/${r.slug}` : `${baseUrl}/`;
-      return `<url><loc>${loc}</loc><lastmod>${(r.updated_at || "").slice(0, 10)}</lastmod></url>`;
-    })
-    .join("");
+  const base = baseUrl.replace(/\/+$/, "");
+  const entries: { path: string; lastmod?: string }[] = [];
+
+  if (isLaunched(tenant)) {
+    const [pagesResult, eventsResult] = await c.env.DB.batch([
+      c.env.DB.prepare(
+        `SELECT slug, updated_at, coalesce(page_type, 'page') AS page_type FROM pages
+         WHERE tenant_id = ? AND published = 1 AND is_members_only = 0
+           AND deleted_at IS NULL
+           AND coalesce(noindex, 0) = 0
+         ORDER BY sort_order, title`
+      ).bind(tenant.id),
+      c.env.DB.prepare(
+        `SELECT id, start_at, updated_at FROM events
+         WHERE tenant_id = ? AND is_public = 1 AND start_at >= datetime('now')
+         ORDER BY start_at ASC LIMIT 500`
+      ).bind(tenant.id),
+    ]);
+    const pages = (pagesResult?.results ?? []) as SitemapPageRow[];
+    const events = (eventsResult?.results ?? []) as SitemapEventRow[];
+    const isGuild = tenant.tenant_type !== "business";
+    const profile = readProfile(tenant.settings_json);
+
+    const home = pages.find((p) => p.slug === "home" && p.page_type === "page");
+    entries.push({ path: "/", lastmod: lastmodOf(home?.updated_at) });
+    if (isGuild) entries.push({ path: "/membership" });
+    entries.push({ path: "/events" }, { path: "/calendar" }, { path: "/galleries" }, { path: "/blog" });
+    if (isGuild && profile.directory_public) entries.push({ path: "/directory" });
+    if (isGuild && profile.donations_enabled !== false) entries.push({ path: "/donate" });
+    for (const p of pages) {
+      if (!p.slug || p.slug === "home") continue;
+      const path = p.page_type === "blog_post" ? `/blog/${p.slug}` : `/${p.slug}`;
+      entries.push({ path, lastmod: lastmodOf(p.updated_at) });
+    }
+    for (const e of events) {
+      entries.push({ path: `/events/${encodeURIComponent(e.id)}`, lastmod: lastmodOf(e.updated_at) ?? lastmodOf(e.start_at) });
+    }
+  }
+
+  const seen = new Set<string>();
+  const urls: string[] = [];
+  for (const e of entries) {
+    if (seen.has(e.path)) continue;
+    seen.add(e.path);
+    urls.push(`<url><loc>${xmlEscape(`${base}${e.path}`)}</loc>${e.lastmod ? `<lastmod>${e.lastmod}</lastmod>` : ""}</url>`);
+  }
   return new Response(
-    `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`,
+    `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.join("")}</urlset>`,
     { headers: { "Content-Type": "application/xml; charset=utf-8" } }
   );
 }
@@ -1141,4 +1194,58 @@ async function signQuote(
   }
 
   return c.json({ ok: true });
+}
+
+/** Every uploaded-file id referenced by a section stack (skips pattern refs). */
+export function collectImageIds(sections: Section[]): string[] {
+  const out = new Set<string>();
+  const walk = (v: unknown): void => {
+    if (Array.isArray(v)) {
+      for (const item of v) walk(item);
+      return;
+    }
+    if (!v || typeof v !== "object") return;
+    for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+      if (k === "imageId" && typeof val === "string" && val && !val.startsWith("pattern:")) {
+        out.add(val);
+      } else {
+        walk(val);
+      }
+    }
+  };
+  walk(sections);
+  return [...out];
+}
+
+/**
+ * One query for the page's images. Returns a lookup the renderer calls per
+ * image; unknown ids (deleted files, previews) simply return undefined and
+ * the image renders without width/height.
+ */
+export async function loadImgMeta(
+  env: Env,
+  tenantId: string,
+  ids: string[]
+): Promise<((fileId: string) => ImgMeta | undefined) | undefined> {
+  if (!ids.length) return undefined;
+  const capped = ids.slice(0, 60);
+  const placeholders = capped.map(() => "?").join(", ");
+  let rows: { id: string; width: number | null; height: number | null; focal_json: string | null }[] = [];
+  try {
+    rows = await all<{ id: string; width: number | null; height: number | null; focal_json: string | null }>(
+      env.DB.prepare(
+        `SELECT id, width, height, focal_json FROM files
+         WHERE tenant_id = ? AND id IN (${placeholders})`
+      ).bind(tenantId, ...capped)
+    );
+  } catch {
+    // Pre-0028 database: no width/height/focal columns yet.
+    return undefined;
+  }
+  if (!rows.length) return undefined;
+  const map = new Map<string, ImgMeta>();
+  for (const r of rows) {
+    map.set(r.id, { w: r.width, h: r.height, focal: parseFocal(r.focal_json) });
+  }
+  return (fileId: string) => map.get(fileId);
 }

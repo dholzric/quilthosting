@@ -23,8 +23,12 @@ function esc(v: string): string {
     .replace(/\r?\n/g, "\\n");
 }
 
-/** UTC basic format: 20261013T183000Z */
-function toIcsDate(iso: string): string {
+/**
+ * UTC basic format: 20261013T183000Z. Empty for an unparseable date. Also
+ * the `dates=` format Google Calendar's render?action=TEMPLATE URL expects
+ * (pages/system.ts builds those links from it).
+ */
+export function toIcsDate(iso: string): string {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "";
   const p = (n: number) => String(n).padStart(2, "0");

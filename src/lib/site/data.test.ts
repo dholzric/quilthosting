@@ -384,6 +384,65 @@ describe("loadSiteData", () => {
     ]);
   });
 
+  it("eventId: the events need becomes ONE event by id plus its volunteer slot count, still in one batch", async () => {
+    const { env, batches } = fakeDb({
+      "FROM events WHERE id = ?": [
+        {
+          id: "ev-1",
+          title: "Show setup",
+          description: null,
+          location: null,
+          start_at: "2020-01-01T00:00:00.000Z",
+          end_at: null,
+          member_price_cents: 0,
+          non_member_price_cents: 0,
+          capacity: null,
+          registration_open: 0,
+          settings_json: "{}",
+        },
+      ],
+      "FROM volunteer_slots": [{ n: 3 }],
+    });
+    const data = await loadSiteData(env, tenant(), new Set<DataNeed>(["events"]), { eventId: "ev-1" });
+    expect(batches).toHaveLength(1);
+    expect(batches[0]).toHaveLength(2);
+    expect(batches[0][0].sql.replace(/\s+/g, " ")).toContain("FROM events WHERE id = ? AND tenant_id = ? AND is_public = 1");
+    expect(batches[0][0].binds).toEqual(["ev-1", TENANT_ID]);
+    expect(batches[0][1].sql).toContain("FROM volunteer_slots");
+    expect(batches[0][1].binds).toEqual([TENANT_ID, "ev-1"]);
+    expect(data.events).toHaveLength(1);
+    expect(data.events![0].id).toBe("ev-1");
+    expect(data.events![0].volunteer_slots).toBe(3);
+    expect("settings_json" in data.events![0]).toBe(false);
+
+    const missing = fakeDb({ "FROM volunteer_slots": [{ n: 0 }] });
+    const none = await loadSiteData(missing.env, tenant(), new Set<DataNeed>(["events"]), { eventId: "nope" });
+    expect(none.events).toEqual([]);
+  });
+
+  it("directory: no query unless profile.directory_public; rows map to SiteDirectoryMember with a parsed showcase", async () => {
+    const rows = [
+      { id: "m1", first_name: "Ada", last_name: "Lovelace", bio: "Paper piecing.", photo_file_id: "f-ada", showcase_json: JSON.stringify({ headline: "Modern quilter", interests: "EPP, hand quilting", website: "https://ada.example", junk: 1 }) },
+      { id: "m2", first_name: null, last_name: "Byron", bio: null, photo_file_id: null, showcase_json: "{not json" },
+    ];
+    const closed = fakeDb({ "FROM members": rows });
+    const a = await loadSiteData(closed.env, tenant(), new Set<DataNeed>(["directory"]));
+    expect(a.directory).toBeUndefined();
+    expect(closed.batches).toEqual([]);
+
+    const open = fakeDb({ "FROM members": rows });
+    const b = await loadSiteData(open.env, tenant({ profile: { directory_public: true } }), new Set<DataNeed>(["directory"]));
+    expect(open.batches).toHaveLength(1);
+    const sql = open.batches[0][0].sql.replace(/\s+/g, " ");
+    expect(sql).toContain("status = 'active'");
+    expect(sql).toContain("coalesce(directory_visible, 1) = 1");
+    expect(open.batches[0][0].binds).toEqual([TENANT_ID, 500]);
+    expect(b.directory).toEqual<SiteData["directory"]>([
+      { id: "m1", first_name: "Ada", last_name: "Lovelace", bio: "Paper piecing.", photo_file_id: "f-ada", showcase: { headline: "Modern quilter", interests: "EPP, hand quilting", website: "https://ada.example" } },
+      { id: "m2", first_name: null, last_name: "Byron", bio: null, photo_file_id: null, showcase: {} },
+    ]);
+  });
+
   it("only requested keys are present on the result", async () => {
     const { env } = fakeDb();
     const data = await loadSiteData(env, tenant(), new Set<DataNeed>(["levels"]));
