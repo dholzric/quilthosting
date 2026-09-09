@@ -105,3 +105,33 @@ Inline canvas editing, per-person pricing inside a household, more than one paye
 - Coverage: spec §4.1 → Task A; §4.2, §4.3 admin/portal/join → Task B; §4.5 import is deferred to a follow-up task in the next phase and is called out here so it is not forgotten; Codex items 16–17 → Tasks A and B; phase-2 residual "retire guild.html" → Task C; GLM B7 accessibility → Task D.
 - Type consistency: `DuesPolicy`, `computeTermEnd`, `prorateCents`, `lapseDate`, `activeMembershipFilter`, `householdPriceCents` are each defined once and referenced by those names.
 - Ordering: Task B depends on Task A's migration being applied first (both touch `membership_levels`); Tasks C and D are independent and can run in parallel with either.
+
+## Implementation note — Task C completed 2026-09-08 (v0.61.0-preview)
+
+The four tenants still on `settings.site.renderer === "legacy"` (aaqg, amqg,
+hailhaus, test-guild) were upgraded in production through
+`POST /api/tenants/:id/site/upgrade` after their previews had been checked,
+then every tenant's public site was fetched and confirmed to carry the
+section renderer's markup. Only then was the branch removed.
+
+The removal went one step further than this task described. "Back to classic"
+was not dead code: the button showed for every guild and, once the legacy
+branch was gone, would have written a renderer flag nothing honours. A control
+that silently breaks a live site is worse than the branch it was meant to
+undo, so the downgrade route, the upgrade route it pairs with,
+`src/lib/site/migrateGuild.ts` and both admin dialogs were removed together,
+and `settings.site.renderer` now validates to `"sections"` alone.
+
+`sectionsToLegacyBlocks` stays, despite its name: `starterSite.ts` still
+writes new guild pages in the block shape, which normalizes 1:1 into
+sections at render time.
+
+Deleted: `public/guild.html`, `src/lib/guildSite.test.ts`,
+`src/lib/site/migrateGuild.ts` and its test. The accessibility test that
+pinned the upgrade dialog now guards any runtime dialog the admin may grow
+later, rather than one that no longer exists.
+
+Evidence: 2599 unit tests pass, `tsc --noEmit` clean, admin.html's inline
+scripts parse under `node --check`, and all seven live guild sites plus
+`/admin` and `/portal` answer 200 after the deploy. An unknown slug and the
+retired `/g/:slug/__preview` path both answer 404.
