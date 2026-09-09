@@ -27,7 +27,7 @@
  */
 
 import { escapeHtml, parseBlocks, type PageBlock } from "../../blocks";
-import { sanitizeHtml } from "../../sanitize";
+import { decodeEntities, sanitizeHtml } from "../../sanitize";
 import { DEFAULT_STYLE, parseSections, type Section, type SectionStyle } from "./schema";
 
 // Compile-time complete: adding a PageBlock type without listing it here fails tsc.
@@ -173,6 +173,89 @@ function blockToSection(b: PageBlock, id: string): Section {
 /** 1:1 mapping of already-parsed blocks to sections with DEFAULT_STYLE and ids `s_<index>`. */
 export function blocksToSections(blocks: PageBlock[]): Section[] {
   return blocks.map((b, i) => blockToSection(b, `s_${i}`));
+}
+
+// ---------------------------------------------------------------------------
+// Styled conversion ("Try the new design", src/lib/site/migrateGuild.ts)
+// ---------------------------------------------------------------------------
+
+/** Longest hero subtitle the section schema accepts. */
+const HERO_SUBTITLE_MAX = 300;
+/** Longest heading / hero title the section schema accepts. */
+const HEADING_MAX = 160;
+
+/** Plain text of a fragment of HTML, whitespace collapsed, cut at a word to `max`. */
+function plainText(html: string, max: number): string {
+  const text = decodeEntities(sanitizeHtml(html).replace(/<[^>]+>/g, " "))
+    .replace(/\s+/g, " ")
+    .trim();
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const atWord = cut.lastIndexOf(" ");
+  return (atWord > max / 2 ? cut.slice(0, atWord) : cut).replace(/[\s,;:.-]+$/, "") + "…";
+}
+
+export type StyledConversionOpts = {
+  /** Home page: the first heading (+ text) becomes a minimal, centred hero. */
+  hero?: boolean;
+};
+
+/**
+ * Blocks -> sections with kit-style hints applied by position, for guilds
+ * upgrading from the classic renderer:
+ *   - a `heading` followed by a `text` merges into one `rich_text` with a
+ *     `heading` (a lone heading becomes a heading-only rich_text);
+ *   - with `hero: true`, the first heading (+ text) becomes a `hero`
+ *     (`minimal`, centred) so the home page opens the way a kit does;
+ *   - backgrounds alternate `none` / `tint` by content position; dividers
+ *     and spacers neither count nor tint, and a section that already has a
+ *     background (an image hero) keeps it.
+ * Ids are `s_<index>` over the output. The result round-trips through
+ * `parseSections` unchanged.
+ */
+export function blocksToSectionsStyled(blocks: PageBlock[], opts: StyledConversionOpts = {}): Section[] {
+  const out: Section[] = [];
+  let i = 0;
+  while (i < blocks.length) {
+    const b = blocks[i];
+    const next = blocks[i + 1];
+    const id = `s_${out.length}`;
+    if (b.type === "heading") {
+      const pairedText = next && next.type === "text" ? next : null;
+      const title = b.text.trim().slice(0, HEADING_MAX);
+      if (opts.hero && out.length === 0) {
+        const subtitle = pairedText ? plainText(pairedText.html, HERO_SUBTITLE_MAX) : "";
+        out.push({
+          type: "hero",
+          variant: "minimal",
+          title,
+          subtitle: subtitle || undefined,
+          style: { ...DEFAULT_STYLE, align: "center" },
+          id,
+        });
+      } else {
+        out.push({
+          type: "rich_text",
+          variant: "prose",
+          heading: title,
+          html: pairedText ? sanitizeHtml(pairedText.html) : "",
+          style: { ...DEFAULT_STYLE },
+          id,
+        });
+      }
+      i += pairedText ? 2 : 1;
+      continue;
+    }
+    out.push(blockToSection(b, id));
+    i += 1;
+  }
+  let position = 0;
+  for (const s of out) {
+    if (s.type === "divider" || s.type === "spacer") continue;
+    if (s.style.bg === "none" && position % 2 === 1) s.style.bg = "tint";
+    position += 1;
+  }
+  return out;
 }
 
 function parseJson(raw: string | null | undefined): unknown {

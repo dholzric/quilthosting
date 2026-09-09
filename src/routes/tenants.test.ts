@@ -659,3 +659,350 @@ describe("GET /api/tenants/:id/design-options", () => {
     expect(res.status).toBe(403);
   });
 });
+
+// ---------------------------------------------------------------------------
+// "Try the new design" (phase 2 Task D): GET /:id/site/upgrade previews the
+// composed home, POST /:id/site/upgrade converts every page in one batch
+// with a pre_upgrade snapshot per page, POST /:id/site/downgrade restores
+// those snapshots. Owner/admin/platform only; 409 when already on the
+// requested renderer.
+// ---------------------------------------------------------------------------
+
+const LEGACY_SETTINGS = {
+  theme: { primary: "#336699", font: "serif", style: "classic" },
+  profile: { description: "A friendly guild in Lincoln.", meeting_info: "2nd Tuesdays, 6:30 pm", location: "Grange Hall" },
+  site: { renderer: "legacy" },
+};
+
+const ABOUT_BLOCKS_JSON = JSON.stringify([
+  { type: "heading", text: "About us", level: 2 },
+  { type: "text", html: "<p>We have quilted together since 1982.</p>" },
+  { type: "button", label: "Join", href: "/membership" },
+]);
+
+const pageRow = (id: string, slug: string, blocksJson: string | null, extra: Record<string, unknown> = {}) => ({
+  id,
+  slug,
+  title: slug[0].toUpperCase() + slug.slice(1),
+  blocks_json: blocksJson,
+  content_json: JSON.stringify({ html: `<p>${slug} html</p>` }),
+  page_type: "page",
+  published: 1,
+  show_in_nav: 1,
+  nav_label: null,
+  is_members_only: 0,
+  sort_order: 0,
+  ...extra,
+});
+
+/** Fake D1 for the site upgrade/downgrade routes: canned tenant, pages and
+ * pre_upgrade revisions; records every batch and run. */
+function fakeSiteDb(opts: {
+  role?: string | null;
+  platformAdmin?: boolean;
+  settings?: Record<string, unknown>;
+  pages?: Record<string, unknown>[];
+  revisions?: Record<string, unknown>[];
+} = {}) {
+  const batches: { sql: string; binds: unknown[] }[][] = [];
+  const runs: { sql: string; binds: unknown[] }[] = [];
+  const settings = opts.settings ?? LEGACY_SETTINGS;
+  const stmt = (sql: string, binds: unknown[]) => ({
+    sql,
+    binds,
+    async first<T = Row>(): Promise<T> {
+      if (sql.includes("SELECT role FROM tenant_users")) {
+        return (opts.role ? { role: opts.role } : null) as T;
+      }
+      if (sql.includes("is_platform_admin")) return { is_platform_admin: opts.platformAdmin ? 1 : 0 } as T;
+      if (sql.startsWith("SELECT * FROM tenants")) {
+        return {
+          id: TENANT_ID,
+          name: "Prairie Star Quilters",
+          slug: "prairie-star",
+          custom_domain: null,
+          tenant_type: "guild",
+          public_launched: 0,
+          settings_json: JSON.stringify(settings),
+          status: "active",
+          updated_at: "2026-01-01T00:00:00.000Z",
+        } as T;
+      }
+      return null as T;
+    },
+    async all<T = Row>(): Promise<{ results: T[] }> {
+      if (sql.includes("FROM page_revisions")) return { results: (opts.revisions ?? []) as T[] };
+      if (sql.includes("FROM pages")) return { results: (opts.pages ?? []) as T[] };
+      return { results: [] };
+    },
+    async run() {
+      runs.push({ sql, binds });
+      return { success: true, meta: { changes: 1 } };
+    },
+  });
+  const db = {
+    prepare(sql: string) {
+      return { bind: (...binds: unknown[]) => stmt(sql, binds) };
+    },
+    async batch(stmts: { sql: string; binds: unknown[] }[]) {
+      batches.push(stmts.map((s) => ({ sql: s.sql, binds: s.binds })));
+      return stmts.map((s) => (/^\s*SELECT/i.test(s.sql) ? { success: true, results: [], meta: { changes: 0 } } : { success: true, meta: { changes: 1 } }));
+    },
+  };
+  return { db, batches, runs };
+}
+
+async function siteRequest(
+  db: unknown,
+  path: string,
+  init: { method?: string; body?: unknown } = {}
+) {
+  const env = { DB: db, JWT_SECRET, APP_URL } as unknown as Env;
+  const headers = { ...(await authHeader()), "Content-Type": "application/json" };
+  const res = await tenantRoutes.request(
+    `/${TENANT_ID}${path}`,
+    { method: init.method ?? "GET", headers, body: init.body === undefined ? undefined : JSON.stringify(init.body) },
+    env
+  );
+  return res;
+}
+
+describe("GET /api/tenants/:id/site/upgrade", () => {
+  it("lists what the upgrade would write and flags the home it would create", async () => {
+    const { db, batches } = fakeSiteDb({ role: "owner", pages: [pageRow("p1", "about", ABOUT_BLOCKS_JSON)] });
+    const res = await siteRequest(db, "/site/upgrade");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as any;
+    expect(body.renderer).toBe("legacy");
+    expect(body.created_home).toBe(true);
+    expect(body.kit).toBeNull();
+    expect(body.pages.map((p: any) => p.slug)).toEqual(["about", "home"]);
+    expect(body.pages[0].id).toBe("p1");
+    expect(body.pages[0].section_count).toBe(2);
+    expect(body.pages[1].id).toBeNull();
+    expect(batches).toHaveLength(0);
+  });
+
+  it("?preview=1 renders the composed home through the site renderer without writing, no-store", async () => {
+    const { db, batches, runs } = fakeSiteDb({ role: "admin", pages: [pageRow("p1", "about", ABOUT_BLOCKS_JSON)] });
+    const res = await siteRequest(db, "/site/upgrade?preview=1&kit=heritage");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/html");
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    const html = await res.text();
+    expect(html).toContain("<!DOCTYPE html>");
+    expect(html).toContain('class="qh-site"');
+    expect(html).toContain("Prairie Star Quilters");
+    expect(html).toContain("A friendly guild in Lincoln.");
+    expect(html).toContain("2nd Tuesdays, 6:30 pm");
+    // Heritage kit palette drives the preview's design vars.
+    expect(html).toContain("#9b2c2c");
+    expect(html).toContain('<meta name="robots" content="noindex">');
+    // Reads only: the page list, the nav, one data batch of SELECTs.
+    expect(runs).toHaveLength(0);
+    expect(batches.flat().every((s) => /^\s*SELECT/i.test(s.sql))).toBe(true);
+  });
+
+  it("rejects an unknown kit with 400", async () => {
+    const { db } = fakeSiteDb({ role: "owner" });
+    const res = await siteRequest(db, "/site/upgrade?kit=nope");
+    expect(res.status).toBe(400);
+  });
+
+  it("is 403 for roles below admin and for strangers; platform admins are allowed", async () => {
+    for (const role of ["membership", "events", "viewer"]) {
+      const { db } = fakeSiteDb({ role });
+      expect((await siteRequest(db, "/site/upgrade")).status).toBe(403);
+    }
+    const stranger = fakeSiteDb({ role: null });
+    expect((await siteRequest(stranger.db, "/site/upgrade")).status).toBe(403);
+    const platform = fakeSiteDb({ role: null, platformAdmin: true });
+    expect((await siteRequest(platform.db, "/site/upgrade")).status).toBe(200);
+  });
+});
+
+describe("POST /api/tenants/:id/site/upgrade", () => {
+  it("snapshots, converts and switches the renderer in ONE batch, creating the home", async () => {
+    const pages = [pageRow("p1", "about", ABOUT_BLOCKS_JSON), pageRow("p2", "contact", JSON.stringify([{ type: "contact_form", formSlug: "hello" }]))];
+    const { db, batches, runs } = fakeSiteDb({ role: "owner", pages });
+    const res = await siteRequest(db, "/site/upgrade", { method: "POST", body: { kit: "heritage" } });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as any;
+    expect(body.renderer).toBe("sections");
+    expect(body.kit).toBe("heritage");
+    expect(body.created_home).toBe(true);
+    expect(body.pages.map((p: any) => p.slug)).toEqual(["about", "contact", "home"]);
+    expect(body.pages[2].id).toEqual(expect.any(String));
+
+    expect(runs).toHaveLength(0);
+    expect(batches).toHaveLength(1);
+    const batch = batches[0];
+    // 2 pages x (snapshot + update) + home insert + tenant update
+    expect(batch.map((s) => s.sql.trim().split(/\s+/).slice(0, 3).join(" "))).toEqual([
+      "INSERT INTO page_revisions",
+      "UPDATE pages SET",
+      "INSERT INTO page_revisions",
+      "UPDATE pages SET",
+      "INSERT INTO pages",
+      "UPDATE tenants SET",
+    ]);
+
+    // Snapshot: the same column list pages.ts writes, kind pre_upgrade, the ORIGINAL blocks and html.
+    const snap = batch[0];
+    expect(snap.sql).toContain("(id, tenant_id, page_id, kind, title, blocks_json, content_json, created_by, created_at)");
+    expect(snap.binds.slice(1, 9)).toEqual([TENANT_ID, "p1", "pre_upgrade", "About", ABOUT_BLOCKS_JSON, pages[0].content_json, USER_ID, expect.any(String)]);
+
+    // Converted page: a section document in blocks_json, rendered html in content_json.
+    const upd = batch[1];
+    expect(upd.sql).toContain("blocks_json = ?");
+    expect(upd.sql).toContain("content_json = ?");
+    expect(upd.sql).toContain("updated_at = ?");
+    expect(upd.sql).toContain("WHERE id = ? AND tenant_id = ?");
+    const doc = JSON.parse(String(upd.binds[0]));
+    expect(doc[0]).toMatchObject({ type: "rich_text", heading: "About us", style: { bg: "none" } });
+    expect(doc[1]).toMatchObject({ type: "cta", label: "Join", style: { bg: "tint" } });
+    const html = JSON.parse(String(upd.binds[1])).html;
+    expect(html).toContain("About us");
+    expect(html).toContain("qh-s");
+    expect(upd.binds.slice(-2)).toEqual(["p1", TENANT_ID]);
+
+    // Created home: same column list as the create route, published, first in nav.
+    const home = batch[4];
+    expect(home.sql).toContain("(id, tenant_id, slug, title, content_json, blocks_json, show_in_nav, nav_label,");
+    expect(home.sql).toContain("'page', 1, NULL, NULL, 0)");
+    expect(home.binds[1]).toBe(TENANT_ID);
+    expect(home.binds[2]).toBe("home");
+    expect(home.binds[3]).toBe("Home");
+    const homeDoc = JSON.parse(String(home.binds[5]));
+    expect(homeDoc.map((s: any) => s.type)).toEqual(["hero", "meeting_info", "membership_levels", "events", "blog_teaser", "join_band"]);
+    expect(homeDoc[0].title).toBe("Prairie Star Quilters");
+    expect(JSON.parse(String(home.binds[4])).html).toContain("Prairie Star Quilters");
+    expect(home.binds[0]).toBe(body.pages[2].id);
+
+    // Tenant: renderer sections, kit, timestamp, created-home marker, previous legacy; design = kit defaults.
+    const tenant = batch[5];
+    expect(tenant.sql).toContain("settings_json = ?");
+    expect(tenant.sql).toContain("updated_at = ?");
+    expect(tenant.binds[2]).toBe(TENANT_ID);
+    const settings = JSON.parse(String(tenant.binds[0]));
+    expect(settings.theme).toEqual(LEGACY_SETTINGS.theme);
+    expect(settings.profile).toEqual(LEGACY_SETTINGS.profile);
+    expect(settings.site).toEqual({
+      renderer: "sections",
+      kit: "heritage",
+      upgraded_at: expect.any(String),
+      upgrade_created_home: true,
+      previous: { renderer: "legacy" },
+    });
+    expect(settings.design.palette.id).toBe("heritage-madder");
+    expect(settings.design.palette.input.brand).toBe("#9b2c2c");
+  });
+
+  it("without a kit migrates the legacy theme and completes an existing home instead of inserting one", async () => {
+    const { db, batches } = fakeSiteDb({ role: "owner", pages: [pageRow("h", "home", ABOUT_BLOCKS_JSON)] });
+    const res = await siteRequest(db, "/site/upgrade", { method: "POST", body: {} });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as any;
+    expect(body.created_home).toBe(false);
+    expect(body.kit).toBeNull();
+    const batch = batches[0];
+    expect(batch.map((s) => s.sql.trim().split(/\s+/).slice(0, 3).join(" "))).toEqual(["INSERT INTO page_revisions", "UPDATE pages SET", "UPDATE tenants SET"]);
+    const doc = JSON.parse(String(batch[1].binds[0]));
+    expect(doc[0]).toMatchObject({ type: "hero", variant: "minimal", title: "About us" });
+    expect(doc.slice(-3).map((s: any) => s.type)).toEqual(["events", "membership_levels", "join_band"]);
+    const settings = JSON.parse(String(batch[2].binds[0]));
+    expect(settings.site.kit).toBeNull();
+    expect(settings.site.upgrade_created_home).toBe(false);
+    expect(settings.design.palette.input.brand).toBe("#336699");
+  });
+
+  it("is 409 when the guild is already on the section renderer, 400 for an unknown kit, 403 below admin -- none of them write", async () => {
+    const already = fakeSiteDb({ role: "owner", settings: { site: { renderer: "sections" } } });
+    const r1 = await siteRequest(already.db, "/site/upgrade", { method: "POST", body: {} });
+    expect(r1.status).toBe(409);
+    expect(((await r1.json()) as any).renderer).toBe("sections");
+    expect(already.batches).toHaveLength(0);
+
+    const badKit = fakeSiteDb({ role: "owner" });
+    expect((await siteRequest(badKit.db, "/site/upgrade", { method: "POST", body: { kit: "quilt-shop" } })).status).toBe(400);
+    expect(badKit.batches).toHaveLength(0);
+
+    const viewer = fakeSiteDb({ role: "viewer" });
+    expect((await siteRequest(viewer.db, "/site/upgrade", { method: "POST", body: {} })).status).toBe(403);
+    expect(viewer.batches).toHaveLength(0);
+  });
+});
+
+describe("POST /api/tenants/:id/site/downgrade", () => {
+  const UPGRADED_SETTINGS = {
+    ...LEGACY_SETTINGS,
+    design: { palette: { id: "heritage-madder" } },
+    site: { renderer: "sections", kit: "heritage", upgraded_at: "t", upgrade_created_home: true, previous: { renderer: "legacy" } },
+  };
+
+  it("restores every page from its NEWEST pre_upgrade revision byte-for-byte, deletes the created home, sets legacy", async () => {
+    const sectionsJson = JSON.stringify([{ type: "rich_text", variant: "prose", html: "<p>new</p>", style: { bg: "none" }, id: "s_0" }]);
+    const pages = [
+      pageRow("p1", "about", sectionsJson),
+      pageRow("hx", "home", sectionsJson),
+      pageRow("p3", "never-snapshotted", sectionsJson),
+    ];
+    const older = JSON.stringify([{ type: "text", html: "<p>older</p>" }]);
+    const revisions = [
+      { id: "r2", page_id: "p1", title: "About (then)", blocks_json: ABOUT_BLOCKS_JSON, content_json: '{"html":"<p>about html</p>"}', created_at: "2026-02-01T00:00:00.000Z" },
+      { id: "r1", page_id: "p1", title: "About (older)", blocks_json: older, content_json: '{"html":"<p>old</p>"}', created_at: "2026-01-01T00:00:00.000Z" },
+    ];
+    const { db, batches } = fakeSiteDb({ role: "admin", settings: UPGRADED_SETTINGS, pages, revisions });
+    const res = await siteRequest(db, "/site/downgrade", { method: "POST" });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as any;
+    expect(body.renderer).toBe("legacy");
+    expect(body.restored).toEqual(["p1"]);
+    expect(body.deleted_home).toBe(true);
+
+    expect(batches).toHaveLength(1);
+    const batch = batches[0];
+    expect(batch.map((s) => s.sql.trim().split(/\s+/).slice(0, 3).join(" "))).toEqual([
+      "UPDATE pages SET",
+      "DELETE FROM page_revisions",
+      "DELETE FROM page_redirects",
+      "DELETE FROM pages",
+      "UPDATE tenants SET",
+    ]);
+    const restore = batch[0];
+    expect(restore.sql).toContain("title = ?");
+    expect(restore.sql).toContain("blocks_json = ?");
+    expect(restore.sql).toContain("content_json = ?");
+    expect(restore.binds[0]).toBe("About (then)");
+    expect(restore.binds[1]).toBe(ABOUT_BLOCKS_JSON);
+    expect(restore.binds[2]).toBe('{"html":"<p>about html</p>"}');
+    expect(restore.binds.slice(-2)).toEqual(["p1", TENANT_ID]);
+    expect(batch[1].binds).toEqual([TENANT_ID, "hx"]);
+    expect(batch[2].binds).toEqual([TENANT_ID, "home", "home"]);
+    expect(batch[3].binds).toEqual(["hx", TENANT_ID]);
+    const settings = JSON.parse(String(batch[4].binds[0]));
+    expect(settings.site).toEqual({ renderer: "legacy", downgraded_at: expect.any(String), previous: { renderer: "sections", kit: "heritage" } });
+    expect(settings.theme).toEqual(LEGACY_SETTINGS.theme);
+  });
+
+  it("keeps a home the guild had before the upgrade (it is restored, never deleted)", async () => {
+    const settings = { ...UPGRADED_SETTINGS, site: { ...UPGRADED_SETTINGS.site, upgrade_created_home: false } };
+    const pages = [pageRow("h", "home", "[]")];
+    const revisions = [{ id: "r", page_id: "h", title: "Home", blocks_json: ABOUT_BLOCKS_JSON, content_json: "{}", created_at: "t" }];
+    const { db, batches } = fakeSiteDb({ role: "owner", settings, pages, revisions });
+    const res = await siteRequest(db, "/site/downgrade", { method: "POST" });
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as any).deleted_home).toBe(false);
+    expect(batches[0].map((s) => s.sql.trim().split(/\s+/).slice(0, 3).join(" "))).toEqual(["UPDATE pages SET", "UPDATE tenants SET"]);
+  });
+
+  it("is 409 (and idempotent: no writes) when already on the classic renderer, 403 below admin", async () => {
+    const legacy = fakeSiteDb({ role: "owner" });
+    const res = await siteRequest(legacy.db, "/site/downgrade", { method: "POST" });
+    expect(res.status).toBe(409);
+    expect(legacy.batches).toHaveLength(0);
+    const events = fakeSiteDb({ role: "events", settings: UPGRADED_SETTINGS });
+    expect((await siteRequest(events.db, "/site/downgrade", { method: "POST" })).status).toBe(403);
+    expect(events.batches).toHaveLength(0);
+  });
+});

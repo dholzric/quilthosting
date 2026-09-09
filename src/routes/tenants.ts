@@ -20,6 +20,19 @@ import { readSiteDesign } from "../lib/site/design/migrate";
 import { FONT_OPTIONS } from "../lib/site/fonts";
 import { KITS } from "../lib/site/kits/index";
 import { kitSettingsJson } from "../lib/site/kits/apply";
+import {
+  composeUpgrade,
+  downgradedSiteSettings,
+  upgradeCreatedHome,
+  upgradedSiteSettings,
+  HOME_SLUG,
+  PRE_UPGRADE_KIND,
+  type UpgradeComposition,
+  type UpgradePageRow,
+} from "../lib/site/migrateGuild";
+import { renderSectionsStandalone } from "../lib/site/sections/render";
+import { renderSitePage, buildMenu, readSettingsMenu, readBranding, type SitePageArgs } from "../lib/site/render";
+import { loadSiteData, needsFor } from "../lib/site/data";
 
 export const tenantRoutes = new Hono<{
   Bindings: Env;
@@ -493,4 +506,296 @@ tenantRoutes.patch("/:id", async (c) => {
     c.env.DB.prepare("SELECT * FROM tenants WHERE id = ?").bind(id)
   );
   return c.json(tenant);
+});
+
+// ---------------------------------------------------------------------------
+// "Try the new design" / "Back to classic" (phase 2 Task D).
+//
+// A guild still on the classic guild.html shell (settings.site.renderer ===
+// "legacy", set by migration 0026) can move to the section renderer without
+// losing anything: every page is snapshotted into page_revisions as
+// `pre_upgrade` before its blocks are rewritten as a styled section
+// document, and the downgrade restores those snapshots byte for byte. The
+// composition itself is pure (src/lib/site/migrateGuild.ts); these routes
+// only load rows, render the preview and write ONE batch.
+// ---------------------------------------------------------------------------
+
+const SITE_MIGRATION_ROLES = new Set(["owner", "admin", "platform"]);
+
+type SiteMigrationPageRow = UpgradePageRow & {
+  page_type: string | null;
+  published: number;
+  show_in_nav: number | null;
+  nav_label: string | null;
+  is_members_only: number;
+  sort_order: number;
+};
+
+type SiteMigrationContext = { tenant: Tenant; settings: Record<string, unknown>; userId: string };
+
+function parseSettingsJson(json: string | null | undefined): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(json || "{}");
+    return isRecord(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Owner/admin of the guild or a platform admin, and the tenant row; else the 403/404 response. */
+async function siteMigrationContext(
+  c: { env: Env; get: (k: "user") => { id: string }; req: { param: (k: string) => string }; json: (b: unknown, s: 403 | 404) => Response }
+): Promise<{ ok: true; ctx: SiteMigrationContext } | { ok: false; response: Response }> {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const role = await tenantAccessRole(c.env.DB, id, user.id);
+  if (!role || !SITE_MIGRATION_ROLES.has(role)) return { ok: false, response: c.json({ error: "Forbidden" }, 403) };
+  const tenant = await first<Tenant>(c.env.DB.prepare("SELECT * FROM tenants WHERE id = ?").bind(id));
+  if (!tenant) return { ok: false, response: c.json({ error: "Not found" }, 404) };
+  return { ok: true, ctx: { tenant, settings: parseSettingsJson(tenant.settings_json), userId: user.id } };
+}
+
+/** Every live (non-deleted) page of the tenant, pages and posts alike, in site order. */
+function loadSitePages(db: D1Database, tenantId: string): Promise<SiteMigrationPageRow[]> {
+  return all<SiteMigrationPageRow>(
+    db
+      .prepare(
+        `SELECT id, slug, title, blocks_json, content_json, coalesce(page_type, 'page') AS page_type,
+                published, coalesce(show_in_nav, 1) AS show_in_nav, nav_label,
+                coalesce(is_members_only, 0) AS is_members_only, coalesce(sort_order, 0) AS sort_order
+         FROM pages
+         WHERE tenant_id = ? AND deleted_at IS NULL
+         ORDER BY sort_order, title`
+      )
+      .bind(tenantId)
+  );
+}
+
+/** A guild kit id from the request, `null` for "migrate the legacy theme", or a 400 body for anything else. */
+function readUpgradeKit(raw: unknown): { ok: true; kit: string | null } | { ok: false; issues: { path: string; message: string }[] } {
+  if (raw === undefined || raw === null || raw === "") return { ok: true, kit: null };
+  const id = String(raw);
+  const kit = kitById(id);
+  if (!kit || kit.audience === "business") {
+    return { ok: false, issues: [{ path: "kit", message: `"${id}" is not a guild kit` }] };
+  }
+  return { ok: true, kit: kit.id };
+}
+
+function summarizePages(composition: UpgradeComposition, ids: Map<string, string>) {
+  return composition.pages.map((p) => ({
+    id: p.id ?? ids.get(p.slug) ?? null,
+    slug: p.slug,
+    title: p.title,
+    section_count: p.sections.length,
+  }));
+}
+
+// GET /api/tenants/:id/site/upgrade[?kit=&preview=1] — what "Try the new
+// design" would write; with preview=1 the composed home rendered through the
+// site renderer (never cached, never indexed) for the admin's iframe.
+tenantRoutes.get("/:id/site/upgrade", async (c) => {
+  const gate = await siteMigrationContext(c);
+  if (!gate.ok) return gate.response;
+  const { tenant, settings } = gate.ctx;
+  const kit = readUpgradeKit(c.req.query("kit"));
+  if (!kit.ok) return c.json({ error: "Unknown design kit", issues: kit.issues }, 400);
+
+  const pages = await loadSitePages(c.env.DB, tenant.id);
+  const composition = composeUpgrade(tenant, pages, kit.kit);
+
+  if (c.req.query("preview") !== "1") {
+    return c.json({
+      renderer: siteRendererOf(settings),
+      kit: composition.kit,
+      created_home: composition.createdHome,
+      pages: summarizePages(composition, new Map()),
+    });
+  }
+
+  const home = composition.pages.find((p) => p.slug === HOME_SLUG);
+  const sections = home?.sections ?? [];
+  const now = new Date().toISOString();
+  const previewSettings = JSON.stringify(upgradedSiteSettings(settings, composition, now));
+
+  // Same shell serveSite builds on the platform host: /g/<slug> links,
+  // /public/<slug>/img/<id> images, the nav from the pages that would be
+  // live after the upgrade (the created home first).
+  const baseUrl = `/g/${encodeURIComponent(tenant.slug)}`;
+  const byId = new Map(pages.map((p) => [p.id, p]));
+  const navRows = composition.pages
+    .filter((p) => {
+      if (!p.id) return true;
+      const row = byId.get(p.id);
+      return !!row && row.published === 1 && row.is_members_only === 0 && row.show_in_nav !== 0 && row.page_type === "page";
+    })
+    .map((p) => ({ slug: p.slug, title: p.title, nav_label: p.id ? byId.get(p.id)?.nav_label ?? null : null, show_in_nav: 1 }));
+  const menu = buildMenu(navRows, readSettingsMenu(previewSettings), baseUrl);
+  const imgUrl: SitePageArgs["imgUrl"] = (id) => `/public/${encodeURIComponent(tenant.slug)}/img/${id}`;
+  const logoFileId = String(((settings.assets || {}) as { logo_file_id?: unknown }).logo_file_id || "");
+
+  const needs = needsFor(sections);
+  needs.add("profile");
+  const data = await loadSiteData(c.env, tenant, needs, { limit: 3 });
+
+  const html = renderSitePage({
+    tenant: { name: tenant.name, slug: tenant.slug, settings_json: previewSettings, tenant_type: "guild" },
+    page: { title: home?.title ?? tenant.name, slug: "", seo_title: null, seo_description: null, og_image_file_id: null, noindex: 1, sections },
+    menu,
+    baseUrl,
+    host: c.req.header("host") || "",
+    logoUrl: logoFileId ? imgUrl(logoFileId) : null,
+    ogImageUrl: null,
+    showPlatformCredit: readBranding(previewSettings).showPlatformCredit,
+    design: composition.design,
+    data,
+    imgUrl,
+    extraHead: `<meta name="robots" content="noindex">`,
+  });
+  return new Response(html, {
+    status: 200,
+    headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
+  });
+});
+
+// POST /api/tenants/:id/site/upgrade { kit? } — ONE batch: a pre_upgrade
+// snapshot of every page, the converted section document written over its
+// blocks, the composed home inserted when the guild had none, and
+// settings.site switched to the section renderer.
+tenantRoutes.post("/:id/site/upgrade", async (c) => {
+  const gate = await siteMigrationContext(c);
+  if (!gate.ok) return gate.response;
+  const { tenant, settings, userId } = gate.ctx;
+  if (siteRendererOf(settings) === "sections") {
+    return c.json({ error: "This site is already on the new design", renderer: "sections" }, 409);
+  }
+  const body = await c.req.json<{ kit?: string }>().catch(() => ({}) as { kit?: string });
+  const kit = readUpgradeKit(body.kit);
+  if (!kit.ok) return c.json({ error: "Unknown design kit", issues: kit.issues }, 400);
+
+  const pages = await loadSitePages(c.env.DB, tenant.id);
+  const composition = composeUpgrade(tenant, pages, kit.kit);
+  const now = new Date().toISOString();
+  const byId = new Map(pages.map((p) => [p.id, p]));
+  const createdIds = new Map<string, string>();
+  const render = (sections: UpgradeComposition["pages"][number]["sections"]) =>
+    JSON.stringify({ html: renderSectionsStandalone(sections, { slug: tenant.slug, baseUrl: "", design: composition.design }) });
+
+  const statements: D1PreparedStatement[] = [];
+  for (const page of composition.pages) {
+    const row = page.id ? byId.get(page.id) : undefined;
+    if (page.id && row) {
+      // Same column list as pageDrafts.revisionSnapshotStatement; unconditional
+      // because nothing else writes these rows in the same request.
+      statements.push(
+        c.env.DB.prepare(
+          `INSERT INTO page_revisions
+             (id, tenant_id, page_id, kind, title, blocks_json, content_json, created_by, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(generateId(), tenant.id, row.id, PRE_UPGRADE_KIND, row.title, row.blocks_json ?? null, row.content_json ?? null, userId, now)
+      );
+      statements.push(
+        c.env.DB.prepare(
+          `UPDATE pages SET blocks_json = ?, content_json = ?, updated_at = ?, revision = coalesce(revision, 1) + 1
+           WHERE id = ? AND tenant_id = ?`
+        ).bind(JSON.stringify(page.sections), render(page.sections), now, row.id, tenant.id)
+      );
+    } else {
+      const id = generateId();
+      createdIds.set(page.slug, id);
+      // Same column list as the create route's kit pages.
+      statements.push(
+        c.env.DB.prepare(
+          `INSERT INTO pages
+           (id, tenant_id, slug, title, content_json, blocks_json, show_in_nav, nav_label,
+            is_members_only, sort_order, created_at, updated_at,
+            page_type, published, seo_title, seo_description, noindex)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'page', 1, NULL, NULL, 0)`
+        ).bind(id, tenant.id, page.slug, page.title, render(page.sections), JSON.stringify(page.sections), 1, null, 0, 0, now, now)
+      );
+    }
+  }
+  statements.push(
+    c.env.DB.prepare(`UPDATE tenants SET settings_json = ?, updated_at = ? WHERE id = ?`).bind(
+      JSON.stringify(upgradedSiteSettings(settings, composition, now)),
+      now,
+      tenant.id
+    )
+  );
+  await c.env.DB.batch(statements);
+
+  return c.json({
+    ok: true,
+    renderer: "sections",
+    kit: composition.kit,
+    created_home: composition.createdHome,
+    upgraded_at: now,
+    pages: summarizePages(composition, createdIds),
+  });
+});
+
+// POST /api/tenants/:id/site/downgrade — "Back to classic": every page goes
+// back to its newest pre_upgrade snapshot, the home the upgrade composed is
+// removed, and the renderer returns to legacy. Pages without a snapshot
+// (created after the upgrade) are left as they are.
+tenantRoutes.post("/:id/site/downgrade", async (c) => {
+  const gate = await siteMigrationContext(c);
+  if (!gate.ok) return gate.response;
+  const { tenant, settings } = gate.ctx;
+  if (siteRendererOf(settings) === "legacy") {
+    return c.json({ error: "This site is already on the classic design", renderer: "legacy" }, 409);
+  }
+
+  const pages = await loadSitePages(c.env.DB, tenant.id);
+  const revisions = await all<{ id: string; page_id: string; title: string; blocks_json: string | null; content_json: string | null; created_at: string }>(
+    c.env.DB.prepare(
+      `SELECT id, page_id, title, blocks_json, content_json, created_at
+       FROM page_revisions
+       WHERE tenant_id = ? AND kind = ?
+       ORDER BY created_at DESC, id DESC`
+    ).bind(tenant.id, PRE_UPGRADE_KIND)
+  );
+  const latest = new Map<string, (typeof revisions)[number]>();
+  for (const r of revisions) if (!latest.has(r.page_id)) latest.set(r.page_id, r);
+
+  const now = new Date().toISOString();
+  const statements: D1PreparedStatement[] = [];
+  const restored: string[] = [];
+  for (const page of pages) {
+    const rev = latest.get(page.id);
+    if (!rev) continue;
+    restored.push(page.id);
+    statements.push(
+      c.env.DB.prepare(
+        `UPDATE pages SET title = ?, blocks_json = ?, content_json = ?, updated_at = ?, revision = coalesce(revision, 1) + 1
+         WHERE id = ? AND tenant_id = ?`
+      ).bind(rev.title, rev.blocks_json ?? null, rev.content_json ?? null, now, page.id, tenant.id)
+    );
+  }
+
+  // The home the upgrade created has no pre_upgrade snapshot of its own;
+  // remove it the way DELETE /pages/:id?permanent=1 does.
+  let deletedHome = false;
+  if (upgradeCreatedHome(settings)) {
+    const home = pages.find((p) => p.slug === HOME_SLUG && p.page_type === "page");
+    if (home && !latest.has(home.id)) {
+      deletedHome = true;
+      statements.push(
+        c.env.DB.prepare(`DELETE FROM page_revisions WHERE tenant_id = ? AND page_id = ?`).bind(tenant.id, home.id),
+        c.env.DB.prepare(`DELETE FROM page_redirects WHERE tenant_id = ? AND (to_slug = ? OR from_slug = ?)`).bind(tenant.id, home.slug, home.slug),
+        c.env.DB.prepare(`DELETE FROM pages WHERE id = ? AND tenant_id = ?`).bind(home.id, tenant.id)
+      );
+    }
+  }
+
+  statements.push(
+    c.env.DB.prepare(`UPDATE tenants SET settings_json = ?, updated_at = ? WHERE id = ?`).bind(
+      JSON.stringify(downgradedSiteSettings(settings, now)),
+      now,
+      tenant.id
+    )
+  );
+  await c.env.DB.batch(statements);
+
+  return c.json({ ok: true, renderer: "legacy", restored, deleted_home: deletedHome, downgraded_at: now });
 });
