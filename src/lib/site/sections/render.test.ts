@@ -813,3 +813,38 @@ describe("formatEventDate with a guild time zone", () => {
     expect(formatEventDate(UTC_NOON)).toBe("Fri, Sep 25 · 5:25 PM");
   });
 });
+
+describe("custom quilt pattern in a section", () => {
+  const ctxWith = (pattern: unknown) => ({
+    slug: "g",
+    baseUrl: "",
+    design: { ...DEFAULT_DESIGN, pattern } as never,
+    data: {},
+    imgUrl: (id: string, w?: number) => `/public/g/img/${id}${w ? `?w=${w}` : ""}`,
+  });
+
+  it("paints the guild's uploaded block through imgUrl", () => {
+    const html = renderSection(
+      { id: "s", type: "rich_text", html: "<p>x</p>", style: { ...DEFAULT_STYLE, bg: "pattern" } } as never,
+      ctxWith({ id: "custom", fileId: "blk_1", opacity: 0.12 }) as never
+    );
+    // Inside a style attribute, so the URL's quotes are escaped.
+    expect(html).toContain("--qh-s-pattern:url(&quot;/public/g/img/blk_1?w=480&quot;)");
+  });
+
+  it("draws nothing when custom is chosen but no block was uploaded", () => {
+    const html = renderSection(
+      { id: "s", type: "rich_text", html: "<p>x</p>", style: { ...DEFAULT_STYLE, bg: "pattern" } } as never,
+      ctxWith({ id: "custom", opacity: 0.12 }) as never
+    );
+    expect(html).toContain("--qh-s-pattern:none");
+  });
+
+  it("still draws the generated art for a built-in block", () => {
+    const html = renderSection(
+      { id: "s", type: "rich_text", html: "<p>x</p>", style: { ...DEFAULT_STYLE, bg: "pattern" } } as never,
+      ctxWith({ id: "log-cabin", opacity: 0.12 }) as never
+    );
+    expect(html).toContain("--qh-s-pattern:url(&quot;data:image/svg+xml");
+  });
+});

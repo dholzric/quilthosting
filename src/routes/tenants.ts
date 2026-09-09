@@ -512,7 +512,12 @@ tenantRoutes.get("/:id/design-options", async (c) => {
       displayStack: fontStackFor(p.display),
       bodyStack: fontStackFor(p.body),
     })),
-    patterns: PATTERN_IDS.map((pid) => ({ id: pid, dataUri: patternDataUri(pid, patternColors) })),
+    // PATTERN_IDS is the generated art only; "custom" is the guild's own
+    // uploaded block and has no swatch to draw here.
+    patterns: PATTERN_IDS.filter((pid) => pid !== "custom").map((pid) => ({
+      id: pid,
+      dataUri: patternDataUri(pid as Exclude<typeof pid, "custom">, patternColors),
+    })),
     kits: KITS.map((k) => ({
       id: k.id,
       name: k.name,

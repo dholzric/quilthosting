@@ -229,3 +229,37 @@ describe("siteDesignSchema", () => {
     expect(siteDesignSchema.safeParse({ ...DEFAULT_DESIGN, pattern: { id: "log-cabin", opacity: 2 } }).success).toBe(false);
   });
 });
+
+// ---------------------------------------------------------------------------
+// A guild's own block
+//
+// The generated blocks are drawn from the palette; `pattern.id = "custom"`
+// uses an image the guild uploaded instead — designed anywhere, including
+// createablock.com, and uploaded like any other picture.
+// ---------------------------------------------------------------------------
+
+describe("custom quilt pattern", () => {
+  const parse = (pattern: unknown) => siteDesignSchema.parse({ ...DEFAULT_DESIGN, pattern });
+
+  it("accepts a custom block with a file id and a tile size", () => {
+    const d = parse({ id: "custom", fileId: "Fi1e_Id-9", tile: 200, opacity: 0.1 });
+    expect(d.pattern).toEqual({ id: "custom", fileId: "Fi1e_Id-9", tile: 200, opacity: 0.1 });
+  });
+
+  it("rejects a file id that is not one, and a tile outside the readable range", () => {
+    expect(() => parse({ id: "custom", fileId: "../../etc/passwd" })).toThrow();
+    expect(() => parse({ id: "custom", fileId: "ok", tile: 8 })).toThrow();
+    expect(() => parse({ id: "custom", fileId: "ok", tile: 5000 })).toThrow();
+  });
+
+  it("emits the tile width, defaulting wider for a guild's own block than for the drawn ones", () => {
+    expect(buildDesignVars(parse({ id: "custom", fileId: "abc" }))).toContain("--qh-pattern-tile:160px");
+    expect(buildDesignVars(parse({ id: "log-cabin" }))).toContain("--qh-pattern-tile:96px");
+    expect(buildDesignVars(parse({ id: "custom", fileId: "abc", tile: 320 }))).toContain("--qh-pattern-tile:320px");
+  });
+
+  it("clamps a tile the schema never saw (a hand-edited settings blob)", () => {
+    const design = { ...DEFAULT_DESIGN, pattern: { id: "custom" as const, opacity: 0.1, tile: 9999 } };
+    expect(buildDesignVars(design)).toContain("--qh-pattern-tile:640px");
+  });
+});

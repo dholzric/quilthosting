@@ -5792,7 +5792,94 @@
         patTiles.push(btn);
         patGrid.appendChild(btn);
       });
+      // ---- Your own block ----
+      // A guild can design a block anywhere — createablock.com is the one most
+      // ask about — save it as an image, and use it here. The picture is a
+      // normal upload, so it gets the same stored sizes as any other image.
+      const ownTile = mk("button", "wb-preset");
+      ownTile.type = "button";
+      ownTile.dataset.pattern = "custom";
+      ownTile.setAttribute("aria-label", "Use your own block");
+      const ownArt = mk("div", "qh-pattern-tile");
+      ownTile.appendChild(ownArt);
+      ownTile.appendChild(mk("div", "wb-preset-name", "Your own block"));
+      ownTile.addEventListener("click", () => {
+        if (design.pattern.fileId) { design.pattern.id = "custom"; refresh(); }
+        else patFile.click();
+      });
+      patTiles.push(ownTile);
+      patGrid.appendChild(ownTile);
       patSec.appendChild(patGrid);
+
+      const patFile = document.createElement("input");
+      patFile.type = "file";
+      patFile.accept = "image/png,image/jpeg,image/webp";
+      patFile.className = "hidden";
+      patFile.setAttribute("aria-hidden", "true");
+      patFile.tabIndex = -1;
+      const patRow = mk("div", "qh-design-row");
+      const patUp = mk("button", "secondary", "Upload a block");
+      patUp.type = "button";
+      patUp.setAttribute("data-write", "");
+      patUp.addEventListener("click", () => patFile.click());
+      const patClear = mk("button", "secondary", "Remove my block");
+      patClear.type = "button";
+      patClear.setAttribute("data-write", "");
+      patClear.addEventListener("click", () => {
+        delete design.pattern.fileId;
+        if (design.pattern.id === "custom") design.pattern.id = "none";
+        refresh();
+      });
+      const patMsg = mk("span", "muted");
+      patMsg.setAttribute("aria-live", "polite");
+      patFile.addEventListener("change", async () => {
+        const f = patFile.files && patFile.files[0];
+        if (!f) return;
+        patMsg.textContent = "Uploading…";
+        try {
+          const id = await wbUploadImage(f, (p) => {
+            if (p.stage === "warn") patMsg.textContent = p.message;
+          });
+          design.pattern.fileId = id;
+          design.pattern.id = "custom";
+          patMsg.textContent = "Block uploaded. Save the design to use it.";
+          refresh();
+        } catch (e) {
+          patMsg.textContent = e.message;
+        }
+        patFile.value = "";
+      });
+      patRow.appendChild(patUp);
+      patRow.appendChild(patClear);
+      patRow.appendChild(patMsg);
+      patSec.appendChild(patRow);
+      patSec.appendChild(patFile);
+
+      const patHelp = mk("p", "muted");
+      patHelp.style.cssText = "font-size:0.85rem;margin:0.15rem 0 0.6rem";
+      patHelp.append("A square block that meets on all four edges tiles best. No block of your own? Design one at ");
+      const cabLink = document.createElement("a");
+      cabLink.href = "https://createablock.com";
+      cabLink.target = "_blank";
+      cabLink.rel = "noopener noreferrer";
+      cabLink.textContent = "createablock.com";
+      patHelp.appendChild(cabLink);
+      patHelp.append(", save it as an image, and upload it here. Use only blocks you have the right to publish.");
+      patSec.appendChild(patHelp);
+
+      // How wide one repeat is drawn. A whole quilt square needs more room
+      // than the generated blocks, which are drawn for 96px.
+      const tileInput = document.createElement("input");
+      tileInput.type = "range";
+      tileInput.min = "48";
+      tileInput.max = "480";
+      tileInput.step = "8";
+      tileInput.setAttribute("aria-label", "Block size");
+      tileInput.addEventListener("input", () => { design.pattern.tile = Number(tileInput.value); refresh(); });
+      const tileRow = mk("div", "qh-design-row");
+      tileRow.appendChild(labelled("Block size", tileInput));
+      patSec.appendChild(tileRow);
+
       const strength = document.createElement("input");
       strength.type = "range";
       strength.min = "0";
@@ -5937,6 +6024,13 @@
         sampleBtn.textContent = design.header.cta === "quote" ? "Request a quote" : design.header.cta === "donate" ? "Donate" : "Join us";
         if (ctaSel.value !== design.header.cta) ctaSel.value = design.header.cta;
 
+        const ownId = design.pattern.fileId;
+        ownArt.style.backgroundImage = ownId ? `url("${wbImageUrl(ownId)}?w=240")` : "none";
+        ownArt.style.backgroundSize = "contain";
+        ownArt.style.backgroundRepeat = "no-repeat";
+        ownArt.style.backgroundPosition = "center";
+        patClear.disabled = !ownId;
+        tileInput.value = String(design.pattern.tile || (design.pattern.id === "custom" ? 160 : 96));
         patTiles.forEach((t) => {
           const on = t.dataset.pattern === design.pattern.id;
           t.classList.toggle("on", on);

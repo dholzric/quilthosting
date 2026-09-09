@@ -38,10 +38,12 @@ export const ROLE_KEYS: readonly (keyof Roles)[] = [
 
 // Kept in sync with PatternId in ./patterns.ts (defined locally so this
 // module has no dependency on the pattern art).
-export type PatternId = "none" | "nine-patch" | "flying-geese" | "log-cabin" | "churn-dash" | "bear-paw";
+export type PatternId = "none" | "nine-patch" | "flying-geese" | "log-cabin" | "churn-dash" | "bear-paw" | "custom";
+/** The generated blocks, in picker order. "custom" is not one of them — it is the guild's own upload. */
 export const PATTERN_IDS: readonly PatternId[] = [
   "none", "nine-patch", "flying-geese", "log-cabin", "churn-dash", "bear-paw",
 ];
+export const CUSTOM_PATTERN_ID = "custom" as const;
 
 export type SiteDesign = {
   palette: { id?: string; input: PaletteInput; ground?: PaletteGround };
@@ -51,7 +53,13 @@ export type SiteDesign = {
   rhythm: { spacing: "tight" | "normal" | "airy"; container: "narrow" | "normal" | "wide" };
   header: { variant: "left" | "centered" | "split"; sticky: boolean; cta: "join" | "quote" | "donate" | "none"; overlayHero: boolean };
   footer: { variant: "simple" | "columns" | "meeting" };
-  pattern: { id: PatternId; opacity: number };
+  /**
+   * The quilt-block texture behind sections. `id: "custom"` uses the guild's
+   * own uploaded block (`fileId`) instead of the generated art — design one
+   * anywhere, including createablock.com, and upload the image. `tile` is how
+   * wide one repeat is drawn, in px; the generated blocks look right at 96.
+   */
+  pattern: { id: PatternId; opacity: number; fileId?: string; tile?: number };
 };
 
 const DEFAULT_PALETTE_ID = "heritage-madder";
@@ -149,8 +157,12 @@ export const siteDesignSchema: z.ZodType<SiteDesign, z.ZodTypeDef, unknown> = z.
     .default({}),
   pattern: z
     .object({
-      id: z.enum(["none", "nine-patch", "flying-geese", "log-cabin", "churn-dash", "bear-paw"]).default("none"),
+      id: z.enum(["none", "nine-patch", "flying-geese", "log-cabin", "churn-dash", "bear-paw", "custom"]).default("none"),
       opacity: z.number().min(0).max(1).default(DEFAULT_DESIGN.pattern.opacity),
+      /** files.id of an uploaded block, used when id is "custom". */
+      fileId: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/).optional(),
+      /** Width of one repeat in px. 24-640 keeps it a texture, not wallpaper. */
+      tile: z.number().int().min(24).max(640).optional(),
     })
     .default({}),
 });
@@ -404,6 +416,12 @@ export function buildDesignVars(design: SiteDesign): string {
     ? Math.min(1, Math.max(0, d.pattern.opacity))
     : DEFAULT_DESIGN.pattern.opacity;
   parts.push(`--qh-pattern-opacity:${trimNum(opacity)}`);
+  // One repeat's width. The generated blocks are drawn for 96px; a guild's own
+  // block is usually a whole quilt square and wants more room.
+  const tile = typeof d.pattern?.tile === "number" && isFinite(d.pattern.tile)
+    ? Math.min(640, Math.max(24, Math.round(d.pattern.tile)))
+    : d.pattern?.id === "custom" ? 160 : 96;
+  parts.push(`--qh-pattern-tile:${tile}px`);
   return parts.join(";");
 }
 

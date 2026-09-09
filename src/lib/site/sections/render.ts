@@ -35,7 +35,9 @@ import {
   VARIANT_WIDTHS,
   type ImageSizeKind,
 } from "../../images";
-import type { PatternId } from "../design/patterns";
+// The art module draws only the generated blocks; the design's own PatternId
+// also allows "custom", which is an uploaded file rather than drawn art.
+import type { PatternId as GeneratedPatternId } from "../design/patterns";
 import type { SiteData, SiteDocument, SiteEvent, SiteLevel, SitePost, SiteProduct } from "../data.types";
 import { DEFAULT_STYLE } from "./schema";
 import type { Section, SectionStyle } from "./schema";
@@ -114,10 +116,26 @@ function rolesFor(design: SiteDesign): Roles {
   return r;
 }
 
+/**
+ * The texture behind a patterned section: the guild's own uploaded block when
+ * it has one, else the generated art in the guild's colours. A custom block is
+ * a normal uploaded file, so it goes through imgUrl like every other image and
+ * gets the same stored sizes.
+ */
 function patternFor(ctx: RenderContext): string {
-  const id: PatternId = ctx.design.pattern?.id && ctx.design.pattern.id !== "none" ? ctx.design.pattern.id : "nine-patch";
+  const p = ctx.design.pattern;
+  if (p?.id === "custom") {
+    if (!p.fileId) return "none";
+    return `url("${esc(ctx.imgUrl(p.fileId, 480))}")`;
+  }
+  const id = generatedPattern(p?.id);
   const r = rolesFor(ctx.design);
   return patternDataUri(id, { a: r.primary, b: r.dark, c: r.accent });
+}
+
+/** The design's block id, narrowed to one the art module can draw. */
+function generatedPattern(id: string | undefined): GeneratedPatternId {
+  return id && id !== "none" && id !== "custom" ? (id as GeneratedPatternId) : "nine-patch";
 }
 
 type ImgOpts = { eager?: boolean; cls?: string; width?: number; height?: number };
@@ -170,9 +188,10 @@ export function isPatternRef(imageId: string | undefined): boolean {
 }
 function patternRefUri(imageId: string, ctx: RenderContext): string {
   const raw = imageId.slice("pattern:".length);
-  const id = (PATTERN_IDS as readonly string[]).includes(raw) && raw !== "none"
-    ? (raw as PatternId)
-    : ctx.design.pattern.id !== "none" ? ctx.design.pattern.id : "nine-patch";
+  const id: GeneratedPatternId =
+    (PATTERN_IDS as readonly string[]).includes(raw) && raw !== "none" && raw !== "custom"
+      ? (raw as GeneratedPatternId)
+      : generatedPattern(ctx.design.pattern.id);
   const r = deriveRoles(ctx.design.palette.input, isDarkDesign(ctx.design), designGround(ctx.design));
   return patternDataUri(id, { a: r.primary, b: r.dark, c: r.accent });
 }
