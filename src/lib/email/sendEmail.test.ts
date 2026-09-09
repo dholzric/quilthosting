@@ -173,3 +173,30 @@ describe("sendEmail", () => {
     expect(net).toMatchObject({ success: false, retryable: true, error: "ECONNRESET" });
   });
 });
+
+// ---------------------------------------------------------------------------
+// The sender must be a domain the provider will accept
+//
+// Resend rejects mail from an unverified domain. quiltmap.com is verified;
+// quilthosting.com is not, so a fallback pointing at it turned a missing
+// EMAIL_FROM into "no email at all, anywhere" — magic links included.
+// ---------------------------------------------------------------------------
+
+describe("the From address", () => {
+  it("falls back to the verified sending domain when EMAIL_FROM is unset", async () => {
+    const calls = stubFetch(200, { id: "e1" });
+    const e = env(fakeDb([]));
+    delete (e as { EMAIL_FROM?: string }).EMAIL_FROM;
+    await sendEmail(e, { to: "a@example.test", subject: "s", html: "<p>h</p>" });
+    expect(calls[0].json.from).toContain("@quiltmap.com");
+  });
+
+  it("still prefers EMAIL_FROM, and an explicit per-message from over that", async () => {
+    const calls = stubFetch(200, { id: "e1" });
+    const e = env(fakeDb([]), { EMAIL_FROM: "Guild <hello@configured.test>" } as never);
+    await sendEmail(e, { to: "a@example.test", subject: "s", html: "<p>h</p>" });
+    expect(calls[0].json.from).toBe("Guild <hello@configured.test>");
+    await sendEmail(e, { to: "a@example.test", subject: "s", html: "<p>h</p>", from: "One <one@explicit.test>" });
+    expect(calls[1].json.from).toBe("One <one@explicit.test>");
+  });
+});

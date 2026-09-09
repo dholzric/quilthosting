@@ -122,8 +122,13 @@ export async function sendEmail(
     return { id: "", success: false, error: "Email not configured", status: 0 };
   }
 
+  // The fallback has to be a domain that is verified with the provider, or a
+  // missing EMAIL_FROM would silently stop every email the platform sends —
+  // magic links included — with nothing but provider rejections to show for
+  // it. quiltmap.com is the verified sending domain; QuiltHosting is a wholly
+  // owned subsidiary of QuiltMap, so it is also the right name on the mail.
   const from =
-    params.from || env.EMAIL_FROM || "QuiltHosting <noreply@quilthosting.com>";
+    params.from || env.EMAIL_FROM || "QuiltHosting <noreply@quiltmap.com>";
 
   let html = params.html;
   let text = params.text;
