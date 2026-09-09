@@ -51,6 +51,8 @@ Single Worker entry point `src/index.ts` exports `fetch` (Hono app) and `schedul
 
 **Website builder = draft → preview → publish** (`src/routes/pages.ts`, `src/lib/pageDrafts.ts`, migration 0025): `PUT /pages/:id/draft` autosaves into `draft_*` columns, `POST /pages/:id/publish` promotes the draft in one batch and snapshots the previous live content into `page_revisions`; every write is CAS-guarded on `pages.revision` (409 on conflict). `DELETE` soft-deletes (`deleted_at`), slug changes write `page_redirects`. The shared editor lives in `public/admin.html` (`qhOpenPageEditor`) for both guild and business tenants; guild preview uses `guild.html`'s `__preview` postMessage mode, business preview uses the SSR renderer.
 
+**Images**: uploads store resized WebP/JPEG variants (480/960/1600/2400) plus focal point and alt (`src/lib/images.ts`, migration 0028); both image routes negotiate on `?w=`/`Accept`, and renderers emit `srcset`/`sizes`/`object-position`/intrinsic size. Files without variants serve the original at every width.
+
 **Tenant content is untrusted HTML.** Every rich-text/HTML block and legacy `content_json.html` goes through the allowlist sanitizer in `src/lib/sanitize.ts` at parse and render time. Never add a new output path that emits tenant strings without `escapeHtml`/`sanitizeHtml`.
 
 **Stripe fulfillment is a two-step idempotent state machine** (`src/routes/webhooks.ts` + `src/lib/fulfillment.ts`): events are claimed in `stripe_events`, the payment row is recorded (unique on the Stripe ref), then fulfillment runs in one D1 batch guarded by `payments.fulfilled_at`. Seats/stock are reserved atomically at checkout with `hold_expires_at`; the minute cron releases expired holds.
