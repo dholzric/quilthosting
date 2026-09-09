@@ -265,9 +265,36 @@ describe("loadSiteData", () => {
         non_member_price_cents: 500,
         registration_open: 1,
         capacity: 40,
+        // Read out of settings_json; an event with nothing to bring gets [].
+        bring: [],
       },
     ]);
     expect((data.events![0] as Record<string, unknown>).settings_json).toBeUndefined();
+  });
+
+  it("reads what to bring out of settings_json, trimmed and de-duplicated", async () => {
+    const { env } = fakeDb({
+      "FROM events": [
+        {
+          id: "ev-2",
+          title: "Binding workshop",
+          description: "Bring a finished top.",
+          location: "Hall",
+          start_at: "2026-10-24T14:00:00.000Z",
+          end_at: null,
+          member_price_cents: 4000,
+          non_member_price_cents: 5000,
+          capacity: 12,
+          registration_open: 1,
+          settings_json: JSON.stringify({
+            questions: [],
+            bring: ["  Sewing machine  ", "sewing machine", "", "Rotary cutter", null],
+          }),
+        },
+      ],
+    });
+    const data = await loadSiteData(env, tenant(), new Set<DataNeed>(["events"]));
+    expect(data.events![0].bring).toEqual(["Sewing machine", "Rotary cutter"]);
   });
 
   it("maps products: inventory -> stock, image_file_id is null (no such column yet)", async () => {

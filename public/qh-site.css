@@ -422,6 +422,8 @@ html{scroll-padding-top:calc(var(--_header-h) + 1rem)}
 .qh-event__date{font-weight:600;color:var(--_primary);font-size:.95rem}
 .qh-event__title{font-size:var(--_fs5);margin:.25rem 0}
 .qh-event__meta{color:var(--_muted);font-size:.95rem;margin:0}
+/* One line of the description on a card, so a member can tell what the evening is without opening it. */
+.qh-event__blurb{margin:.15rem 0 .35rem;font-size:.95rem;line-height:1.45}
 .qh-event__actions{margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap}
 .qh-events--cards .qh-event{background:var(--_surface);border:1px solid var(--_border);border-radius:var(--_radius);
   box-shadow:var(--_shadow);padding:1.5rem;display:flex;flex-direction:column}

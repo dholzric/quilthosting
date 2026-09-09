@@ -31,6 +31,12 @@ export type SiteEvent = {
    * The event detail stack shows a Volunteer block when it is > 0.
    */
   volunteer_slots?: number;
+  /**
+   * What an attendee has to bring — fabric, a machine, thread. Empty for the
+   * events that need nothing, which is most meetings; a class is what this is
+   * for. Stored in events.settings_json.bring.
+   */
+  bring?: string[];
 };
 
 export type SiteProduct = {

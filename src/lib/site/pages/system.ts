@@ -318,6 +318,19 @@ function eventPage(ctx: SystemPageContext, ev: SiteEvent, timeZone: string): Sys
   const sections: Section[] = [hero("event-hero", ev.title, formatEventWhen(ev, timeZone))];
   const body = descriptionToHtml(ev.description);
   if (body) sections.push(prose("event-description", body));
+  // What to bring, for a class or a workshop. Placed before the price and the
+  // register button: someone deciding whether to sign up needs to know they
+  // have to bring a machine BEFORE they pay, not after.
+  if (ev.bring && ev.bring.length) {
+    sections.push({
+      type: "rich_text",
+      variant: "prose",
+      heading: "What to bring",
+      html: sanitizeHtml(`<ul>${ev.bring.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`),
+      style: style({ width: "narrow", bg: "tint" }),
+      id: "event-bring",
+    });
+  }
   sections.push(calendarLinks(ctx, ev));
   sections.push({
     type: "feature_grid",

@@ -8,7 +8,37 @@ export type EventQuestion = {
 
 export type EventSettings = {
   questions?: EventQuestion[];
+  /**
+   * What an attendee has to bring: fabric, a sewing machine, thread, a rotary
+   * cutter. A class is the case this exists for — a member who turns up to a
+   * workshop without their machine has wasted the afternoon — so it appears on
+   * the event page AND in the registration confirmation, which is the thing
+   * people actually re-read the night before.
+   */
+  bring?: string[];
 };
+
+/** Longest a single "what to bring" line may be. */
+export const BRING_ITEM_MAX = 120;
+/** Most items on one list; past this it is a supply list, not a reminder. */
+export const BRING_MAX_ITEMS = 20;
+
+/** Trim, drop blanks and duplicates, cap length and count. Never throws. */
+export function normalizeBring(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const item of raw) {
+    const text = String(item ?? "").trim().replace(/\s+/g, " ").slice(0, BRING_ITEM_MAX);
+    if (!text) continue;
+    const key = text.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(text);
+    if (out.length >= BRING_MAX_ITEMS) break;
+  }
+  return out;
+}
 
 export function parseEventSettings(settingsJson: string | null | undefined): EventSettings {
   try {

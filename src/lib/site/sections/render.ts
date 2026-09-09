@@ -536,11 +536,28 @@ function priceLine(ev: SiteEvent): string {
   return `Members ${formatMoney(m)} · Non-members ${formatMoney(n)}`;
 }
 
+/** First `max` characters of plain text, cut at a word and ellipsed. */
+function summarize(text: string | null | undefined, max: number): string {
+  const flat = String(text ?? "").replace(/\s+/g, " ").trim();
+  if (!flat) return "";
+  if (flat.length <= max) return flat;
+  const cut = flat.slice(0, max);
+  const lastSpace = cut.lastIndexOf(" ");
+  return `${(lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).replace(/[,;:.\s]+$/, "")}…`;
+}
+
 function eventArticle(ev: SiteEvent, ctx: RenderContext, layout: "cards" | "list" | "next_up"): string {
   const url = internal(`/events/${encodeURIComponent(ev.id)}`, ctx);
   const date = `<p class="qh-event__date"><time datetime="${esc(ev.start_at)}">${esc(formatEventDate(ev.start_at, ctx.timeZone))}</time></p>`;
   const meta = [ev.location ? esc(ev.location) : "", esc(priceLine(ev))].filter(Boolean).join(" · ");
-  const body = `<h3 class="qh-event__title"><a href="${url}">${esc(ev.title)}</a></h3><p class="qh-event__meta">${meta}</p>`;
+  // A line of the description, so a member can tell what the evening IS
+  // without opening it. `next_up` gets more room because it is the only one
+  // on screen. Plain text, trimmed on a word boundary.
+  const blurb = summarize(ev.description, layout === "next_up" ? 220 : 120);
+  const body =
+    `<h3 class="qh-event__title"><a href="${url}">${esc(ev.title)}</a></h3>` +
+    (blurb ? `<p class="qh-event__blurb">${esc(blurb)}</p>` : "") +
+    `<p class="qh-event__meta">${meta}</p>`;
   const actions =
     `<div class="qh-event__actions"><a class="qh-btn qh-btn--ghost" href="${url}">Details</a>` +
     (ev.registration_open ? btn("primary", "Register", `data-register="${esc(ev.id)}"`) : "") +

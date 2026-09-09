@@ -2,6 +2,7 @@ import type { Env } from "../types";
 import { all, first } from "./db";
 import { generateId } from "./utils/id";
 import { sendEmail } from "./email";
+import { normalizeBring, parseEventSettings } from "./eventQuestions";
 
 type RegRow = {
   id: string;
@@ -23,6 +24,24 @@ const EVENT_REMINDER_DAYS = [7, 1] as const;
  * Email registered attendees before upcoming events.
  * Deduped with email_logs.template = event_reminder_{eventId}_{days}d
  */
+/**
+ * The "what to bring" list, for the reminder that lands before the event.
+ *
+ * This is the email a member re-reads the night before a class, so it is the
+ * one place the list has to appear: knowing in February that March's workshop
+ * needs a machine is not the same as being told the night before.
+ */
+function bringHtml(settingsJson: string | null | undefined): string {
+  const items = normalizeBring(parseEventSettings(settingsJson).bring);
+  if (!items.length) return "";
+  return (
+    `<p><strong>What to bring:</strong></p>` +
+    `<ul style="margin:.25rem 0 1rem;padding-left:1.2rem">` +
+    items.map((i) => `<li>${escape(i)}</li>`).join("") +
+    `</ul>`
+  );
+}
+
 export async function runEventReminderJob(env: Env): Promise<{
   reminders_sent: number;
   errors: string[];

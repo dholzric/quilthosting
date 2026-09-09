@@ -25,6 +25,8 @@ import {
   galleryStatement,
 } from "../../routes/public";
 import type { Section } from "./sections/schema";
+// What to bring lives in events.settings_json alongside the questions.
+import { normalizeBring, parseEventSettings } from "../eventQuestions";
 import type {
   SiteData,
   DataNeed,
@@ -360,6 +362,8 @@ function toEvent(r: EventRow): SiteEvent {
     non_member_price_cents: Number(r.non_member_price_cents) || 0,
     registration_open: Number(r.registration_open) || 0,
     capacity: r.capacity == null ? null : Number(r.capacity),
+    // What to bring, for a class or a workshop (events.settings_json.bring).
+    bring: normalizeBring(parseEventSettings(r.settings_json).bring),
   };
 }
 

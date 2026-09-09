@@ -3541,6 +3541,14 @@
             <div id="e-questions"></div>
             <button type="button" class="secondary" onclick="addEventQuestion()" style="margin-top:0.35rem">+ Add question</button>
           </div>
+          <div style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid var(--border)">
+            <h3 style="margin:0 0 0.35rem;font-size:0.95rem">What to bring</h3>
+            <p class="muted" style="font-size:0.8rem;margin:0 0 0.5rem">
+              For a class or workshop: fabric, sewing machine, thread, rotary cutter. One per line.
+              Shown on the event page and in the reminder email members get before the day.
+            </p>
+            <textarea id="e-bring" rows="4" placeholder="Sewing machine in working order&#10;Neutral thread&#10;Half a yard of background fabric"></textarea>
+          </div>
           <input type="hidden" id="e-id" />
           <button onclick="addEvent()" style="margin-top:0.75rem">Save</button>
           <button class="secondary" onclick="hide(document.getElementById('add-event-form'))">Cancel</button>
@@ -3627,7 +3635,21 @@
       document.getElementById("e-mprice").value = 0;
       document.getElementById("e-nmprice").value = 0;
       renderEventQuestions([]);
+      const bringEl = document.getElementById("e-bring");
+      if (bringEl) bringEl.value = "";
       show(document.getElementById("add-event-form"));
+    }
+    /** events.settings_json.bring -> the textarea, one item per line. */
+    function parseEventBring(e) {
+      try {
+        const s = JSON.parse(e.settings_json || "{}");
+        return Array.isArray(s.bring) ? s.bring : [];
+      } catch { return []; }
+    }
+    function collectEventBring() {
+      const el = document.getElementById("e-bring");
+      if (!el) return [];
+      return el.value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
     }
     function parseEventQuestions(e) {
       try {
@@ -3707,6 +3729,7 @@
       document.getElementById("e-mprice").value = centsToDollars(e.member_price_cents);
       document.getElementById("e-nmprice").value = centsToDollars(e.non_member_price_cents);
       renderEventQuestions(parseEventQuestions(e));
+      document.getElementById("e-bring").value = parseEventBring(e).join("\n");
       show(document.getElementById("add-event-form"));
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -3729,6 +3752,7 @@
         member_price_cents: memberPrice,
         non_member_price_cents: nonMemberPrice,
         questions: collectEventQuestions(),
+        bring: collectEventBring(),
       };
       if (id) {
         await api(`/api/tenants/${tenantId}/events/${id}`, { method: "PATCH", body: JSON.stringify(payload) });

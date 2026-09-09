@@ -9,6 +9,7 @@ import { sendEmail, waitlistPromotedEmail } from "../lib/email";
 import {
   normalizeQuestions,
   parseEventSettings,
+  normalizeBring,
 } from "../lib/eventQuestions";
 import { parseRecurrence, expandOccurrences } from "../lib/recurrence";
 
@@ -83,6 +84,8 @@ eventRoutes.post("/", async (c) => {
     is_public?: boolean;
     waitlist_enabled?: boolean;
     questions?: unknown;
+    /** What attendees must bring — the reason a class needs more than a description. */
+    bring?: unknown;
     recurrence?: unknown;
   }>();
   if (!body.title || !body.start_at) {
@@ -101,7 +104,8 @@ eventRoutes.post("/", async (c) => {
   const nonMemberPrice = prices.data.non_member_price_cents ?? 0;
   const rule = parseRecurrence(body.recurrence);
   const questions = normalizeQuestions(body.questions);
-  const settingsJson = JSON.stringify({ questions });
+  const bring = normalizeBring(body.bring);
+  const settingsJson = JSON.stringify(bring.length ? { questions, bring } : { questions });
   const id = generateId();
   const now = new Date().toISOString();
   await c.env.DB.prepare(
@@ -242,9 +246,16 @@ eventRoutes.patch("/:eventId", async (c) => {
     if (body[col] === undefined || body[col] === null) continue;
     set(col, body[col] ? 1 : 0);
   }
-  if (body.questions !== undefined) {
+  if (body.questions !== undefined || body.bring !== undefined) {
     const current = parseEventSettings(existing.settings_json);
-    current.questions = normalizeQuestions(body.questions);
+    if (body.questions !== undefined) current.questions = normalizeQuestions(body.questions);
+    if (body.bring !== undefined) {
+      const bring = normalizeBring(body.bring);
+      // An empty list is "there is nothing to bring", so the key goes away
+      // rather than sitting there as [] and rendering an empty heading.
+      if (bring.length) current.bring = bring;
+      else delete current.bring;
+    }
     set("settings_json", JSON.stringify(current));
   }
 
