@@ -109,7 +109,7 @@ describe("validateKit — schema issues carry the exact path", () => {
 
   it("reports an unknown section type at pages.N.sections.M.type", () => {
     const k = tinyKit();
-    k.pages[0].sections.push({ type: "sponsors", items: [] });
+    k.pages[0].sections.push({ type: "carousel", items: [] });
     expect(issuePaths(k)).toContain("pages.0.sections.2.type");
   });
 

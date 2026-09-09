@@ -28,10 +28,20 @@ import { formatMoney } from "../../utils/money";
 import { deriveRoles, isDarkDesign } from "../design/tokens";
 import type { Roles, SiteDesign } from "../design/tokens";
 import { patternDataUri, PATTERN_IDS } from "../design/patterns";
+import {
+  srcsetFor,
+  sizesFor,
+  focalToObjectPosition,
+  VARIANT_WIDTHS,
+  type ImageSizeKind,
+} from "../../images";
 import type { PatternId } from "../design/patterns";
 import type { SiteData, SiteDocument, SiteEvent, SiteLevel, SitePost, SiteProduct } from "../data.types";
 import { DEFAULT_STYLE } from "./schema";
 import type { Section, SectionStyle } from "./schema";
+
+/** What the renderer knows about a stored image (from serveSite's batch). */
+export type ImgMeta = { w?: number | null; h?: number | null; focal?: [number, number] };
 
 export type RenderContext = {
   slug: string;
@@ -42,6 +52,13 @@ export type RenderContext = {
   data: SiteData;
   /** Turns a files.id into an image URL; provided by the caller, never computed here. */
   imgUrl: (fileId: string, w?: number) => string;
+  /**
+   * Intrinsic size and focal point of an uploaded image, when the caller
+   * looked them up. Absent for previews and for files uploaded before the
+   * variant pipeline; `srcset` is emitted either way (a file with no stored
+   * variants simply serves its original for every width).
+   */
+  imgMeta?: (fileId: string) => ImgMeta | undefined;
 };
 
 type Sec<T extends Section["type"]> = Extract<Section, { type: T }>;
@@ -100,9 +117,39 @@ type ImgOpts = { eager?: boolean; cls?: string; width?: number; height?: number 
 function img(src: string, alt: string, opts: ImgOpts = {}): string {
   const parts = [`<img src="${esc(src)}" alt="${esc(alt)}"`];
   if (opts.cls) parts.push(` class="${opts.cls}"`);
+  if (opts.width && opts.height) parts.push(` width="${opts.width}" height="${opts.height}"`);
   if (opts.eager) parts.push(` fetchpriority="high"`);
   else parts.push(` loading="lazy" decoding="async"`);
   return parts.join("") + ">";
+}
+
+/**
+ * An uploaded image with responsive sources: `srcset` over the stored
+ * variant widths, `sizes` for how the slot is laid out, `object-position`
+ * from the file's focal point (or the section's), and intrinsic
+ * width/height so the browser reserves the right box (no layout shift).
+ */
+function uploadedImg(
+  fileId: string,
+  alt: string,
+  ctx: RenderContext,
+  kind: ImageSizeKind,
+  baseW: number,
+  opts: ImgOpts = {},
+  focalOverride?: [number, number]
+): string {
+  const meta = ctx.imgMeta?.(fileId);
+  const focal = focalOverride ?? meta?.focal;
+  const attrs: string[] = [];
+  const srcset = srcsetFor((w) => ctx.imgUrl(fileId, w), [...VARIANT_WIDTHS].filter((w) => w <= 1600));
+  if (srcset) attrs.push(` srcset="${esc(srcset)}" sizes="${esc(sizesFor(kind))}"`);
+  if (focal) attrs.push(` style="object-position:${esc(focalToObjectPosition(focal))}"`);
+  const size =
+    meta && typeof meta.w === "number" && meta.w > 0 && typeof meta.h === "number" && meta.h > 0
+      ? { width: meta.w, height: meta.h }
+      : {};
+  const tag = img(ctx.imgUrl(fileId, baseW), alt, { ...opts, ...size });
+  return attrs.length ? tag.slice(0, -1) + attrs.join("") + ">" : tag;
 }
 
 /**
@@ -126,6 +173,24 @@ function patternMedia(imageId: string, ctx: RenderContext, extra = ""): string {
 }
 
 /** Resolve a media item to a URL: `imageId` via ctx.imgUrl, else a sanitized legacy `url`. */
+/**
+ * Renders a media item as an <img>: uploaded files get srcset/sizes/focal
+ * via uploadedImg, legacy `url` items stay a plain tag.
+ */
+function mediaImg(
+  item: { imageId?: string; url?: string; alt?: string },
+  ctx: RenderContext,
+  kind: ImageSizeKind,
+  w: number,
+  opts: ImgOpts = {}
+): string | null {
+  if (item.imageId && !isPatternRef(item.imageId)) {
+    return uploadedImg(item.imageId, item.alt ?? "", ctx, kind, w, opts);
+  }
+  const src = mediaSrc(item, ctx, w);
+  return src ? img(src, item.alt ?? "", opts) : null;
+}
+
 function mediaSrc(item: { imageId?: string; url?: string }, ctx: RenderContext, w: number): string | null {
   if (isPatternRef(item.imageId)) return null;
   if (item.imageId) return ctx.imgUrl(item.imageId, w);
@@ -285,14 +350,14 @@ function renderHero(s: Sec<"hero">, ctx: RenderContext, opts: Opts): string {
 
   const parts: string[] = [];
   if (s.variant === "image" && st.imageId && !isPatternRef(st.imageId)) {
-    parts.push(img(ctx.imgUrl(st.imageId, 1600), "", { cls: "qh-hero__media", eager: opts.eagerHero }));
+    parts.push(uploadedImg(st.imageId, "", ctx, "hero", 1600, { cls: "qh-hero__media", eager: opts.eagerHero }, st.imageFocal));
   }
   parts.push(`<div class="qh-hero__body">${body.join("")}</div>`);
   if (s.variant === "split" && st.imageId) {
     parts.push(
       isPatternRef(st.imageId)
         ? patternMedia(st.imageId, ctx, " qh-hero__media")
-        : `<div class="qh-media qh-hero__media">${img(ctx.imgUrl(st.imageId, 1200), "", { eager: opts.eagerHero })}</div>`
+        : `<div class="qh-media qh-hero__media">${uploadedImg(st.imageId, "", ctx, "split", 1200, { eager: opts.eagerHero }, st.imageFocal)}</div>`
     );
   }
   return wrap(s, parts.join(""), { extraClass: `qh-hero qh-hero--${s.variant}`, ctx });
@@ -307,7 +372,7 @@ function renderRichText(s: Sec<"rich_text">, ctx: RenderContext): string {
     const body = `<div class="qh-rich__body">${heading(s.heading)}${html}</div>`;
     const media = isPatternRef(st.imageId)
       ? patternMedia(st.imageId, ctx)
-      : `<div class="qh-media">${img(ctx.imgUrl(st.imageId, 1200), "")}</div>`;
+      : `<div class="qh-media">${uploadedImg(st.imageId, "", ctx, "split", 1200, {}, st.imageFocal)}</div>`;
     return wrap(s, body + media, { extraClass: cls, ctx });
   }
   return wrap(s, `${heading(s.heading)}<div class="qh-rich__body">${html}</div>`, { extraClass: cls, ctx });
@@ -317,10 +382,10 @@ function renderImage(s: Sec<"image">, ctx: RenderContext): string {
   const w = s.variant === "full_bleed" ? 2000 : s.variant === "duo" ? 900 : 1400;
   const figures = (s.items ?? [])
     .map((it) => {
-      const src = mediaSrc(it, ctx, w);
-      if (!src) return "";
+      const tag = mediaImg(it, ctx, s.variant === "duo" ? "grid" : "single", w);
+      if (!tag) return "";
       const cap = it.caption ? `<figcaption>${esc(it.caption)}</figcaption>` : "";
-      return `<figure>${img(src, it.alt ?? "")}${cap}</figure>`;
+      return `<figure>${tag}${cap}</figure>`;
     })
     .filter(Boolean);
   const inner = figures.length
@@ -369,26 +434,31 @@ function renderTestimonials(s: Sec<"testimonials">, ctx: RenderContext): string 
 }
 
 function renderGallery(s: Sec<"gallery">, ctx: RenderContext): string {
-  type Photo = { thumb: string; full: string; alt: string; caption?: string };
+  type Photo = { tag: string; full: string; alt: string; caption?: string };
   const photos: Photo[] = [];
   if (s.source === "gallery") {
     const g = ctx.data.gallery;
     if (g && (!s.gallerySlug || g.slug === s.gallerySlug)) {
       for (const p of g.photos ?? []) {
-        photos.push({ thumb: ctx.imgUrl(p.id, 480), full: ctx.imgUrl(p.id, 1600), alt: p.caption ?? "", caption: p.caption ?? undefined });
+        photos.push({
+          tag: uploadedImg(p.id, p.caption ?? "", ctx, "grid", 480),
+          full: ctx.imgUrl(p.id, 1600),
+          alt: p.caption ?? "",
+          caption: p.caption ?? undefined,
+        });
       }
     }
   } else {
     for (const it of s.items ?? []) {
-      const thumb = mediaSrc(it, ctx, 480);
+      const tag = mediaImg(it, ctx, "grid", 480);
       const full = mediaSrc(it, ctx, 1600);
-      if (!thumb || !full) continue;
-      photos.push({ thumb, full, alt: it.alt ?? "", caption: it.caption });
+      if (!tag || !full) continue;
+      photos.push({ tag, full, alt: it.alt ?? "", caption: it.caption });
     }
   }
   const figures = photos.map(
     (p) =>
-      `<figure class="qh-gallery__item"><a data-lightbox href="${esc(p.full)}">${img(p.thumb, p.alt)}</a>` +
+      `<figure class="qh-gallery__item"><a data-lightbox href="${esc(p.full)}">${p.tag}</a>` +
       (p.caption ? `<figcaption>${esc(p.caption)}</figcaption>` : "") +
       `</figure>`
   );
@@ -488,7 +558,7 @@ function renderMeeting(s: Sec<"meeting_info">, ctx: RenderContext): string {
 
 function productCard(p: SiteProduct, ctx: RenderContext): string {
   const soldOut = p.stock !== null && p.stock !== undefined && p.stock <= 0;
-  const image = p.image_file_id ? img(ctx.imgUrl(p.image_file_id, 480), p.name) : "";
+  const image = p.image_file_id ? uploadedImg(p.image_file_id, p.name, ctx, "grid", 480) : "";
   const actions = soldOut
     ? `<p><span class="qh-badge">Sold out</span></p>`
     : `<div class="qh-actions">${btn("secondary", "Add to cart", `data-add="${esc(p.id)}"`)}${btn("primary", "Buy", `data-buy="${esc(p.id)}"`)}</div>`;
@@ -624,7 +694,7 @@ function initials(name: string): string {
 function renderOfficers(s: Sec<"officers">, ctx: RenderContext): string {
   const people = (s.items ?? []).map((p) => {
     const photo = p.imageId && !isPatternRef(p.imageId)
-      ? img(ctx.imgUrl(p.imageId, 480), p.name, { cls: "qh-officer__photo" })
+      ? uploadedImg(p.imageId, p.name, ctx, "grid", 480, { cls: "qh-officer__photo" })
       : `<span class="qh-officer__avatar" aria-hidden="true">${esc(initials(p.name))}</span>`;
     const mail = mailto(p.email);
     return (
@@ -668,7 +738,7 @@ function renderProjects(s: Sec<"projects">, ctx: RenderContext): string {
     const media = it.imageId
       ? isPatternRef(it.imageId)
         ? patternMedia(it.imageId, ctx, " qh-project__media")
-        : `<div class="qh-media qh-project__media">${img(ctx.imgUrl(it.imageId, 960), "")}</div>`
+        : `<div class="qh-media qh-project__media">${uploadedImg(it.imageId, "", ctx, "grid", 960)}</div>`
       : "";
     return (
       `<article class="qh-project">${media}<div class="qh-project__body">` +
@@ -685,7 +755,7 @@ function renderProjects(s: Sec<"projects">, ctx: RenderContext): string {
 function renderSponsors(s: Sec<"sponsors">, ctx: RenderContext): string {
   const items = (s.items ?? []).map((sp) => {
     const body = sp.imageId && !isPatternRef(sp.imageId)
-      ? img(ctx.imgUrl(sp.imageId, 480), sp.name)
+      ? uploadedImg(sp.imageId, sp.name, ctx, "grid", 480)
       : `<span class="qh-sponsor__name">${esc(sp.name)}</span>`;
     const link = sp.href ? href(sp.href, ctx) : null;
     return `<li class="qh-sponsor">${link && link !== "#" ? `<a class="qh-sponsor__link" href="${link}" rel="noopener">${body}</a>` : body}</li>`;
@@ -748,13 +818,20 @@ function renderPortfolio(s: Sec<"portfolio">, ctx: RenderContext): string {
   const figures = (s.items ?? [])
     .map((it, i) => {
       const featured = s.variant === "featured" && i === 0;
-      const thumb = mediaSrc(it, ctx, featured ? 1600 : 640);
+      // Portfolio items have no alt field: the title (else the caption)
+      // describes the piece, same as before the responsive-image refactor.
+      const tag = mediaImg(
+        { ...it, alt: it.title ?? it.caption ?? "" },
+        ctx,
+        featured ? "single" : "grid",
+        featured ? 1600 : 640
+      );
       const full = mediaSrc(it, ctx, 1600);
-      if (!thumb || !full) return "";
+      if (!tag || !full) return "";
       const cap = it.title || it.caption
         ? `<figcaption>${it.title ? `<strong>${esc(it.title)}</strong>` : ""}${it.caption ? `<span>${esc(it.caption)}</span>` : ""}</figcaption>`
         : "";
-      return `<figure class="qh-portfolio__item${featured ? " qh-portfolio__item--featured" : ""}"><a data-lightbox href="${esc(full)}">${img(thumb, it.title ?? it.caption ?? "")}</a>${cap}</figure>`;
+      return `<figure class="qh-portfolio__item${featured ? " qh-portfolio__item--featured" : ""}"><a data-lightbox href="${esc(full)}">${tag}</a>${cap}</figure>`;
     })
     .filter(Boolean);
   const inner = heading(s.heading) + (figures.length ? `<div class="qh-portfolio__items">${figures.join("")}</div>` : empty("No work has been added yet."));
