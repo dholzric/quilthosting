@@ -169,6 +169,8 @@ tenantRoutes.post("/", async (c) => {
     slug: string;
     city?: string;
     meeting_info?: string;
+    /** IANA zone from the creator's browser; event times on the site are shown in it. */
+    timezone?: string;
     kit?: string;
     /** A palette id from the library, or four brand colours. */
     palette?: string | Record<string, unknown>;
@@ -222,6 +224,15 @@ tenantRoutes.post("/", async (c) => {
   // settings blob the batch below writes, so the guild is never created in a
   // state where its site and its design disagree.
   const settings = JSON.parse(kitSettingsJson(kit)) as Record<string, unknown>;
+
+  // Event times are stored as UTC instants, so the site needs to know which
+  // clock to show them in. Taking it from the creator's browser at signup is
+  // right far more often than defaulting to UTC, which published every US
+  // guild's meetings five to eight hours late. Settings can change it.
+  const tz = typeof body.timezone === "string" ? body.timezone.trim() : "";
+  if (tz && /^[A-Za-z][A-Za-z0-9+_\-]*(?:\/[A-Za-z0-9+_\-]+){0,2}$/.test(tz) && tz.length <= 64) {
+    settings.timezone = tz;
+  }
 
   const rawPalette = body.palette;
   if (rawPalette !== undefined && rawPalette !== null && rawPalette !== "") {

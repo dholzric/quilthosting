@@ -1178,7 +1178,9 @@
       try {
         const t = await api("/api/tenants", {
           method: "POST",
-          body: JSON.stringify({ name, slug, city, meeting_info }),
+          // The browser's own zone: event times on the new site are shown in it,
+          // which beats defaulting to UTC. Settings can change it later.
+          body: JSON.stringify({ name, slug, city, meeting_info, timezone: qhBrowserTimezone() }),
         });
         localStorage.setItem(FR_MARKER, t.id);
         frAdoptTenant({ ...t, role: "owner" });
@@ -9991,6 +9993,11 @@
      * token. Quotes are escaped here so every call site is safe in either
      * context; escaped quotes render as themselves in text.
      */
+    /** This browser's IANA time zone, or "" when it cannot be read. */
+    function qhBrowserTimezone() {
+      try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch { return ""; }
+    }
+
     function esc(s) {
       return String(s ?? "")
         .replace(/&/g, "&amp;")

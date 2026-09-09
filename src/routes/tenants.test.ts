@@ -994,3 +994,35 @@ describe("GET /api/tenants/:id/first-run", () => {
     expect((await firstRun(missing.db)).status).toBe(404);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Time zone at creation
+//
+// Event times are stored as UTC instants (the admin converts the officer's
+// entry with toISOString()), so the site has to know which clock to show them
+// in. Defaulting to UTC published every US guild's meetings hours late, so
+// the creator's browser zone comes in with the guild.
+// ---------------------------------------------------------------------------
+
+describe("POST /api/tenants — time zone", () => {
+  const settingsOf = (batches: { sql: string; binds: unknown[] }[][]) => {
+    const insert = batches.flat().find((b) => /INSERT INTO tenants/i.test(b.sql));
+    const json = insert?.binds.find((v) => typeof v === "string" && v.includes("design")) as string;
+    return JSON.parse(json);
+  };
+
+  it("stores a valid IANA zone from the request", async () => {
+    const { db, batches } = fakeCreateDb();
+    const res = await createRequest(db, { name: "Prairie Star", slug: "prairie-star", timezone: "America/Chicago" });
+    expect(res.status).toBe(201);
+    expect(settingsOf(batches).timezone).toBe("America/Chicago");
+  });
+
+  it("omits it entirely when absent or junk, rather than storing something wrong", async () => {
+    for (const timezone of [undefined, "", "   ", "Not/A Zone!", "x".repeat(80)]) {
+      const { db, batches } = fakeCreateDb();
+      await createRequest(db, { name: "G", slug: `g${Math.random().toString(36).slice(2, 8)}`, timezone });
+      expect(settingsOf(batches).timezone, String(timezone)).toBeUndefined();
+    }
+  });
+});
