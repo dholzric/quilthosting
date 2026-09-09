@@ -1777,7 +1777,7 @@
                     <td>${money(g.revenue_30d_cents)}</td>
                     <td>${money(g.revenue_lifetime_cents)}</td>
                     <td style="white-space:nowrap">
-                      <button class="secondary" onclick='openPlatformGuild(${JSON.stringify(g.id)}, ${JSON.stringify(g.slug)}, ${JSON.stringify(g.name)})'>Open</button>
+                      <button class="secondary" onclick="openPlatformGuild(${jsArg(g.id)}, ${jsArg(g.slug)}, ${jsArg(g.name)})">Open</button>
                     </td>
                   </tr>`).join("")}
               </tbody>
@@ -1883,7 +1883,7 @@
             ${ob.steps.map((s) => `
               <li style="${s.done ? "color:var(--ok)" : ""}${s.optional && !s.done ? "opacity:0.85" : ""};margin-bottom:0.3rem">
                 ${s.done ? "✓ " : ""}${esc(s.label)}${s.optional && !s.done ? ` <span class="muted" style="font-size:0.8rem">(optional)</span>` : ""}
-                ${!s.done && s.href ? ` — <a href="#" onclick="onboardingGo(${JSON.stringify(s.href)});return false">do this</a>` : ""}
+                ${!s.done && s.href ? ` — <a href="#" onclick="onboardingGo(${jsArg(s.href)});return false">do this</a>` : ""}
                 ${s.hint ? `<div class="muted" style="font-size:0.82rem;color:var(--muted)">${esc(s.hint)}</div>` : ""}
               </li>
             `).join("")}
@@ -2072,8 +2072,8 @@
                     <td>$${(p.amount_cents / 100).toFixed(2)}</td>
                     <td><span class="badge ${p.status === "succeeded" ? "active" : p.status}">${esc(p.status)}</span></td>
                     <td>
-                      <button class="secondary" onclick='openReceipt(${JSON.stringify(p.id)})'>Receipt</button>
-                      ${p.status === "succeeded" ? `<button class="secondary" onclick='refundPayment(${JSON.stringify(p.id)}, ${p.amount_cents})'>Refund</button>` : ""}
+                      <button class="secondary" onclick="openReceipt(${jsArg(p.id)})">Receipt</button>
+                      ${p.status === "succeeded" ? `<button class="secondary" onclick="refundPayment(${jsArg(p.id)}, ${p.amount_cents})">Refund</button>` : ""}
                     </td>
                   </tr>
                 `).join("")}
@@ -2267,7 +2267,7 @@
                   <td>${memberStatusCell(m)}</td>
                   <td>${memberHouseholdCell(m)}</td>
                   <td>${m.joined_at ? new Date(m.joined_at).toLocaleDateString() : "—"}</td>
-                  <td><button class="secondary" onclick='editMember(${JSON.stringify(m.id)})'>Edit</button></td>
+                  <td><button class="secondary" onclick="editMember(${jsArg(m.id)})">Edit</button></td>
                 </tr>
               `).join("")}
             </tbody>
@@ -3030,7 +3030,7 @@
               ? "This member pays for the household. Moving them out ends the household for everyone on it; nobody is deleted."
               : "This member's membership comes from the household payment. Moving them out keeps their record and ends that membership."}
           </p>
-          <button class="secondary" onclick='moveOutOfHousehold(${JSON.stringify(memberId)})'>Move out of household</button>`;
+          <button class="secondary" onclick="moveOutOfHousehold(${jsArg(memberId)})">Move out of household</button>`;
         return;
       }
       box.innerHTML = `
@@ -3042,8 +3042,8 @@
             <select id="em-household-pick"><option value="">Loading…</option></select>
           </div>
           <div style="display:flex;align-items:flex-end;gap:0.5rem">
-            <button class="secondary" onclick='moveIntoHousehold(${JSON.stringify(memberId)})'>Move in</button>
-            <button class="secondary" onclick='startHousehold(${JSON.stringify(memberId)})'>Start one</button>
+            <button class="secondary" onclick="moveIntoHousehold(${jsArg(memberId)})">Move in</button>
+            <button class="secondary" onclick="startHousehold(${jsArg(memberId)})">Start one</button>
           </div>
         </div>`;
       loadHouseholdPicker();
@@ -3163,8 +3163,8 @@
                   <td>${esc(levelYearLabel(l))}</td>
                   <td>${l.renewal_type}</td>
                   <td>
-                    <button class="secondary" onclick='editLevel(${JSON.stringify(l.id)})'>Edit</button>
-                    <button class="secondary" onclick='archiveLevel(${JSON.stringify(l.id)}, ${JSON.stringify(l.name)})'>Archive</button>
+                    <button class="secondary" onclick="editLevel(${jsArg(l.id)})">Edit</button>
+                    <button class="secondary" onclick="archiveLevel(${jsArg(l.id)}, ${jsArg(l.name)})">Archive</button>
                   </td>
                 </tr>
               `).join("")}
@@ -3556,11 +3556,11 @@
                   <td>$${(e.member_price_cents / 100).toFixed(2)}</td>
                   <td>$${(e.non_member_price_cents / 100).toFixed(2)}</td>
                   <td>
-                    <button class="secondary" onclick='editEvent(${JSON.stringify(e.id)})'>Edit</button>
-                    <button class="secondary" onclick='toggleRegistration(${JSON.stringify(e.id)}, ${e.registration_open ? 0 : 1})'>
+                    <button class="secondary" onclick="editEvent(${jsArg(e.id)})">Edit</button>
+                    <button class="secondary" onclick="toggleRegistration(${jsArg(e.id)}, ${e.registration_open ? 0 : 1})">
                       ${e.registration_open ? "Close reg" : "Open reg"}
                     </button>
-                    <button class="secondary" onclick='deleteEvent(${JSON.stringify(e.id)}, ${JSON.stringify(e.title)})'>Delete</button>
+                    <button class="secondary" onclick="deleteEvent(${jsArg(e.id)}, ${jsArg(e.title)})">Delete</button>
                   </td>
                 </tr>
               `).join("")}
@@ -3910,8 +3910,8 @@
                   <td>${p.inventory == null ? "∞" : p.inventory}</td>
                   <td><span class="badge ${p.is_active ? "active" : "cancelled"}">${p.is_active ? "active" : "hidden"}</span></td>
                   <td>
-                    <button class="secondary" onclick='toggleProduct(${JSON.stringify(p.id)}, ${p.is_active ? 0 : 1})'>${p.is_active ? "Hide" : "Show"}</button>
-                    <button class="secondary" onclick='deleteProduct(${JSON.stringify(p.id)}, ${JSON.stringify(p.name)})'>Remove</button>
+                    <button class="secondary" onclick="toggleProduct(${jsArg(p.id)}, ${p.is_active ? 0 : 1})">${p.is_active ? "Hide" : "Show"}</button>
+                    <button class="secondary" onclick="deleteProduct(${jsArg(p.id)}, ${jsArg(p.name)})">Remove</button>
                   </td>
                 </tr>
               `).join("")}
@@ -4109,8 +4109,8 @@
                       <td><strong>${esc(g.name)}</strong>${g.description ? `<br><span class="muted" style="font-size:0.8rem">${esc(g.description)}</span>` : ""}</td>
                       <td>${g.member_count || 0}</td>
                       <td>
-                        <button class="secondary" onclick='viewGroup(${JSON.stringify(g.id)})'>Manage</button>
-                        <button class="secondary" onclick='deleteGroup(${JSON.stringify(g.id)}, ${JSON.stringify(g.name)})'>Delete</button>
+                        <button class="secondary" onclick="viewGroup(${jsArg(g.id)})">Manage</button>
+                        <button class="secondary" onclick="deleteGroup(${jsArg(g.id)}, ${jsArg(g.name)})">Delete</button>
                       </td>
                     </tr>
                   `).join("")}
@@ -4134,9 +4134,9 @@
                     <td>${b.status === "scheduled" ? "—" : `${b.sent_count}/${b.recipients}`}</td>
                     <td>${blastStatusHtml(b)}</td>
                     <td>
-                      <button class="secondary" onclick='viewBlast(${JSON.stringify(b.id)})'>View</button>
-                      ${b.status === "scheduled" ? `<button class="secondary" onclick='cancelScheduled(${JSON.stringify(b.id)})'>Cancel</button>` : ""}
-                      ${b.status === "partial" ? `<button class="secondary" onclick='retryBlast(${JSON.stringify(b.id)}, this)'>Retry failed</button>` : ""}
+                      <button class="secondary" onclick="viewBlast(${jsArg(b.id)})">View</button>
+                      ${b.status === "scheduled" ? `<button class="secondary" onclick="cancelScheduled(${jsArg(b.id)})">Cancel</button>` : ""}
+                      ${b.status === "partial" ? `<button class="secondary" onclick="retryBlast(${jsArg(b.id)}, this)">Retry failed</button>` : ""}
                     </td>
                   </tr>
                 `).join("")}
@@ -4229,7 +4229,7 @@
               </select>
             </div>
             <div style="display:flex;align-items:end">
-              <button onclick="addToGroup(${JSON.stringify(id)})">Add</button>
+              <button onclick="addToGroup(${jsArg(id)})">Add</button>
             </div>
           </div>
           ${data.members.length === 0 ? "<p class='muted'>No one in this group yet.</p>" : `
@@ -4241,7 +4241,7 @@
                     <td>${esc([m.first_name, m.last_name].filter(Boolean).join(" ") || "—")}</td>
                     <td>${esc(m.email)}</td>
                     <td><span class="badge ${m.status}">${esc(m.status)}</span></td>
-                    <td><button class="secondary" onclick='removeFromGroup(${JSON.stringify(id)}, ${JSON.stringify(m.id)})'>Remove</button></td>
+                    <td><button class="secondary" onclick="removeFromGroup(${jsArg(id)}, ${jsArg(m.id)})">Remove</button></td>
                   </tr>
                 `).join("")}
               </tbody>
@@ -4398,7 +4398,7 @@
                   <td>${esc(t.name || "—")}</td>
                   <td>${esc(t.email)}</td>
                   <td>${esc(t.role)}</td>
-                  <td><button class="secondary" onclick='removeTeam(${JSON.stringify(t.user_id)}, ${JSON.stringify(t.email)})'>Remove</button></td>
+                  <td><button class="secondary" onclick="removeTeam(${jsArg(t.user_id)}, ${jsArg(t.email)})">Remove</button></td>
                 </tr>
               `).join("")}
             </tbody>
@@ -8151,8 +8151,8 @@
                   <td>${f.size ? (f.size / 1024).toFixed(0) + " KB" : "—"}</td>
                   <td>${new Date(f.created_at).toLocaleDateString()}</td>
                   <td>
-                    <button class="secondary" onclick='downloadFile(${JSON.stringify(f.id)}, ${JSON.stringify(f.filename)})'>Download</button>
-                    <button class="secondary" onclick='deleteFile(${JSON.stringify(f.id)}, ${JSON.stringify(f.filename)})'>Delete</button>
+                    <button class="secondary" onclick="downloadFile(${jsArg(f.id)}, ${jsArg(f.filename)})">Download</button>
+                    <button class="secondary" onclick="deleteFile(${jsArg(f.id)}, ${jsArg(f.filename)})">Delete</button>
                   </td>
                 </tr>
               `).join("")}
@@ -8929,8 +8929,8 @@
                   <td>$${(r.total_cents/100).toFixed(2)}</td>
                   <td><span class="badge">${esc(r.status)}</span></td>
                   <td>
-                    <button class="secondary" onclick='printInvoice(${JSON.stringify(r.id)})'>Print</button>
-                    ${r.status !== "paid" ? `<button class="secondary" onclick='markInvoicePaid(${JSON.stringify(r.id)})'>Mark paid</button>` : ""}
+                    <button class="secondary" onclick="printInvoice(${jsArg(r.id)})">Print</button>
+                    ${r.status !== "paid" ? `<button class="secondary" onclick="markInvoicePaid(${jsArg(r.id)})">Mark paid</button>` : ""}
                   </td>
                 </tr>`).join("")}
             </tbody>
@@ -9146,7 +9146,7 @@
           <p class="muted" style="font-size:0.8rem;margin:0 0 0.6rem">${esc(r.trigger_label || r.trigger)} · ${r.steps} email${r.steps === 1 ? "" : "s"}</p>
           ${r.installed
             ? `<button class="secondary" disabled>Installed</button>`
-            : `<button onclick='autoInstallRecipe(${JSON.stringify(r.id)})'>Install</button>`}
+            : `<button onclick="autoInstallRecipe(${jsArg(r.id)})">Install</button>`}
         </div>`).join("");
 
       el.innerHTML = `
@@ -9194,9 +9194,9 @@
                   <td>${esc(autoTriggerLabel(r.trigger_event))}</td>
                   <td>${r.is_active ? "yes" : "no"}</td>
                   <td>
-                    ${autoV2 ? `<button class="secondary" onclick='autoEdit(${JSON.stringify(r.id)})'>Edit</button>` : ""}
-                    <button class="secondary" onclick='toggleAutomation(${JSON.stringify(r.id)}, ${r.is_active ? 0 : 1})'>${r.is_active ? "Pause" : "Activate"}</button>
-                    <button class="secondary" onclick='deleteAutomation(${JSON.stringify(r.id)})'>Delete</button>
+                    ${autoV2 ? `<button class="secondary" onclick="autoEdit(${jsArg(r.id)})">Edit</button>` : ""}
+                    <button class="secondary" onclick="toggleAutomation(${jsArg(r.id)}, ${r.is_active ? 0 : 1})">${r.is_active ? "Pause" : "Activate"}</button>
+                    <button class="secondary" onclick="deleteAutomation(${jsArg(r.id)})">Delete</button>
                   </td>
                 </tr>`;
               }).join("")}
@@ -9393,8 +9393,8 @@
                   <td><code>${esc(f.slug)}</code></td>
                   <td>${esc(f.form_type)}</td>
                   <td>
-                    <button class="secondary" onclick='viewFormResponses(${JSON.stringify(f.id)}, ${JSON.stringify(f.name)})'>Responses</button>
-                    <button class="secondary" onclick='deleteForm(${JSON.stringify(f.id)})'>Delete</button>
+                    <button class="secondary" onclick="viewFormResponses(${jsArg(f.id)}, ${jsArg(f.name)})">Responses</button>
+                    <button class="secondary" onclick="deleteForm(${jsArg(f.id)})">Delete</button>
                   </td>
                 </tr>`).join("")}
             </tbody>
@@ -9481,7 +9481,7 @@
                   <td>${esc(p.title)}</td>
                   <td>${p.published?"Published":"Draft"}</td>
                   <td>${new Date(p.updated_at).toLocaleDateString()}</td>
-                  <td><button class="secondary" onclick='deletePage(${JSON.stringify(p.id)}, ${JSON.stringify(p.title)})'>Delete</button></td>
+                  <td><button class="secondary" onclick="deletePage(${jsArg(p.id)}, ${jsArg(p.title)})">Delete</button></td>
                 </tr>`).join("")}
             </tbody>
           </table>
@@ -9519,8 +9519,8 @@
                   <td>${esc((t.first_name||"")+" "+(t.last_name||""))}</td>
                   <td>${t.reply_count||0}</td>
                   <td>
-                    <button class="secondary" onclick='pinTopic(${JSON.stringify(t.id)}, ${t.is_pinned?0:1})'>${t.is_pinned?"Unpin":"Pin"}</button>
-                    <button class="secondary" onclick='deleteTopic(${JSON.stringify(t.id)})'>Delete</button>
+                    <button class="secondary" onclick="pinTopic(${jsArg(t.id)}, ${t.is_pinned?0:1})">${t.is_pinned?"Unpin":"Pin"}</button>
+                    <button class="secondary" onclick="deleteTopic(${jsArg(t.id)})">Delete</button>
                   </td>
                 </tr>`).join("")}
             </tbody>
@@ -9669,7 +9669,7 @@
                   <td>${esc(c.name)}</td>
                   <td><a href="/g/${esc(c.slug)}" target="_blank"><code>${esc(c.slug)}</code></a></td>
                   <td>${esc(c.status)}</td>
-                  <td><button class="secondary" onclick='archiveChapter(${JSON.stringify(c.id)})'>Archive</button></td>
+                  <td><button class="secondary" onclick="archiveChapter(${jsArg(c.id)})">Archive</button></td>
                 </tr>`).join("")}
             </tbody>
           </table>
@@ -9727,9 +9727,9 @@
                     ${r.disabled_reason?`<br><span class="badge cancelled">auto-disabled</span> <span class="muted">${esc(r.disabled_reason)}</span>`:""}
                     ${r.last_success_at?`<br><span class="muted">ok ${new Date(r.last_success_at).toLocaleString()}</span>`:""}</td>
                   <td>
-                    ${r.disabled_reason?`<button class="secondary" onclick='enableWebhook(${JSON.stringify(r.id)})'>Re-enable</button>`:""}
-                    <button class="secondary" onclick='testWebhook(${JSON.stringify(r.id)})'>Test</button>
-                    <button class="secondary" onclick='deleteWebhook(${JSON.stringify(r.id)})'>Delete</button>
+                    ${r.disabled_reason?`<button class="secondary" onclick="enableWebhook(${jsArg(r.id)})">Re-enable</button>`:""}
+                    <button class="secondary" onclick="testWebhook(${jsArg(r.id)})">Test</button>
+                    <button class="secondary" onclick="deleteWebhook(${jsArg(r.id)})">Delete</button>
                   </td>
                 </tr>`).join("")}
             </tbody>
@@ -9771,7 +9771,7 @@
             <td>${r.attempts||0}</td>
             <td class="muted" style="font-size:0.85rem">${r.last_error?esc(String(r.last_error)).slice(0,60):"—"}</td>
             <td class="muted" style="font-size:0.85rem">${new Date(r.created_at).toLocaleString()}</td>
-            <td>${r.status==="delivered"?"":`<button class="secondary" onclick='replayOutbox(${JSON.stringify(r.id)})'>Replay</button>`}</td>
+            <td>${r.status==="delivered"?"":`<button class="secondary" onclick="replayOutbox(${jsArg(r.id)})">Replay</button>`}</td>
           </tr>`).join("")}</tbody></table>`;
     }
     async function replayOutbox(id) {
@@ -9848,7 +9848,7 @@
                   <td><code>${esc(k.key_prefix)}…</code></td>
                   <td>${new Date(k.created_at).toLocaleDateString()}</td>
                   <td>${k.last_used_at ? new Date(k.last_used_at).toLocaleString() : "—"}</td>
-                  <td>${k.revoked_at?"":`<button class="secondary" onclick='revokeApiKey(${JSON.stringify(k.id)})'>Revoke</button>`}</td>
+                  <td>${k.revoked_at?"":`<button class="secondary" onclick="revokeApiKey(${jsArg(k.id)})">Revoke</button>`}</td>
                 </tr>`).join("")}
             </tbody>
           </table>
@@ -9922,10 +9922,33 @@
       show(document.getElementById("login-view"));
     }
 
+    /**
+     * HTML-escape for BOTH text and attribute values.
+     *
+     * The textContent/innerHTML trick escapes & < > but leaves quotes alone,
+     * so `title="${esc(name)}"` broke out of the attribute on a name like
+     * O'Brien or a filename with a double quote — a broken control at best
+     * and script injection at worst, on the page that holds the session
+     * token. Quotes are escaped here so every call site is safe in either
+     * context; escaped quotes render as themselves in text.
+     */
     function esc(s) {
-      const d = document.createElement("div");
-      d.textContent = s ?? "";
-      return d.innerHTML;
+      return String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    /**
+     * A JS literal for an inline handler attribute: JSON, then attribute-
+     * escaped. `onclick="f(${jsArg(x)})"` is safe for any string, including
+     * one carrying quotes. JSON.stringify alone is not: its double quotes
+     * closed the attribute, which is why every checklist link was dead.
+     */
+    function jsArg(v) {
+      return esc(JSON.stringify(v ?? null));
     }
 
     // Google OAuth hand-off: token or error arrives in the URL hash

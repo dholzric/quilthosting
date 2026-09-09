@@ -162,11 +162,33 @@
 
     function show(el) { el.classList.remove("hidden"); }
     function hide(el) { el.classList.add("hidden"); }
+    /**
+     * HTML-escape for BOTH text and attribute values.
+     *
+     * The textContent/innerHTML trick escapes & < > but leaves quotes alone,
+     * so `title="${esc(name)}"` broke out of the attribute on a name like
+     * O'Brien or a filename with a double quote — a broken control at best
+     * and script injection at worst, on the page that holds the session
+     * token. Quotes are escaped here so every call site is safe in either
+     * context; escaped quotes render as themselves in text.
+     */
     function esc(s) {
-      const d = document.createElement("div");
-      d.textContent = s ?? "";
-      return d.innerHTML;
+      return String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
     }
+
+    /**
+     * A JS literal for an inline handler attribute: JSON, then attribute-
+     * escaped, so no value can close the attribute it sits in.
+     */
+    function jsArg(v) {
+      return esc(JSON.stringify(v ?? null));
+    }
+
     function money(cents) {
       return "$" + ((cents || 0) / 100).toFixed(2);
     }
@@ -419,7 +441,7 @@
                 <span class="muted" style="font-size:0.85rem"> · ${esc([t.first_name,t.last_name].filter(Boolean).join(" ")||"Member")}
                   · ${t.reply_count||0} replies</span>
                 <p style="margin:0.35rem 0;font-size:0.95rem">${esc((t.body||"").slice(0,280))}</p>
-                <button class="secondary" onclick='openTopic(${JSON.stringify(t.id)})'>Open / reply</button>
+                <button class="secondary" onclick="openTopic(${jsArg(t.id)})">Open / reply</button>
               </div>`).join("")}
           </div>
           <div id="f-thread"></div>`;
@@ -459,7 +481,7 @@
               <span class="muted" style="font-size:0.8rem">${new Date(p.created_at).toLocaleString()}</span><br>${esc(p.body)}</p>`).join("") || "<p class='muted'>No replies yet.</p>"}
             <label for="f-reply">Reply</label>
             <textarea id="f-reply" rows="2" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px;font:inherit"></textarea>
-            <button onclick='replyTopic(${JSON.stringify(id)})' style="margin-top:0.5rem">Reply</button>
+            <button onclick="replyTopic(${jsArg(id)})" style="margin-top:0.5rem">Reply</button>
           </div>`;
       } catch (e) {
         box.innerHTML = `<p class="error">${esc(e.message)}</p>`;

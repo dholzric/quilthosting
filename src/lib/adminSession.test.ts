@@ -56,3 +56,43 @@ describe("admin.html — which guild you land on", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// Inline handler arguments
+//
+// `onclick="f(${JSON.stringify(x)})"` closes the attribute on its own opening
+// quote, so every checklist link was dead on arrival; the single-quoted
+// variant survives until a value contains an apostrophe, and then it either
+// breaks the control or injects markup into the page holding the session
+// token. jsArg() JSON-encodes and then attribute-escapes, which is safe for
+// both.
+// ---------------------------------------------------------------------------
+
+describe("admin.html and portal.html — inline handler arguments", () => {
+  const PORTAL = readFileSync(path.join(REPO_ROOT, "public/portal.html"), "utf8").replace(/\r\n/g, "\n");
+
+  it("no inline handler passes a raw JSON.stringify", () => {
+    for (const [name, src] of [["admin.html", ADMIN], ["portal.html", PORTAL]] as const) {
+      const bad = [...src.matchAll(/on[a-z]+=(['"])((?:(?!\1).)*?JSON\.stringify(?:(?!\1).)*?)\1/gs)];
+      expect(bad.map((m) => m[0].slice(0, 90)), name).toEqual([]);
+    }
+  });
+
+  it("esc() escapes quotes, so it is safe in an attribute", () => {
+    for (const [name, src] of [["admin.html", ADMIN], ["portal.html", PORTAL]] as const) {
+      const fn = /function esc\(s\) \{([\s\S]*?)\n {4}\}/.exec(src);
+      expect(fn, name).not.toBeNull();
+      const body = fn![1];
+      expect(body, name).toContain("&quot;");
+      expect(body, name).toContain("&#39;");
+      // The textContent/innerHTML trick does not escape quotes.
+      expect(body, name).not.toContain("d.textContent");
+    }
+  });
+
+  it("jsArg goes through esc, not JSON alone", () => {
+    const fn = /function jsArg\(v\) \{([\s\S]*?)\n {4}\}/.exec(ADMIN);
+    expect(fn).not.toBeNull();
+    expect(fn![1]).toContain("esc(JSON.stringify(");
+  });
+});
