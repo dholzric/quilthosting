@@ -7,11 +7,11 @@
 import { z } from "zod";
 import { FONT_OPTIONS, buildFontsHref } from "../fonts";
 import { bestInk, contrastRatio, hexToOklch, normalizeHex, oklchToHex, tint } from "./color";
-import { paletteById } from "./palettes";
-import type { PaletteInput } from "./palettes";
+import { paletteById, PALETTE_GROUNDS } from "./palettes";
+import type { PaletteGround, PaletteInput } from "./palettes";
 import { DEFAULT_TYPE_PAIR_ID, TYPE_PAIRS, typePairById } from "./typePairs";
 
-export type { PaletteInput } from "./palettes";
+export type { PaletteGround, PaletteInput } from "./palettes";
 
 export type Roles = {
   bg: string;
@@ -44,7 +44,7 @@ export const PATTERN_IDS: readonly PatternId[] = [
 ];
 
 export type SiteDesign = {
-  palette: { id?: string; input: PaletteInput };
+  palette: { id?: string; input: PaletteInput; ground?: PaletteGround };
   typePair: string;
   scale: "compact" | "comfortable" | "editorial";
   shape: { radius: "sharp" | "soft" | "round"; shadow: "none" | "subtle" | "lifted" };
@@ -92,6 +92,7 @@ const paletteSchema = z
   .object({
     id: z.string().max(60).optional(),
     input: paletteInputSchema.optional(),
+    ground: z.enum(["paper", "cream", "tinted", "deep"]).optional(),
   })
   .transform((v, ctx) => {
     const lib = v.id ? paletteById(v.id) : null;
@@ -106,6 +107,10 @@ const paletteSchema = z
     }
     const out: SiteDesign["palette"] = { input: { ...input } };
     if (lib) out.id = lib.id;
+    // Page tone: what the tenant chose, else what the library palette was
+    // authored with, else paper (the tone every palette used to derive).
+    const ground = v.ground ?? lib?.ground;
+    if (ground && ground !== "paper") out.ground = ground;
     return out;
   });
 
@@ -154,6 +159,38 @@ export const siteDesignSchema: z.ZodType<SiteDesign, z.ZodTypeDef, unknown> = z.
 // Role derivation
 
 const NUDGE_STEP = 0.02;
+
+/**
+ * Page lightness per ground, and the chroma the ground carries.
+ *
+ * `paper` reproduces the single ground every light palette used to get
+ * (bg 0.985 at the neutral's own chroma), so a palette that stays on paper
+ * renders exactly as before. The other three lower the page and raise its
+ * chroma, which is what makes two palettes look like two different sites
+ * rather than the same site with a different button.
+ *
+ * Surfaces keep the offsets they have always had relative to the page —
+ * surface +0.012, surfaceAlt −0.035, border −0.105, the tint band −0.045 —
+ * so bands, cards and rules stay in the same relationship at every tone.
+ * `chroma: null` means "use the neutral's own", which is what paper did.
+ */
+const GROUND_TONE: Record<PaletteGround, { l: number; chroma: number | null }> = {
+  paper: { l: 0.985, chroma: null },
+  cream: { l: 0.962, chroma: 0.012 },
+  tinted: { l: 0.942, chroma: 0.022 },
+  deep: { l: 0.908, chroma: 0.03 },
+};
+
+const SURFACE_OFFSET = 0.01;
+const SURFACE_ALT_OFFSET = -0.035;
+const BORDER_OFFSET = -0.105;
+const TINT_OFFSET = -0.045;
+
+/** The neutral at lightness `l`, carrying `chroma` (or its own when null). */
+function groundTone(hex: string, l: number, chroma: number | null): string {
+  const own = hexToOklch(hex);
+  return oklchToHex(l, chroma === null ? own.c : chroma, own.h);
+}
 const NUDGE_MAX = 25;
 
 function safeHex(value: string, fallback: string): string {
@@ -202,17 +239,37 @@ function fitText(hex: string, bg: string, dark: boolean): string {
   return nudge(hex, (c) => contrastRatio(c, bg) >= 4.5, dark ? 1 : -1);
 }
 
-export function deriveRoles(input: PaletteInput, dark = false): Roles {
+/**
+ * The page tone a design renders at: the tenant's own choice, else the tone
+ * its library palette was authored with. A dark palette has no ground.
+ */
+export function designGround(design: { palette: { id?: string; ground?: PaletteGround } }): PaletteGround {
+  if (design.palette.ground) return design.palette.ground;
+  const lib = design.palette.id ? paletteById(design.palette.id) : null;
+  return lib?.ground ?? "paper";
+}
+
+export function deriveRoles(input: PaletteInput, dark = false, ground: PaletteGround = "paper"): Roles {
   const fb = DEFAULT_DESIGN.palette.input;
   const brand = safeHex(input?.brand, fb.brand);
   const brandAlt = safeHex(input?.brandAlt, fb.brandAlt);
   const accentIn = safeHex(input?.accent, fb.accent);
   const neutral = safeHex(input?.neutral, fb.neutral);
 
-  const bg = tint(neutral, dark ? 0.16 : 0.985);
-  const surface = tint(neutral, dark ? 0.21 : 0.995);
-  const surfaceAlt = tint(neutral, dark ? 0.26 : 0.95);
-  const border = tint(neutral, dark ? 0.3 : 0.88);
+  // A dark palette inverts the page and ignores the ground; a light one takes
+  // its page lightness and chroma from the ground, and every other surface
+  // keeps its usual distance from the page.
+  const tone = GROUND_TONE[ground] ?? GROUND_TONE.paper;
+  const bg = dark ? tint(neutral, 0.16) : groundTone(neutral, tone.l, tone.chroma);
+  const surface = dark
+    ? tint(neutral, 0.21)
+    : groundTone(neutral, Math.min(tone.l + SURFACE_OFFSET, 0.999), tone.chroma);
+  const surfaceAlt = dark
+    ? tint(neutral, 0.26)
+    : groundTone(neutral, tone.l + SURFACE_ALT_OFFSET, tone.chroma);
+  const border = dark
+    ? tint(neutral, 0.3)
+    : groundTone(neutral, tone.l + BORDER_OFFSET, tone.chroma);
   // Text must clear AA on every light surface it can sit on; surfaceAlt is
   // the darkest of them on a light palette and the lightest on a dark one.
   const inkFloor = dark ? bg : surfaceAlt;
@@ -231,7 +288,7 @@ export function deriveRoles(input: PaletteInput, dark = false): Roles {
   const accentFit = fitInteractive(accentIn, bg, dark);
 
   const darkRole = tint(brandAlt, 0.22);
-  const tintRole = fitTint(wash(brand, dark ? 0.3 : 0.94), ink, dark);
+  const tintRole = fitTint(wash(brand, dark ? 0.3 : tone.l + TINT_OFFSET), ink, dark);
 
   return {
     bg,
@@ -329,7 +386,7 @@ export function buildDesignVars(design: SiteDesign): string {
   const d = design ?? DEFAULT_DESIGN;
   const palette = d.palette ?? DEFAULT_DESIGN.palette;
   const dark = !!(palette.id && paletteById(palette.id)?.dark);
-  const roles = deriveRoles(palette.input, dark);
+  const roles = deriveRoles(palette.input, dark, designGround(design));
   const pair = typePairById(String(d.typePair ?? ""));
   const ratio = typeof d.scale === "string" && d.scale in SCALE_RATIO ? SCALE_RATIO[d.scale] : SCALE_RATIO.comfortable;
 

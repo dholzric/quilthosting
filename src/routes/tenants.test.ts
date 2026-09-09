@@ -215,11 +215,13 @@ function fakeCreateDb(opts: {
       // Read statements (computeOnboarding batches its counts) answer through
       // the same keyword router as first(); writes just report one change.
       return Promise.all(
-        stmts.map(async (s) =>
-          /^\s*SELECT/i.test(s.sql)
-            ? { success: true, results: [await stmt(s.sql, s.binds).first()], meta: { changes: 0 } }
-            : { success: true, meta: { changes: 1 } }
-        )
+        stmts.map(async (s) => {
+          if (!/^\s*SELECT/i.test(s.sql)) return { success: true, meta: { changes: 1 } };
+          // A SELECT that matches nothing returns no rows, not one null row —
+          // callers that map over results (loadSiteData) crash on the latter.
+          const row = await stmt(s.sql, s.binds).first();
+          return { success: true, results: row == null ? [] : [row], meta: { changes: 0 } };
+        })
       );
     },
   };
@@ -691,6 +693,73 @@ describe("PATCH /api/tenants/:id — settings.ui and settings.features", () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// GET /:id/design-preview — a design the tenant has not saved, rendered by the
+// real renderer for the Design panel's "see it full size" dialog. Read-only:
+// swatches and a name are not enough to choose a design from.
+// ---------------------------------------------------------------------------
+
+describe("GET /api/tenants/:id/design-preview", () => {
+  const envFor = (db: unknown) => ({ DB: db, JWT_SECRET, APP_URL }) as unknown as Env;
+  const get = async (db: unknown, qs = "") =>
+    tenantRoutes.request(`/${TENANT_ID}/design-preview${qs}`, { headers: await authHeader() }, envFor(db));
+
+  it("renders a kit's sample home with the guild's own name, uncacheable and noindex", async () => {
+    const { db, runs, batches } = fakeCreateDb({
+      membershipRole: "viewer",
+      tenantRow: { id: TENANT_ID, name: "Prairie Star", slug: "prairie-star", tenant_type: "guild", settings_json: "{}" },
+    });
+    const res = await get(db, "?kit=heritage");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toContain("text/html");
+    expect(res.headers.get("Cache-Control")).toBe("no-store");
+    expect(res.headers.get("X-Robots-Tag")).toBe("noindex");
+    expect(res.headers.get("X-Design-Preview")).toBe("heritage/heritage-madder/cream");
+    const html = await res.text();
+    expect(html).toContain("Prairie Star");
+    expect(html).toContain('<meta name="robots" content="noindex">');
+    expect(html).toContain("--qh-bg");
+    // A preview writes nothing.
+    expect(runs).toHaveLength(0);
+    expect(batches.flat().filter((b) => !/^\s*SELECT/i.test(b.sql))).toHaveLength(0);
+  });
+
+  it("applies a palette and a page tone on top of the kit", async () => {
+    const { db } = fakeCreateDb({ membershipRole: "owner" });
+    const paper = await get(db, "?kit=heritage&palette=modern-electric");
+    expect(paper.headers.get("X-Design-Preview")).toBe("heritage/modern-electric/paper");
+    const deep = await get(db, "?kit=heritage&palette=modern-electric&ground=deep");
+    expect(deep.headers.get("X-Design-Preview")).toBe("heritage/modern-electric/deep");
+    // The tone is the point: the two pages must not be the same bytes.
+    expect(await deep.text()).not.toBe(await paper.text());
+  });
+
+  it("rejects an unknown palette, tone or type pair rather than rendering something else", async () => {
+    const { db } = fakeCreateDb({ membershipRole: "owner" });
+    for (const qs of ["?palette=nope", "?ground=neon", "?typePair=comic"]) {
+      const res = await get(db, qs);
+      expect(res.status, qs).toBe(400);
+    }
+  });
+
+  it("falls back to the tenant's own kit, then to one its audience can use", async () => {
+    const onKit = fakeCreateDb({
+      membershipRole: "owner",
+      tenantRow: { id: TENANT_ID, name: "G", slug: "g", tenant_type: "guild", settings_json: JSON.stringify({ site: { kit: "prairie" } }) },
+    });
+    expect((await get(onKit.db)).headers.get("X-Design-Preview")).toMatch(/^prairie\//);
+    const noKit = fakeCreateDb({ membershipRole: "owner" });
+    expect((await get(noKit.db)).status).toBe(200);
+  });
+
+  it("is closed to a stranger who is not a platform admin", async () => {
+    const { db } = fakeCreateDb({ membershipRole: null, platformAdmin: false });
+    expect((await get(db, "?kit=heritage")).status).toBe(403);
+    const admin = fakeCreateDb({ membershipRole: null, platformAdmin: true });
+    expect((await get(admin.db, "?kit=heritage")).status).toBe(200);
+  });
+});
+
 describe("GET /api/tenants/:id/design-options", () => {
   it("returns the library plus the tenant's current design and renderer", async () => {
     const { db } = fakeCreateDb({
@@ -717,8 +786,22 @@ describe("GET /api/tenants/:id/design-options", () => {
       expect(madder.roles[role]).toMatch(/^#[0-9a-f]{6}$/);
     }
 
-    expect(body.families).toHaveLength(7);
+    expect(body.families).toHaveLength(8);
     expect(body.families[0]).toEqual({ id: "heritage", label: "Heritage" });
+
+    // Page tone travels with each palette and as its own list, so the admin
+    // never has to mirror the labels.
+    expect(madder.ground).toBe("cream");
+    expect(body.palettes.find((p: any) => p.id === "modern-electric").ground).toBe("paper");
+    expect(body.grounds.map((g: any) => g.id)).toEqual(["paper", "cream", "tinted", "deep"]);
+    for (const g of body.grounds) {
+      expect(g.label.length, g.id).toBeGreaterThan(2);
+      expect(g.hint.length, g.id).toBeGreaterThan(20);
+    }
+    // Two palettes on different tones must not paint the same page — the
+    // complaint this axis answers.
+    const grounds = new Set(body.palettes.filter((p: any) => !p.dark).map((p: any) => p.roles.bg));
+    expect(grounds.size).toBeGreaterThan(10);
 
     expect(body.typePairs.length).toBeGreaterThanOrEqual(11);
     const lora = body.typePairs.find((p: any) => p.id === "lora-karla");

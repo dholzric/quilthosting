@@ -27,7 +27,7 @@ import { sanitizeUrl } from "../sanitize";
 import { buildRootVars } from "./theme";
 import { readTenantTheme } from "./themeMigrate";
 import { buildSeoHead, buildLocalBusinessJsonLd, type SeoPage, type SeoBusiness } from "./seo";
-import { buildDesignVars, deriveRoles, designFontsHref, isDarkDesign } from "./design/tokens";
+import { buildDesignVars, deriveRoles, designFontsHref, designGround, isDarkDesign } from "./design/tokens";
 import type { SiteDesign } from "./design/tokens";
 import { readSiteDesign } from "./design/migrate";
 import { renderSections } from "./sections/render";
@@ -447,7 +447,7 @@ export function renderSitePage(args: SitePageArgs): string {
   // and the guild name.
   const siteName = (tenant.tenant_type === "business" && identity.name) || tenant.name;
   const profile = args.data.profile ?? readProfile(settings);
-  const roles = deriveRoles(design.palette.input, isDarkDesign(design));
+  const roles = deriveRoles(design.palette.input, isDarkDesign(design), designGround(design));
   const sections = page.sections ?? [];
 
   const ctx: RenderContext = {

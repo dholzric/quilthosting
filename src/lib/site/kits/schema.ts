@@ -363,7 +363,7 @@ function checkImagery(kit: Kit, issues: KitIssue[]): void {
 function checkContrast(kit: Kit, issues: KitIssue[]): void {
   const palette = paletteById(kit.defaults.palette);
   if (!palette) return; // already reported by the schema
-  const r = deriveRoles(palette.input, palette.dark);
+  const r = deriveRoles(palette.input, palette.dark, palette.ground);
   const pairs: [string, string, string, number][] = [
     ["ink/bg", r.ink, r.bg, 4.5],
     ["ink/surface", r.ink, r.surface, 4.5],

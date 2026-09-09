@@ -19,7 +19,9 @@ describe("readSiteDesign", () => {
   it("reads a stored settings.design verbatim", () => {
     const design = {
       ...DEFAULT_DESIGN,
-      palette: { id: "jewel-emerald", input: paletteById("jewel-emerald")!.input },
+      // The stored design names a library palette, so reading it back fills
+      // that palette's authored page tone (jewel-emerald is tinted).
+      palette: { id: "jewel-emerald", input: paletteById("jewel-emerald")!.input, ground: "tinted" as const },
       typePair: "playfair-lato",
       scale: "editorial" as const,
       header: { ...DEFAULT_DESIGN.header, variant: "centered" as const },

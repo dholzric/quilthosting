@@ -70,6 +70,37 @@
     .qh-adv-row .qh-adv-text { flex: 1; min-width: 0; }
     .qh-adv-row .qh-adv-name { display: block; font-weight: 600; font-size: 0.92rem; }
     .qh-adv-row .qh-adv-why { margin: 0.15rem 0 0; font-size: 0.85rem; color: var(--ink-3); }
+    /* A design thumbnail: a miniature page painted from the derived roles, so
+       a name and four swatches are not the only thing to choose from. Every
+       colour comes in as a --t-* variable; the markup is the same for a kit
+       and for a palette. */
+    .qh-thumb { display: block; width: 100%; aspect-ratio: 4 / 3; border-radius: 6px; overflow: hidden;
+      border: 1px solid var(--t-border, rgba(0,0,0,0.12)); background: var(--t-bg, #fff); font-size: 0; line-height: 1; }
+    .qh-thumb-head { display: flex; align-items: center; gap: 3px; padding: 4px 5px; background: var(--t-surface); border-bottom: 1px solid var(--t-border); }
+    .qh-thumb-brand { font-size: 7px; font-weight: 700; color: var(--t-ink); letter-spacing: 0.01em; white-space: nowrap; overflow: hidden; max-width: 46%; }
+    .qh-thumb-head i { flex: 0 0 7px; height: 2px; border-radius: 1px; background: var(--t-muted); }
+    .qh-thumb-pill { margin-left: auto; flex: 0 0 auto; width: 15px; height: 6px; border-radius: var(--t-radius); background: var(--t-primary); }
+    .qh-thumb-hero { display: block; padding: 11px 6px 13px; background: var(--t-tint); text-align: center; }
+    .qh-thumb-title { display: block; font-size: 10px; color: var(--t-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .qh-thumb-rule { display: block; width: 60%; height: 2px; margin: 4px auto 0; border-radius: 1px; background: var(--t-muted); opacity: 0.55; }
+    .qh-thumb-btn { display: block; width: 24px; height: 7px; margin: 5px auto 0; border-radius: var(--t-radius); background: var(--t-primary); }
+    .qh-thumb-cards { display: flex; gap: 4px; padding: 6px; }
+    .qh-thumb-cards i { flex: 1; height: 17px; border-radius: var(--t-radius); background: var(--t-surface); border: 1px solid var(--t-border); }
+    .qh-thumb-foot { display: block; height: 11px; background: var(--t-dark); }
+    .qh-thumb-wrap { position: relative; display: block; }
+    .qh-thumb-zoom { position: absolute; right: 4px; bottom: 4px; padding: 0.1rem 0.35rem; font-size: 0.65rem; line-height: 1.5;
+      border-radius: 999px; border: 1px solid rgba(255,255,255,0.5); background: rgba(17,17,17,0.72); color: #fff; opacity: 0; transition: opacity 0.12s; }
+    .qh-thumb-wrap:hover .qh-thumb-zoom, .qh-thumb-wrap:focus-within .qh-thumb-zoom { opacity: 1; }
+    @media (prefers-reduced-motion: reduce) { .qh-thumb-zoom { transition: none; } }
+    .qh-preview-dlg { width: min(1200px, 96vw); max-width: none; padding: 0; border: 0; border-radius: var(--r-sm); overflow: hidden; }
+    .qh-preview-bar { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; padding: 0.6rem 0.8rem; border-bottom: 1px solid var(--border); background: var(--surface); }
+    .qh-preview-bar h3 { margin: 0; font-size: 1rem; }
+    .qh-preview-bar .muted { font-size: 0.8rem; }
+    .qh-preview-actions { margin-left: auto; display: flex; gap: 0.4rem; }
+    .qh-preview-frame { display: block; width: 100%; height: min(74vh, 780px); border: 0; background: #fff; }
+    .qh-tone { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.25rem 0 0.75rem; }
+    .qh-tone button { padding: 0.35rem 0.7rem; font-size: 0.82rem; border-radius: 999px; }
+    .qh-tone button.on { border-color: var(--brand); }
     .qh-kit { display: flex; flex-direction: column; gap: 0.25rem; cursor: default; }
     .qh-kit .qh-kit-character { margin: 0; font-size: 0.8rem; flex: 1; }
     .qh-kit button { align-self: flex-start; margin-top: 0.25rem; padding: 0.3rem 0.7rem; font-size: 0.8rem; }
@@ -5148,15 +5179,30 @@
       const WASH_MAX_CHROMA = 0.06;
       function wash(hex, l) { const o = hexToOklch(hex); return oklchToHex(l, Math.min(o.c, WASH_MAX_CHROMA), o.h); }
       const fitTint = (hex, ink, dark) => nudge(hex, (c) => contrastRatio(ink, c) >= 4.5, dark ? -1 : 1);
-      function deriveRoles(input, dark, fb) {
+      // Page tone. Mirrors GROUND_TONE and the surface offsets in
+      // src/lib/site/design/tokens.ts — the server re-derives on save and is
+      // authoritative, so these two tables have to agree.
+      const GROUND_TONE = {
+        paper: { l: 0.985, chroma: null },
+        cream: { l: 0.962, chroma: 0.012 },
+        tinted: { l: 0.942, chroma: 0.022 },
+        deep: { l: 0.908, chroma: 0.03 },
+      };
+      const SURFACE_OFFSET = 0.01, SURFACE_ALT_OFFSET = -0.035, BORDER_OFFSET = -0.105, TINT_OFFSET = -0.045;
+      const groundTone = (hex, l, chroma) => {
+        const own = hexToOklch(hex);
+        return oklchToHex(l, chroma === null ? own.c : chroma, own.h);
+      };
+      function deriveRoles(input, dark, fb, ground) {
         const brand = normalizeHex(input && input.brand) || fb.brand;
         const brandAlt = normalizeHex(input && input.brandAlt) || fb.brandAlt;
         const accentIn = normalizeHex(input && input.accent) || fb.accent;
         const neutral = normalizeHex(input && input.neutral) || fb.neutral;
-        const bg = tint(neutral, dark ? 0.16 : 0.985);
-        const surface = tint(neutral, dark ? 0.21 : 0.995);
-        const surfaceAlt = tint(neutral, dark ? 0.26 : 0.95);
-        const border = tint(neutral, dark ? 0.3 : 0.88);
+        const tone = GROUND_TONE[ground] || GROUND_TONE.paper;
+        const bg = dark ? tint(neutral, 0.16) : groundTone(neutral, tone.l, tone.chroma);
+        const surface = dark ? tint(neutral, 0.21) : groundTone(neutral, Math.min(tone.l + SURFACE_OFFSET, 0.999), tone.chroma);
+        const surfaceAlt = dark ? tint(neutral, 0.26) : groundTone(neutral, tone.l + SURFACE_ALT_OFFSET, tone.chroma);
+        const border = dark ? tint(neutral, 0.3) : groundTone(neutral, tone.l + BORDER_OFFSET, tone.chroma);
         const inkFloor = dark ? bg : surfaceAlt;
         const ink = fitText(tint(neutral, dark ? 0.93 : 0.2), inkFloor, dark);
         const inkMuted = fitText(tint(neutral, dark ? 0.7 : 0.45), inkFloor, dark);
@@ -5170,7 +5216,7 @@
         );
         const accentFit = fitInteractive(accentIn, bg, dark);
         const darkRole = tint(brandAlt, 0.22);
-        const tintRole = fitTint(wash(brand, dark ? 0.3 : 0.94), ink, dark);
+        const tintRole = fitTint(wash(brand, dark ? 0.3 : tone.l + TINT_OFFSET), ink, dark);
         return {
           bg, surface, surfaceAlt, ink, inkMuted, border, primary, onPrimary: primaryFit.on, primaryHover,
           accent: accentFit.color, onAccent: accentFit.on, dark: darkRole, onDark: bestInk(darkRole), tint: tintRole,
@@ -5181,6 +5227,158 @@
       return { normalizeHex, contrastRatio, deriveRoles, hexToOklch, oklchToHex };
     })();
 
+    /**
+     * A miniature page painted from a palette's derived roles: header with a
+     * wordmark and a button, a hero band, three cards, a footer. Colours and
+     * corner radius are real; the type is the design's own display face when
+     * one is given. Built with DOM APIs — the name is tenant data.
+     */
+    function qhDesignThumb(roles, opts) {
+      opts = opts || {};
+      const el = document.createElement("span");
+      el.className = "qh-thumb";
+      el.setAttribute("aria-hidden", "true"); // the card's own text is the label
+      const radius = QH_DESIGN_RADIUS[opts.radius] || QH_DESIGN_RADIUS.soft;
+      const vars = {
+        "--t-bg": roles.bg, "--t-surface": roles.surface, "--t-ink": roles.ink,
+        "--t-muted": roles.inkMuted, "--t-border": roles.border, "--t-primary": roles.primary,
+        "--t-dark": roles.dark, "--t-tint": roles.tint,
+        "--t-radius": radius === "0" ? "0" : "3px",
+      };
+      for (const k in vars) el.style.setProperty(k, vars[k]);
+      const span = (cls, text) => { const n = document.createElement("span"); n.className = cls; if (text != null) n.textContent = text; return n; };
+
+      const head = span("qh-thumb-head");
+      const brand = span("qh-thumb-brand", opts.name || "Your guild");
+      if (opts.displayStack) brand.style.fontFamily = opts.displayStack;
+      head.appendChild(brand);
+      for (let i = 0; i < 3; i++) head.appendChild(document.createElement("i"));
+      head.appendChild(span("qh-thumb-pill"));
+      el.appendChild(head);
+
+      const hero = span("qh-thumb-hero");
+      const title = span("qh-thumb-title", opts.title || "A quilt guild");
+      if (opts.displayStack) title.style.fontFamily = opts.displayStack;
+      hero.appendChild(title);
+      hero.appendChild(span("qh-thumb-rule"));
+      hero.appendChild(span("qh-thumb-btn"));
+      el.appendChild(hero);
+
+      const cards = span("qh-thumb-cards");
+      for (let i = 0; i < 3; i++) cards.appendChild(document.createElement("i"));
+      el.appendChild(cards);
+      el.appendChild(span("qh-thumb-foot"));
+      return el;
+    }
+
+    /**
+     * The thumbnail as a button that opens the full-size preview. `params` is
+     * the query for GET /design-preview (kit / palette / ground / typePair).
+     */
+    function qhDesignThumbButton(roles, opts, params, onUse) {
+      const wrap = document.createElement("span");
+      wrap.className = "qh-thumb-wrap";
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.style.cssText = "display:block;width:100%;padding:0;border:0;background:none;box-shadow:none;cursor:zoom-in";
+      btn.setAttribute("aria-label", `See the ${opts.label || "design"} full size`);
+      btn.appendChild(qhDesignThumb(roles, opts));
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        qhDesignPreview(params, opts.label || "Preview", onUse);
+      });
+      wrap.appendChild(btn);
+      const zoom = document.createElement("span");
+      zoom.className = "qh-thumb-zoom";
+      zoom.setAttribute("aria-hidden", "true");
+      zoom.textContent = "See it full size";
+      wrap.appendChild(zoom);
+      return wrap;
+    }
+
+    /**
+     * The full-size preview: the real renderer's output for a design this
+     * tenant has not saved, in a dialog. The endpoint needs the session token,
+     * which an iframe cannot send, so the HTML is fetched and handed to the
+     * frame as srcdoc — same origin, so its /qh-site.css and /qh-site.js still
+     * resolve.
+     */
+    async function qhDesignPreview(params, label, onUse) {
+      let dlg = document.getElementById("qh-preview-dlg");
+      if (!dlg) {
+        dlg = document.createElement("dialog");
+        dlg.id = "qh-preview-dlg";
+        dlg.className = "qh-preview-dlg";
+        dlg.setAttribute("role", "dialog");
+        dlg.setAttribute("aria-modal", "true");
+        dlg.setAttribute("aria-label", "Design preview");
+        document.body.appendChild(dlg);
+      }
+      dlg.replaceChildren();
+      const bar = document.createElement("div");
+      bar.className = "qh-preview-bar";
+      const h = document.createElement("h3");
+      h.textContent = label;
+      const note = document.createElement("span");
+      note.className = "muted";
+      note.setAttribute("aria-live", "polite");
+      note.textContent = "Loading…";
+      const actions = document.createElement("div");
+      actions.className = "qh-preview-actions";
+      if (typeof onUse === "function") {
+        const use = document.createElement("button");
+        use.type = "button";
+        use.setAttribute("data-write", "");
+        use.textContent = "Use this design";
+        use.addEventListener("click", () => { dlg.close(); onUse(); });
+        actions.appendChild(use);
+      }
+      const close = document.createElement("button");
+      close.type = "button";
+      close.className = "secondary";
+      close.textContent = "Close";
+      close.addEventListener("click", () => dlg.close());
+      actions.appendChild(close);
+      bar.appendChild(h);
+      bar.appendChild(note);
+      bar.appendChild(actions);
+      dlg.appendChild(bar);
+      const frame = document.createElement("iframe");
+      frame.className = "qh-preview-frame";
+      frame.title = label + " preview";
+      frame.setAttribute("loading", "lazy");
+      dlg.appendChild(frame);
+      // The dialog is outside #page-content, so it gets the read-only pass
+      // itself — a viewer may look at a design but not apply it.
+      applyReadOnlyState("site-pages", dlg);
+      dlg.showModal();
+      close.focus();
+
+      const qs = Object.keys(params || {})
+        .filter((k) => params[k])
+        .map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
+        .join("&");
+      try {
+        const res = await fetch(`${API}/api/tenants/${tenantId}/design-preview${qs ? "?" + qs : ""}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          let msg = `Preview failed (${res.status})`;
+          try { const b = await res.json(); if (b && b.error) msg = b.error; } catch {}
+          throw new Error(msg);
+        }
+        frame.srcdoc = await res.text();
+        note.textContent = "A sample page in this design, with your guild's name and events.";
+      } catch (e) {
+        note.textContent = e.message;
+        note.className = "error";
+      }
+      return dlg;
+    }
+    window.qhDesignThumb = qhDesignThumb;
+    window.qhDesignPreview = qhDesignPreview;
+
     const qhDesignFontsLoaded = new Set();
     function qhDesignEnsureFonts(href) {
       if (!href || qhDesignFontsLoaded.has(href)) return;
@@ -5190,6 +5388,16 @@
       link.href = href;
       document.head.appendChild(link);
     }
+
+    // Mirrors PALETTE_GROUNDS / PALETTE_GROUND_LABELS / PALETTE_GROUND_HINTS
+    // in src/lib/site/design/palettes.ts.
+    const QH_GROUNDS = [["paper", "Paper"], ["cream", "Cream"], ["tinted", "Tinted"], ["deep", "Deep"]];
+    const QH_GROUND_HINTS = {
+      paper: "Near-white. Crisp and quiet; the colour is in the type and buttons.",
+      cream: "A warm off-white page, the way most printed things look.",
+      tinted: "The page itself carries the palette's colour, softly.",
+      deep: "A full-strength coloured page. Bold, and still readable.",
+    };
 
     const QH_DESIGN_RADIUS = { sharp: "0", soft: "0.5rem", round: "1rem" };
     const QH_DESIGN_SHADOW = {
@@ -5229,6 +5437,12 @@
       }
       const clone = (v) => JSON.parse(JSON.stringify(v));
       const defaults = options.defaults;
+      /** The page tone in force: what was chosen, else the palette's own. */
+      const currentGround = () => {
+        if (design.palette && design.palette.ground) return design.palette.ground;
+        const lib = design.palette && design.palette.id ? paletteById(design.palette.id) : null;
+        return (lib && lib.ground) || "paper";
+      };
       const design = clone(options.current || defaults);
       const paletteById = (id) => options.palettes.find((p) => p.id === id) || null;
       const pairById = (id) => options.typePairs.find((p) => p.id === id) || options.typePairs[0];
@@ -5290,16 +5504,26 @@
         const strip = mk("div", "wb-presets");
         kits.forEach((k) => {
           const card = mk("div", "wb-preset qh-kit");
+          const applyKit = () => {
+            Object.assign(design, clone(k.design));
+            refresh();
+            save(k.id);
+          };
+          // A name and four swatches do not say what a design looks like. The
+          // card shows a painted miniature of the page, and clicking it opens
+          // the real renderer's output full size.
           const roles = k.design && k.design.palette && k.design.palette.id ? (paletteById(k.design.palette.id) || {}).roles : null;
           if (roles) {
-            const sw = mk("div", "wb-preset-swatches");
-            [roles.bg, roles.primary, roles.accent, roles.ink].forEach((c) => {
-              const s = mk("span");
-              s.style.background = c;
-              s.style.border = "1px solid rgba(0,0,0,0.08)";
-              sw.appendChild(s);
-            });
-            card.appendChild(sw);
+            const pair = pairById(k.design.typePair);
+            if (pair && pair.fontsHref) qhDesignEnsureFonts(pair.fontsHref);
+            card.appendChild(
+              qhDesignThumbButton(
+                roles,
+                { name: displayName, title: k.name, label: k.name, radius: k.design.shape && k.design.shape.radius, displayStack: pair && pair.displayStack },
+                { kit: k.id },
+                applyKit
+              )
+            );
           }
           card.appendChild(mk("div", "wb-preset-name", k.name));
           card.appendChild(mk("p", "muted qh-kit-character", k.character));
@@ -5307,11 +5531,7 @@
           use.type = "button";
           use.setAttribute("data-write", "");
           use.setAttribute("aria-label", `Use the ${k.name} design`);
-          use.addEventListener("click", () => {
-            Object.assign(design, clone(k.design));
-            refresh();
-            save(k.id);
-          });
+          use.addEventListener("click", applyKit);
           card.appendChild(use);
           strip.appendChild(card);
         });
@@ -5327,28 +5547,75 @@
         palSec.appendChild(mk("h4", "qh-design-family", fam.label));
         const grid = mk("div", "wb-presets");
         inFam.forEach((p) => {
-          const btn = mk("button", "wb-preset");
-          btn.type = "button";
-          btn.dataset.palette = p.id;
-          btn.setAttribute("aria-label", `Use the ${p.name} palette`);
-          const sw = mk("div", "wb-preset-swatches");
-          [p.roles.bg, p.roles.primary, p.roles.accent, p.roles.ink].forEach((c) => {
-            const s = mk("span");
-            s.style.background = c;
-            s.style.border = "1px solid rgba(0,0,0,0.08)";
-            sw.appendChild(s);
-          });
-          btn.appendChild(sw);
-          btn.appendChild(mk("div", "wb-preset-name", p.name));
-          btn.addEventListener("click", () => {
-            design.palette = { id: p.id, input: { ...p.input } };
+          const cell = mk("div", "wb-preset qh-kit");
+          cell.dataset.palette = p.id;
+          const pick = () => {
+            design.palette = { id: p.id, input: { ...p.input }, ...(p.ground ? { ground: p.ground } : {}) };
             refresh();
-          });
-          tiles.push(btn);
-          grid.appendChild(btn);
+          };
+          // The tile is the palette on a page, not four bars: the ground is
+          // half of what makes two palettes look different, and a bar of it
+          // reads as white.
+          cell.appendChild(
+            qhDesignThumbButton(
+              p.roles,
+              { name: displayName, title: p.name, label: p.name, radius: design.shape && design.shape.radius, displayStack: (pairById(design.typePair) || {}).displayStack },
+              { palette: p.id },
+              pick
+            )
+          );
+          const btn = mk("button", "secondary", p.name);
+          btn.type = "button";
+          btn.style.cssText = "width:100%;margin-top:0.3rem;padding:0.3rem;font-size:0.8rem";
+          btn.setAttribute("aria-label", `Use the ${p.name} palette`);
+          btn.addEventListener("click", pick);
+          cell.appendChild(btn);
+          cell.qhUseBtn = btn;
+          tiles.push(cell);
+          grid.appendChild(cell);
         });
         palSec.appendChild(grid);
       });
+
+      // ---- Page tone ----
+      // The axis that makes two palettes look like two different sites: how
+      // much colour the page itself carries, rather than only the buttons.
+      const toneSec = section("Page tone", "How much colour the page itself carries. The same palette can read as crisp and white or as a full colour page.");
+      const toneRow = mk("div", "qh-tone");
+      toneRow.setAttribute("role", "group");
+      toneRow.setAttribute("aria-label", "Page tone");
+      const toneBtns = [];
+      const groundList = (options.grounds || []).length
+        ? options.grounds.map((g) => [g.id, g.label, g.hint])
+        : QH_GROUNDS.map(([id, label]) => [id, label, QH_GROUND_HINTS[id]]);
+      const groundHint = (id) => (groundList.find((g) => g[0] === id) || [])[2] || "";
+      groundList.forEach(([id, label]) => {
+        const b = mk("button", "secondary", label);
+        b.type = "button";
+        b.dataset.ground = id;
+        b.addEventListener("click", () => {
+          design.palette = { ...design.palette, ground: id };
+          refresh();
+        });
+        toneBtns.push(b);
+        toneRow.appendChild(b);
+      });
+      const toneNote = mk("p", "muted");
+      toneNote.style.cssText = "margin:0 0 0.5rem;font-size:0.85rem";
+      toneNote.setAttribute("aria-live", "polite");
+      toneSec.appendChild(toneRow);
+      toneSec.appendChild(toneNote);
+      const tonePreview = mk("button", "secondary", "See this tone full size");
+      tonePreview.type = "button";
+      tonePreview.dataset.readonlyOk = "";
+      tonePreview.style.cssText = "padding:0.3rem 0.7rem;font-size:0.8rem";
+      tonePreview.addEventListener("click", () =>
+        qhDesignPreview(
+          { palette: design.palette.id || "", ground: currentGround(), typePair: design.typePair },
+          "Your site in this tone"
+        )
+      );
+      toneSec.appendChild(tonePreview);
 
       const custom = mk("details");
       const customSummary = mk("summary", "", "Custom — choose your own four colors");
@@ -5604,12 +5871,32 @@
         const lib = design.palette.id ? paletteById(design.palette.id) : null;
         if (lib && !design.palette.input) design.palette.input = { ...lib.input };
         const dark = !!(lib && lib.dark);
-        const roles = lib ? lib.roles : qhDesignColor.deriveRoles(design.palette.input, false, defaults.palette.input);
+        // options.palettes carries roles derived at each palette's own page
+        // tone; the moment the tenant overrides the tone we have to re-derive
+        // here, or the readout describes a page they are not looking at.
+        const ground = currentGround();
+        const roles =
+          lib && !dark && ground === (lib.ground || "paper")
+            ? lib.roles
+            : lib && dark
+              ? lib.roles
+              : qhDesignColor.deriveRoles(design.palette.input, dark, defaults.palette.input, ground);
         tiles.forEach((t) => {
           const on = !!lib && t.dataset.palette === lib.id;
           t.classList.toggle("on", on);
-          t.setAttribute("aria-pressed", String(on));
+          if (t.qhUseBtn) t.qhUseBtn.setAttribute("aria-pressed", String(on));
         });
+        toneBtns.forEach((b) => {
+          const on = b.dataset.ground === ground;
+          b.classList.toggle("on", on);
+          b.setAttribute("aria-pressed", String(on));
+          b.disabled = dark;
+        });
+        if (toneNote) {
+          toneNote.textContent = dark
+            ? "A dark palette sets its own page; page tone applies to the light ones."
+            : groundHint(ground);
+        }
         Object.keys(customInputs).forEach((k) => {
           const v = qhDesignColor.normalizeHex(design.palette.input && design.palette.input[k]) || defaults.palette.input[k];
           if (customInputs[k].value !== v) customInputs[k].value = v;

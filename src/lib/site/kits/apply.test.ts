@@ -137,7 +137,8 @@ describe("kitPageRows", () => {
 describe("kitDesign / kitSettingsJson", () => {
   it("expands the palette id into the library input", () => {
     const d = kitDesign(kit);
-    expect(d.palette).toEqual({ id: "heritage-madder", input: paletteById("heritage-madder")!.input });
+    // The kit carries its palette's page tone (madder is authored cream).
+    expect(d.palette).toEqual({ id: "heritage-madder", input: paletteById("heritage-madder")!.input, ground: "cream" });
     expect(d.typePair).toBe("cormorantgaramond-sourcesans");
     expect(d.footer.variant).toBe("meeting");
     expect(d.pattern).toEqual({ id: "log-cabin", opacity: 0.14 });

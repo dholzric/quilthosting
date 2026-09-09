@@ -25,7 +25,7 @@
 import { escapeHtml } from "../../blocks";
 import { sanitizeHtml, sanitizeUrl } from "../../sanitize";
 import { formatMoney } from "../../utils/money";
-import { deriveRoles, isDarkDesign } from "../design/tokens";
+import { deriveRoles, designGround, isDarkDesign } from "../design/tokens";
 import type { Roles, SiteDesign } from "../design/tokens";
 import { patternDataUri, PATTERN_IDS } from "../design/patterns";
 import {
@@ -100,7 +100,7 @@ const rolesCache = new WeakMap<SiteDesign, Roles>();
 function rolesFor(design: SiteDesign): Roles {
   let r = rolesCache.get(design);
   if (!r) {
-    r = deriveRoles(design.palette.input, isDarkDesign(design));
+    r = deriveRoles(design.palette.input, isDarkDesign(design), designGround(design));
     rolesCache.set(design, r);
   }
   return r;
@@ -165,7 +165,7 @@ function patternRefUri(imageId: string, ctx: RenderContext): string {
   const id = (PATTERN_IDS as readonly string[]).includes(raw) && raw !== "none"
     ? (raw as PatternId)
     : ctx.design.pattern.id !== "none" ? ctx.design.pattern.id : "nine-patch";
-  const r = deriveRoles(ctx.design.palette.input, isDarkDesign(ctx.design));
+  const r = deriveRoles(ctx.design.palette.input, isDarkDesign(ctx.design), designGround(ctx.design));
   return patternDataUri(id, { a: r.primary, b: r.dark, c: r.accent });
 }
 function patternMedia(imageId: string, ctx: RenderContext, extra = ""): string {

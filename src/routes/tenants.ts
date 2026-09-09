@@ -15,14 +15,25 @@ import {
 import { nextActions } from "../lib/nextActions";
 import { featuresSchema, uiSchema } from "../lib/features";
 import { firstRunState } from "../lib/firstRun";
-import { DEFAULT_DESIGN, PATTERN_IDS, deriveRoles, designFontsHref, siteDesignSchema } from "../lib/site/design/tokens";
-import { PALETTES, PALETTE_FAMILIES, PALETTE_FAMILY_LABELS } from "../lib/site/design/palettes";
+import { DEFAULT_DESIGN, PATTERN_IDS, deriveRoles, designFontsHref, designGround, siteDesignSchema } from "../lib/site/design/tokens";
+import {
+  PALETTES,
+  PALETTE_FAMILIES,
+  PALETTE_FAMILY_LABELS,
+  PALETTE_GROUNDS,
+  PALETTE_GROUND_HINTS,
+  PALETTE_GROUND_LABELS,
+  paletteById,
+} from "../lib/site/design/palettes";
 import { TYPE_PAIRS } from "../lib/site/design/typePairs";
 import { patternDataUri } from "../lib/site/design/patterns";
 import { readSiteDesign } from "../lib/site/design/migrate";
 import { FONT_OPTIONS } from "../lib/site/fonts";
 import { KITS } from "../lib/site/kits/index";
-import { kitSettingsJson } from "../lib/site/kits/apply";
+import { kitDesign, kitSettingsJson, resolveKitImagery, substitutePlaceholders } from "../lib/site/kits/apply";
+import { isBusiness } from "../lib/tenantType";
+import { renderSitePage, buildMenu, readBranding, type SitePageArgs } from "../lib/site/render";
+import { loadSiteData, needsFor } from "../lib/site/data";
 
 export const tenantRoutes = new Hono<{
   Bindings: Env;
@@ -459,7 +470,7 @@ tenantRoutes.get("/:id/design-options", async (c) => {
   let settings: unknown = null;
   try { settings = JSON.parse(tenant.settings_json || "{}"); } catch { settings = null; }
   const currentDark = !!(current.palette.id && PALETTES.find((p) => p.id === current.palette.id)?.dark);
-  const currentRoles = deriveRoles(current.palette.input, currentDark);
+  const currentRoles = deriveRoles(current.palette.input, currentDark, designGround(current));
   const patternColors = { a: currentRoles.primary, b: currentRoles.dark, c: currentRoles.accent };
 
   return c.json({
@@ -468,10 +479,18 @@ tenantRoutes.get("/:id/design-options", async (c) => {
       name: p.name,
       family: p.family,
       dark: !!p.dark,
+      ground: p.ground ?? "paper",
       input: p.input,
-      roles: deriveRoles(p.input, !!p.dark),
+      roles: deriveRoles(p.input, !!p.dark, p.ground),
     })),
     families: PALETTE_FAMILIES.map((f) => ({ id: f, label: PALETTE_FAMILY_LABELS[f] })),
+    // Page tone: the axis that decides how much colour the page carries.
+    // Sent rather than mirrored so the admin's labels cannot drift.
+    grounds: PALETTE_GROUNDS.map((g) => ({
+      id: g,
+      label: PALETTE_GROUND_LABELS[g],
+      hint: PALETTE_GROUND_HINTS[g],
+    })),
     typePairs: TYPE_PAIRS.map((p) => ({
       id: p.id,
       name: p.name,
@@ -493,6 +512,132 @@ tenantRoutes.get("/:id/design-options", async (c) => {
     defaults: DEFAULT_DESIGN,
     current,
     renderer: "sections",
+  });
+});
+
+function parseSettingsJson(json: string | null | undefined): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(json || "{}");
+    return isRecord(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+// ---------------------------------------------------------------------------
+// GET /api/tenants/:id/design-preview[?kit=&palette=&ground=&typePair=]
+//
+// A full page rendered through the real site renderer with a design the
+// tenant has NOT saved, for the Design panel's "See it full size" dialog.
+// Swatches and a name do not tell an officer what a design looks like; this
+// does, using the kit's own sample home so the page is always composed, with
+// the guild's real name, events and levels in it.
+//
+// Never cached, never indexed, and it writes nothing.
+// ---------------------------------------------------------------------------
+tenantRoutes.get("/:id/design-preview", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const membership = await first<{ role: string }>(
+    c.env.DB.prepare("SELECT role FROM tenant_users WHERE tenant_id = ? AND user_id = ?").bind(id, user.id)
+  );
+  if (!membership) {
+    const adminRow = await first<{ is_platform_admin: number }>(
+      c.env.DB.prepare("SELECT is_platform_admin FROM users WHERE id = ?").bind(user.id)
+    );
+    if (!adminRow?.is_platform_admin) return c.json({ error: "Forbidden" }, 403);
+  }
+  const tenant = await first<Tenant>(c.env.DB.prepare("SELECT * FROM tenants WHERE id = ?").bind(id));
+  if (!tenant) return c.json({ error: "Not found" }, 404);
+
+  const settings = parseSettingsJson(tenant.settings_json);
+  const business = isBusiness(tenant);
+  const audience = business ? "business" : "guild";
+
+  // Which sample home to compose: the kit asked for, else the one this tenant
+  // is already on, else the first kit its audience can use.
+  const asked = kitById(String(c.req.query("kit") || ""));
+  const currentKitId = String(((settings.site || {}) as { kit?: unknown }).kit || "");
+  const kit =
+    (asked && asked.audience !== (business ? "guild" : "business") ? asked : null) ??
+    kitById(currentKitId) ??
+    KITS.find((k) => k.audience === "both" || k.audience === audience) ??
+    KITS[0];
+  if (!kit) return c.json({ error: "No design to preview" }, 404);
+
+  // The design: the kit's, with the palette / tone / type asked for on top.
+  const design = kitDesign(kit);
+  const paletteId = String(c.req.query("palette") || "");
+  if (paletteId) {
+    const lib = paletteById(paletteId);
+    if (!lib) return c.json({ error: `Unknown palette "${paletteId}"` }, 400);
+    design.palette = { id: lib.id, input: { ...lib.input }, ...(lib.ground ? { ground: lib.ground } : {}) };
+  }
+  const ground = String(c.req.query("ground") || "");
+  if (ground) {
+    if (!PALETTE_GROUNDS.includes(ground as (typeof PALETTE_GROUNDS)[number])) {
+      return c.json({ error: `Unknown page tone "${ground}"` }, 400);
+    }
+    design.palette = { ...design.palette, ground: ground as (typeof PALETTE_GROUNDS)[number] };
+  }
+  const typePair = String(c.req.query("typePair") || "");
+  if (typePair) {
+    if (!TYPE_PAIRS.some((t) => t.id === typePair)) return c.json({ error: `Unknown type pair "${typePair}"` }, 400);
+    design.typePair = typePair;
+  }
+
+  const home = kit.pages.find((pg) => pg.slug === "home") ?? kit.pages[0];
+  if (!home) return c.json({ error: "No design to preview" }, 404);
+
+  const profile = (settings.profile || {}) as { city?: unknown; meeting_info?: unknown };
+  const sections = resolveKitImagery(
+    substitutePlaceholders(home.sections, {
+      guildName: tenant.name,
+      city: String(profile.city || ""),
+      meetingInfo: String(profile.meeting_info || ""),
+    }),
+    kit
+  );
+
+  const baseUrl = `/g/${encodeURIComponent(tenant.slug)}`;
+  const menu = buildMenu(
+    kit.pages.map((pg) => ({ slug: pg.slug, title: pg.title, nav_label: pg.navLabel ?? null, show_in_nav: pg.nav ? 1 : 0 })),
+    [],
+    baseUrl
+  );
+  const imgUrl: SitePageArgs["imgUrl"] = (fileId) => `/public/${encodeURIComponent(tenant.slug)}/img/${fileId}`;
+  const logoFileId = String(((settings.assets || {}) as { logo_file_id?: unknown }).logo_file_id || "");
+
+  const needs = needsFor(sections);
+  needs.add("profile");
+  const data = await loadSiteData(c.env, tenant, needs, { limit: 3 });
+
+  // The design being previewed has to be the one the shell reads, so it is
+  // spliced into the settings the renderer is handed rather than saved.
+  const previewSettings = JSON.stringify({ ...settings, design });
+
+  const html = renderSitePage({
+    tenant: { name: tenant.name, slug: tenant.slug, settings_json: previewSettings, tenant_type: business ? "business" : "guild" },
+    page: { title: home.title, slug: "", seo_title: null, seo_description: null, og_image_file_id: null, noindex: 1, sections },
+    menu,
+    baseUrl,
+    host: c.req.header("host") || "",
+    logoUrl: logoFileId ? imgUrl(logoFileId) : null,
+    ogImageUrl: null,
+    showPlatformCredit: readBranding(previewSettings).showPlatformCredit,
+    design,
+    data,
+    imgUrl,
+    extraHead: `<meta name="robots" content="noindex">`,
+  });
+  return new Response(html, {
+    status: 200,
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store",
+      "X-Robots-Tag": "noindex",
+      "X-Design-Preview": `${kit.id}/${design.palette.id ?? "custom"}/${designGround(design)}`,
+    },
   });
 });
 

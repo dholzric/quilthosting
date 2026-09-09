@@ -91,7 +91,9 @@ export function kitDesign(kit: Kit): SiteDesign {
     header: { ...rest.header },
     footer: { ...rest.footer },
     pattern: { ...rest.pattern },
-    palette: { id: lib.id, input: { ...lib.input } },
+    // A kit renders at its palette's authored page tone; readSiteDesign
+    // fills the same value, so the two agree on the way back out.
+    palette: { id: lib.id, input: { ...lib.input }, ...(lib.ground ? { ground: lib.ground } : {}) },
   };
 }
 
