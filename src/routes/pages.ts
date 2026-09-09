@@ -478,7 +478,7 @@ function revisionDocument(rev: PageRevisionRecord): PageDocument {
 // maps below.
 // ---------------------------------------------------------------------------
 
-export const SECTION_GROUPS = ["Openers", "Content", "Membership", "Events", "Community", "Business", "Layout"] as const;
+export const SECTION_GROUPS = ["Openers", "Content", "Membership", "Events", "Community", "Business", "Utility", "Layout"] as const;
 
 const SECTION_META: Record<SectionType, { label: string; group: (typeof SECTION_GROUPS)[number]; hint: string }> = {
   hero: { label: "Hero", group: "Openers", hint: "Big headline with a photo, pattern band, or numbers" },
@@ -500,6 +500,21 @@ const SECTION_META: Record<SectionType, { label: string; group: (typeof SECTION_
   divider: { label: "Divider", group: "Layout", hint: "A thin horizontal line" },
   spacer: { label: "Spacer", group: "Layout", hint: "Empty vertical space" },
   embed: { label: "Embed / custom code", group: "Layout", hint: "Paste an embed (YouTube, Maps). Scripts are removed." },
+  // Phase 2 (docs/superpowers/plans/2026-09-08-site-sections-imagery-phase2.md Task A)
+  timeline: { label: "Timeline", group: "Content", hint: "Your history year by year" },
+  quote: { label: "Pull quote", group: "Content", hint: "One quote in large type" },
+  officers: { label: "Officers & board", group: "Membership", hint: "People with roles, photos and email" },
+  benefits: { label: "Benefits", group: "Membership", hint: "A checklist of what membership includes" },
+  event_spotlight: { label: "Featured event", group: "Events", hint: "One event front and center (the show, the retreat); falls back to the next one" },
+  projects: { label: "Projects", group: "Community", hint: "Charity and community projects with a photo and a number" },
+  sponsors: { label: "Sponsors", group: "Community", hint: "A strip of sponsor logos" },
+  newsletter_signup: { label: "Newsletter signup", group: "Utility", hint: "Collect email addresses for your newsletter" },
+  services: { label: "Services & pricing", group: "Business", hint: "Services as cards or a comparison table" },
+  portfolio: { label: "Portfolio", group: "Business", hint: "Finished work as a grid or one featured piece" },
+  hours_location: { label: "Hours & location", group: "Utility", hint: "Opening hours, address, map, phone and email" },
+  process: { label: "How it works", group: "Business", hint: "Numbered steps from drop-off to pickup" },
+  documents: { label: "Member documents", group: "Utility", hint: "Shared files for signed-in members; visitors see a sign-in prompt" },
+  donate: { label: "Donate", group: "Utility", hint: "Suggested amounts with a working Donate button" },
 };
 
 // Sanity: every section type has a catalog entry (tsc enforces the keys; this catches a runtime drift).
@@ -547,6 +562,20 @@ const FIELD_LABELS: Record<string, string> = {
   submitLabel: "Submit button text",
   kind: "Look",
   height: "Height (pixels)",
+  // Phase 2
+  year: "Year",
+  name: "Name",
+  role: "Role",
+  email: "Email",
+  stat: "Number or fact (e.g. 340 quilts donated)",
+  unit: "Per what (e.g. per square inch)",
+  buttonLabel: "Button text",
+  eventId: "Event (leave blank for the next upcoming event)",
+  hours: "Hours",
+  day: "Day(s)",
+  open: "Open",
+  phone: "Phone",
+  amounts: "Suggested amounts (cents)",
 };
 
 const ITEM_NOUNS: Partial<Record<SectionType, string>> = {
@@ -556,6 +585,15 @@ const ITEM_NOUNS: Partial<Record<SectionType, string>> = {
   faq: "Question",
   testimonials: "Quote",
   gallery: "Photo",
+  timeline: "Milestone",
+  officers: "Person",
+  benefits: "Benefit",
+  projects: "Project",
+  sponsors: "Sponsor",
+  services: "Service",
+  portfolio: "Piece",
+  hours_location: "Day",
+  process: "Step",
 };
 
 const LINK_FIELDS = new Set(["href", "ctaHref", "secondaryHref", "mapUrl"]);

@@ -36,6 +36,10 @@ const SECTION_TYPES = [
   "qh-levels--cards", "qh-levels--compact",
   "qh-join-band", "qh-meeting", "qh-store", "qh-blog", "qh-contact", "qh-quote-cta",
   "qh-cta", "qh-divider", "qh-spacer", "qh-embed",
+  // Phase 2 (docs/superpowers/plans/2026-09-08-site-sections-imagery-phase2.md Task A)
+  "qh-timeline", "qh-quote", "qh-officers", "qh-benefits", "qh-spotlight", "qh-projects", "qh-sponsors",
+  "qh-newsletter", "qh-services--cards", "qh-services--table", "qh-portfolio--grid", "qh-portfolio--featured",
+  "qh-hours", "qh-process", "qh-documents", "qh-donate",
 ];
 const COMPONENTS = [
   "qh-btn", "qh-btn--primary", "qh-btn--secondary", "qh-btn--ghost", "qh-card", "qh-badge", "qh-empty",
@@ -121,6 +125,16 @@ describe("qh-site.css design rules", () => {
   });
 
   it("stays a single readable file", () => {
-    expect(css.split("\n").length).toBeLessThanOrEqual(650);
+    // 650 covered the 19-section library; the fourteen phase-2 sections add ~100 lines.
+    expect(css.split("\n").length).toBeLessThanOrEqual(760);
+  });
+
+  it("phase 2: sponsors logos are grayscale until hover, process steps use counter(), services table scrolls in its wrapper", () => {
+    expect(compact).toMatch(/\.qh-sponsor[^{]*img[^{]*\{[^}]*filter:grayscale\(1\)/);
+    expect(compact).toMatch(/\.qh-sponsor[^{]*:hover[^{]*img[^{]*\{[^}]*filter:none/);
+    expect(compact).toMatch(/\.qh-process__steps\{[^}]*counter-reset:qh-step/);
+    expect(compact).toMatch(/\.qh-process__step::before\{[^}]*content:counter\(qh-step/);
+    expect(compact).toMatch(/\.qh-services__table/);
+    expect(compact).toMatch(/\.qh-table-wrap[^{]*\{[^}]*overflow-x:auto/);
   });
 });

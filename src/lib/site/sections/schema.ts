@@ -128,7 +128,59 @@ export type Section =
   | { type: "cta"; label: string; href: string; kind: "primary" | "secondary"; style: SectionStyle; id: string }
   | { type: "divider"; style: SectionStyle; id: string }
   | { type: "spacer"; height: number; style: SectionStyle; id: string }
-  | { type: "embed"; html: string; style: SectionStyle; id: string };
+  | { type: "embed"; html: string; style: SectionStyle; id: string }
+  // Phase 2 additions (docs/superpowers/plans/2026-09-08-site-sections-imagery-phase2.md Task A)
+  | { type: "timeline"; heading?: string; items: { year: string; title: string; body?: string }[]; style: SectionStyle; id: string }
+  | { type: "quote"; quote: string; author?: string; style: SectionStyle; id: string }
+  | {
+      type: "officers";
+      heading?: string;
+      items: { name: string; role: string; email?: string; imageId?: string }[];
+      style: SectionStyle;
+      id: string;
+    }
+  | { type: "benefits"; heading?: string; items: { title: string; body?: string }[]; style: SectionStyle; id: string }
+  | { type: "event_spotlight"; eventId?: string; heading?: string; style: SectionStyle; id: string }
+  | {
+      type: "projects";
+      heading?: string;
+      items: { title: string; body?: string; imageId?: string; href?: string; stat?: string }[];
+      style: SectionStyle;
+      id: string;
+    }
+  | { type: "sponsors"; heading?: string; items: { name: string; imageId?: string; href?: string }[]; style: SectionStyle; id: string }
+  | { type: "newsletter_signup"; heading?: string; body?: string; buttonLabel?: string; style: SectionStyle; id: string }
+  | {
+      type: "services";
+      variant: "cards" | "table";
+      heading?: string;
+      items: { title: string; body?: string; price?: string; unit?: string }[];
+      style: SectionStyle;
+      id: string;
+    }
+  | {
+      type: "portfolio";
+      variant: "grid" | "featured";
+      heading?: string;
+      items: { imageId?: string; url?: string; title?: string; caption?: string }[];
+      style: SectionStyle;
+      id: string;
+    }
+  | {
+      type: "hours_location";
+      heading?: string;
+      hours: { day: string; open: string }[];
+      address?: string;
+      mapUrl?: string;
+      phone?: string;
+      email?: string;
+      note?: string;
+      style: SectionStyle;
+      id: string;
+    }
+  | { type: "process"; heading?: string; items: { title: string; body?: string }[]; style: SectionStyle; id: string }
+  | { type: "documents"; heading?: string; limit: number; style: SectionStyle; id: string }
+  | { type: "donate"; heading?: string; body?: string; amounts: number[]; style: SectionStyle; id: string };
 
 export type SectionType = Section["type"];
 
@@ -152,6 +204,20 @@ export const SECTION_TYPES: readonly SectionType[] = Object.freeze([
   "divider",
   "spacer",
   "embed",
+  "timeline",
+  "quote",
+  "officers",
+  "benefits",
+  "event_spotlight",
+  "projects",
+  "sponsors",
+  "newsletter_signup",
+  "services",
+  "portfolio",
+  "hours_location",
+  "process",
+  "documents",
+  "donate",
 ] as const);
 
 /** type -> allowed variants; `[""]` for types that have no variant. */
@@ -175,6 +241,20 @@ export const SECTION_VARIANTS: Record<SectionType, readonly string[]> = Object.f
   divider: [""],
   spacer: [""],
   embed: [""],
+  timeline: [""],
+  quote: [""],
+  officers: [""],
+  benefits: [""],
+  event_spotlight: [""],
+  projects: [""],
+  sponsors: [""],
+  newsletter_signup: [""],
+  services: ["cards", "table"],
+  portfolio: ["grid", "featured"],
+  hours_location: [""],
+  process: [""],
+  documents: [""],
+  donate: [""],
 });
 
 const SECTION_TYPE_SET: ReadonlySet<string> = new Set(SECTION_TYPES);
@@ -372,6 +452,157 @@ const embedSchema = z.object({
   html: short(50000),
 });
 
+// ---- Phase 2 types --------------------------------------------------------
+
+const titleBodyItem = z.object({ title: short(120), body: optText(600) });
+
+const timelineSchema = z.object({
+  ...base,
+  type: z.literal("timeline"),
+  heading: optText(160),
+  items: z.array(z.object({ year: short(20), title: short(120), body: optText(600) })).max(30).default([]),
+});
+
+const quoteSchema = z.object({
+  ...base,
+  type: z.literal("quote"),
+  quote: short(600),
+  author: optText(120),
+});
+
+const officersSchema = z.object({
+  ...base,
+  type: z.literal("officers"),
+  heading: optText(160),
+  items: z
+    .array(
+      z.object({
+        name: short(120),
+        role: short(120),
+        email: optText(200),
+        imageId: z.string().regex(IMAGE_REF_RE).optional(),
+      })
+    )
+    .max(30)
+    .default([]),
+});
+
+const benefitsSchema = z.object({
+  ...base,
+  type: z.literal("benefits"),
+  heading: optText(160),
+  items: z.array(titleBodyItem).max(20).default([]),
+});
+
+const eventSpotlightSchema = z.object({
+  ...base,
+  type: z.literal("event_spotlight"),
+  eventId: optText(64),
+  heading: optText(160),
+});
+
+const projectsSchema = z.object({
+  ...base,
+  type: z.literal("projects"),
+  heading: optText(160),
+  items: z
+    .array(
+      z.object({
+        title: short(120),
+        body: optText(600),
+        imageId: z.string().regex(IMAGE_REF_RE).optional(),
+        href: optText(2000),
+        stat: optText(80),
+      })
+    )
+    .max(12)
+    .default([]),
+});
+
+const sponsorsSchema = z.object({
+  ...base,
+  type: z.literal("sponsors"),
+  heading: optText(160),
+  items: z
+    .array(z.object({ name: short(120), imageId: z.string().regex(IMAGE_REF_RE).optional(), href: optText(2000) }))
+    .max(30)
+    .default([]),
+});
+
+const newsletterSignupSchema = z.object({
+  ...base,
+  type: z.literal("newsletter_signup"),
+  heading: optText(160),
+  body: optText(500),
+  buttonLabel: optText(60),
+});
+
+const servicesSchema = z.object({
+  ...base,
+  type: z.literal("services"),
+  variant: z.enum(["cards", "table"]).default("cards"),
+  heading: optText(160),
+  items: z.array(z.object({ title: short(120), body: optText(600), price: optText(40), unit: optText(40) })).max(20).default([]),
+});
+
+const portfolioSchema = z.object({
+  ...base,
+  type: z.literal("portfolio"),
+  variant: z.enum(["grid", "featured"]).default("grid"),
+  heading: optText(160),
+  items: z
+    .array(
+      z.object({
+        imageId: z.string().regex(IMAGE_REF_RE).optional(),
+        url: optText(2000),
+        title: optText(120),
+        caption: optText(300),
+      })
+    )
+    .max(60)
+    .default([]),
+});
+
+const hoursLocationSchema = z.object({
+  ...base,
+  type: z.literal("hours_location"),
+  heading: optText(160),
+  hours: z.array(z.object({ day: short(40), open: short(60) })).max(14).default([]),
+  address: optText(300),
+  mapUrl: optText(2000),
+  phone: optText(40),
+  email: optText(200),
+  note: optText(500),
+});
+
+const processSchema = z.object({
+  ...base,
+  type: z.literal("process"),
+  heading: optText(160),
+  items: z.array(titleBodyItem).max(12).default([]),
+});
+
+const documentsSchema = z.object({
+  ...base,
+  type: z.literal("documents"),
+  heading: optText(160),
+  limit: z.number().int().min(1).max(50).default(10),
+});
+
+/** Suggested donation amounts in cents; the island prompts for a custom amount via the "Other" button. */
+export const DEFAULT_DONATE_AMOUNTS: readonly number[] = Object.freeze([1000, 2500, 5000, 10000]);
+
+const donateSchema = z.object({
+  ...base,
+  type: z.literal("donate"),
+  heading: optText(160),
+  body: optText(500),
+  amounts: z
+    .array(z.number().int().min(100).max(1000000))
+    .max(6)
+    .default([...DEFAULT_DONATE_AMOUNTS]),
+});
+
 export const sectionSchema = z.discriminatedUnion("type", [
   heroSchema,
   richTextSchema,
@@ -392,6 +623,20 @@ export const sectionSchema = z.discriminatedUnion("type", [
   dividerSchema,
   spacerSchema,
   embedSchema,
+  timelineSchema,
+  quoteSchema,
+  officersSchema,
+  benefitsSchema,
+  eventSpotlightSchema,
+  projectsSchema,
+  sponsorsSchema,
+  newsletterSignupSchema,
+  servicesSchema,
+  portfolioSchema,
+  hoursLocationSchema,
+  processSchema,
+  documentsSchema,
+  donateSchema,
 ]);
 
 type ParsedSection = z.infer<typeof sectionSchema>;
@@ -441,6 +686,19 @@ function finalize(p: ParsedSection, id: string): Section {
       return { ...p, id, style, href: link(p.href) ?? "#" };
     case "embed":
       return { ...p, id, style, html: sanitizeHtml(p.html, { allowEmbeds: true }) };
+    case "projects":
+      return { ...p, id, style, items: p.items.map((it) => ({ ...it, href: link(it.href) })) };
+    case "sponsors":
+      return { ...p, id, style, items: p.items.map((it) => ({ ...it, href: link(it.href) })) };
+    case "portfolio":
+      return {
+        ...p,
+        id,
+        style,
+        items: p.items.map((it) => ({ ...it, url: image(it.url) })).filter((it) => it.url || it.imageId),
+      };
+    case "hours_location":
+      return { ...p, id, style, mapUrl: link(p.mapUrl) };
     default:
       return { ...p, id, style } as Section;
   }

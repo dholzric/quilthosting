@@ -67,6 +67,13 @@ export type SiteProfile = {
   directory_public?: boolean;
 };
 
+/** A members-only shared file (staff upload) for the `documents` section. */
+export type SiteDocument = {
+  id: string;
+  filename: string;
+  size: number | null;
+};
+
 export type SiteData = {
   levels?: SiteLevel[];
   events?: SiteEvent[];
@@ -75,6 +82,12 @@ export type SiteData = {
   galleries?: SiteGallerySummary[];
   gallery?: SiteGallery;
   profile?: SiteProfile;
+  /**
+   * Loaded only when the caller says the viewer is a member
+   * (`LoadOpts.memberView`); public HTML never sets it, and the `documents`
+   * renderer shows a sign-in prompt while it is undefined.
+   */
+  documents?: SiteDocument[];
 };
 
 export type DataNeed = keyof SiteData;

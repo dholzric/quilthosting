@@ -16,7 +16,7 @@ const siteLines = siteNoComments.split("\n");
 
 const MODULES = [
   "initNav", "initJoin", "initRegister", "initCart", "initDonate",
-  "initCalendar", "initLightbox", "initVolunteer",
+  "initCalendar", "initLightbox", "initVolunteer", "initNewsletter",
 ];
 
 describe("public/qh-site.js — shape", () => {
@@ -31,8 +31,8 @@ describe("public/qh-site.js — shape", () => {
     expect(site).toContain('"use strict"');
   });
 
-  it("stays under the ~700 line budget", () => {
-    expect(site.split("\n").length).toBeLessThan(700);
+  it("stays under the ~740 line budget (700 + the phase-2 newsletter island)", () => {
+    expect(site.split("\n").length).toBeLessThan(740);
   });
 
   it.each(MODULES)("defines module %s as a named function", (name) => {
@@ -88,13 +88,13 @@ describe("public/qh-site.js — hooks and endpoints", () => {
   it.each([
     "[data-join]", "[data-register]", '[id^="register-"]', "[data-buy]", "[data-add]",
     "[data-donate]", "a[data-lightbox]", ".qh-events--calendar", "[data-volunteer]",
-    ".qh-nav-toggle", ".qh-drawer",
+    ".qh-nav-toggle", ".qh-drawer", "form[data-newsletter]",
   ])("consumes hook %s", (hook) => {
     expect(site).toContain(hook);
   });
 
   it.each([
-    "/info", "/join", "/register", "/buy", "/cart/checkout", "/donate", "/volunteer", "/volunteers", "?month=",
+    "/info", "/join", "/register", "/buy", "/cart/checkout", "/donate", "/volunteer", "/volunteers", "?month=", "/newsletter",
   ])("calls endpoint %s", (ep) => {
     expect(site).toContain(ep);
   });

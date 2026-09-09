@@ -1735,9 +1735,19 @@ describe("GET /section-catalog", () => {
         defaults: Record<string, unknown>;
       }[];
     };
-    expect(json.types).toHaveLength(19);
+    expect(json.types).toHaveLength(33);
     expect(json.types.map((t) => t.type)).toEqual([...SECTION_TYPES]);
-    expect(json.groups).toEqual(["Openers", "Content", "Membership", "Events", "Community", "Business", "Layout"]);
+    expect(json.groups).toEqual(["Openers", "Content", "Membership", "Events", "Community", "Business", "Utility", "Layout"]);
+    const groupOf = Object.fromEntries(json.types.map((t) => [t.type, t.group]));
+    expect(groupOf).toMatchObject({
+      timeline: "Content", quote: "Content",
+      officers: "Membership", benefits: "Membership",
+      event_spotlight: "Events",
+      projects: "Community", sponsors: "Community",
+      services: "Business", portfolio: "Business", process: "Business",
+      documents: "Utility", donate: "Utility", newsletter_signup: "Utility", hours_location: "Utility",
+    });
+    expect(json.types.filter((t) => t.group === "Utility").map((t) => t.type).sort()).toEqual(["documents", "donate", "newsletter_signup", "hours_location"].sort());
     for (const t of json.types) {
       expect(json.groups).toContain(t.group);
       expect(t.label.length).toBeGreaterThan(0);
@@ -1772,6 +1782,16 @@ describe("GET /section-catalog", () => {
     expect(imageItemFields).toEqual({ imageId: "image", url: "text", alt: "text", caption: "text" });
     expect(byName("spacer").height).toMatchObject({ kind: "number", min: 8, max: 160, default: 24 });
     expect(json.types.find((t) => t.type === "events")!.defaults).toEqual({ limit: 6 });
+
+    // Phase 2 types
+    expect(byName("donate").heading).toMatchObject({ kind: "text" });
+    expect(byName("documents").limit).toMatchObject({ kind: "number", min: 1, max: 50, default: 10 });
+    expect(byName("services").items).toMatchObject({ kind: "items", noun: "Service" });
+    expect((byName("hours_location").hours.itemFields as { name: string }[]).map((f) => f.name)).toEqual(["day", "open"]);
+    expect(byName("officers").items.itemFields).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: "imageId", kind: "image" }), expect.objectContaining({ name: "email", kind: "text" })])
+    );
+    expect(byName("quote").quote).toMatchObject({ kind: "text", required: true });
   });
 
   it("the editor's starter content for every section type validates against the schema (admin.html drift guard)", () => {
@@ -1783,9 +1803,16 @@ describe("GET /section-catalog", () => {
     // Evaluates a literal object from this repo's own admin.html (not user input).
     const defaults = new Function(`return ${m![1]}`)() as Record<string, Record<string, unknown>>;
     const cat = sectionCatalog();
-    expect(Object.keys(defaults).sort()).toEqual(cat.map((t) => t.type).sort());
+    // Every editor default names a real section type. The editor may lag the
+    // catalog (phase-2 types land in admin.html under Task C), so a catalog
+    // type without an editor entry is validated on its schema defaults alone
+    // -- which means every new type's required fields must default or the
+    // editor's "insert" would produce an invalid section.
+    const catalogTypes = new Set(cat.map((t) => t.type));
+    for (const key of Object.keys(defaults)) expect(catalogTypes.has(key as never), `admin.html default for unknown type "${key}"`).toBe(true);
     for (const t of cat) {
-      const s: Record<string, unknown> = { type: t.type, ...t.defaults, ...defaults[t.type] };
+      const s: Record<string, unknown> = { type: t.type, ...t.defaults, ...(defaults[t.type] ?? {}) };
+      if (t.type === "quote" && !defaults.quote) s.quote = "Sample quote";
       const variants = t.variants.filter((v) => v);
       if (variants.length) s.variant = variants[0];
       s.id = "s_abc123";

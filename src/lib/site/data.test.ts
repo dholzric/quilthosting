@@ -110,6 +110,20 @@ describe("needsFor", () => {
     expect([...needsFor([sec({ type: "gallery", variant: "grid", source: "gallery", items: [] })])]).toEqual(["galleries"]);
   });
 
+  it("event_spotlight needs events; documents needs documents (phase 2)", () => {
+    expect([...needsFor([sec({ type: "event_spotlight", eventId: "ev_show" })])]).toEqual(["events"]);
+    expect([...needsFor([sec({ type: "documents", limit: 10 })])]).toEqual(["documents"]);
+    expect(
+      needsFor([
+        sec({ type: "timeline", items: [] }),
+        sec({ type: "quote", quote: "x" }),
+        sec({ type: "donate", amounts: [1000] }),
+        sec({ type: "newsletter_signup" }),
+        sec({ type: "hours_location", hours: [] }),
+      ]).size
+    ).toBe(0);
+  });
+
   it("manual galleries need nothing", () => {
     expect(needsFor([sec({ type: "gallery", variant: "grid", source: "manual", items: [] })]).size).toBe(0);
   });
@@ -350,6 +364,24 @@ describe("loadSiteData", () => {
     const b = await loadSiteData(missing.env, tenant(), new Set<DataNeed>(["gallery"]), { gallerySlug: "nope" });
     expect(b.gallery).toBeUndefined();
     expect(missing.batches).toHaveLength(1);
+  });
+
+  it("documents are loaded only for a member view: public callers get no query and data.documents stays undefined", async () => {
+    const pub = fakeDb({ "FROM files": [{ id: "f1", filename: "Bylaws.pdf", size: 1024 }] });
+    const a = await loadSiteData(pub.env, tenant(), new Set<DataNeed>(["documents"]));
+    expect(a.documents).toBeUndefined();
+    expect(pub.batches).toEqual([]);
+
+    const member = fakeDb({ "FROM files": [{ id: "f1", filename: "Bylaws.pdf", size: 1024 }, { id: "f2", filename: "Minutes.pdf", size: null }] });
+    const b = await loadSiteData(member.env, tenant(), new Set<DataNeed>(["documents", "events"]), { memberView: true, limit: 5 });
+    expect(member.batches).toHaveLength(1);
+    const files = member.batches[0].find((s) => s.sql.includes("FROM files"))!;
+    expect(files.sql.replace(/\s+/g, " ")).toContain("uploaded_by IS NOT NULL");
+    expect(files.binds[0]).toBe(TENANT_ID);
+    expect(b.documents).toEqual<SiteData["documents"]>([
+      { id: "f1", filename: "Bylaws.pdf", size: 1024 },
+      { id: "f2", filename: "Minutes.pdf", size: null },
+    ]);
   });
 
   it("only requested keys are present on the result", async () => {

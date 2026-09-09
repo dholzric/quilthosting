@@ -34,9 +34,13 @@ import type {
   SiteGallerySummary,
   SiteGallery,
   SiteProfile,
+  SiteDocument,
 } from "./data.types";
 
-export type { SiteData, DataNeed, SiteLevel, SiteEvent, SiteProduct, SitePost, SiteGallerySummary, SiteGallery, SiteProfile };
+export type { SiteData, DataNeed, SiteLevel, SiteEvent, SiteProduct, SitePost, SiteGallerySummary, SiteGallery, SiteProfile, SiteDocument };
+
+/** Most shared files the `documents` loader returns (the section's own `limit` trims further). */
+export const DOCUMENTS_MAX = 50;
 
 /** Default number of upcoming events / posts fetched when the caller gives no limit. */
 export const DEFAULT_LIMIT = 12;
@@ -60,7 +64,11 @@ export function needsFor(sections: Section[]): Set<DataNeed> {
   for (const s of sections) {
     switch (s.type) {
       case "events":
+      case "event_spotlight":
         needs.add("events");
+        break;
+      case "documents":
+        needs.add("documents");
         break;
       case "membership_levels":
         needs.add("levels");
@@ -93,7 +101,26 @@ export type LoadOpts = {
   gallerySlug?: string;
   /** Upcoming events / posts to fetch (default DEFAULT_LIMIT). */
   limit?: number;
+  /**
+   * The viewer is a signed-in member of this tenant. Only then is the
+   * `documents` need satisfied (members-only shared files); public renders
+   * leave `data.documents` undefined and the section shows a sign-in prompt.
+   */
+  memberView?: boolean;
 };
+
+type DocumentRow = { id: string; filename: string; size: number | null };
+
+/** Shared files members can download: staff uploads only (same predicate as the portal's file list). */
+function documentsStatement(db: D1Database, tenantId: string, limit: number): D1PreparedStatement {
+  return db
+    .prepare(
+      `SELECT id, filename, size
+       FROM files WHERE tenant_id = ? AND uploaded_by IS NOT NULL
+       ORDER BY created_at DESC LIMIT ?`
+    )
+    .bind(tenantId, limit);
+}
 
 type LevelRow = { id: string; name: string; description: string | null; price_cents: number; duration_months: number; renewal_type?: string };
 type EventRow = Omit<SiteEvent, never> & { settings_json?: string | null };
@@ -121,7 +148,7 @@ function galleryPhotosBySlugStatement(db: D1Database, tenantId: string, galleryS
 }
 
 /** Batch slot order. Fixed so results can be read back positionally. */
-const NEED_ORDER: readonly Exclude<DataNeed, "profile">[] = ["levels", "events", "products", "posts", "galleries", "gallery"];
+const NEED_ORDER: readonly Exclude<DataNeed, "profile">[] = ["levels", "events", "products", "posts", "galleries", "gallery", "documents"];
 
 export async function loadSiteData(env: Env, tenant: Tenant, needs: Set<DataNeed>, opts: LoadOpts = {}): Promise<SiteData> {
   const data: SiteData = {};
@@ -158,6 +185,10 @@ export async function loadSiteData(env: Env, tenant: Tenant, needs: Set<DataNeed
         slots.push({ need, index });
         break;
       }
+      case "documents":
+        if (!opts.memberView) break;
+        slots.push({ need, index: statements.push(documentsStatement(env.DB, tenant.id, DOCUMENTS_MAX)) - 1 });
+        break;
     }
   }
 
@@ -195,10 +226,17 @@ export async function loadSiteData(env: Env, tenant: Tenant, needs: Set<DataNeed
         };
         break;
       }
+      case "documents":
+        data.documents = rowsAt<DocumentRow>(index).map(toDocument);
+        break;
     }
   }
 
   return data;
+}
+
+function toDocument(r: DocumentRow): SiteDocument {
+  return { id: r.id, filename: r.filename, size: r.size == null ? null : Number(r.size) };
 }
 
 // ---------------------------------------------------------------------------

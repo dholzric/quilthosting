@@ -143,6 +143,11 @@ export const fixtureData: SiteData = {
       { id: "ph_show_04", caption: "Viewer's choice: Dear Jane reproduction" },
     ],
   },
+  documents: [
+    { id: "doc_bylaws", filename: "HCQG bylaws (revised 2025).pdf", size: 184320 },
+    { id: "doc_minutes_aug", filename: "Board minutes, August 2026.pdf", size: 61440 },
+    { id: "doc_show_entry", filename: "2027 show entry form.pdf", size: null },
+  ],
   profile: {
     description: "A guild of about two hundred quilters in the Texas Hill Country, meeting since 1987.",
     meeting_info: "Second Tuesday of every month, 6:30 PM",
@@ -566,6 +571,256 @@ export const SECTION_FIXTURES: SectionFixture[] = [
       id: "embed-video",
       html: '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" title="2025 show walkthrough" allowfullscreen></iframe>',
       style: style({ width: "narrow" }),
+    },
+  },
+
+  // ---- Phase 2 -------------------------------------------------------------
+
+  // timeline ---------------------------------------------------------------
+  {
+    name: "timeline",
+    section: {
+      type: "timeline",
+      id: "guild-history",
+      heading: "Forty years of the guild",
+      items: [
+        { year: "1987", title: "Eleven quilters in a fabric shop back room", body: "The first meetings were around a cutting table at Creations on Water Street." },
+        { year: "1989", title: "First raffle quilt", body: "A scrappy Ocean Waves raised $1,140 and bought the first library shelf." },
+        { year: "1995", title: "First biennial show", body: "Sixty-two quilts at the Kerr County fairgrounds." },
+        { year: "2008", title: "501(c)(3) status", body: "Charity quilts for the state hospital and CASA became a standing committee." },
+        { year: "2026", title: "Two hundred members", body: "The largest guild in the Hill Country." },
+      ],
+      style: style({ width: "narrow" }),
+    },
+  },
+
+  // quote ------------------------------------------------------------------
+  {
+    name: "quote",
+    section: {
+      type: "quote",
+      id: "pull-quote",
+      quote: "Nobody here cares whether your points match. They care whether you came back.",
+      author: "Marla Ortiz, president 2019–2021",
+      style: style({ bg: "tint", align: "center", spacing: "airy" }),
+    },
+  },
+
+  // officers ---------------------------------------------------------------
+  {
+    name: "officers",
+    section: {
+      type: "officers",
+      id: "board",
+      heading: "2026 officers",
+      items: [
+        { name: "Ann Reyes", role: "President", email: "president@hillcountryquiltguild.org", imageId: "officer_ann" },
+        { name: "Denise Moore", role: "Vice president, programs", email: "programs@hillcountryquiltguild.org" },
+        { name: "Kim Lee", role: "Treasurer", imageId: "officer_kim" },
+        { name: "Rosa Trevino", role: "Secretary" },
+        { name: "Carol Hanson", role: "Charity quilts chair", email: "charity@hillcountryquiltguild.org" },
+      ],
+      style: style(),
+    },
+  },
+
+  // benefits ---------------------------------------------------------------
+  {
+    name: "benefits",
+    section: {
+      type: "benefits",
+      id: "member-benefits",
+      heading: "What your dues include",
+      items: [
+        { title: "Eleven monthly programs", body: "Trunk shows, lectures and demonstrations, September through July." },
+        { title: "The lending library", body: "Four hundred books and patterns, one month at a time." },
+        { title: "Member workshop pricing", body: "At least $20 off every workshop, and first pick of seats." },
+        { title: "The newsletter", body: "Monthly, by email, with the block of the month." },
+        { title: "Retreat and show entry at member rates" },
+      ],
+      style: style({ width: "narrow" }),
+    },
+  },
+
+  // event_spotlight --------------------------------------------------------
+  {
+    name: "event_spotlight",
+    section: {
+      type: "event_spotlight",
+      id: "retreat-spotlight",
+      eventId: "ev_fall_retreat",
+      heading: "Fall retreat",
+      style: style({ bg: "tint" }),
+    },
+  },
+
+  // projects ---------------------------------------------------------------
+  {
+    name: "projects",
+    section: {
+      type: "projects",
+      id: "community-projects",
+      heading: "Where the charity quilts go",
+      items: [
+        { title: "Kerrville State Hospital", body: "Lap quilts for every new patient on the long-term unit.", imageId: "proj_hospital", stat: "140 quilts in 2025", href: "/charity" },
+        { title: "CASA of the Hill Country", body: "A quilt for every child entering foster care in Kerr County.", imageId: "proj_casa", stat: "96 quilts in 2025" },
+        { title: "Kerr County Fire Department", body: "Comfort quilts carried on the engines for house-fire calls.", stat: "24 quilts in 2025" },
+      ],
+      style: style(),
+    },
+  },
+
+  // sponsors ---------------------------------------------------------------
+  {
+    name: "sponsors",
+    section: {
+      type: "sponsors",
+      id: "show-sponsors",
+      heading: "2027 show sponsors",
+      items: [
+        { name: "Creations Fabric", imageId: "logo_creations", href: "https://creationsfabric.example" },
+        { name: "Hill Country Longarm", imageId: "logo_hcl", href: "https://hclongarm.example" },
+        { name: "Guadalupe Bank", imageId: "logo_gbank" },
+        { name: "Schreiner University" },
+      ],
+      style: style({ bg: "tint", align: "center" }),
+    },
+  },
+
+  // newsletter_signup ------------------------------------------------------
+  {
+    name: "newsletter_signup",
+    section: {
+      type: "newsletter_signup",
+      id: "newsletter",
+      heading: "Get the newsletter",
+      body: "Once a month: the program, the block of the month, and retreat and show dates. No selling your address.",
+      buttonLabel: "Sign me up",
+      style: style({ bg: "brand", align: "center" }),
+    },
+  },
+
+  // services ---------------------------------------------------------------
+  {
+    name: "services/cards",
+    section: {
+      type: "services",
+      id: "services-cards",
+      variant: "cards",
+      heading: "Longarm services",
+      items: [
+        { title: "Edge-to-edge quilting", body: "Allover pantograph designs from a library of two hundred.", price: "2¢", unit: "per square inch" },
+        { title: "Custom quilting", body: "Block-by-block designs planned with you at drop-off.", price: "from 5¢", unit: "per square inch" },
+        { title: "Binding", body: "Machine-applied, hand-finished on request.", price: "35¢", unit: "per linear inch" },
+        { title: "Backing prep and batting", body: "Seaming, pressing, and 80/20 cotton batting.", price: "$18", unit: "per yard" },
+      ],
+      style: style(),
+    },
+  },
+  {
+    name: "services/table",
+    section: {
+      type: "services",
+      id: "services-table",
+      variant: "table",
+      heading: "Price list",
+      items: [
+        { title: "Edge-to-edge", body: "Pantograph, one thread color", price: "2¢", unit: "per sq in" },
+        { title: "Semi-custom", body: "Pantograph plus stitched borders", price: "3.5¢", unit: "per sq in" },
+        { title: "Custom", body: "Ruler work, feathers, block-by-block", price: "5–8¢", unit: "per sq in" },
+        { title: "Rush (under 10 days)", body: "When the schedule allows", price: "+25%" },
+      ],
+      style: style({ width: "narrow" }),
+    },
+  },
+
+  // portfolio --------------------------------------------------------------
+  {
+    name: "portfolio/grid",
+    section: {
+      type: "portfolio",
+      id: "portfolio-grid",
+      variant: "grid",
+      heading: "Recent work",
+      items: [
+        { imageId: "pf_ocean_waves", title: "Ocean Waves", caption: "Custom quilting, 90 × 90" },
+        { imageId: "pf_tshirt", title: "Schreiner tee-shirt quilt", caption: "Edge-to-edge, swirl pantograph" },
+        { imageId: "pf_baltimore", title: "Baltimore Album", caption: "Custom, feathers and cross-hatching" },
+        { url: "https://images.example.org/hcqg/log-cabin.jpg", title: "Log cabin", caption: "Edge-to-edge" },
+      ],
+      style: style({ width: "wide" }),
+    },
+  },
+  {
+    name: "portfolio/featured",
+    section: {
+      type: "portfolio",
+      id: "portfolio-featured",
+      variant: "featured",
+      heading: "This month's finish",
+      items: [
+        { imageId: "pf_dear_jane", title: "Dear Jane", caption: "169 blocks, custom quilted over three weeks for a client in Fredericksburg." },
+        { imageId: "pf_ocean_waves", title: "Ocean Waves" },
+        { imageId: "pf_tshirt", title: "Tee-shirt quilt" },
+      ],
+      style: style(),
+    },
+  },
+
+  // hours_location ---------------------------------------------------------
+  {
+    name: "hours_location",
+    section: {
+      type: "hours_location",
+      id: "studio-hours",
+      heading: "Studio hours",
+      hours: [
+        { day: "Tuesday – Friday", open: "10 AM – 5 PM" },
+        { day: "Saturday", open: "10 AM – 2 PM" },
+        { day: "Sunday – Monday", open: "Closed" },
+      ],
+      address: "1210 Water St, Suite B, Kerrville, TX 78028",
+      mapUrl: "https://maps.google.com/?q=1210+Water+St+Kerrville+TX",
+      phone: "(830) 555-0147",
+      email: "studio@hillcountryquiltguild.org",
+      note: "Drop-offs by appointment outside these hours. Park behind the building.",
+      style: style({ bg: "tint" }),
+    },
+  },
+
+  // process ----------------------------------------------------------------
+  {
+    name: "process",
+    section: {
+      type: "process",
+      id: "how-it-works",
+      heading: "How longarm quilting works",
+      items: [
+        { title: "Send your measurements", body: "Width and height of the top, and whether you want edge-to-edge or custom." },
+        { title: "Drop off or ship", body: "Top, backing at least 8 inches larger, and batting if you have it." },
+        { title: "We quilt it", body: "Two to three weeks for edge-to-edge; custom is scheduled at drop-off." },
+        { title: "Pick up and bind", body: "Trimmed and ready for binding, or bound by us for 35¢ an inch." },
+      ],
+      style: style({ width: "narrow" }),
+    },
+  },
+
+  // documents --------------------------------------------------------------
+  {
+    name: "documents",
+    section: { type: "documents", id: "member-documents", heading: "Member documents", limit: 10, style: style({ width: "narrow" }) },
+  },
+
+  // donate -----------------------------------------------------------------
+  {
+    name: "donate",
+    section: {
+      type: "donate",
+      id: "donate",
+      heading: "Support the charity quilt program",
+      body: "Every $25 covers batting and backing for one lap quilt. The guild is a 501(c)(3); gifts are tax deductible.",
+      amounts: [1000, 2500, 5000, 10000],
+      style: style({ bg: "brand", align: "center" }),
     },
   },
 ];

@@ -27,6 +27,20 @@ const TYPE_CLASS: Record<Section["type"], string> = {
   divider: "qh-divider",
   spacer: "qh-spacer",
   embed: "qh-embed",
+  timeline: "qh-timeline",
+  quote: "qh-quote",
+  officers: "qh-officers",
+  benefits: "qh-benefits",
+  event_spotlight: "qh-spotlight",
+  projects: "qh-projects",
+  sponsors: "qh-sponsors",
+  newsletter_signup: "qh-newsletter",
+  services: "qh-services",
+  portfolio: "qh-portfolio",
+  hours_location: "qh-hours",
+  process: "qh-process",
+  documents: "qh-documents",
+  donate: "qh-donate",
 };
 
 function section<T extends Section["type"]>(partial: Extract<Section, { type: T }>): Section {
@@ -532,6 +546,185 @@ describe("small sections", () => {
     expect(html).toContain("qh-meeting");
     expect(html).toContain("Second Tuesday, 6:30 PM");
     expect(html).toContain('href="https://maps.google.com/?q=321+Thompson+Dr+Kerrville"');
+  });
+});
+
+describe("phase 2 sections", () => {
+  const st = { ...DEFAULT_STYLE };
+
+  it("timeline renders an ordered list of years and escapes text", () => {
+    const s = section({ type: "timeline", id: "t", items: [{ year: "1987", title: "Founded <b>", body: "Eleven quilters." }], style: st });
+    const html = renderSection(s, ctx);
+    expect(html).toContain("qh-timeline");
+    expect(html).toContain('<ol class="qh-timeline__list">');
+    expect(html).toContain('<span class="qh-timeline__year">1987</span>');
+    expect(html).toContain("Founded &lt;b&gt;");
+    expect(renderSection(section({ type: "timeline", id: "t2", items: [], style: st }), ctx)).toContain('<div class="qh-empty">');
+  });
+
+  it("quote renders a blockquote with cite", () => {
+    const html = renderSection(section({ type: "quote", id: "q", quote: "Finish it.", author: "Marla", style: st }), ctx);
+    expect(html).toContain("qh-quote");
+    expect(html).toContain('<blockquote class="qh-quote__text"><p>Finish it.</p><cite>Marla</cite></blockquote>');
+  });
+
+  it("officers renders a person per item with image via imgUrl, initials fallback, and a mailto link", () => {
+    const s = section({
+      type: "officers",
+      id: "o",
+      items: [
+        { name: "Ann Reyes", role: "President", email: "ann@example.org", imageId: "img_ann" },
+        { name: "Denise Moore", role: "Treasurer" },
+      ],
+      style: st,
+    });
+    const html = renderSection(s, ctx);
+    expect(html).toContain("qh-officers");
+    expect(html.match(/<div class="qh-officer">/g)?.length).toBe(2);
+    expect(html).toContain("/img/img_ann");
+    expect(html).toContain('href="mailto:ann@example.org"');
+    expect(html).toContain('<span class="qh-officer__avatar" aria-hidden="true">DM</span>');
+    expect(html).toContain('<p class="qh-officer__role">Treasurer</p>');
+  });
+
+  it("benefits is a checklist; process is a numbered step list", () => {
+    const b = renderSection(section({ type: "benefits", id: "b", items: [{ title: "Library", body: "Four hundred books." }], style: st }), ctx);
+    expect(b).toContain("qh-benefits");
+    expect(b).toContain('<ul class="qh-benefits__list">');
+    expect(b).toContain('<li class="qh-benefit"><strong>Library</strong><p>Four hundred books.</p></li>');
+    const p = renderSection(section({ type: "process", id: "p", heading: "How it works", items: [{ title: "Drop off" }, { title: "We quilt", body: "Two weeks." }], style: st }), ctx);
+    expect(p).toContain("qh-process");
+    expect(p).toContain('<ol class="qh-process__steps">');
+    expect(p.match(/<li class="qh-process__step">/g)?.length).toBe(2);
+    expect(p).not.toMatch(/1\./);
+  });
+
+  it("event_spotlight shows the named event, falls back to the next upcoming, and has an empty state", () => {
+    const named = renderSection(section({ type: "event_spotlight", id: "sp", eventId: "ev_fall_retreat", style: st }), ctx);
+    expect(named).toContain("qh-spotlight");
+    expect(named).toContain("Fall retreat at Mo-Ranch");
+    expect(named).toContain('data-register="ev_fall_retreat"');
+    expect(named).toContain(`href="${ctx.baseUrl}/events/ev_fall_retreat"`);
+    expect(named).toContain("Two nights, three days");
+    const next = renderSection(section({ type: "event_spotlight", id: "sp2", eventId: "ev_missing", style: st }), ctx);
+    expect(next).toContain(fixtureData.events![0].title);
+    expect(renderSection(section({ type: "event_spotlight", id: "sp3", style: st }), { ...ctx, data: {} })).toContain('<div class="qh-empty">');
+  });
+
+  it("projects renders cards with image, linked title and stat", () => {
+    const s = section({
+      type: "projects",
+      id: "pr",
+      items: [{ title: "Charity quilts", body: "For CASA.", imageId: "img_charity", href: "/charity", stat: "340 donated" }],
+      style: st,
+    });
+    const html = renderSection(s, ctx);
+    expect(html).toContain("qh-projects");
+    expect(html).toContain('<article class="qh-project">');
+    expect(html).toContain("/img/img_charity");
+    expect(html).toContain(`<a href="${ctx.baseUrl}/charity">Charity quilts</a>`);
+    expect(html).toContain('<p class="qh-project__stat">340 donated</p>');
+  });
+
+  it("sponsors renders a logo strip with grayscale-able images and name fallback", () => {
+    const s = section({
+      type: "sponsors",
+      id: "sp",
+      items: [{ name: "Hill Country Fabrics", imageId: "logo_hcf", href: "https://hcf.example" }, { name: "Kerrville Bank" }],
+      style: st,
+    });
+    const html = renderSection(s, ctx);
+    expect(html).toContain("qh-sponsors");
+    expect(html).toContain('<ul class="qh-sponsors__list">');
+    expect(html).toMatch(/<a class="qh-sponsor__link" href="https:\/\/hcf\.example" rel="noopener">/);
+    expect(html).toContain('alt="Hill Country Fabrics"');
+    expect(html).toContain('<span class="qh-sponsor__name">Kerrville Bank</span>');
+  });
+
+  it("newsletter_signup renders a form with the island hook, an email field, and no action attribute", () => {
+    const html = renderSection(section({ type: "newsletter_signup", id: "nl", heading: "Newsletter", buttonLabel: "Sign me up", style: st }), ctx);
+    expect(html).toContain("qh-newsletter");
+    expect(html).toMatch(/<form class="qh-newsletter__form" data-newsletter method="post">/);
+    expect(html).toContain('type="email"');
+    expect(html).toContain('name="email"');
+    expect(html).toContain('autocomplete="email"');
+    expect(html).toContain('<button class="qh-btn qh-btn--primary" type="submit">Sign me up</button>');
+    expect(html).not.toContain(' action=');
+  });
+
+  it("services cards vs table (table scrolls in its own wrapper)", () => {
+    const items = [{ title: "Edge to edge", body: "Allover.", price: "2¢", unit: "per sq in" }];
+    const cards = renderSection(section({ type: "services", id: "sv", variant: "cards", items, style: st }), ctx);
+    expect(cards).toContain("qh-services qh-services--cards");
+    expect(cards).toContain('<div class="qh-service">');
+    expect(cards).toContain('<span class="qh-service__price">2¢</span>');
+    expect(cards).toContain('<span class="qh-service__unit">per sq in</span>');
+    const table = renderSection(section({ type: "services", id: "sv2", variant: "table", items, style: st }), ctx);
+    expect(table).toContain("qh-services--table");
+    expect(table).toContain('<div class="qh-table-wrap"><table class="qh-services__table">');
+    expect(table).toContain("<th scope=\"col\">Service</th>");
+    expect(table).toContain("<td>2¢ <span class=\"qh-service__unit\">per sq in</span></td>");
+  });
+
+  it("portfolio grid uses lightbox links; featured marks the first item", () => {
+    const items = [{ imageId: "pf_1", title: "Ocean Waves", caption: "Custom quilting" }, { imageId: "pf_2", title: "Log cabin" }];
+    const grid = renderSection(section({ type: "portfolio", id: "pf", variant: "grid", items, style: st }), ctx);
+    expect(grid).toContain("qh-portfolio qh-portfolio--grid");
+    expect(grid.match(/data-lightbox/g)?.length).toBe(2);
+    expect(grid).toContain('alt="Ocean Waves"');
+    const feat = renderSection(section({ type: "portfolio", id: "pf2", variant: "featured", items, style: st }), ctx);
+    expect(feat).toContain("qh-portfolio--featured");
+    expect(feat).toContain('class="qh-portfolio__item qh-portfolio__item--featured"');
+    expect(feat).toContain("/img/pf_1?w=1600");
+    expect(renderSection(section({ type: "portfolio", id: "pf3", variant: "grid", items: [], style: st }), ctx)).toContain('<div class="qh-empty">');
+  });
+
+  it("hours_location renders hours rows, address, map/tel/mailto links and note", () => {
+    const s = section({
+      type: "hours_location",
+      id: "h",
+      hours: [{ day: "Tue–Sat", open: "10–5" }],
+      address: "1210 Water St, Kerrville, TX",
+      mapUrl: "https://maps.google.com/?q=1210+Water+St",
+      phone: "830-555-0147",
+      email: "studio@example.org",
+      note: "Ring the bell.",
+      style: st,
+    });
+    const html = renderSection(s, ctx);
+    expect(html).toContain("qh-hours");
+    expect(html).toContain('<dl class="qh-hours__list"><div><dt>Tue–Sat</dt><dd>10–5</dd></div></dl>');
+    expect(html).toContain("1210 Water St, Kerrville, TX");
+    expect(html).toContain('href="https://maps.google.com/?q=1210+Water+St"');
+    expect(html).toContain('href="tel:8305550147"');
+    expect(html).toContain('href="mailto:studio@example.org"');
+    expect(html).toContain('<p class="qh-hours__note">Ring the bell.</p>');
+  });
+
+  it("documents renders a sign-in prompt when data.documents is undefined and a list otherwise", () => {
+    const s = section({ type: "documents", id: "d", limit: 2, style: st });
+    const prompt = renderSection(s, { ...ctx, data: {} });
+    expect(prompt).toContain("qh-documents");
+    expect(prompt).toContain('class="qh-documents__signin"');
+    expect(prompt).toContain('href="https://hillcountryquiltguild.org/portal?slug=hcqg"');
+    const list = renderSection(s, {
+      ...ctx,
+      data: { documents: [{ id: "f1", filename: "Bylaws 2026.pdf", size: 204800 }, { id: "f2", filename: "Minutes.pdf", size: null }, { id: "f3", filename: "Extra.pdf", size: 10 }] },
+    });
+    expect(list).toContain('<ul class="qh-documents__list">');
+    expect(list.match(/<li class="qh-document">/g)?.length).toBe(2);
+    expect(list).toContain('href="https://hillcountryquiltguild.org/api/portal/hcqg/files/f1"');
+    expect(list).toContain("200 KB");
+    expect(list).not.toContain("undefined");
+    expect(renderSection(s, { ...ctx, data: { documents: [] } })).toContain('<div class="qh-empty">');
+  });
+
+  it("donate emits one data-donate button per amount in cents plus an other-amount button", () => {
+    const html = renderSection(section({ type: "donate", id: "dn", heading: "Support the guild", amounts: [1000, 2500], style: st }), ctx);
+    expect(html).toContain("qh-donate");
+    expect(html).toContain('<button class="qh-btn qh-btn--primary" data-donate="1000">$10.00</button>');
+    expect(html).toContain('<button class="qh-btn qh-btn--primary" data-donate="2500">$25.00</button>');
+    expect(html).toContain('<button class="qh-btn qh-btn--secondary" data-donate="0">Other amount</button>');
   });
 });
 

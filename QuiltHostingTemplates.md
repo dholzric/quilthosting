@@ -125,8 +125,21 @@ Every section has `type`, an optional `variant`, an optional `id` (kebab-case, u
 | `divider` | — | — | Rule |
 | `spacer` | — | `height` (8–160 px) | Vertical space |
 | `embed` | — | `html` | Allowlisted YouTube/Vimeo/Google Maps iframe only; scripts are removed |
+| `timeline` | — | `heading?`, `items: [{year, title, body?}]` | Guild history as a vertical timeline, one entry per year |
+| `quote` | — | `quote`, `author?` | One pull quote in large display type |
+| `officers` | — | `heading?`, `items: [{name, role, email?, imageId?}]` | People grid: photo (or initials), name, role, email link |
+| `benefits` | — | `heading?`, `items: [{title, body?}]` | Checklist of what membership includes |
+| `event_spotlight` | — | `eventId?`, `heading?` | One featured event with date, place, price, description and Register; falls back to the next upcoming event |
+| `projects` | — | `heading?`, `items: [{title, body?, imageId?, href?, stat?]` | Charity / community project cards with a photo and a headline number |
+| `sponsors` | — | `heading?`, `items: [{name, imageId?, href?}]` | Logo strip, grayscale until hover; name text when there is no logo |
+| `newsletter_signup` | — | `heading?`, `body?`, `buttonLabel?` | Email signup form posting to `/public/:slug/newsletter` |
+| `services` | `cards`, `table` | `heading?`, `items: [{title, body?, price?, unit?}]` | Services with pricing as cards or a comparison table (table scrolls sideways on phones) |
+| `portfolio` | `grid`, `featured` | `heading?`, `items: [{imageId?, url?, title?, caption?}]` | Finished work with lightbox; `featured` shows the first piece large |
+| `hours_location` | — | `heading?`, `hours: [{day, open}]`, `address?`, `mapUrl?`, `phone?`, `email?`, `note?` | Opening hours plus address, map, phone and email links |
+| `process` | — | `heading?`, `items: [{title, body?}]` | Numbered "how it works" steps (the one place numbering is information) |
+| `documents` | — | `heading?`, `limit` (1–50) | Members-only shared file list; visitors see a member sign-in prompt |
+| `donate` | — | `heading?`, `body?`, `amounts: number[]` (cents, 100–1,000,000, up to 6) | Suggested amounts as working Donate buttons plus "Other amount" |
 
-Coming in phase 2 (do not use yet; note in your PR if your kit wants them): `timeline`, `quote`, `officers`, `benefits`, `event_spotlight`, `projects`, `sponsors`, `newsletter_signup`, `services` table variant, `portfolio`, `hours_location`, `process`, `documents`, `donate`.
 
 ## 5. Palettes
 

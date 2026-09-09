@@ -1559,3 +1559,108 @@ describe("GET /public/:slug/site-bootstrap", () => {
     expect((await app.request("/nope/site-bootstrap", {}, env)).status).toBe(404);
   });
 });
+
+// ---------------------------------------------------------------------------
+// POST /public/:slug/newsletter — phase 2 Task A (newsletter_signup section).
+// Inserts into newsletter_signups; idempotent per (tenant, email); rate
+// limited by the shared per-IP middleware.
+// ---------------------------------------------------------------------------
+describe("POST /public/:slug/newsletter", () => {
+  function newsletterHarness(opts: { tenant?: Record<string, unknown> | null; kvCount?: number } = {}) {
+    const runs: { sql: string; binds: unknown[] }[] = [];
+    const tenant = opts.tenant === null ? null : { id: TENANT_ID, slug: "hcqg", tenant_type: "guild", status: "active", settings_json: "{}", ...(opts.tenant ?? {}) };
+    const db = {
+      prepare(sql: string) {
+        return {
+          bind(...binds: unknown[]) {
+            return {
+              async first() {
+                if (sql.includes("FROM tenants")) return tenant;
+                return null;
+              },
+              async all() { return { results: [] }; },
+              async run() { runs.push({ sql, binds }); return { success: true, meta: { changes: 1 } }; },
+            };
+          },
+        };
+      },
+    };
+    const kvStore = new Map<string, string>();
+    if (opts.kvCount !== undefined) kvStore.set("rl:newsletter:unknown", String(opts.kvCount));
+    const kv = {
+      async get(k: string) { return kvStore.get(k) ?? null; },
+      async put(k: string, v: string) { kvStore.set(k, v); },
+    };
+    const app = new Hono<{ Bindings: Env }>();
+    app.route("/", publicRoutes);
+    const env = { DB: db, KV: kv } as unknown as Env;
+    const send = (body: unknown, slug = "hcqg") =>
+      app.request(`/${slug}/newsletter`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }, env);
+    return { send, runs, kvStore };
+  }
+
+  it("records a signup with a normalized email, trimmed name and source 'site'", async () => {
+    const { send, runs } = newsletterHarness();
+    const res = await send({ email: "  Ann@Example.ORG ", name: "  Ann Reyes " });
+    expect(res.status).toBe(201);
+    expect(await res.json()).toMatchObject({ ok: true });
+    expect(runs).toHaveLength(1);
+    const ins = runs[0];
+    expect(ins.sql).toContain("INSERT");
+    expect(ins.sql).toContain("newsletter_signups");
+    expect(ins.sql).toMatch(/ON CONFLICT\s*\(\s*tenant_id\s*,\s*email\s*\)/i);
+    expect(ins.binds).toContain(TENANT_ID);
+    expect(ins.binds).toContain("ann@example.org");
+    expect(ins.binds).toContain("Ann Reyes");
+    expect(ins.binds).toContain("site");
+  });
+
+  it("name is optional and stored as NULL when blank", async () => {
+    const { send, runs } = newsletterHarness();
+    const res = await send({ email: "rosa@example.org", name: "   " });
+    expect(res.status).toBe(201);
+    expect(runs[0].binds).toContain(null);
+    expect(runs[0].binds).not.toContain("   ");
+  });
+
+  it("is idempotent: the same email twice yields two successful responses and no error", async () => {
+    const { send, runs } = newsletterHarness();
+    expect((await send({ email: "rosa@example.org" })).status).toBe(201);
+    expect((await send({ email: "ROSA@example.org" })).status).toBe(201);
+    expect(runs).toHaveLength(2);
+    expect(runs[1].binds).toContain("rosa@example.org");
+  });
+
+  it("rejects a missing or malformed email and an over-long name with 400 and writes nothing", async () => {
+    const { send, runs } = newsletterHarness();
+    expect((await send({})).status).toBe(400);
+    expect((await send({ email: "not-an-email" })).status).toBe(400);
+    expect((await send({ email: "a@b.co", name: "x".repeat(200) })).status).toBe(400);
+    expect((await send({ email: "a".repeat(250) + "@example.org" })).status).toBe(400);
+    expect(runs).toHaveLength(0);
+  });
+
+  it("rejects a non-JSON body with 400", async () => {
+    const { runs } = newsletterHarness();
+    const app = new Hono<{ Bindings: Env }>();
+    app.route("/", publicRoutes);
+    const res = await app.request("/hcqg/newsletter", { method: "POST", headers: { "Content-Type": "text/plain" }, body: "email=x" }, {
+      DB: { prepare: () => ({ bind: () => ({ first: async () => ({ id: TENANT_ID, slug: "hcqg", status: "active" }), run: async () => { throw new Error("must not write"); } }) }) },
+    } as unknown as Env);
+    expect(res.status).toBe(400);
+    expect(runs).toHaveLength(0);
+  });
+
+  it("404s for an unknown guild", async () => {
+    const { send, runs } = newsletterHarness({ tenant: null });
+    expect((await send({ email: "a@b.co" })).status).toBe(404);
+    expect(runs).toHaveLength(0);
+  });
+
+  it("is rate limited per IP through the KV sliding window", async () => {
+    const { send, runs } = newsletterHarness({ kvCount: 999 });
+    const res = await send({ email: "a@b.co" });
+    expect(res.status).toBe(429);
+    expect(runs).toHaveLength(0);
+  });
+});

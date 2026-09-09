@@ -438,6 +438,118 @@ form.qh-form{display:flex;flex-direction:column;gap:.8rem;max-width:34rem}
 .qh-embed--video{position:relative;aspect-ratio:16/9;max-width:56rem;margin-inline:auto}
 .qh-embed--video iframe{position:absolute;inset:0;width:100%;height:100%}
 
+/* ---- Phase 2 sections: timeline, quote, officers, benefits, spotlight,
+   projects, sponsors, newsletter, services, portfolio, hours, process,
+   documents, donate. Same rhythm and tokens; cards only where the section is
+   a card by nature (projects, services cards). ------------------------------ */
+.qh-timeline .qh-timeline__list{list-style:none;margin:0;padding:0;max-width:44rem;border-left:2px solid var(--_border)}
+.qh-timeline__item{position:relative;display:grid;grid-template-columns:5rem 1fr;gap:1rem;padding:0 0 1.75rem 1.5rem}
+.qh-timeline__item::before{content:"";position:absolute;left:-7px;top:.45em;width:12px;height:12px;border-radius:50%;
+  background:var(--_accent);box-shadow:0 0 0 3px var(--_bg)}
+.qh-timeline__year{font-family:var(--_display);font-size:var(--_fs5);color:var(--_primary);line-height:1.3}
+.qh-timeline__body h3{font-size:var(--_fs5);margin:0 0 .25rem}
+.qh-timeline__body p{margin:0;color:var(--_muted);max-width:60ch}
+.qh-quote .qh-quote__text{margin:0;max-width:44rem;margin-inline:auto;border:0;padding:0}
+.qh-quote__text p{font-family:var(--_display);font-size:var(--_fs3);line-height:1.3;font-style:italic;margin:0 0 1rem;text-wrap:balance}
+.qh-quote__text p::before{content:"\201C";color:var(--_accent);margin-right:.1em}
+.qh-quote__text p::after{content:"\201D";color:var(--_accent);margin-left:.1em}
+.qh-quote__text cite{display:block;font-style:normal;font-size:.95rem;color:var(--_muted)}
+.qh-officers .qh-officers__grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr));gap:2rem 1.5rem}
+.qh-officer{min-width:0;text-align:center}
+.qh-officer__photo,.qh-officer__avatar{width:7rem;height:7rem;border-radius:50%;object-fit:cover;margin:0 auto .75rem;display:block}
+.qh-officer__avatar{display:grid;place-items:center;background:var(--_tint);color:var(--_primary);font-family:var(--_display);font-size:var(--_fs4);font-weight:600}
+.qh-officer__name{font-size:var(--_fs6);font-family:var(--_body);font-weight:600;margin:0}
+.qh-officer__role{margin:0;color:var(--_muted);font-size:.95rem}
+.qh-officer__email{margin:.25rem 0 0;font-size:.9rem;overflow-wrap:anywhere}
+.qh-benefits .qh-benefits__list{list-style:none;margin:0;padding:0;max-width:44rem;display:grid;gap:1rem}
+.qh-benefit{position:relative;padding-left:2.25rem}
+/* Check mark drawn with borders so it needs no image and inherits the accent role. */
+.qh-benefit::before{content:"";position:absolute;left:0;top:.2em;width:1.35rem;height:1.35rem;border-radius:50%;background:var(--_accent)}
+.qh-benefit::after{content:"";position:absolute;left:.47rem;top:.42em;width:.35rem;height:.65rem;border:solid var(--_on-accent);border-width:0 2px 2px 0;transform:rotate(45deg)}
+.qh-benefit strong{display:block;font-size:var(--_fs6)}
+.qh-benefit p{margin:.15rem 0 0;color:var(--_muted);max-width:60ch}
+.qh-spotlight__event{max-width:56rem}
+.qh-spotlight__event .qh-event__date{font-family:var(--_display);font-size:var(--_fs3);line-height:1.1;margin-bottom:.5rem}
+.qh-spotlight__title{font-size:var(--_fs2);margin:0 0 .5rem}
+.qh-spotlight__title a{color:inherit;text-decoration:none}
+.qh-spotlight__title a:hover{color:var(--_primary)}
+.qh-spotlight__body{font-size:var(--_fs5);max-width:60ch;margin:1rem 0 0}
+.qh-spotlight .qh-event__actions{margin-top:1.5rem}
+.qh-projects .qh-projects__grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr))}
+.qh-project{background:var(--_surface);border:1px solid var(--_border);border-radius:var(--_radius);box-shadow:var(--_shadow);overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.qh-project__media{margin:0;aspect-ratio:3/2;border-radius:0;border:0}
+.qh-project__media img{width:100%;height:100%;object-fit:cover}
+.qh-project__body{padding:1.25rem 1.5rem 1.5rem}
+.qh-project__stat{font-family:var(--_display);font-size:var(--_fs4);color:var(--_primary);margin:0 0 .35rem;line-height:1.1}
+.qh-project h3{font-size:var(--_fs5);margin-bottom:.35rem}
+.qh-project h3 a{color:inherit;text-decoration:none}
+.qh-project h3 a:hover{text-decoration:underline}
+.qh-project p:last-child{margin:0;color:var(--_muted)}
+.qh-sponsors .qh-sponsors__list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:2rem 3rem;align-items:center;justify-content:center}
+.qh-sponsor{min-width:0}
+.qh-sponsor img{height:3.5rem;width:auto;max-width:12rem;object-fit:contain;filter:grayscale(1);opacity:.75;transition:filter .2s,opacity .2s}
+.qh-sponsor:hover img,.qh-sponsor:focus-within img{filter:none;opacity:1}
+.qh-sponsor__link{display:inline-block}
+.qh-sponsor__name{font-family:var(--_display);font-size:var(--_fs5);color:var(--_muted)}
+.qh-newsletter{display:grid;grid-template-columns:1fr auto;gap:2rem;align-items:center}
+.qh-newsletter__body .qh-s__heading{margin-bottom:.5rem}
+.qh-newsletter__body .qh-lead{margin:0}
+.qh-newsletter__form{display:flex;flex-wrap:wrap;gap:.75rem;align-items:flex-end}
+.qh-newsletter__form label{display:flex;flex-direction:column;gap:.35rem;font-weight:500;flex:1 1 16rem}
+.qh-newsletter__form input{font-size:16px;min-height:44px;padding:.65rem .75rem;border:1px solid var(--_border);border-radius:var(--_radius);
+  background:var(--_surface);color:var(--_ink);width:100%}
+.qh-newsletter__done{font-weight:600}
+.qh-s--align-center .qh-newsletter{grid-template-columns:1fr;justify-items:center}
+.qh-s--align-center .qh-newsletter__form{justify-content:center}
+:is(.qh-s--bg-brand,.qh-s--bg-dark) .qh-newsletter__form input{border-color:currentColor;background:rgb(255 255 255/.12);color:inherit}
+.qh-services--cards .qh-services__grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr))}
+.qh-service{background:var(--_surface);border:1px solid var(--_border);border-radius:var(--_radius);box-shadow:var(--_shadow);padding:1.5rem;min-width:0;display:flex;flex-direction:column}
+.qh-service h3{font-size:var(--_fs5);margin-bottom:.35rem}
+.qh-service p{margin:0;color:var(--_muted)}
+.qh-service__pricing{margin-top:auto!important;padding-top:1rem}
+.qh-service__price{font-family:var(--_display);font-size:var(--_fs4);color:var(--_primary)}
+.qh-service__unit{font-size:.9rem;color:var(--_muted)}
+.qh-services--table .qh-services__table{width:100%;border-collapse:collapse;min-width:32rem}
+.qh-services__table th,.qh-services__table td{text-align:left;padding:.75rem .75rem .75rem 0;border-bottom:1px solid var(--_border);vertical-align:top}
+.qh-services__table thead th{font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--_muted);font-weight:600}
+.qh-services__table tbody th{font-weight:600}
+.qh-services__table td:last-child,.qh-services__table th:last-child{text-align:right;white-space:nowrap;padding-right:0}
+.qh-portfolio--grid .qh-portfolio__items,.qh-portfolio--featured .qh-portfolio__items{display:grid;gap:1rem;grid-template-columns:repeat(auto-fill,minmax(min(100%,16rem),1fr))}
+.qh-portfolio__item{margin:0;min-width:0}
+.qh-portfolio__item a{display:block;border-radius:var(--_radius)}
+.qh-portfolio__item img{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:var(--_radius);display:block}
+.qh-portfolio__item figcaption{margin-top:.5rem;font-size:.9rem;color:var(--_muted)}
+.qh-portfolio__item figcaption strong{display:block;color:var(--_ink)}
+.qh-portfolio--featured .qh-portfolio__items{grid-template-columns:repeat(4,1fr)}
+.qh-portfolio__item--featured{grid-column:1 / -1}
+.qh-portfolio__item--featured img{aspect-ratio:16/9}
+.qh-portfolio__item--featured figcaption{font-size:1rem}
+.qh-hours .qh-hours__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr));gap:2rem 3rem;max-width:56rem}
+.qh-hours__list{margin:0}
+.qh-hours__list > div{display:flex;justify-content:space-between;gap:1rem;padding:.6rem 0;border-bottom:1px solid var(--_border)}
+.qh-hours__list dt{font-weight:600}
+.qh-hours__list dd{margin:0;text-align:right}
+.qh-hours__details p{margin:0 0 .75rem}
+.qh-hours__note{color:var(--_muted);max-width:50ch}
+.qh-process .qh-process__steps{list-style:none;margin:0;padding:0;counter-reset:qh-step;max-width:44rem;display:grid;gap:1.5rem}
+.qh-process__step{counter-increment:qh-step;display:grid;grid-template-columns:3rem 1fr;gap:1rem;align-items:start}
+.qh-process__step::before{content:counter(qh-step);display:grid;place-items:center;width:2.5rem;height:2.5rem;border-radius:50%;
+  background:var(--_primary);color:var(--_on-primary);font-family:var(--_display);font-weight:600;font-size:1.15rem}
+.qh-process__step h3{font-size:var(--_fs5);margin:.35rem 0 .25rem}
+.qh-process__step p{margin:0;color:var(--_muted);max-width:60ch}
+.qh-documents .qh-documents__list{list-style:none;margin:0;padding:0;max-width:44rem}
+.qh-document{display:flex;justify-content:space-between;gap:1rem;align-items:center;min-height:48px;padding:.5rem 0;border-bottom:1px solid var(--_border)}
+.qh-document a{font-weight:500;overflow-wrap:anywhere}
+.qh-document__size{font-size:.85rem;color:var(--_muted);white-space:nowrap}
+.qh-documents__signin{padding:2rem;border:1px dashed var(--_border);border-radius:var(--_radius);text-align:center;max-width:44rem}
+.qh-documents__signin p{margin:0 0 1rem}
+.qh-donate__body .qh-s__heading{margin-bottom:.5rem}
+.qh-donate__body .qh-lead{max-width:50ch}
+.qh-donate .qh-donate__amounts{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:1.5rem}
+.qh-donate__amounts .qh-btn{min-width:6.5rem}
+.qh-s--align-center .qh-donate__amounts{justify-content:center}
+.qh-s--align-center .qh-donate__body .qh-lead{margin-inline:auto}
+
 /* ---- Footer (simple | columns | meeting) -------------------------------- */
 .qh-footer,.qh-site-footer{background:var(--_surface-alt);border-top:1px solid var(--_border);color:var(--_muted);
   font-size:.95rem;margin-top:auto}
@@ -499,6 +611,9 @@ form.qh-form{display:flex;flex-direction:column;gap:.8rem;max-width:34rem}
   .qh-header__cta + .qh-nav-toggle,.qh-nav-toggle{margin-left:0}
   .qh-brand__logo,.qh-site-logo{height:36px;max-width:40vw}
   .qh-hero--split,.qh-rich--with_image,.qh-contact__grid{grid-template-columns:1fr;gap:1.5rem}
+  .qh-newsletter{grid-template-columns:1fr;gap:1rem}
+  .qh-portfolio--featured .qh-portfolio__items{grid-template-columns:repeat(2,1fr)}
+  .qh-timeline__item{grid-template-columns:1fr;gap:.25rem}
   .qh-hero--split .qh-media,.qh-hero--split .qh-hero__media,.qh-rich--with_image .qh-media{order:-1;max-width:none}
   .qh-rich--two_column .qh-rich__body{columns:1}
   .qh-gallery--masonry .qh-gallery__items{columns:2}

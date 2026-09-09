@@ -3,8 +3,8 @@
  * in the page. Context: <body data-qh-slug data-qh-base data-qh-type>; every
  * request goes to `${qhBase}/public/${qhSlug}/…`. DOM APIs only — no innerHTML.
  * Modules: initNav, initJoin, initRegister, initCart, initDonate, initCalendar,
- * initLightbox, initVolunteer (+ initReturnFlags and the legacy .qh-block-*
- * hydration from the business renderer), booted from boot(). */
+ * initLightbox, initVolunteer, initNewsletter (+ initReturnFlags and the legacy
+ * .qh-block-* hydration from the business renderer), booted from boot(). */
 (function () {
   "use strict";
 
@@ -548,6 +548,24 @@
     });
   }
   // ---- Checkout return flags (?joined=1 etc., same as guild.html) ------------
+  // ---- Newsletter signup (form[data-newsletter] from the newsletter_signup section) ----
+  function initNewsletter() {
+    $$("form[data-newsletter]").forEach(function (form) {
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var email = form.querySelector('input[name="email"]'), name = form.querySelector('input[name="name"]');
+        var btn = form.querySelector('button[type="submit"]');
+        var value = email ? email.value.trim() : "";
+        if (!value) { if (email) email.focus(); return; }
+        busy(form, true); if (btn) btn.disabled = true;
+        postJson("/newsletter", { email: value, name: name ? name.value.trim() : "" }).then(function (r) {
+          busy(form, false);
+          if (!r.ok) throw fail(r, "We couldn't save your address. Please try again.");
+          form.replaceChildren(el("p", "qh-newsletter__done", r.data.message || "Thanks — you're on the list."));
+        }).catch(function (err) { busy(form, false); if (btn) btn.disabled = false; toastErr(err); });
+      });
+    });
+  }
   function initReturnFlags() {
     var qs = new URLSearchParams(location.search);
     if (qs.get("registered")) toast("ok", "You're registered! Check your email for confirmation.");
@@ -690,6 +708,7 @@
     initCalendar();
     initLightbox();
     initVolunteer();
+    initNewsletter();
     initReturnFlags();
     initLegacyBlocks();
   }

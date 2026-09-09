@@ -29,7 +29,7 @@ import { deriveRoles, isDarkDesign } from "../design/tokens";
 import type { Roles, SiteDesign } from "../design/tokens";
 import { patternDataUri, PATTERN_IDS } from "../design/patterns";
 import type { PatternId } from "../design/patterns";
-import type { SiteData, SiteEvent, SiteLevel, SitePost, SiteProduct } from "../data.types";
+import type { SiteData, SiteDocument, SiteEvent, SiteLevel, SitePost, SiteProduct } from "../data.types";
 import { DEFAULT_STYLE } from "./schema";
 import type { Section, SectionStyle } from "./schema";
 
@@ -582,11 +582,288 @@ function renderEmbed(s: Sec<"embed">, ctx: RenderContext): string {
 }
 
 // ---------------------------------------------------------------------------
+// Phase 2 renderers
+// ---------------------------------------------------------------------------
+
+/** Origin of the base URL ("" on the platform host, where the portal is at the same origin). */
+function originOf(ctx: RenderContext): string {
+  const m = /^(https?:\/\/[^/]+)/i.exec(ctx.baseUrl || "");
+  return m ? m[1] : "";
+}
+
+function mailto(email: string | undefined): string | null {
+  if (!email) return null;
+  const clean = sanitizeUrl(`mailto:${email}`, "link");
+  return clean ? esc(clean) : null;
+}
+
+function renderTimeline(s: Sec<"timeline">, ctx: RenderContext): string {
+  const items = (s.items ?? []).map(
+    (it) =>
+      `<li class="qh-timeline__item"><span class="qh-timeline__year">${esc(it.year)}</span>` +
+      `<div class="qh-timeline__body"><h3>${esc(it.title)}</h3>${it.body ? `<p>${esc(it.body)}</p>` : ""}</div></li>`
+  );
+  const inner = heading(s.heading) + (items.length ? `<ol class="qh-timeline__list">${items.join("")}</ol>` : empty("No milestones have been added yet."));
+  return wrap(s, inner, { extraClass: "qh-timeline", ctx });
+}
+
+function renderQuote(s: Sec<"quote">, ctx: RenderContext): string {
+  const inner = `<blockquote class="qh-quote__text"><p>${esc(s.quote)}</p>${s.author ? `<cite>${esc(s.author)}</cite>` : ""}</blockquote>`;
+  return wrap(s, inner, { extraClass: "qh-quote", ctx });
+}
+
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join("");
+}
+
+function renderOfficers(s: Sec<"officers">, ctx: RenderContext): string {
+  const people = (s.items ?? []).map((p) => {
+    const photo = p.imageId && !isPatternRef(p.imageId)
+      ? img(ctx.imgUrl(p.imageId, 480), p.name, { cls: "qh-officer__photo" })
+      : `<span class="qh-officer__avatar" aria-hidden="true">${esc(initials(p.name))}</span>`;
+    const mail = mailto(p.email);
+    return (
+      `<div class="qh-officer">${photo}<h3 class="qh-officer__name">${esc(p.name)}</h3><p class="qh-officer__role">${esc(p.role)}</p>` +
+      (mail && p.email ? `<p class="qh-officer__email"><a href="${mail}">${esc(p.email)}</a></p>` : "") +
+      `</div>`
+    );
+  });
+  const inner = heading(s.heading) + (people.length ? `<div class="qh-grid qh-officers__grid">${people.join("")}</div>` : empty("Officers haven't been listed yet."));
+  return wrap(s, inner, { extraClass: "qh-officers", ctx });
+}
+
+function renderBenefits(s: Sec<"benefits">, ctx: RenderContext): string {
+  const items = (s.items ?? []).map((it) => `<li class="qh-benefit"><strong>${esc(it.title)}</strong>${it.body ? `<p>${esc(it.body)}</p>` : ""}</li>`);
+  const inner = heading(s.heading) + (items.length ? `<ul class="qh-benefits__list">${items.join("")}</ul>` : empty("Benefits haven't been listed yet."));
+  return wrap(s, inner, { extraClass: "qh-benefits", ctx });
+}
+
+function renderSpotlight(s: Sec<"event_spotlight">, ctx: RenderContext): string {
+  const all = ctx.data.events ?? [];
+  const ev = (s.eventId ? all.find((e) => e.id === s.eventId) : undefined) ?? all[0];
+  if (!ev) return wrap(s, heading(s.heading) + empty("No upcoming events are scheduled yet. Check back soon."), { extraClass: "qh-spotlight", ctx });
+  const url = internal(`/events/${encodeURIComponent(ev.id)}`, ctx);
+  const meta = [ev.location ? esc(ev.location) : "", esc(priceLine(ev))].filter(Boolean).join(" · ");
+  const inner =
+    heading(s.heading) +
+    `<article class="qh-spotlight__event">` +
+    `<p class="qh-event__date"><time datetime="${esc(ev.start_at)}">${esc(formatEventDate(ev.start_at))}</time></p>` +
+    `<h3 class="qh-spotlight__title"><a href="${url}">${esc(ev.title)}</a></h3>` +
+    `<p class="qh-event__meta">${meta}</p>` +
+    (ev.description ? `<p class="qh-spotlight__body">${esc(ev.description)}</p>` : "") +
+    `<div class="qh-event__actions"><a class="qh-btn qh-btn--secondary" href="${url}">Details</a>` +
+    (ev.registration_open ? btn("primary", "Register", `data-register="${esc(ev.id)}"`) : "") +
+    `</div></article>`;
+  return wrap(s, inner, { extraClass: "qh-spotlight", ctx });
+}
+
+function renderProjects(s: Sec<"projects">, ctx: RenderContext): string {
+  const cards = (s.items ?? []).map((it) => {
+    const title = it.href ? `<a href="${href(it.href, ctx)}">${esc(it.title)}</a>` : esc(it.title);
+    const media = it.imageId
+      ? isPatternRef(it.imageId)
+        ? patternMedia(it.imageId, ctx, " qh-project__media")
+        : `<div class="qh-media qh-project__media">${img(ctx.imgUrl(it.imageId, 960), "")}</div>`
+      : "";
+    return (
+      `<article class="qh-project">${media}<div class="qh-project__body">` +
+      (it.stat ? `<p class="qh-project__stat">${esc(it.stat)}</p>` : "") +
+      `<h3>${title}</h3>` +
+      (it.body ? `<p>${esc(it.body)}</p>` : "") +
+      `</div></article>`
+    );
+  });
+  const inner = heading(s.heading) + (cards.length ? `<div class="qh-grid qh-projects__grid">${cards.join("")}</div>` : empty("No projects have been added yet."));
+  return wrap(s, inner, { extraClass: "qh-projects", ctx });
+}
+
+function renderSponsors(s: Sec<"sponsors">, ctx: RenderContext): string {
+  const items = (s.items ?? []).map((sp) => {
+    const body = sp.imageId && !isPatternRef(sp.imageId)
+      ? img(ctx.imgUrl(sp.imageId, 480), sp.name)
+      : `<span class="qh-sponsor__name">${esc(sp.name)}</span>`;
+    const link = sp.href ? href(sp.href, ctx) : null;
+    return `<li class="qh-sponsor">${link && link !== "#" ? `<a class="qh-sponsor__link" href="${link}" rel="noopener">${body}</a>` : body}</li>`;
+  });
+  const inner = heading(s.heading) + (items.length ? `<ul class="qh-sponsors__list">${items.join("")}</ul>` : empty("No sponsors have been added yet."));
+  return wrap(s, inner, { extraClass: "qh-sponsors", ctx });
+}
+
+function renderNewsletter(s: Sec<"newsletter_signup">, ctx: RenderContext): string {
+  // No action attribute: the island posts to /public/:slug/newsletter; without
+  // JS the form does nothing rather than GET-ing the address into the URL.
+  const inner =
+    `<div class="qh-newsletter__body">${heading(s.heading)}` +
+    (s.body ? `<p class="qh-lead">${esc(s.body)}</p>` : "") +
+    `</div>` +
+    `<form class="qh-newsletter__form" data-newsletter method="post">` +
+    `<label><span>Email</span><input type="email" name="email" autocomplete="email" required placeholder="you@example.com"></label>` +
+    `<button class="qh-btn qh-btn--primary" type="submit">${esc(s.buttonLabel || "Subscribe")}</button>` +
+    `</form>`;
+  return wrap(s, inner, { extraClass: "qh-newsletter", ctx });
+}
+
+function renderServices(s: Sec<"services">, ctx: RenderContext): string {
+  const items = s.items ?? [];
+  const cls = `qh-services qh-services--${s.variant}`;
+  if (!items.length) return wrap(s, heading(s.heading) + empty("No services have been listed yet."), { extraClass: cls, ctx });
+  const unit = (u: string | undefined) => (u ? ` <span class="qh-service__unit">${esc(u)}</span>` : "");
+  let body: string;
+  if (s.variant === "table") {
+    const rows = items
+      .map(
+        (it) =>
+          `<tr><th scope="row">${esc(it.title)}</th><td>${it.body ? esc(it.body) : ""}</td>` +
+          `<td>${it.price ? esc(it.price) + unit(it.unit) : ""}</td></tr>`
+      )
+      .join("");
+    body =
+      `<div class="qh-table-wrap"><table class="qh-services__table"><thead><tr>` +
+      `<th scope="col">Service</th><th scope="col">What's included</th><th scope="col">Price</th></tr></thead>` +
+      `<tbody>${rows}</tbody></table></div>`;
+  } else {
+    body =
+      `<div class="qh-grid qh-services__grid">` +
+      items
+        .map(
+          (it) =>
+            `<div class="qh-service"><h3>${esc(it.title)}</h3>` +
+            (it.body ? `<p>${esc(it.body)}</p>` : "") +
+            (it.price ? `<p class="qh-service__pricing"><span class="qh-service__price">${esc(it.price)}</span>${unit(it.unit)}</p>` : "") +
+            `</div>`
+        )
+        .join("") +
+      `</div>`;
+  }
+  return wrap(s, heading(s.heading) + body, { extraClass: cls, ctx });
+}
+
+function renderPortfolio(s: Sec<"portfolio">, ctx: RenderContext): string {
+  const cls = `qh-portfolio qh-portfolio--${s.variant}`;
+  const figures = (s.items ?? [])
+    .map((it, i) => {
+      const featured = s.variant === "featured" && i === 0;
+      const thumb = mediaSrc(it, ctx, featured ? 1600 : 640);
+      const full = mediaSrc(it, ctx, 1600);
+      if (!thumb || !full) return "";
+      const cap = it.title || it.caption
+        ? `<figcaption>${it.title ? `<strong>${esc(it.title)}</strong>` : ""}${it.caption ? `<span>${esc(it.caption)}</span>` : ""}</figcaption>`
+        : "";
+      return `<figure class="qh-portfolio__item${featured ? " qh-portfolio__item--featured" : ""}"><a data-lightbox href="${esc(full)}">${img(thumb, it.title ?? it.caption ?? "")}</a>${cap}</figure>`;
+    })
+    .filter(Boolean);
+  const inner = heading(s.heading) + (figures.length ? `<div class="qh-portfolio__items">${figures.join("")}</div>` : empty("No work has been added yet."));
+  return wrap(s, inner, { extraClass: cls, ctx });
+}
+
+function renderHours(s: Sec<"hours_location">, ctx: RenderContext): string {
+  const rows = (s.hours ?? []).map((h) => `<div><dt>${esc(h.day)}</dt><dd>${esc(h.open)}</dd></div>`).join("");
+  const hours = rows ? `<dl class="qh-hours__list">${rows}</dl>` : "";
+  const details: string[] = [];
+  if (s.address) {
+    const map = s.mapUrl ? ` <a href="${href(s.mapUrl, ctx)}" rel="noopener">Open in Maps</a>` : "";
+    details.push(`<p class="qh-hours__address">${esc(s.address)}${map}</p>`);
+  }
+  if (s.phone) {
+    const digits = s.phone.replace(/[^\d+]/g, "");
+    const tel = digits ? sanitizeUrl(`tel:${digits}`, "link") : null;
+    details.push(`<p class="qh-hours__phone">${tel ? `<a href="${esc(tel)}">${esc(s.phone)}</a>` : esc(s.phone)}</p>`);
+  }
+  const mail = mailto(s.email);
+  if (s.email) details.push(`<p class="qh-hours__email">${mail ? `<a href="${mail}">${esc(s.email)}</a>` : esc(s.email)}</p>`);
+  if (s.note) details.push(`<p class="qh-hours__note">${esc(s.note)}</p>`);
+  const body = hours || details.length
+    ? `<div class="qh-hours__grid">${hours}${details.length ? `<div class="qh-hours__details">${details.join("")}</div>` : ""}</div>`
+    : empty("Hours and location are coming soon.");
+  return wrap(s, heading(s.heading) + body, { extraClass: "qh-hours", ctx });
+}
+
+function renderProcess(s: Sec<"process">, ctx: RenderContext): string {
+  // Numbering comes from the stylesheet's counter(); the markup carries no digits.
+  const steps = (s.items ?? []).map((it) => `<li class="qh-process__step"><h3>${esc(it.title)}</h3>${it.body ? `<p>${esc(it.body)}</p>` : ""}</li>`);
+  const inner = heading(s.heading) + (steps.length ? `<ol class="qh-process__steps">${steps.join("")}</ol>` : empty("No steps have been added yet."));
+  return wrap(s, inner, { extraClass: "qh-process", ctx });
+}
+
+function fileSize(bytes: number | null): string {
+  if (bytes === null || !Number.isFinite(bytes)) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function renderDocuments(s: Sec<"documents">, ctx: RenderContext): string {
+  const docs: SiteDocument[] | undefined = ctx.data.documents;
+  const origin = originOf(ctx);
+  let body: string;
+  if (docs === undefined) {
+    const portal = `${origin}/portal?slug=${encodeURIComponent(ctx.slug)}`;
+    body =
+      `<div class="qh-documents__signin"><p>These files are for members.</p>` +
+      `<a class="qh-btn qh-btn--primary" href="${esc(portal)}">Member sign-in</a></div>`;
+  } else if (!docs.length) {
+    body = empty("No documents have been shared yet.");
+  } else {
+    const items = docs.slice(0, Math.max(1, s.limit || 10)).map((d) => {
+      const url = `${origin}/api/portal/${encodeURIComponent(ctx.slug)}/files/${encodeURIComponent(d.id)}`;
+      const size = fileSize(d.size);
+      return `<li class="qh-document"><a href="${esc(url)}">${esc(d.filename)}</a>${size ? ` <span class="qh-document__size">${esc(size)}</span>` : ""}</li>`;
+    });
+    body = `<ul class="qh-documents__list">${items.join("")}</ul>`;
+  }
+  return wrap(s, heading(s.heading) + body, { extraClass: "qh-documents", ctx });
+}
+
+function renderDonate(s: Sec<"donate">, ctx: RenderContext): string {
+  const amounts = (s.amounts ?? []).filter((n) => Number.isFinite(n) && n >= 100).map((n) => Math.round(n));
+  const buttons = amounts.map((c) => btn("primary", formatMoney(c), `data-donate="${c}"`));
+  buttons.push(btn("secondary", "Other amount", `data-donate="0"`));
+  const inner =
+    `<div class="qh-donate__body">${heading(s.heading)}` +
+    (s.body ? `<p class="qh-lead">${esc(s.body)}</p>` : "") +
+    `</div><div class="qh-donate__amounts">${buttons.join("")}</div>`;
+  return wrap(s, inner, { extraClass: "qh-donate", ctx });
+}
+
+// ---------------------------------------------------------------------------
 // Dispatch
 // ---------------------------------------------------------------------------
 
 function renderOne(s: Section, ctx: RenderContext, opts: Opts): string {
   switch (s.type) {
+    case "timeline":
+      return renderTimeline(s, ctx);
+    case "quote":
+      return renderQuote(s, ctx);
+    case "officers":
+      return renderOfficers(s, ctx);
+    case "benefits":
+      return renderBenefits(s, ctx);
+    case "event_spotlight":
+      return renderSpotlight(s, ctx);
+    case "projects":
+      return renderProjects(s, ctx);
+    case "sponsors":
+      return renderSponsors(s, ctx);
+    case "newsletter_signup":
+      return renderNewsletter(s, ctx);
+    case "services":
+      return renderServices(s, ctx);
+    case "portfolio":
+      return renderPortfolio(s, ctx);
+    case "hours_location":
+      return renderHours(s, ctx);
+    case "process":
+      return renderProcess(s, ctx);
+    case "documents":
+      return renderDocuments(s, ctx);
+    case "donate":
+      return renderDonate(s, ctx);
     case "hero":
       return renderHero(s, ctx, opts);
     case "rich_text":
