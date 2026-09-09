@@ -53,6 +53,8 @@ import { sanitizeHtml, sanitizeUrl } from "../../sanitize";
 import { formatMoney } from "../../utils/money";
 import { toIcsDate } from "../../ical";
 
+// The zone a guild's event times are displayed in when it has not chosen one.
+import { DEFAULT_TIMEZONE } from "../timezone";
 export type SystemPageKind =
   | "membership"
   | "events"
@@ -96,8 +98,6 @@ export const DONATE_AMOUNTS_CENTS: readonly number[] = [1000, 2500, 5000, 10000]
 /** Section id of the donate strip on the `/donate` page; the header CTA targets it. */
 export const DONATE_SECTION_ID = "donate";
 
-/** Used when a guild has not set `settings.timezone`. Workers run in UTC anyway. */
-const DEFAULT_TIMEZONE = "UTC";
 
 // ---------------------------------------------------------------------------
 // Helpers

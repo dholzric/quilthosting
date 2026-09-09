@@ -29,6 +29,8 @@ import { readTenantTheme } from "./themeMigrate";
 import { buildSeoHead, buildLocalBusinessJsonLd, type SeoPage, type SeoBusiness } from "./seo";
 import { buildDesignVars, deriveRoles, designFontsHref, designGround, isDarkDesign } from "./design/tokens";
 import { LOGO_WIDTH, withWidth } from "../images";
+import { readTimeZone } from "./timezone";
+export { readTimeZone, DEFAULT_TIMEZONE } from "./timezone";
 import type { SiteDesign } from "./design/tokens";
 import { readSiteDesign } from "./design/migrate";
 import { renderSections } from "./sections/render";
@@ -468,20 +470,6 @@ function renderFooter(args: SitePageArgs, siteName: string, identity: SeoBusines
 function firstImageHero(sections: Section[]): boolean {
   const s = sections[0];
   return !!s && s.type === "hero" && (s.style?.bg === "image" || s.variant === "image") && !!s.style?.imageId;
-}
-
-/**
- * `settings.timezone`, the IANA zone a guild's event times are shown in.
- * Absent means UTC — right only for a guild that has not said otherwise,
- * which is why the Settings screen asks for it.
- */
-export function readTimeZone(settingsJson: string | null | undefined): string {
-  try {
-    const tz = (JSON.parse(settingsJson || "{}") || {}).timezone;
-    return typeof tz === "string" && tz.trim() ? tz.trim() : "UTC";
-  } catch {
-    return "UTC";
-  }
 }
 
 /** Full document for one page on one host. */
