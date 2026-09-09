@@ -43,14 +43,11 @@ import { generateId } from "../lib/utils/id";
 // route, public.ts's public gallery photo route): allowlists the handful of
 // real raster image types and excludes everything else, including
 // image/svg+xml -- SVG is active content (it can carry inline <script>) and
-// would reopen stored-XSS even though its MIME type looks image-y.
-export const ALLOWED_IMAGE_TYPES = new Set([
-  "image/png",
-  "image/jpeg",
-  "image/gif",
-  "image/webp",
-  "image/avif",
-]);
+// would reopen stored-XSS even though its MIME type looks image-y. The set
+// itself now lives in lib/images.ts (serveImage enforces it); re-exported
+// here for the routes written against this import.
+export { ALLOWED_IMAGE_TYPES } from "../lib/images";
+import { ALLOWED_IMAGE_TYPES, IMAGE_ROW_COLUMNS, serveImage, type ImageRow } from "../lib/images";
 
 // A shop that never finished configuring its agreement can't produce a
 // signable estimate -- shown on GET and enforced again on POST (Task 10 fix
@@ -673,8 +670,8 @@ export function serveBusinessSite(c: Context<{ Bindings: Env }>, tenant: Tenant)
  * the private-preview gate in the first place.
  */
 async function serveTenantImage(c: Context<{ Bindings: Env }>, tenant: Tenant, fileId: string): Promise<Response> {
-  const fileRow = await first<{ r2_key: string; content_type: string | null }>(
-    c.env.DB.prepare(`SELECT r2_key, content_type FROM files WHERE id = ? AND tenant_id = ?`).bind(fileId, tenant.id)
+  const fileRow = await first<ImageRow>(
+    c.env.DB.prepare(`SELECT ${IMAGE_ROW_COLUMNS} FROM files WHERE id = ? AND tenant_id = ?`).bind(fileId, tenant.id)
   );
   if (!fileRow) return new Response("Not found", { status: 404 });
   // Security: this route is served on the tenant's own first-party origin,
@@ -682,30 +679,13 @@ async function serveTenantImage(c: Context<{ Bindings: Env }>, tenant: Tenant, f
   // (fileRoutes.post("/") accepts ANY Content-Type a caller with upload
   // rights sends) would let a stored `text/html` file execute as same-origin
   // script on the tenant's live site -- stored XSS, not cross-tenant, but
-  // real. A route named /img/ has no legitimate reason to serve anything but
-  // an actual raster image, so this allowlists the handful of real image
-  // types and 404s on everything else rather than guessing or falling back
-  // to a default. image/svg+xml is deliberately EXCLUDED: SVG is active
-  // content (it can carry inline <script>) and would reopen the same hole
-  // even though its MIME type looks image-y.
-  const contentType = fileRow.content_type || "";
-  if (!ALLOWED_IMAGE_TYPES.has(contentType)) {
-    return new Response("Not found", { status: 404 });
-  }
-  const obj = await c.env.FILES.get(fileRow.r2_key);
-  if (!obj) return new Response("Not found", { status: 404 });
-  return new Response(obj.body, {
-    headers: {
-      "Content-Type": contentType,
-      // Belt-and-suspenders alongside the allowlist above: even if a browser
-      // tried to sniff the body into a different interpretation than the
-      // declared (already-allowlisted) type, this forbids it.
-      "X-Content-Type-Options": "nosniff",
-      // File ids are immutable -- a replaced image gets a new id, so this can
-      // be cached forever without a purge.
-      "Cache-Control": "public, max-age=31536000, immutable",
-    },
-  });
+  // real. serveImage allowlists the handful of real raster types
+  // (ALLOWED_IMAGE_TYPES; image/svg+xml deliberately excluded), sets
+  // nosniff + immutable caching, and picks a stored variant per ?w= / ?f=
+  // (format negotiated from Accept when ?f is absent). null means nothing
+  // servable -- 404, never a guess.
+  const res = await serveImage(c.env, fileRow, new URL(c.req.url), c.req.header("accept"));
+  return res ?? new Response("Not found", { status: 404 });
 }
 
 async function serveSitemap(c: Context<{ Bindings: Env }>, tenant: Tenant, baseUrl: string): Promise<Response> {

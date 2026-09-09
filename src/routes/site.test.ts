@@ -77,6 +77,18 @@ type State = {
   // Website pages + slug-rename redirects (draft/publish workflow, 0025).
   pages?: SitePage[];
   redirects?: { from_slug: string; to_slug: string }[];
+  // Uploaded files for /img/:fileId (phase 2 Task B: variants + metadata).
+  files?: SiteFile[];
+};
+
+type SiteFile = {
+  id: string;
+  tenant_id: string;
+  r2_key: string;
+  content_type: string | null;
+  variants_json: string | null;
+  width: number | null;
+  height: number | null;
 };
 
 type SitePage = {
@@ -185,6 +197,12 @@ function makeDb(state: State): D1Database {
         return { results: rows.filter((p) => p.slug === slug).slice(0, 1) };
       }
       return { results: rows };
+    }
+    if (sql.includes("FROM files")) {
+      // `WHERE id = ? AND tenant_id = ?` -- both predicates come from the
+      // actual binds, so dropping tenant_id from site.ts would leak here too.
+      const [id, tenantId] = binds as [string, string];
+      return { results: (state.files ?? []).filter((f) => f.id === id && f.tenant_id === tenantId) };
     }
     if (sql.includes("FROM page_redirects")) {
       const [, from] = binds as [string, string];
@@ -311,8 +329,8 @@ function makeEnv(db: D1Database, overrides: Partial<Env> = {}): Env {
 
 // serveBusinessSite takes the resolved tenant as a plain argument, not
 // through Hono's context variables, so the harness just closes over it.
-function harness(tenant: Tenant, state: State) {
-  const env = makeEnv(makeDb(state));
+function harness(tenant: Tenant, state: State, envOverrides: Partial<Env> = {}) {
+  const env = makeEnv(makeDb(state), envOverrides);
   const app = new Hono<{ Bindings: Env }>();
   app.all("*", async (c) => {
     const res = await serveBusinessSite(c, tenant);
@@ -1127,5 +1145,81 @@ describe("serveBusinessSite — pages, trash, redirects", () => {
     cacheKeys.length = 0;
     await app.request("http://stitchstudioquilting.test/", {}, env);
     expect(cacheKeys[0]).not.toBe(before);
+  });
+});
+
+describe("GET /img/:fileId — tenant images via serveImage (phase 2 Task B)", () => {
+  const tenant = makeTenant();
+  const KEY = `${tenant.id}/f1/photo.png`;
+  const VARIANTS = [
+    { w: 480, format: "webp", key: `${KEY}/w480.webp`, bytes: 10 },
+    { w: 480, format: "jpeg", key: `${KEY}/w480.jpg`, bytes: 12 },
+    { w: 960, format: "webp", key: `${KEY}/w960.webp`, bytes: 20 },
+  ];
+
+  function bucket(objects: Record<string, string>) {
+    const gets: string[] = [];
+    const FILES = {
+      async get(key: string) {
+        gets.push(key);
+        return key in objects ? { body: new TextEncoder().encode(objects[key]) } : null;
+      },
+    } as unknown as R2Bucket;
+    return { FILES, gets };
+  }
+
+  function file(overrides: Partial<SiteFile> = {}): SiteFile {
+    return { id: "f1", tenant_id: tenant.id, r2_key: KEY, content_type: "image/png", variants_json: null, width: null, height: null, ...overrides };
+  }
+
+  it("serves the original with the same headers as before when the file has no variants", async () => {
+    const state = makeState();
+    state.files = [file()];
+    const { FILES, gets } = bucket({ [KEY]: "PNG" });
+    const { app, env } = harness(tenant, state, { FILES });
+    const res = await app.request("http://stitchstudioquilting.test/img/f1?w=480", { headers: { Accept: "image/webp" } }, env);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("PNG");
+    expect(res.headers.get("Content-Type")).toBe("image/png");
+    expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
+    expect(res.headers.get("Cache-Control")).toBe("public, max-age=31536000, immutable");
+    expect(res.headers.get("Vary")).toBeNull();
+    expect(gets).toEqual([KEY]);
+  });
+
+  it("serves the nearest stored variant for ?w= and negotiates WebP from Accept (Vary: Accept)", async () => {
+    const state = makeState();
+    state.files = [file({ variants_json: JSON.stringify(VARIANTS), width: 3000, height: 2000 })];
+    const { FILES } = bucket({ [`${KEY}/w960.webp`]: "W960", [`${KEY}/w480.jpg`]: "J480" });
+    const { app, env } = harness(tenant, state, { FILES });
+
+    const webp = await app.request("http://stitchstudioquilting.test/img/f1?w=700", { headers: { Accept: "image/webp,*/*" } }, env);
+    expect(webp.status).toBe(200);
+    expect(await webp.text()).toBe("W960");
+    expect(webp.headers.get("Content-Type")).toBe("image/webp");
+    expect(webp.headers.get("Vary")).toBe("Accept");
+
+    const jpeg = await app.request("http://stitchstudioquilting.test/img/f1?w=480&f=jpeg", { headers: { Accept: "image/webp" } }, env);
+    expect(await jpeg.text()).toBe("J480");
+    expect(jpeg.headers.get("Content-Type")).toBe("image/jpeg");
+    expect(jpeg.headers.get("Vary")).toBeNull();
+  });
+
+  it("404s for a non-raster content type, a missing row, another tenant's file, and a missing object", async () => {
+    const state = makeState();
+    state.files = [
+      file({ id: "html", content_type: "text/html" }),
+      file({ id: "svg", content_type: "image/svg+xml" }),
+      file({ id: "theirs", tenant_id: "someone-else" }),
+      file({ id: "gone", r2_key: "nope" }),
+    ];
+    const { FILES, gets } = bucket({ [KEY]: "PNG" });
+    const { app, env } = harness(tenant, state, { FILES });
+    for (const id of ["html", "svg", "theirs", "missing", "gone"]) {
+      const res = await app.request(`http://stitchstudioquilting.test/img/${id}`, {}, env);
+      expect(res.status, id).toBe(404);
+    }
+    // Only the "gone" row was allowed to reach R2 at all.
+    expect(gets).toEqual(["nope"]);
   });
 });

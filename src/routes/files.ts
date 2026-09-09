@@ -1,9 +1,21 @@
 import { Hono } from "hono";
+import { z } from "zod";
 import type { Env, TenantVariables } from "../types";
 import type { AuthVariables } from "../middleware/auth";
 import { all, first } from "../lib/db";
 import { generateId } from "../lib/utils/id";
 import { sniffImageType } from "../lib/projects/imageSniff";
+import {
+  ALLOWED_IMAGE_TYPES,
+  EXT_FOR,
+  MAX_IMAGE_DIMENSION,
+  VARIANT_WIDTHS,
+  normalizeFormat,
+  parseFocal,
+  parseVariants,
+  type ImageFormat,
+  type ImageVariant,
+} from "../lib/images";
 
 export const fileRoutes = new Hono<{
   Bindings: Env;
@@ -17,10 +29,18 @@ type FileRow = {
   content_type: string | null;
   size: number | null;
   created_at: string;
+  width?: number | null;
+  height?: number | null;
+  variants_json?: string | null;
+  focal_json?: string | null;
+  alt?: string | null;
 };
 
 const MAX_SIZE = 25 * 1024 * 1024; // 25 MB
 const LOGO_MAX = 2 * 1024 * 1024; // 2 MB
+const VARIANT_PART_MAX = 6 * 1024 * 1024; // 6 MB per variant
+const VARIANTS_TOTAL_MAX = 25 * 1024 * 1024; // 25 MB per upload
+const VARIANT_PARTS_MAX = VARIANT_WIDTHS.length * 2; // every width in both formats
 
 function parseSettings(json: string | null | undefined): Record<string, any> {
   try {
@@ -77,11 +97,24 @@ fileRoutes.get("/", async (c) => {
   const tenant = c.get("tenant");
   const rows = await all<FileRow>(
     c.env.DB.prepare(
-      `SELECT id, filename, content_type, size, created_at
+      `SELECT id, filename, content_type, size, created_at, width, height, variants_json, focal_json, alt
        FROM files WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 200`
     ).bind(tenant.id)
   );
-  return c.json(rows);
+  return c.json(
+    rows.map((r) => ({
+      id: r.id,
+      filename: r.filename,
+      content_type: r.content_type,
+      size: r.size,
+      created_at: r.created_at,
+      width: r.width ?? null,
+      height: r.height ?? null,
+      focal: parseFocal(r.focal_json) ?? null,
+      alt: r.alt ?? null,
+      has_variants: parseVariants(r.variants_json).length > 0,
+    }))
+  );
 });
 
 // POST /api/tenants/:tenantId/files — raw body upload, ?filename= required
@@ -266,6 +299,158 @@ fileRoutes.get("/:fileId/download", async (c) => {
       "X-Content-Type-Options": "nosniff",
     },
   });
+});
+
+// Part names the variants upload accepts: w<width>.<ext> for the canonical
+// widths, in WebP or JPEG. Anything else is a 400 -- the server never
+// invents a width or a format from a client's file name.
+const VARIANT_PART_RE = /^w(\d{3,4})\.(webp|jpg)$/;
+const SNIFFED_FOR: Record<ImageFormat, string> = { webp: "image/webp", jpeg: "image/jpeg" };
+
+/** Positive integer <= MAX_IMAGE_DIMENSION from a header, else undefined. */
+function parseDimension(raw: string | undefined): number | undefined {
+  const s = (raw || "").trim();
+  if (!/^\d{1,5}$/.test(s)) return undefined;
+  const n = Number(s);
+  return n > 0 && n <= MAX_IMAGE_DIMENSION ? n : undefined;
+}
+
+/**
+ * POST /api/tenants/:tenantId/files/:fileId/variants — store browser-made
+ * responsive variants of an already-uploaded raster image.
+ *
+ * Multipart body, parts named `w480.webp`, `w480.jpg`, `w960.webp`, …
+ * `w2400.jpg` (up to 8). Every part is re-validated from its BYTES with
+ * sniffImageType and must match the format its name declares -- the
+ * client's Content-Type and file name are never trusted. Nothing is written
+ * to R2 until every part has passed, so a bad part means nothing is stored.
+ * Variants land at `${r2_key}/w<w>.<ext>`; `variants_json` is merged by
+ * (w, format) so a second batch keeps the first; `width`/`height` of the
+ * original are recorded from `X-Image-Width`/`X-Image-Height` only when
+ * both are positive integers <= 12000.
+ */
+fileRoutes.post("/:fileId/variants", async (c) => {
+  const tenant = c.get("tenant");
+  const fileId = c.req.param("fileId");
+  if (fileId === "logo") return c.json({ error: "Not found" }, 404);
+  const row = await first<FileRow>(
+    c.env.DB.prepare(
+      "SELECT id, r2_key, filename, content_type, size, created_at, width, height, variants_json FROM files WHERE id = ? AND tenant_id = ?"
+    ).bind(fileId, tenant.id)
+  );
+  if (!row) return c.json({ error: "File not found" }, 404);
+  if (!ALLOWED_IMAGE_TYPES.has(row.content_type || "")) {
+    return c.json({ error: "Variants can only be added to a PNG, JPEG, GIF, WebP, or AVIF image" }, 415);
+  }
+
+  const form = await c.req.formData().catch(() => null);
+  if (!form) return c.json({ error: "Expected a multipart/form-data body" }, 400);
+
+  const incoming: { w: number; format: ImageFormat; bytes: ArrayBuffer }[] = [];
+  let total = 0;
+  for (const [name, value] of form.entries()) {
+    const m = VARIANT_PART_RE.exec(name);
+    if (!m) return c.json({ error: `Unexpected part "${name.slice(0, 40)}"; expected w<width>.webp or w<width>.jpg` }, 400);
+    const w = Number(m[1]);
+    if (!(VARIANT_WIDTHS as readonly number[]).includes(w)) {
+      return c.json({ error: `Unsupported variant width ${w}; expected one of ${VARIANT_WIDTHS.join(", ")}` }, 400);
+    }
+    const format = normalizeFormat(m[2])!;
+    if (typeof value === "string") return c.json({ error: `Part "${name}" must be a file` }, 400);
+    if (incoming.length >= VARIANT_PARTS_MAX) return c.json({ error: `At most ${VARIANT_PARTS_MAX} variants per upload` }, 400);
+    if (value.size > VARIANT_PART_MAX) return c.json({ error: `Variant ${name} is too large (6 MB max)` }, 413);
+    total += value.size;
+    if (total > VARIANTS_TOTAL_MAX) return c.json({ error: "Variants total too large (25 MB max)" }, 413);
+    const bytes = await value.arrayBuffer();
+    if (!bytes.byteLength) return c.json({ error: `Variant ${name} is empty` }, 400);
+    const sniffed = sniffImageType(new Uint8Array(bytes));
+    if (sniffed !== SNIFFED_FOR[format]) {
+      return c.json(
+        { error: `Variant ${name} does not contain ${SNIFFED_FOR[format]} data${sniffed ? ` (found ${sniffed})` : ""}` },
+        415
+      );
+    }
+    incoming.push({ w, format, bytes });
+  }
+  if (!incoming.length) return c.json({ error: "No variants in the body" }, 400);
+
+  // Every part validated -- now write. Variants are keyed by (w, format);
+  // a re-upload of the same slot replaces it.
+  const merged = new Map<string, ImageVariant>();
+  for (const v of parseVariants(row.variants_json)) merged.set(`${v.w}.${v.format}`, v);
+  for (const v of incoming) {
+    const key = `${row.r2_key}/w${v.w}.${EXT_FOR[v.format]}`;
+    await c.env.FILES.put(key, v.bytes, { httpMetadata: { contentType: SNIFFED_FOR[v.format] } });
+    merged.set(`${v.w}.${v.format}`, { w: v.w, format: v.format, key, bytes: v.bytes.byteLength });
+  }
+  const variants = [...merged.values()].sort((a, b) => a.w - b.w || a.format.localeCompare(b.format));
+
+  const width = parseDimension(c.req.header("X-Image-Width"));
+  const height = parseDimension(c.req.header("X-Image-Height"));
+  const sets = ["variants_json = ?"];
+  const binds: unknown[] = [JSON.stringify(variants)];
+  if (width !== undefined && height !== undefined) {
+    sets.push("width = ?", "height = ?");
+    binds.push(width, height);
+  }
+  await c.env.DB.prepare(`UPDATE files SET ${sets.join(", ")} WHERE id = ? AND tenant_id = ?`)
+    .bind(...binds, fileId, tenant.id)
+    .run();
+
+  return c.json({
+    id: fileId,
+    variants,
+    width: width !== undefined && height !== undefined ? width : (row.width ?? null),
+    height: width !== undefined && height !== undefined ? height : (row.height ?? null),
+  });
+});
+
+const unit = z.number().min(0).max(1);
+const patchFileSchema = z
+  .object({
+    focal: z.tuple([unit, unit]).nullable().optional(),
+    alt: z.string().max(200).nullable().optional(),
+  })
+  .strict()
+  .refine((b) => b.focal !== undefined || b.alt !== undefined, { message: "Provide focal and/or alt" });
+
+/**
+ * PATCH /api/tenants/:tenantId/files/:fileId — focal point (`[x, y]` in
+ * 0..1, stored as focal_json) and/or alt text (<= 200 chars). `null` clears
+ * either. Only the fields present are written.
+ */
+fileRoutes.patch("/:fileId", async (c) => {
+  const tenant = c.get("tenant");
+  const fileId = c.req.param("fileId");
+  if (fileId === "logo") return c.json({ error: "Use POST /files/logo" }, 400);
+  const raw = await c.req.json().catch(() => null);
+  const parsed = patchFileSchema.safeParse(raw);
+  if (!parsed.success) return c.json({ error: "Invalid input", details: parsed.error.flatten() }, 400);
+  const body = parsed.data;
+
+  const row = await first<FileRow>(
+    c.env.DB.prepare("SELECT id, focal_json, alt FROM files WHERE id = ? AND tenant_id = ?").bind(fileId, tenant.id)
+  );
+  if (!row) return c.json({ error: "File not found" }, 404);
+
+  const sets: string[] = [];
+  const binds: unknown[] = [];
+  let focal = parseFocal(row.focal_json) ?? null;
+  let alt = row.alt ?? null;
+  if (body.focal !== undefined) {
+    focal = body.focal;
+    sets.push("focal_json = ?");
+    binds.push(focal ? JSON.stringify(focal) : null);
+  }
+  if (body.alt !== undefined) {
+    alt = body.alt === null ? null : body.alt.trim() || null;
+    sets.push("alt = ?");
+    binds.push(alt);
+  }
+  await c.env.DB.prepare(`UPDATE files SET ${sets.join(", ")} WHERE id = ? AND tenant_id = ?`)
+    .bind(...binds, fileId, tenant.id)
+    .run();
+  return c.json({ ok: true, id: fileId, focal, alt });
 });
 
 // DELETE /api/tenants/:tenantId/files/:fileId
