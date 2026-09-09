@@ -31,8 +31,13 @@ describe("public/qh-site.js — shape", () => {
     expect(site).toContain('"use strict"');
   });
 
-  it("stays under the ~760 line budget (700 + the phase-2 newsletter and directory-search islands)", () => {
-    expect(site.split("\n").length).toBeLessThan(760);
+  it("stays under the ~790 line budget (700 + phase-2 islands + price disclosure)", () => {
+    // The cap keeps the bundle every visitor downloads small; it is not meant
+    // to freeze it. The last rise bought stating what a paid registration
+    // costs before the form asks for a name — a guild officer registered for a
+    // $55 class and reported that it never asked her to pay, because the
+    // dialog said nothing about money until Stripe.
+    expect(site.split("\n").length).toBeLessThan(790);
   });
 
   it.each(MODULES)("defines module %s as a named function", (name) => {

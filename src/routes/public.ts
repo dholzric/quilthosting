@@ -7,6 +7,7 @@ import {
   createCheckoutSession,
   retrieveCheckoutSession,
   checkoutHoldExpiry,
+  PayoutsNotConnectedError,
 } from "../lib/stripe";
 import { extractBearer, verifyJwt } from "../lib/auth";
 import {
@@ -1478,6 +1479,12 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
       )
       .bind(regId, tenant.id)
       .run();
+    // A guild that never connected payouts cannot be allowed to sell: the
+    // charge would land in the platform balance and the guild would never
+    // see it. Say so plainly instead of failing as an unexplained 502.
+    if (err instanceof PayoutsNotConnectedError) {
+      return c.json({ error: "This guild has not finished setting up payments, so paid registration is not available yet. Please contact the guild." }, 503);
+    }
     console.error("Checkout session failed", err);
     return c.json({ error: "Payment session could not be created" }, 502);
   }

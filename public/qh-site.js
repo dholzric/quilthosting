@@ -165,19 +165,22 @@
     var dlg = makeDialog("qh-dialog--signup", ""), form = el("form", "qh-form");
     var first = textInput("text", "first_name", "First name"), last = textInput("text", "last_name", "Last name");
     var email = textInput("email", "email", "you@example.com", true), custom = el("div", "qh-form__custom");
+    var note = el("p", "qh-form__note");
     var submit = el("button", "qh-btn qh-btn--primary", "Continue");
     submit.type = "submit";
-    form.append(labelled("First name", first), labelled("Last name", last), labelled("Email", email), custom, submit);
+    form.append(note, labelled("First name", first), labelled("Last name", last), labelled("Email", email), custom, submit);
     form.addEventListener("submit", submitSignup);
     dlg.body.appendChild(form);
-    signup = { dlg: dlg, first: first, last: last, email: email, custom: custom, submit: submit, action: null };
+    signup = { dlg: dlg, first: first, last: last, email: email, custom: custom, submit: submit, note: note, action: null };
     return signup;
   }
   function openSignup(title, action, opener) {
     var s = ensureSignup();
     s.action = action;
     s.dlg.title.textContent = title;
-    s.submit.textContent = action.type === "join" ? "Join" : "Register";
+    s.submit.textContent = action.price ? "Continue to payment" : action.type === "join" ? "Join" : "Register";
+    s.note.textContent = action.price || "";
+    s.note.hidden = !action.price;
     s.custom.replaceChildren();
     (action.fields || []).forEach(function (f) {
       s.custom.appendChild(labelled(f.label + (f.required ? " *" : ""), customFieldInput(f)));
@@ -213,7 +216,18 @@
   }
   function openEventSignup(ev, opener) {
     if (!ev.registration_open) { toast("err", ev.title + " — registration is closed."); return; }
-    openSignup("Register — " + ev.title, { type: "event", eventId: ev.id, fields: ev.questions || [] }, opener);
+    openSignup("Register — " + ev.title, {
+      type: "event", eventId: ev.id, fields: ev.questions || [], price: eventPriceNote(ev),
+    }, opener);
+  }
+  /** What this event costs, or "" when it is free. Members may pay less, and
+      which price applies is the server's call, so both are named. */
+  function eventPriceNote(ev) {
+    var m = Number(ev.member_price_cents) || 0, n = Number(ev.non_member_price_cents) || 0;
+    if (!m && !n) return "";
+    if (m === n) return "This event costs " + money(m) + ". You will be taken to payment next.";
+    return "Members " + money(m) + " · Non-members " + money(n) +
+      ". You will be taken to payment next, at the price that applies to you.";
   }
   // ---- Module: nav (phone drawer; .qh-drawer is a <dialog> in the stylesheet) --
   function initNav() {

@@ -124,10 +124,27 @@ export function checkoutHoldExpiry(now: Date = new Date()): {
   return { iso: new Date(ms).toISOString(), unix: Math.floor(ms / 1000) };
 }
 
+/**
+ * Raised when a tenant tries to take money with no connected account.
+ *
+ * Every type this function handles — dues, event, store, donation — is the
+ * GUILD's money. Without a connected account there is no destination on the
+ * charge, so Stripe puts it in the PLATFORM's balance: the member is charged,
+ * the guild is never paid, and QuiltMap is holding funds it has no record of
+ * owing. Refusing is the only correct answer.
+ */
+export class PayoutsNotConnectedError extends Error {
+  constructor() {
+    super("This guild has not connected payouts yet, so it cannot take payments.");
+    this.name = "PayoutsNotConnectedError";
+  }
+}
+
 export async function createCheckoutSession(
   env: Env,
   params: CreateCheckoutParams
 ): Promise<{ id: string; url: string }> {
+  if (!params.stripeAccountId?.startsWith("acct_")) throw new PayoutsNotConnectedError();
   const body: Record<string, string | number | undefined> = {
     mode: params.mode || "payment",
     success_url: params.successUrl,
