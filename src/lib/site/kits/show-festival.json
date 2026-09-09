@@ -22,7 +22,7 @@
         {
           "type": "hero", "id": "welcome", "variant": "stats",
           "eyebrow": "The 2026 show · October 16–18",
-          "title": "{{guild_name}} Quilt Show",
+          "title": "The {{guild_name}} Show",
           "subtitle": "Sample text — replace me: Three days of judged quilts, vendors, and a judged youth category, held in {{city}}.",
           "ctaLabel": "Show details", "ctaHref": "/the-show",
           "secondaryLabel": "Join the guild", "secondaryHref": "/membership",

@@ -2,7 +2,7 @@
   "id": "longarm-studio",
   "name": "Longarm Studio",
   "audience": "business",
-  "character": "Photo hero, services with pricing, portfolio, quote intake, testimonials.",
+  "character": "Split hero built for one studio photo, services priced by the square inch, portfolio, quote intake, testimonials.",
   "defaults": {
     "palette": "jewel-sapphire",
     "typePair": "playfair-lato",
