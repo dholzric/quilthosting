@@ -504,6 +504,14 @@
         });
         token = data.token;
         localStorage.setItem("gb_token", token);
+        // Signing in is not resuming a session. enterApp()'s resume branch
+        // sends a platform admin straight back to the last guild opened on
+        // this browser, which made every login land on the same guild with no
+        // way back to the picker short of signing out. Clear the selection so
+        // a fresh sign-in offers the list; a page reload still resumes,
+        // because it does not come through here.
+        tenantId = null;
+        localStorage.removeItem("gb_tenant_id");
         await enterApp();
       } catch (e) {
         errEl.textContent = e.message;
@@ -972,6 +980,13 @@
       try {
         state = await api(`/api/tenants/${id}/first-run`);
       } catch {
+        localStorage.removeItem(FR_MARKER);
+        return false;
+      }
+      // The marker is per-device and outlives the run that set it: the guild
+      // may have been finished here, on another device, or by someone else.
+      // The server decides, and a finished guild goes to the dashboard.
+      if (state.done) {
         localStorage.removeItem(FR_MARKER);
         return false;
       }
@@ -9563,6 +9578,7 @@
     }
     function logout() {
       localStorage.removeItem("gb_token");
+      localStorage.removeItem(FR_MARKER);
       localStorage.removeItem("gb_tenant_id");
       localStorage.removeItem("gb_tenant_slug");
       localStorage.removeItem("gb_tenant_name");
