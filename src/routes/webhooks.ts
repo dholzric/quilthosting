@@ -295,6 +295,9 @@ async function handleCheckoutCompleted(
   const stmts: D1PreparedStatement[] = [];
   const outboxIds: string[] = [];
   const afterCommit: Array<() => Promise<void>> = [];
+  // Set when this checkout confirms an event seat, so the automation trigger
+  // can fire after the fulfilment batch commits.
+  let paidRegistration: { id: string; eventId: string } | null = null;
 
   const addEvent = (name: WebhookEventName, payload: Record<string, unknown>) => {
     const ev = prepareEvent(env, tenantId, name, payload);
@@ -406,6 +409,9 @@ async function handleCheckoutCompleted(
           )
           .bind(amountTotal, now, relatedId, tenantId)
       );
+      // A paid registration is confirmed here, not on the public route, so
+      // this is the only place `event_registered` can fire for it.
+      paidRegistration = { id: relatedId, eventId: reg.event_id };
       const eventRow = await first<{ title: string; start_at: string; location: string | null }>(
         db
           .prepare("SELECT title, start_at, location FROM events WHERE id = ? AND tenant_id = ?")
@@ -531,6 +537,12 @@ async function handleCheckoutCompleted(
   // enqueueTrigger never throws, so an automation can never cost a payer
   // their membership, seat or order.
   await enqueueTrigger(env, tenantId, "payment_received", { id: paymentId, amountCents: amountTotal });
+  if (paidRegistration) {
+    await enqueueTrigger(env, tenantId, "event_registered", {
+      id: paidRegistration.id,
+      eventId: paidRegistration.eventId,
+    });
+  }
   for (const fn of afterCommit) {
     try {
       await fn();

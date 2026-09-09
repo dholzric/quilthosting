@@ -594,13 +594,13 @@ describe("PATCH /api/tenants/:id — settings.ui and settings.features", () => {
     const { res, writes } = await patchSettings({
       profile: { description: "keep me" },
       ui: { advanced: true },
-      features: { reports: true, recipes: false },
+      features: { waivers: true, recipes: false },
     });
     expect(res.status).toBe(200);
     expect(writes).toHaveLength(1);
     const stored = JSON.parse(writes[0].binds[0] as string);
     expect(stored.ui).toEqual({ advanced: true });
-    expect(stored.features).toEqual({ reports: true, recipes: false });
+    expect(stored.features).toEqual({ waivers: true, recipes: false });
     expect(stored.profile.description).toBe("keep me");
   });
 
@@ -618,10 +618,10 @@ describe("PATCH /api/tenants/:id — settings.ui and settings.features", () => {
   });
 
   it("rejects a non-boolean feature value with an issue under settings.features", async () => {
-    const { res, writes, body } = await patchSettings({ features: { reports: "yes" } });
+    const { res, writes, body } = await patchSettings({ features: { waivers: "yes" } });
     expect(res.status).toBe(400);
     expect(writes).toHaveLength(0);
-    expect(body.issues.some((i: any) => i.path === "settings.features.reports")).toBe(true);
+    expect(body.issues.some((i: any) => i.path === "settings.features.waivers")).toBe(true);
   });
 
   it("drops an unknown feature key instead of failing the save", async () => {
