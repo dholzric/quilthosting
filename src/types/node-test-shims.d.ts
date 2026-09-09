@@ -32,6 +32,25 @@ declare module "node:url" {
   export function fileURLToPath(url: string | URL): string;
 }
 
+// src/lib/automations/testDb.ts runs the automations tests against a real
+// in-memory SQLite so the UNIQUE index behind enqueueTrigger's idempotency and
+// the conditional-UPDATE lease are exercised for real rather than faked.
+// Node 22 ships this as an experimental built-in; only the handful of calls
+// that file makes are declared.
+declare module "node:sqlite" {
+  export class StatementSync {
+    get(...params: unknown[]): unknown;
+    all(...params: unknown[]): unknown[];
+    run(...params: unknown[]): { changes: number | bigint; lastInsertRowid: number | bigint };
+  }
+  export class DatabaseSync {
+    constructor(path: string, options?: { enableForeignKeyConstraints?: boolean });
+    exec(sql: string): void;
+    prepare(sql: string): StatementSync;
+    close(): void;
+  }
+}
+
 interface ImportMeta {
   url: string;
 }

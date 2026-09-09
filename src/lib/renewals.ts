@@ -9,6 +9,7 @@ import {
 } from "./email";
 import { portalUrl } from "./memberships";
 import { formatMoney } from "./utils/money";
+import { enqueueTrigger } from "./automations/triggers";
 
 type MembershipRow = {
   id: string;
@@ -195,6 +196,9 @@ export async function runRenewalJob(env: Env): Promise<{
         )
           .bind(new Date().toISOString(), row.member_id)
           .run();
+        // Additive: enqueueTrigger never throws and never touches this loop's
+        // writes, so a "renewal ladder" automation cannot stop a lapse.
+        await enqueueTrigger(env, row.tenant_id, "membership_lapsed", { id: row.member_id });
       }
       result.expired++;
     }

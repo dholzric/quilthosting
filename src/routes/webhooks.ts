@@ -23,6 +23,7 @@ import {
   parseOrderItems,
 } from "../lib/fulfillment";
 import { prepareEvent, scheduleDispatch } from "../lib/webhookOutbox";
+import { enqueueTrigger } from "../lib/automations/triggers";
 import type { WebhookEventName } from "../lib/webhookEvents";
 
 export const webhookRoutes = new Hono<{ Bindings: Env }>();
@@ -526,6 +527,10 @@ async function handleCheckoutCompleted(
   }
 
   for (const id of outboxIds) await scheduleDispatch(env, ctx, id);
+  // Additive and post-commit: fulfilment is already stamped above, and
+  // enqueueTrigger never throws, so an automation can never cost a payer
+  // their membership, seat or order.
+  await enqueueTrigger(env, tenantId, "payment_received", { id: paymentId, amountCents: amountTotal });
   for (const fn of afterCommit) {
     try {
       await fn();

@@ -7561,40 +7561,126 @@
       if (w) { w.document.write(html); w.document.close(); }
     }
 
+    /* ——— AUTOMATIONS (phase 3, Task E) ————————————————————————————————
+       Three parts, each with its own switch:
+         · Recipes — shown whenever settings.features.recipes is on (the
+           default). One click installs a ready-made sequence as an ordinary
+           editable row.
+         · The step editor — trigger, then "wait N days / subject / message"
+           rows — shown only when settings.features.automations_v2 is on. The
+           server applies the same gate, so this is presentation, not security.
+         · The list of sequences, always shown.
+       There is no JSON on this screen. Steps are stored as
+       {waitDays, subject, bodyHtml}; the API also still reads the legacy
+       {delay_days, body_html} spelling for rows written before 0029.
+       Field values are assigned as .value rather than interpolated into a
+       value="" attribute: esc() escapes < > &, not quotes, and email subjects
+       are exactly the kind of copy that contains a quote. */
+    let autoDraft = null; /* { id, name, trigger, steps:[{waitDays,subject,bodyHtml}] } */
+    let autoTriggers = []; /* [{value,label}] — what the server will accept */
+    let autoRows = []; /* the sequences currently listed, for autoEdit */
+    let autoV2 = false;
+
+    function autoBlankStep(waitDays) {
+      return { waitDays: waitDays || 0, subject: "", bodyHtml: "" };
+    }
+    function autoNewDraft() {
+      autoDraft = { id: null, name: "", trigger: "member_activated", steps: [autoBlankStep(0)] };
+    }
+    /* Accepts either step spelling so a pre-0029 sequence opens in the editor. */
+    function autoStepsOf(row) {
+      let raw = [];
+      try { raw = JSON.parse((row && row.steps_json) || "[]"); } catch { raw = []; }
+      if (!Array.isArray(raw)) raw = [];
+      return raw.map((s) => ({
+        waitDays: Number(s && s.waitDays != null ? s.waitDays : (s && s.delay_days)) || 0,
+        subject: String((s && s.subject) || ""),
+        bodyHtml: String((s && (s.bodyHtml != null ? s.bodyHtml : s.body_html)) || ""),
+      }));
+    }
+    function autoTriggerLabel(value) {
+      const t = autoTriggers.find((x) => x.value === value);
+      return t ? t.label : value;
+    }
+
     async function renderAutomations(el) {
-      let rows = [];
+      el.innerHTML = `<h2>Automations</h2><p class="muted">Loading…</p>`;
+      let recipes = { enabled: false, recipes: [] };
+      let meta = { automations_v2: false, triggers: [] };
       try {
-        const data = await api(`/api/tenants/${tenantId}/automations`);
-        rows = asList(data, "automations");
+        const results = await Promise.all([
+          api(`/api/tenants/${tenantId}/automations`),
+          api(`/api/tenants/${tenantId}/automations/recipes`).catch(() => null),
+          api(`/api/tenants/${tenantId}/automations/triggers`).catch(() => null),
+        ]);
+        autoRows = asList(results[0], "automations");
+        if (results[1]) recipes = results[1];
+        if (results[2]) meta = results[2];
       } catch (e) {
         el.innerHTML = `<h2>Automations</h2><p class="error">${esc(e.message)}</p>`; return;
       }
+      autoTriggers = Array.isArray(meta.triggers) ? meta.triggers : [];
+      autoV2 = meta.automations_v2 === true;
+      if (!autoDraft) autoNewDraft();
+      const rows = autoRows;
+
+      const recipeCards = (recipes.recipes || []).map((r) => `
+        <div class="card" style="margin:0">
+          <strong>${esc(r.name)}</strong>
+          <p class="muted" style="font-size:0.85rem;margin:0.35rem 0">${esc(r.description)}</p>
+          <p class="muted" style="font-size:0.8rem;margin:0 0 0.6rem">${esc(r.trigger_label || r.trigger)} · ${r.steps} email${r.steps === 1 ? "" : "s"}</p>
+          ${r.installed
+            ? `<button class="secondary" disabled>Installed</button>`
+            : `<button onclick='autoInstallRecipe(${JSON.stringify(r.id)})'>Install</button>`}
+        </div>`).join("");
+
       el.innerHTML = `
-        <h2>Email automations</h2>
-        <p class="muted" style="margin-bottom:1rem">Multi-step welcome series after a member activates. Merge fields: {{first_name}}, {{guild_name}}, {{email}}.</p>
+        <h2>Automations</h2>
+        <p class="muted" style="margin-bottom:1rem">Emails that send themselves when something happens. Merge fields: {{first_name}}, {{last_name}}, {{guild_name}}, {{email}}.</p>
+
+        ${recipes.enabled ? `
         <div class="card">
-          <h3 style="margin-bottom:0.75rem">New welcome sequence</h3>
-          <label>Name</label><input id="auto-name" placeholder="New member welcome" />
-          <label>Steps JSON (delay_days, subject, body_html)</label>
-          <textarea id="auto-steps" rows="6" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px;font:ui-monospace,monospace;font-size:0.85rem">[
-  {"delay_days":0,"subject":"Welcome to {{guild_name}}!","body_html":"<p>Hi {{first_name}}, we're glad you're here.</p>"},
-  {"delay_days":3,"subject":"Getting started","body_html":"<p>Here's how to renew and find events…</p>"}
-]</textarea>
-          <button onclick="saveAutomation()" style="margin-top:0.5rem">Create sequence</button>
-          <span id="auto-msg" class="muted" style="margin-left:0.5rem"></span>
-        </div>
+          <h3 style="margin-bottom:0.25rem">Ready-made automations</h3>
+          <p class="muted" style="font-size:0.85rem;margin-bottom:0.75rem">Install one in a click, then edit the wording, the timing or the steps however you like. Installing never emails people who joined or lapsed in the past.</p>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:0.75rem">${recipeCards}</div>
+          <p id="auto-recipe-msg" class="muted" style="margin-top:0.6rem"></p>
+        </div>` : ""}
+
+        ${autoV2 ? `
+        <div class="card" id="auto-editor">
+          <h3 style="margin-bottom:0.75rem">${autoDraft.id ? "Edit sequence" : "Build your own"}</h3>
+          <label for="auto-name">Name</label>
+          <input id="auto-name" placeholder="New member welcome" />
+          <label for="auto-trigger">When this happens</label>
+          <select id="auto-trigger">
+            ${autoTriggers.map((t) => `<option value="${esc(t.value)}">${esc(t.label)}</option>`).join("")}
+          </select>
+          <div id="auto-steps" style="margin-top:1rem"></div>
+          <button class="secondary" onclick="autoAddStep()">Add another email</button>
+          <div style="margin-top:1rem">
+            <button onclick="saveAutomation()">${autoDraft.id ? "Save changes" : "Create sequence"}</button>
+            ${autoDraft.id ? `<button class="secondary" onclick="autoCancelEdit()">Cancel</button>` : ""}
+            <span id="auto-msg" class="muted" style="margin-left:0.5rem"></span>
+          </div>
+        </div>` : `
         <div class="card">
+          <p class="muted" style="margin:0">Want to build your own, step by step? Turn on <strong>Automation builder</strong> in Settings → Advanced.</p>
+        </div>`}
+
+        <div class="card">
+          <h3 style="margin-bottom:0.75rem">Your automations</h3>
           <table>
-            <thead><tr><th>Name</th><th>Trigger</th><th>Active</th><th></th></tr></thead>
+            <thead><tr><th>Name</th><th>When</th><th>Active</th><th></th></tr></thead>
             <tbody>
-              ${rows.length===0?"<tr><td colspan='4' class='muted'>No sequences yet</td></tr>":rows.map((r)=>{
-                let steps=[]; try{steps=JSON.parse(r.steps_json||"[]");}catch{}
+              ${rows.length === 0 ? `<tr><td colspan='4' class='muted'>Nothing yet. ${recipes.enabled ? "Install a ready-made one above to get started — you can rewrite every word afterwards." : "Turn on Automation builder in Settings → Advanced to make one."}</td></tr>` : rows.map((r) => {
+                const steps = autoStepsOf(r);
                 return `<tr>
-                  <td><strong>${esc(r.name)}</strong><br><span class="muted" style="font-size:0.8rem">${steps.length} step(s)</span></td>
-                  <td>${esc(r.trigger_event)}</td>
-                  <td>${r.is_active?"yes":"no"}</td>
+                  <td><strong>${esc(r.name)}</strong><br><span class="muted" style="font-size:0.8rem">${steps.length} email${steps.length === 1 ? "" : "s"}</span></td>
+                  <td>${esc(autoTriggerLabel(r.trigger_event))}</td>
+                  <td>${r.is_active ? "yes" : "no"}</td>
                   <td>
-                    <button class="secondary" onclick='toggleAutomation(${JSON.stringify(r.id)}, ${r.is_active?0:1})'>${r.is_active?"Pause":"Activate"}</button>
+                    ${autoV2 ? `<button class="secondary" onclick='autoEdit(${JSON.stringify(r.id)})'>Edit</button>` : ""}
+                    <button class="secondary" onclick='toggleAutomation(${JSON.stringify(r.id)}, ${r.is_active ? 0 : 1})'>${r.is_active ? "Pause" : "Activate"}</button>
                     <button class="secondary" onclick='deleteAutomation(${JSON.stringify(r.id)})'>Delete</button>
                   </td>
                 </tr>`;
@@ -7603,21 +7689,127 @@
           </table>
         </div>
         <div class="card">
-          <p class="muted" style="font-size:0.85rem">Email blasts also get <strong>click tracking</strong> (links rewritten) and open pixels. Daily cron sends due automation steps.</p>
+          <p class="muted" style="font-size:0.85rem">Automation emails are marketing mail: anyone who unsubscribed is skipped automatically, links are click-tracked, and a step that fails is retried before it gives up. The daily job sends whatever is due.</p>
         </div>`;
+
+      if (autoV2) {
+        const name = document.getElementById("auto-name");
+        if (name) name.value = autoDraft.name;
+        const trigger = document.getElementById("auto-trigger");
+        if (trigger) trigger.value = autoDraft.trigger;
+        autoRenderSteps();
+      }
+    }
+
+    function autoStepsHtml() {
+      return autoDraft.steps.map((s, i) => `
+        <div class="card" style="margin:0 0 0.75rem">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <strong>Email ${i + 1}</strong>
+            ${autoDraft.steps.length > 1 ? `<button class="secondary" onclick="autoRemoveStep(${i})">Remove</button>` : ""}
+          </div>
+          <label for="auto-wait-${i}">Wait this many days ${i === 0 ? "after it happens" : "after the previous email"}</label>
+          <input type="number" min="0" max="365" step="1" id="auto-wait-${i}" style="max-width:8rem" />
+          <label for="auto-subject-${i}">Subject</label>
+          <input id="auto-subject-${i}" placeholder="Welcome to {{guild_name}}!" />
+          <label for="auto-body-${i}">Message</label>
+          <textarea id="auto-body-${i}" rows="5" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px"></textarea>
+        </div>`).join("");
+    }
+    function autoRenderSteps() {
+      const host = document.getElementById("auto-steps");
+      if (!host) return;
+      host.innerHTML = autoStepsHtml();
+      autoDraft.steps.forEach((s, i) => {
+        const wait = document.getElementById(`auto-wait-${i}`);
+        const subject = document.getElementById(`auto-subject-${i}`);
+        const body = document.getElementById(`auto-body-${i}`);
+        if (wait) wait.value = Number(s.waitDays) || 0;
+        if (subject) subject.value = s.subject;
+        if (body) body.value = s.bodyHtml;
+      });
+    }
+    /* Pull whatever is on screen back into the draft before any re-render. */
+    function autoReadDraft() {
+      const name = document.getElementById("auto-name");
+      const trigger = document.getElementById("auto-trigger");
+      if (name) autoDraft.name = name.value;
+      if (trigger) autoDraft.trigger = trigger.value;
+      autoDraft.steps = autoDraft.steps.map((s, i) => {
+        const wait = document.getElementById(`auto-wait-${i}`);
+        const subject = document.getElementById(`auto-subject-${i}`);
+        const body = document.getElementById(`auto-body-${i}`);
+        return {
+          waitDays: wait ? Math.max(0, Math.min(365, Math.floor(Number(wait.value) || 0))) : s.waitDays,
+          subject: subject ? subject.value : s.subject,
+          bodyHtml: body ? body.value : s.bodyHtml,
+        };
+      });
+    }
+    function autoAddStep() {
+      autoReadDraft();
+      autoDraft.steps.push(autoBlankStep(autoDraft.steps.length ? 3 : 0));
+      autoRenderSteps();
+    }
+    function autoRemoveStep(i) {
+      autoReadDraft();
+      autoDraft.steps.splice(i, 1);
+      if (!autoDraft.steps.length) autoDraft.steps.push(autoBlankStep(0));
+      autoRenderSteps();
+    }
+    function autoEdit(id) {
+      const row = autoRows.find((r) => r.id === id);
+      if (!row) return;
+      autoDraft = {
+        id: row.id,
+        name: row.name || "",
+        trigger: row.trigger_event || "member_activated",
+        steps: autoStepsOf(row),
+      };
+      if (!autoDraft.steps.length) autoDraft.steps.push(autoBlankStep(0));
+      navigate("automations");
+      window.scrollTo(0, 0);
+    }
+    function autoCancelEdit() {
+      autoNewDraft();
+      navigate("automations");
+    }
+    async function autoInstallRecipe(id) {
+      const msg = document.getElementById("auto-recipe-msg");
+      if (msg) msg.textContent = "Installing…";
+      try {
+        await api(`/api/tenants/${tenantId}/automations/recipes/${encodeURIComponent(id)}/install`, {
+          method: "POST",
+          body: JSON.stringify({}),
+        });
+        autoNewDraft();
+        navigate("automations");
+      } catch (e) {
+        if (msg) msg.textContent = e.message;
+      }
     }
     async function saveAutomation() {
-      let steps;
-      try { steps = JSON.parse(document.getElementById("auto-steps").value); } catch {
-        document.getElementById("auto-msg").textContent = "Invalid JSON"; return;
-      }
+      const msg = document.getElementById("auto-msg");
+      autoReadDraft();
+      const steps = autoDraft.steps.filter((s) => s.subject.trim() && s.bodyHtml.trim());
+      if (!autoDraft.name.trim()) { if (msg) msg.textContent = "Give it a name."; return; }
+      if (!steps.length) { if (msg) msg.textContent = "Every email needs a subject and a message."; return; }
+      const body = { name: autoDraft.name.trim(), trigger_event: autoDraft.trigger, steps };
       try {
-        await api(`/api/tenants/${tenantId}/automations`, {
-          method: "POST",
-          body: JSON.stringify({ name: document.getElementById("auto-name").value, steps }),
-        });
+        if (autoDraft.id) {
+          await api(`/api/tenants/${tenantId}/automations/${autoDraft.id}`, {
+            method: "PATCH",
+            body: JSON.stringify(body),
+          });
+        } else {
+          await api(`/api/tenants/${tenantId}/automations`, {
+            method: "POST",
+            body: JSON.stringify(body),
+          });
+        }
+        autoNewDraft();
         navigate("automations");
-      } catch (e) { document.getElementById("auto-msg").textContent = e.message; }
+      } catch (e) { if (msg) msg.textContent = e.message; }
     }
     async function toggleAutomation(id, active) {
       await api(`/api/tenants/${tenantId}/automations/${id}`, { method: "PATCH", body: JSON.stringify({ is_active: !!active }) });
@@ -7626,6 +7818,7 @@
     async function deleteAutomation(id) {
       if (!confirm("Delete this sequence?")) return;
       await api(`/api/tenants/${tenantId}/automations/${id}`, { method: "DELETE" });
+      autoNewDraft();
       navigate("automations");
     }
 

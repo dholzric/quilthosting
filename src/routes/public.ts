@@ -18,6 +18,7 @@ import {
   type OrderLine,
 } from "../lib/fulfillment";
 import { prepareEvent, scheduleDispatch } from "../lib/webhookOutbox";
+import { enqueueTrigger } from "../lib/automations/triggers";
 import type { Context } from "hono";
 import { sendEmail, welcomeEmail, eventConfirmationEmail } from "../lib/email";
 import { formatMoney } from "../lib/utils/money";
@@ -1164,6 +1165,9 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
         ticketCode,
       });
       await sendEmail(c.env, { to: email, subject, html });
+      // Additive: enqueueTrigger never throws, so an automation cannot cost
+      // someone the seat they just claimed.
+      await enqueueTrigger(c.env, tenant.id, "event_registered", { id: regId, eventId });
     }
     return c.json({
       status,
@@ -2068,6 +2072,8 @@ publicRoutes.post("/:slug/forms/:formSlug", async (c) => {
     );
   }
   await scheduleDispatch(c.env, c.executionCtx, ev.id);
+  // Additive, after the response is committed; enqueueTrigger never throws.
+  await enqueueTrigger(c.env, tenant.id, "form_submitted", { id, formId: form.id });
   return c.json({ ok: true, id }, 201);
 });
 
