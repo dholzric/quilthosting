@@ -186,7 +186,7 @@ export async function computeOnboarding(
       key: "team_invited",
       label: "Invite another officer to help",
       done: teamCount >= 2,
-      href: "#settings",
+      href: "#team",
       hint: teamCount >= 2
         ? `${teamCount} people can sign in to manage this ${org}.`
         : "Give your treasurer or membership chair their own login so you are not the only admin.",

@@ -586,9 +586,10 @@ export async function serveSite(
   );
   const menu = buildMenu(navRows, readSettingsMenu(settings), baseUrl);
   const { showPlatformCredit } = readBranding(settings);
+  const q = (w?: number) => (w ? `?w=${w}` : "");
   const imgUrl: SitePageArgs["imgUrl"] = onTenantHost
-    ? (id) => `${baseUrl}/img/${id}`
-    : (id) => `/public/${encodeURIComponent(tenant.slug)}/img/${id}`;
+    ? (id, w) => `${baseUrl}/img/${id}${q(w)}`
+    : (id, w) => `/public/${encodeURIComponent(tenant.slug)}/img/${id}${q(w)}`;
   const logoFileId = String(((parseSettings(settings).assets || {}) as { logo_file_id?: unknown }).logo_file_id || "");
   const logoUrl = logoFileId ? imgUrl(logoFileId) : null;
   const ogImageUrl = seo.og_image_file_id ? imgUrl(seo.og_image_file_id) : null;

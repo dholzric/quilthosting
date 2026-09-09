@@ -38,6 +38,7 @@ import { PROJECT_TYPES } from "../lib/projects/types";
 import type { ProjectType, LongarmRates } from "../lib/projects/types";
 import { sniffImageType } from "../lib/projects/imageSniff";
 import { ALLOWED_IMAGE_TYPES } from "./site";
+import { IMAGE_ROW_COLUMNS, serveImage, type ImageRow } from "../lib/images";
 import { listRedirects } from "../lib/pageDrafts";
 
 export const publicRoutes = new Hono<{ Bindings: Env }>();
@@ -60,6 +61,7 @@ publicRoutes.use(
   "/:slug/projects/:projectRef/photos",
   rateLimit({ keyPrefix: "intakephoto", limit: 40, windowSeconds: 600 })
 );
+publicRoutes.use("/:slug/newsletter", rateLimit({ keyPrefix: "newsletter", limit: 10, windowSeconds: 600 }));
 
 /** Hono throws when no ExecutionContext is attached (unit tests); treat as absent. */
 function execCtx(
@@ -1302,26 +1304,17 @@ publicRoutes.get("/:slug/img/:fileId", async (c) => {
   if (!tenant) return c.json({ error: "Not found" }, 404);
   const fileId = c.req.param("fileId");
   if (!/^[A-Za-z0-9_-]{1,64}$/.test(fileId)) return c.json({ error: "Not found" }, 404);
-  const row = await first<{ r2_key: string; content_type: string | null }>(
+  const row = await first<ImageRow>(
     c.env.DB.prepare(
-      `SELECT r2_key, content_type FROM files WHERE id = ? AND tenant_id = ?`
+      `SELECT ${IMAGE_ROW_COLUMNS} FROM files WHERE id = ? AND tenant_id = ?`
     ).bind(fileId, tenant.id)
   );
   if (!row) return c.json({ error: "Not found" }, 404);
-  // Only real raster types: a stored text/html or image/svg+xml file must
-  // never execute on this origin.
-  const contentType = row.content_type || "";
-  if (!ALLOWED_IMAGE_TYPES.has(contentType)) return c.json({ error: "Not found" }, 404);
-  const obj = await c.env.FILES.get(row.r2_key);
-  if (!obj) return c.json({ error: "Not found" }, 404);
-  return new Response(obj.body, {
-    headers: {
-      "Content-Type": contentType,
-      "X-Content-Type-Options": "nosniff",
-      // File ids are immutable -- a replaced image gets a new id.
-      "Cache-Control": "public, max-age=31536000, immutable",
-    },
-  });
+  // serveImage enforces the raster allowlist (a stored text/html or
+  // image/svg+xml file must never execute on this origin), picks a stored
+  // variant for ?w= / ?f= / Accept, and sets nosniff + immutable caching.
+  const res = await serveImage(c.env, row, new URL(c.req.url), c.req.header("accept"));
+  return res ?? c.json({ error: "Not found" }, 404);
 });
 
 /**
@@ -2076,6 +2069,51 @@ publicRoutes.post("/:slug/forms/:formSlug", async (c) => {
   }
   await scheduleDispatch(c.env, c.executionCtx, ev.id);
   return c.json({ ok: true, id }, 201);
+});
+
+// ---------------------------------------------------------------------------
+// POST /public/:slug/newsletter { email, name? } — the newsletter_signup
+// section (src/lib/site/sections/render.ts, island initNewsletter in
+// public/qh-site.js). Records the address in newsletter_signups (migration
+// 0027). Idempotent per (tenant, email): a repeat signup is a no-op that
+// still answers 201, so a visitor never sees "already subscribed". Rate
+// limited per IP above (10 per 10 min). Reachable on a launched tenant's own
+// host through siteGate rule 4 like /join and /forms/*.
+// ---------------------------------------------------------------------------
+const NEWSLETTER_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const NEWSLETTER_EMAIL_MAX = 200;
+const NEWSLETTER_NAME_MAX = 120;
+
+publicRoutes.post("/:slug/newsletter", async (c) => {
+  const tenant = await getTenantBySlug(c.env.DB, c.req.param("slug"));
+  if (!tenant) return c.json({ error: "Guild not found" }, 404);
+  let body: { email?: unknown; name?: unknown };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "Expected a JSON body with an email address" }, 400);
+  }
+  if (!body || typeof body !== "object") return c.json({ error: "Expected a JSON body with an email address" }, 400);
+  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  if (!email || email.length > NEWSLETTER_EMAIL_MAX || !NEWSLETTER_EMAIL_RE.test(email)) {
+    return c.json({ error: "Please enter a valid email address" }, 400);
+  }
+  const nameRaw = typeof body.name === "string" ? body.name.trim() : "";
+  if (nameRaw.length > NEWSLETTER_NAME_MAX) return c.json({ error: `Name must be ${NEWSLETTER_NAME_MAX} characters or fewer` }, 400);
+  const name = nameRaw || null;
+  try {
+    await c.env.DB.prepare(
+      `INSERT INTO newsletter_signups (id, tenant_id, email, name, source, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT (tenant_id, email) DO UPDATE SET name = COALESCE(excluded.name, newsletter_signups.name)`
+    )
+      .bind(generateId(), tenant.id, email, name, "site", new Date().toISOString())
+      .run();
+  } catch (e) {
+    console.error("newsletter signup failed", { tenantId: tenant.id, error: e instanceof Error ? e.message : String(e) });
+    return c.json({ error: "We couldn't save your address. Please try again." }, 500);
+  }
+  return c.json({ ok: true, message: "Thanks — you're on the list." }, 201);
 });
 
 /**
