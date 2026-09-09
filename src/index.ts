@@ -20,6 +20,7 @@ import { levelRoutes } from "./routes/levels";
 import { memberRoutes } from "./routes/members";
 import { eventRoutes } from "./routes/events";
 import { statsRoutes, paymentRoutes } from "./routes/stats";
+import { reportRoutes } from "./routes/reports";
 import { commsRoutes } from "./routes/comms";
 import { teamRoutes } from "./routes/team";
 import { pageRoutes } from "./routes/pages";
@@ -48,6 +49,7 @@ import { platformRoutes } from "./routes/platform";
 import { domainRoutes } from "./routes/domain";
 import { projectRoutes } from "./routes/projects";
 import { runAutomationJob } from "./lib/automations";
+import { runMonthlyBoardReports } from "./lib/reports";
 import { processQueuedBlasts } from "./lib/blastSend";
 import { generateId } from "./lib/utils/id";
 import { getTenantByHost } from "./lib/tenantHost";
@@ -364,6 +366,7 @@ tenantApp.route("/levels", levelRoutes);
 tenantApp.route("/members", memberRoutes);
 tenantApp.route("/events", eventRoutes);
 tenantApp.route("/stats", statsRoutes);
+tenantApp.route("/reports", reportRoutes);
 tenantApp.route("/payments", paymentRoutes);
 tenantApp.route("/emails", commsRoutes);
 tenantApp.route("/groups", groupRoutes);
@@ -405,6 +408,9 @@ async function runDailyJobs(env: Env) {
   const events = await runEventReminderJob(env);
   const blasts = await runScheduledBlasts(env);
   const automations = await runAutomationJob(env);
+  // First of the month only, and only for guilds that opted in. Guarded
+  // internally so one tenant's failure never aborts the daily job.
+  const boardReports = await runMonthlyBoardReports(env);
   // Drain large queued email blasts (may need multiple cron ticks for 50k)
   const queuedBlasts = await processQueuedBlasts(env);
   // Extra drain passes for big lists within one scheduled invocation
@@ -439,6 +445,7 @@ async function runDailyJobs(env: Env) {
     events,
     blasts,
     automations,
+    boardReports,
     queuedBlasts: {
       ...queuedBlasts,
       extra_emails: extra,

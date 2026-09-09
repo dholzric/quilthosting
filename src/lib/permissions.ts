@@ -21,6 +21,7 @@
 // | members     | RW X                 | RW X       | R      | R      |
 // | events      | RW X                 | R  X       | RW     | R      |
 // | stats       | RW X                 | R  X       | R      | R      |
+// | reports     | RW                   | R          | R      | R      |
 // | payments    | RW X                 | RW X       | R      | R      |
 // | emails      | RW                   | RW         | R      | R      |
 // | groups      | RW                   | RW         | R      | R      |
@@ -80,6 +81,7 @@ export const TENANT_AREAS = [
   "members",
   "events",
   "stats",
+  "reports",
   "payments",
   "emails",
   "groups",

@@ -1,6 +1,7 @@
 import type { Env } from "../../types";
 import { isSuppressed, normalizeEmail, unsubscribeUrl as buildUnsubscribeUrl } from "../suppression";
 import { unsubscribeFooterHtml } from "./merge";
+import { escapeHtml } from "../blocks";
 
 const RESEND_API = "https://api.resend.com/emails";
 
@@ -440,6 +441,108 @@ export function waitlistPromotedEmail(opts: {
           ${opts.ticketCode ? `<strong>Ticket:</strong> ${opts.ticketCode}` : ""}
         </p>
         <p style="color: #666; font-size: 14px;">— ${opts.guildName}</p>
+      </div>
+    `,
+  };
+}
+
+/**
+ * The monthly board report (src/lib/reports.ts `runMonthlyBoardReports`).
+ *
+ * Plain numbers in plain tables: no attachments, no images, no chart service —
+ * a board member should be able to read it on a phone in a client that blocks
+ * remote content, and forward it into the minutes. Tenant-supplied strings
+ * (guild name, event titles) are escaped; every number is pre-formatted by the
+ * caller so the money rule (integer cents in storage, dollars at the boundary)
+ * stays in one place.
+ */
+export function boardReportEmail(opts: {
+  guildName: string;
+  /** "August 2026" — the month that just ended. */
+  monthLabel: string;
+  /** "September 2025 – August 2026" — the trailing window the totals cover. */
+  windowLabel: string;
+  adminUrl: string;
+  members: {
+    total: number;
+    active: number;
+    joinedThisMonth: number;
+    lapsedThisMonth: number;
+    joinedInWindow: number;
+    lapsedInWindow: number;
+  };
+  /** Pre-formatted percentages, e.g. "87%". */
+  renewalRate: string;
+  churnRate: string;
+  revenue: {
+    monthFormatted: string;
+    windowFormatted: string;
+    bySource: { label: string; amount: string }[];
+  };
+  events: {
+    registrationsThisMonth: number;
+    registrationsInWindow: number;
+    top: { title: string; registrations: number }[];
+  };
+}): { subject: string; html: string } {
+  const guild = escapeHtml(opts.guildName);
+  const cell = "padding:6px 10px;border-bottom:1px solid #eee;font-size:14px";
+  const num = `${cell};text-align:right;font-variant-numeric:tabular-nums`;
+  const row = (label: string, value: string | number) =>
+    `<tr><td style="${cell}">${label}</td><td style="${num}">${value}</td></tr>`;
+  const table = (caption: string, rows: string) =>
+    `<h2 style="font-size:16px;margin:24px 0 6px;color:#1a1a1a">${caption}</h2>
+     <table role="presentation" style="width:100%;border-collapse:collapse;max-width:520px">${rows}</table>`;
+
+  const sourceRows = opts.revenue.bySource.length
+    ? opts.revenue.bySource.map((s) => row(escapeHtml(s.label), s.amount)).join("")
+    : row("No payments in this window", "—");
+  const eventRows = opts.events.top.length
+    ? opts.events.top.map((e) => row(escapeHtml(e.title), e.registrations)).join("")
+    : row("No events in this window", "—");
+
+  return {
+    subject: `${opts.guildName} board report — ${opts.monthLabel}`,
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 560px; margin: 0 auto; color:#1a1a1a;">
+        <h1 style="font-size:20px;margin:0 0 4px;">${guild} — ${escapeHtml(opts.monthLabel)}</h1>
+        <p style="color:#666;font-size:14px;margin:0 0 8px;">Trends for ${escapeHtml(
+          opts.windowLabel
+        )}. Numbers only — nothing to download.</p>
+        ${table(
+          "Membership",
+          row("Members on the roster", opts.members.total) +
+            row("Active members", opts.members.active) +
+            row(`Joined in ${escapeHtml(opts.monthLabel)}`, opts.members.joinedThisMonth) +
+            row(`Lapsed in ${escapeHtml(opts.monthLabel)}`, opts.members.lapsedThisMonth) +
+            row("Joined over the window", opts.members.joinedInWindow) +
+            row("Lapsed over the window", opts.members.lapsedInWindow) +
+            row("Renewal rate", opts.renewalRate) +
+            row("Churn rate", opts.churnRate)
+        )}
+        ${table(
+          "Money in",
+          row(`Received in ${escapeHtml(opts.monthLabel)}`, opts.revenue.monthFormatted) +
+            row("Received over the window", opts.revenue.windowFormatted) +
+            sourceRows
+        )}
+        ${table(
+          "Events",
+          row(
+            `Registrations in ${escapeHtml(opts.monthLabel)}`,
+            opts.events.registrationsThisMonth
+          ) +
+            row("Registrations over the window", opts.events.registrationsInWindow) +
+            eventRows
+        )}
+        <p style="margin:24px 0;">
+          <a href="${escapeHtml(opts.adminUrl)}"
+             style="background: #c45c26; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+            Open Reports
+          </a>
+        </p>
+        <p style="color:#666;font-size:13px;">You get this because your guild turned on the monthly board report in Reports. Any officer can turn it off there.</p>
+        <p style="color:#666;font-size:13px;">— ${guild}</p>
       </div>
     `,
   };

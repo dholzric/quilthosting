@@ -205,6 +205,335 @@
 
   // ------------------------------------------------------------------ Reports
 
+  /** Windows offered by GET /reports/summary (REPORT_MONTH_CHOICES). */
+  const REPORT_WINDOWS = [6, 12, 24];
+
+  /** "2026-01" -> "Jan '26" */
+  function shortMonth(key) {
+    const parts = String(key).split("-");
+    const d = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, 1));
+    return (
+      d.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" }) +
+      " '" +
+      String(parts[0]).slice(2)
+    );
+  }
+
+  function percent(rate) {
+    return Math.round((Number(rate) || 0) * 100) + "%";
+  }
+
+  function svgEl(name, attrs) {
+    const n = document.createElementNS("http://www.w3.org/2000/svg", name);
+    for (const k in attrs) n.setAttribute(k, String(attrs[k]));
+    return n;
+  }
+
+  /**
+   * Inline-SVG sparkline — no chart library and no canvas.
+   *
+   * Theming: the mark is drawn in `currentColor` (the wrapper sets
+   * `color: var(--brand)`) and the baseline uses `var(--border)`, so the same
+   * markup stays legible whatever palette qh.css is serving; nothing here
+   * hardcodes a hex value. `vector-effect="non-scaling-stroke"` keeps the line
+   * one pixel wide while the viewBox stretches to the card.
+   *
+   * Accessibility: the <svg> is role="img" with an aria-label naming every
+   * month and value, and every caller also renders the same numbers in a
+   * <details> table — a reader never has to interpret the picture.
+   */
+  function sparkline(title, months, values, fmt, kind) {
+    const W = 240;
+    const H = 48;
+    const PAD = 4;
+    const n = values.length;
+    const max = Math.max(1, ...values.map((v) => Number(v) || 0));
+    const x = (i) => (n < 2 ? W / 2 : PAD + (i * (W - 2 * PAD)) / (n - 1));
+    const y = (v) => H - PAD - ((Number(v) || 0) / max) * (H - 2 * PAD);
+
+    const svg = svgEl("svg", {
+      viewBox: `0 0 ${W} ${H}`,
+      width: "100%",
+      height: H,
+      preserveAspectRatio: "none",
+      role: "img",
+      focusable: "false",
+      "aria-label":
+        title +
+        ": " +
+        months.map((m, i) => shortMonth(m) + " " + fmt(values[i])).join(", "),
+    });
+    svg.style.display = "block";
+    svg.style.overflow = "visible";
+
+    svg.appendChild(
+      svgEl("line", {
+        x1: 0,
+        y1: H - PAD,
+        x2: W,
+        y2: H - PAD,
+        stroke: "var(--border)",
+        "stroke-width": 1,
+        "vector-effect": "non-scaling-stroke",
+      })
+    );
+
+    if (kind === "bar") {
+      const step = n < 2 ? W - 2 * PAD : (W - 2 * PAD) / n;
+      const w = Math.max(1, step * 0.65);
+      values.forEach((v, i) => {
+        const top = y(v);
+        svg.appendChild(
+          svgEl("rect", {
+            x: PAD + i * step + (step - w) / 2,
+            y: top,
+            width: w,
+            height: Math.max(0.5, H - PAD - top),
+            fill: "currentColor",
+            "fill-opacity": 0.75,
+          })
+        );
+      });
+    } else {
+      const points = values.map((v, i) => x(i) + "," + y(v)).join(" ");
+      svg.appendChild(
+        svgEl("polygon", {
+          points: `${PAD},${H - PAD} ${points} ${W - PAD},${H - PAD}`,
+          fill: "currentColor",
+          "fill-opacity": 0.12,
+          stroke: "none",
+        })
+      );
+      svg.appendChild(
+        svgEl("polyline", {
+          points,
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": 2,
+          "stroke-linejoin": "round",
+          "stroke-linecap": "round",
+          "vector-effect": "non-scaling-stroke",
+        })
+      );
+      if (n) {
+        // A vertical tick, not a <circle>: preserveAspectRatio="none"
+        // stretches the viewBox horizontally, which would squash a circle
+        // into an ellipse. non-scaling-stroke keeps this marker round.
+        const cx = x(n - 1);
+        const cy = y(values[n - 1]);
+        svg.appendChild(
+          svgEl("line", {
+            x1: cx,
+            y1: cy - 0.75,
+            x2: cx,
+            y2: cy + 0.75,
+            stroke: "currentColor",
+            "stroke-width": 4.5,
+            "stroke-linecap": "round",
+            "vector-effect": "non-scaling-stroke",
+          })
+        );
+      }
+    }
+
+    const wrap = e("div");
+    wrap.style.cssText = "color:var(--brand);margin:0.4rem 0 0.2rem";
+    wrap.appendChild(svg);
+    return wrap;
+  }
+
+  /** One trend card: heading, sparkline, and the same numbers as a table. */
+  function trendCard(title, note, months, series, kind) {
+    const c = card(e("h3", "", title));
+    if (note) c.appendChild(e("p", "muted", note));
+    const total = series.reduce(
+      (sum, s) => sum + s.values.reduce((a, b) => a + (Number(b) || 0), 0),
+      0
+    );
+    for (const s of series) {
+      if (series.length > 1) c.appendChild(e("div", "muted", s.label));
+      c.appendChild(sparkline(s.label, months, s.values, s.fmt, kind));
+    }
+    if (!total) c.appendChild(e("p", "muted", "Nothing recorded in this window yet."));
+    const det = document.createElement("details");
+    det.appendChild(e("summary", "", "Show the numbers"));
+    det.appendChild(
+      table(
+        ["Month"].concat(series.map((s) => s.label)),
+        months.map((m, i) => [shortMonth(m)].concat(series.map((s) => s.fmt(s.values[i]))))
+      )
+    );
+    c.appendChild(det);
+    return c;
+  }
+
+  /** Trends section: GET /api/tenants/:id/reports/summary (one batched query). */
+  async function renderTrends(el) {
+    const months = REPORT_WINDOWS.indexOf(window._reportMonths) >= 0 ? window._reportMonths : 12;
+    const canWrite =
+      typeof canWriteArea === "function" ? canWriteArea("reports") : true;
+
+    const bar = e("div", "toolbar");
+    const mLabel = e("label", "", "Show the last");
+    mLabel.style.margin = "0";
+    const mSel = document.createElement("select");
+    mSel.id = "rep-months";
+    mSel.style.maxWidth = "150px";
+    for (const w of REPORT_WINDOWS) {
+      const o = document.createElement("option");
+      o.value = String(w);
+      o.textContent = w + " months";
+      if (w === months) o.selected = true;
+      mSel.appendChild(o);
+    }
+    mSel.addEventListener("change", () => {
+      window._reportMonths = Number(mSel.value) || 12;
+      navigate("reports");
+    });
+    bar.append(mLabel, mSel);
+    el.appendChild(bar);
+
+    const body = e("div");
+    el.appendChild(body);
+
+    let sum;
+    try {
+      sum = await api(`/api/tenants/${tenantId}/reports/summary?months=${months}`);
+    } catch (err) {
+      body.appendChild(
+        e("p", "muted", "Could not load trends right now. The year-end report below still works.")
+      );
+      return;
+    }
+    // Every series is aligned to `months` server-side; normalise anyway so a
+    // stale response can never throw inside a chart.
+    const series = (v) => (Array.isArray(v) ? v : []);
+    sum.months = series(sum.months);
+    sum.members.new_by_month = series(sum.members.new_by_month);
+    sum.members.lapsed_by_month = series(sum.members.lapsed_by_month);
+    sum.revenue.by_month = series(sum.revenue.by_month);
+    sum.events.attendance_by_month = series(sum.events.attendance_by_month);
+    sum.events.top = series(sum.events.top);
+
+    const tiles = [
+      ["Members", String(sum.members.total)],
+      ["Active", String(sum.members.active)],
+      ["Joined", String(sum.members.new_total)],
+      ["Renewal rate", percent(sum.renewal_rate)],
+      ["Churn", percent(sum.churn_rate)],
+      ["Money in", money(sum.revenue.total_cents)],
+    ];
+    const stats = e("div", "stats");
+    for (const t of tiles) {
+      const tile = e("div", "stat");
+      tile.appendChild(e("div", "label", t[0]));
+      tile.appendChild(e("div", "value", t[1]));
+      stats.appendChild(tile);
+    }
+    body.appendChild(stats);
+
+    const count = (v) => String(Number(v) || 0);
+    body.appendChild(
+      trendCard(
+        "Membership by month",
+        "Who joined and who lapsed, month by month.",
+        sum.months,
+        [
+          { label: "Joined", values: sum.members.new_by_month, fmt: count },
+          { label: "Lapsed", values: sum.members.lapsed_by_month, fmt: count },
+        ],
+        "line"
+      )
+    );
+    body.appendChild(
+      trendCard(
+        "Money in by month",
+        "Successful payments only — refunds are shown in the year-end report below.",
+        sum.months,
+        [{ label: "Received", values: sum.revenue.by_month, fmt: money }],
+        "bar"
+      )
+    );
+    body.appendChild(
+      trendCard(
+        "Event signups by month",
+        "Registrations that were kept (registered or checked in).",
+        sum.months,
+        [{ label: "Signups", values: sum.events.attendance_by_month, fmt: count }],
+        "bar"
+      )
+    );
+
+    const srcCard = card(e("h3", "", "Where the money came from"));
+    const sources = [
+      ["Dues", sum.revenue.by_source.dues],
+      ["Events", sum.revenue.by_source.events],
+      ["Store", sum.revenue.by_source.store],
+      ["Donations", sum.revenue.by_source.donations],
+      ["Other", sum.revenue.by_source.other],
+    ].filter((r) => r[1] > 0);
+    if (!sources.length) srcCard.appendChild(e("p", "muted", "No payments in this window."));
+    else
+      srcCard.appendChild(
+        table(
+          ["Source", "Total"],
+          sources.map((r) => [r[0], money(r[1])])
+        )
+      );
+    body.appendChild(srcCard);
+
+    const topCard = card(e("h3", "", "Best-attended events in this window"));
+    if (!sum.events.top.length) topCard.appendChild(e("p", "muted", "No events in this window."));
+    else
+      topCard.appendChild(
+        table(
+          ["Event", "Signups"],
+          sum.events.top.map((r) => [r.title, String(r.registrations)])
+        )
+      );
+    body.appendChild(topCard);
+
+    // "Email me this monthly" — writes settings.reports.monthly. The board
+    // report goes to every owner/admin on the first of the month.
+    const mailCard = card(e("h3", "", "Monthly board report"));
+    mailCard.appendChild(
+      e(
+        "p",
+        "muted",
+        "Email these numbers to every owner and admin on the first of each month. Plain numbers, no attachment."
+      )
+    );
+    const toggleLabel = e("label", "");
+    toggleLabel.style.cssText = "display:flex;align-items:center;gap:0.5rem;margin:0";
+    const toggle = document.createElement("input");
+    toggle.type = "checkbox";
+    toggle.id = "rep-monthly";
+    toggle.checked = sum.monthly_email === true;
+    toggle.style.width = "auto";
+    toggle.disabled = !canWrite;
+    if (!canWrite) toggle.title = "Read-only for your role";
+    const status = e("span", "muted", "");
+    toggle.addEventListener("change", async () => {
+      const want = toggle.checked;
+      toggle.disabled = true;
+      status.textContent = "Saving…";
+      try {
+        await api(`/api/tenants/${tenantId}/reports/settings`, {
+          method: "PATCH",
+          body: JSON.stringify({ monthly: want }),
+        });
+        status.textContent = want ? "On — next report goes out on the 1st." : "Off.";
+      } catch (err) {
+        toggle.checked = !want;
+        status.textContent = "Could not save that.";
+      }
+      toggle.disabled = !canWrite;
+    });
+    toggleLabel.append(toggle, document.createTextNode("Email me this monthly"));
+    mailCard.append(toggleLabel, status);
+    body.appendChild(mailCard);
+  }
+
   window.renderReports = async function (el) {
     const year = window._reportYear || new Date().getFullYear();
     const [rep, membersRaw] = await Promise.all([
@@ -217,6 +546,12 @@
 
     el.replaceChildren();
     el.appendChild(e("h2", "", "Reports"));
+
+    // Trends first (the everyday question), then the year-end treasurer
+    // report and the per-member statement that were already here.
+    await renderTrends(el);
+
+    el.appendChild(e("h2", "", "Year-end report"));
 
     const bar = e("div", "toolbar");
     const yLabel = e("label", "", "Year");
