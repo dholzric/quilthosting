@@ -51,7 +51,7 @@
         <p class="lede">Sell raffle tickets, patterns, pins and show merchandise from your site; accept donations; and put join, events and store widgets on a WordPress site you already have.</p>
 
         <h2 id="products">Products</h2>
-        <p>Admin → <strong>Store</strong>. A product has a name, description, price in cents, an optional SKU, an optional <strong>inventory</strong> count (leave blank for unlimited), and a <strong>taxable</strong> switch. There are no product photos, sizes or variants, and no digital downloads. Deleting a product deactivates it; sold-out and inactive products are hidden from the site.</p>
+        <p>Admin → <strong>Store</strong>. A product has a name, description, price in dollars, an optional SKU, an optional <strong>inventory</strong> count (leave blank for unlimited), and a <strong>taxable</strong> switch. There are no product photos, sizes or variants, and no digital downloads. Deleting a product deactivates it; sold-out and inactive products are hidden from the site.</p>
 
         <h2 id="cart">Cart and checkout</h2>
         <p>On the public site visitors add items to a cart (up to 20 of each item, 20 different items), see subtotal, tax and total, enter their email and pay through Stripe Checkout. A product priced at 0 is ordered without a card. Money goes to your connected Stripe account; the buyer receives a receipt email; the payment appears in Admin → Payments with type "store".</p>
@@ -60,7 +60,7 @@
         <p>When a cart is checked out, the items are taken out of stock immediately and held for <strong>30 minutes</strong> — the time the Stripe page stays open. If any item has run out, the checkout is refused and the cart says which item. If the buyer does not pay, the stock is put back as soon as Stripe reports the checkout expired, or by a sweep that runs every minute and clears holds 10 minutes after they lapse. Two people can never buy the same last unit.</p>
 
         <h2 id="tax">Sales tax</h2>
-        <p>Store → <strong>Tax settings</strong>: a single rate in basis points (700 is 7.00%) and a label (default "Sales tax"). Tax is charged on taxable products in the cart and shown as its own line. The single-product <strong>Buy</strong> button and the store embed do not add tax. Dues, event tickets and donations are never taxed. QuiltHosting does not calculate tax by location.</p>
+        <p>Store → <strong>Tax settings</strong>: a single <strong>Sales tax %</strong> (type <code>7</code> for 7%, or <code>7.25</code> for 7.25%; 25% is the ceiling) and a label (default "Sales tax"). Tax is charged on taxable products in the cart and shown as its own line. The single-product <strong>Buy</strong> button and the store embed do not add tax. Dues, event tickets and donations are never taxed. QuiltHosting does not calculate tax by location.</p>
 
         <h2 id="orders">Orders</h2>
         <p>There is no orders screen. What was bought, by whom and for how much is visible in Admin → <strong>Payments</strong> (type "store", with the buyer's email). QuiltHosting does not collect a shipping address or track shipping; arrange pickup or ask for an address in the product description.</p>

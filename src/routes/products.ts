@@ -1,12 +1,33 @@
 import { Hono } from "hono";
+import type { Context } from "hono";
+import { z } from "zod";
 import type { Env, TenantVariables } from "../types";
 import { all, first } from "../lib/db";
+import { centsField } from "../lib/utils/money";
 import { generateId } from "../lib/utils/id";
 
 export const productRoutes = new Hono<{
   Bindings: Env;
   Variables: TenantVariables;
 }>();
+
+/**
+ * price_cents crosses the wire as integer cents (the admin's Store box is
+ * dollars — see the MONEY block in public/admin.html). Flooring a float here
+ * used to turn a mis-converted $25.00 into $0.25 with no warning.
+ */
+const priceSchema = z.object({ price_cents: centsField("price_cents") });
+
+function validationError(c: Context, error: z.ZodError) {
+  const issue = error.issues[0];
+  return c.json(
+    {
+      error: issue ? `${issue.path.join(".") || "body"}: ${issue.message}` : "Invalid request body",
+      issues: error.issues.map((i) => ({ path: i.path.join("."), message: i.message })),
+    },
+    400
+  );
+}
 
 export type Product = {
   id: string;
@@ -50,7 +71,12 @@ productRoutes.post("/", async (c) => {
   }>();
   const name = (body.name || "").trim();
   if (!name) return c.json({ error: "name is required" }, 400);
-  const price = Math.max(0, Math.floor(Number(body.price_cents) || 0));
+  let price = 0;
+  if (body.price_cents !== undefined && body.price_cents !== null) {
+    const parsed = priceSchema.safeParse({ price_cents: body.price_cents });
+    if (!parsed.success) return validationError(c, parsed.error);
+    price = parsed.data.price_cents;
+  }
   const inventory =
     body.inventory === null || body.inventory === undefined
       ? null
@@ -128,10 +154,12 @@ productRoutes.patch("/:productId", async (c) => {
   const name =
     body.name !== undefined ? body.name.trim() : existing.name;
   if (!name) return c.json({ error: "name cannot be empty" }, 400);
-  const price =
-    body.price_cents !== undefined
-      ? Math.max(0, Math.floor(Number(body.price_cents)))
-      : existing.price_cents;
+  let price = existing.price_cents;
+  if (body.price_cents !== undefined) {
+    const parsed = priceSchema.safeParse({ price_cents: body.price_cents });
+    if (!parsed.success) return validationError(c, parsed.error);
+    price = parsed.data.price_cents;
+  }
   let inventory = existing.inventory;
   if (body.inventory !== undefined) {
     inventory =

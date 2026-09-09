@@ -75,6 +75,16 @@
     .qh-kit { display: flex; flex-direction: column; gap: 0.25rem; cursor: default; }
     .qh-kit .qh-kit-character { margin: 0; font-size: 0.8rem; flex: 1; }
     .qh-kit button { align-self: flex-start; margin-top: 0.25rem; padding: 0.3rem 0.7rem; font-size: 0.8rem; }
+    /* Money fields: a field error under the input, and the invoice line editor */
+    .qh-field-err { color: var(--danger); font-size: 0.8rem; margin: 0.25rem 0 0; }
+    input.qh-invalid { border-color: var(--danger); }
+    .qh-line-row { display: grid; grid-template-columns: 1fr 5.5rem 8rem 2.5rem; gap: 0.5rem; align-items: end; margin: 0 0 0.5rem; }
+    .qh-line-row > div { margin: 0; }
+    .qh-line-row label { display: block; font-size: 0.75rem; font-weight: 600; margin: 0 0 0.15rem; }
+    .qh-line-row input { margin: 0; }
+    .qh-line-row button { margin: 0; padding: 0.45rem 0.6rem; }
+    .qh-line-row:not(:first-child) label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    @media (max-width: 640px) { .qh-line-row { grid-template-columns: 1fr; } .qh-line-row:not(:first-child) label { position: static; width: auto; height: auto; clip: auto; } }
   </style>
 </head>
 <body class="has-fleet-footer">
@@ -167,6 +177,88 @@
     // the "your starter site is live" welcome; checklist progress itself is
     // computed server-side (GET /api/tenants/:id/onboarding), not stored here.
     let justCreatedGuild = null;
+
+    /* ——— MONEY (client mirror of src/lib/utils/money.ts) — begin ——— */
+    /* Every money input on this page is dollars and every tax input is a
+       percentage; the wire format and the database stay integer cents and
+       basis points. Keep these four functions in step with the server copy —
+       src/lib/utils/money.test.ts runs one accept/reject table through both.
+
+       dollarsToCents accepts "35", "35.5", "$35.50", "1,200" and " 35 ".
+       Rejects: "" (empty), text that is not a number, negative amounts, more than
+       two decimal places, and anything over $100,000.00 (10000000 cents). */
+    const QH_MAX_CENTS = 10000000;
+    const QH_MAX_TAX_BPS = 2500;
+    const QH_DECIMAL_RE = /^\d+(\.\d{1,2})?$/;
+    function qhNumberToText(n) {
+      if (!Number.isFinite(n)) return null;
+      return n.toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
+    }
+    function dollarsToCents(input) {
+      const text =
+        typeof input === "number" ? qhNumberToText(input) : String(input).replace(/[\s,$]/g, "");
+      if (text === null || !QH_DECIMAL_RE.test(text)) return null;
+      const cents = Math.round(Number(text) * 100);
+      if (!Number.isSafeInteger(cents) || cents < 0 || cents > QH_MAX_CENTS) return null;
+      return cents;
+    }
+    function centsToDollars(cents) {
+      const n = Number(cents);
+      if (!Number.isFinite(n) || n <= 0) return "0.00";
+      return (Math.round(n) / 100).toFixed(2);
+    }
+    function percentToBps(p) {
+      const text = typeof p === "number" ? qhNumberToText(p) : String(p).replace(/[\s,%]/g, "");
+      if (text === null || !QH_DECIMAL_RE.test(text)) return null;
+      const bps = Math.round(Number(text) * 100);
+      if (!Number.isSafeInteger(bps) || bps < 0 || bps > QH_MAX_TAX_BPS) return null;
+      return bps;
+    }
+    function bpsToPercent(bps) {
+      const n = Number(bps);
+      if (!Number.isFinite(n) || n <= 0) return "0";
+      return String(Math.round(n) / 100);
+    }
+    /* ——— MONEY — end ——— */
+
+    /* A null from the converters is a field error, never a silent 0: show it
+       under the input and block the submit. Cleared on the next successful
+       read of the same field. */
+    function qhFieldError(el, message) {
+      if (!el) return;
+      let note = el.nextElementSibling;
+      if (!note || !note.classList || !note.classList.contains("qh-field-err")) {
+        if (!message) return;
+        note = document.createElement("p");
+        note.className = "qh-field-err";
+        el.insertAdjacentElement("afterend", note);
+      }
+      note.textContent = message || "";
+      note.hidden = !message;
+      el.classList.toggle("qh-invalid", !!message);
+    }
+    /**
+     * Read a dollars input as cents; null (with a field error shown) if it is
+     * not a valid amount. Pass blankValue to keep an empty box meaning zero
+     * (the manual-payment and tax boxes have always worked that way).
+     */
+    function qhReadMoney(el, label, blankValue) {
+      const node = typeof el === "string" ? document.getElementById(el) : el;
+      const raw = node ? String(node.value).trim() : "";
+      if (raw === "" && blankValue !== undefined) { qhFieldError(node, ""); return blankValue; }
+      const cents = dollarsToCents(raw);
+      qhFieldError(node, cents === null ? `${label} must be an amount in dollars, like 35.00` : "");
+      return cents;
+    }
+    /** Read a percent input as basis points; null (with a field error) if invalid. */
+    function qhReadPercent(el, label, blankValue) {
+      const node = typeof el === "string" ? document.getElementById(el) : el;
+      const raw = node ? String(node.value).trim() : "";
+      if (raw === "" && blankValue !== undefined) { qhFieldError(node, ""); return blankValue; }
+      const bps = percentToBps(raw);
+      qhFieldError(node, bps === null ? `${label} must be a percentage between 0 and 25` : "");
+      return bps;
+    }
 
     const AUTH_PATHS = /^\/api\/auth\/(login|register|magic-link|magic|config|google)/;
     async function api(path, opts = {}) {
@@ -1190,7 +1282,7 @@
               <div><label>End date</label><input id="em-end" type="date" /><span class="muted" style="font-size:0.75rem">Pre-filled with one full term from today. Change it, or clear it to let QuiltHosting compute the same date.</span></div>
             </div>
             <div class="form-row">
-              <div><label>Amount paid (cents)</label><input id="em-amount" type="number" min="0" step="1" /></div>
+              <div><label>Amount paid</label><input id="em-amount" type="number" min="0" step="0.01" placeholder="35.00" /></div>
               <div><label>Payment method</label>
                 <select id="em-pay-method">
                   <option value="cash">Cash</option>
@@ -1413,11 +1505,11 @@
           lastPrefill = d.toISOString().slice(0, 10);
           field.value = lastPrefill;
         };
-        if (levels[0]) document.getElementById("em-amount").value = levels[0].price_cents;
+        if (levels[0]) document.getElementById("em-amount").value = centsToDollars(levels[0].price_cents);
         prefillEnd();
         sel.onchange = () => {
           const o = sel.selectedOptions[0];
-          if (o) document.getElementById("em-amount").value = o.dataset.price || 0;
+          if (o) document.getElementById("em-amount").value = centsToDollars(o.dataset.price || 0);
           prefillEnd();
         };
       } catch {}
@@ -1557,14 +1649,15 @@
       const levelId = document.getElementById("em-level").value;
       if (!levelId) { alert("Create a membership level first."); return; }
       const end = document.getElementById("em-end").value;
-      const amount = Number(document.getElementById("em-amount").value);
+      const amount = qhReadMoney("em-amount", "Amount paid", 0);
+      if (amount === null) return;
       try {
         await api(`/api/tenants/${tenantId}/members/${id}/memberships`, {
           method: "POST",
           body: JSON.stringify({
             level_id: levelId,
             end_date: end || undefined,
-            amount_paid_cents: Number.isFinite(amount) ? amount : 0,
+            amount_paid_cents: amount,
             payment_method: document.getElementById("em-pay-method").value,
             note: document.getElementById("em-pay-note").value || undefined,
           }),
@@ -2036,8 +2129,8 @@
             <div><label>Capacity (blank = unlimited)</label><input id="e-capacity" type="number" /></div>
           </div>
           <div class="form-row">
-            <div><label>Member price (cents)</label><input id="e-mprice" type="number" value="0" /></div>
-            <div><label>Non-member price (cents)</label><input id="e-nmprice" type="number" value="0" /></div>
+            <div><label>Member price</label><input id="e-mprice" type="number" min="0" step="0.01" value="0.00" placeholder="0.00" /><span class="muted" style="font-size:0.75rem">In dollars. 0 means free.</span></div>
+            <div><label>Non-member price</label><input id="e-nmprice" type="number" min="0" step="0.01" value="0.00" placeholder="0.00" /></div>
           </div>
           <label style="display:flex;align-items:center;gap:0.4rem"><input type="checkbox" id="e-waitlist" style="width:auto" /> Enable waitlist when full</label>
           <div style="border-top:1px solid var(--border);margin-top:0.9rem;padding-top:0.75rem">
@@ -2239,8 +2332,8 @@
       document.getElementById("e-location").value = e.location || "";
       document.getElementById("e-capacity").value = e.capacity ?? "";
       document.getElementById("e-waitlist").checked = !!e.waitlist_enabled;
-      document.getElementById("e-mprice").value = e.member_price_cents;
-      document.getElementById("e-nmprice").value = e.non_member_price_cents;
+      document.getElementById("e-mprice").value = centsToDollars(e.member_price_cents);
+      document.getElementById("e-nmprice").value = centsToDollars(e.non_member_price_cents);
       renderEventQuestions(parseEventQuestions(e));
       show(document.getElementById("add-event-form"));
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -2250,6 +2343,9 @@
       const start = document.getElementById("e-start").value;
       const end = document.getElementById("e-end").value;
       const cap = document.getElementById("e-capacity").value;
+      const memberPrice = qhReadMoney("e-mprice", "Member price", 0);
+      const nonMemberPrice = qhReadMoney("e-nmprice", "Non-member price", 0);
+      if (memberPrice === null || nonMemberPrice === null) return;
       const payload = {
         title: document.getElementById("e-title").value,
         description: document.getElementById("e-desc").value || undefined,
@@ -2258,8 +2354,8 @@
         location: document.getElementById("e-location").value,
         capacity: cap ? Number(cap) : undefined,
         waitlist_enabled: document.getElementById("e-waitlist").checked ? 1 : 0,
-        member_price_cents: Number(document.getElementById("e-mprice").value),
-        non_member_price_cents: Number(document.getElementById("e-nmprice").value),
+        member_price_cents: memberPrice,
+        non_member_price_cents: nonMemberPrice,
         questions: collectEventQuestions(),
       };
       if (id) {
@@ -2407,7 +2503,7 @@
         <div class="card">
           <h3 style="margin-bottom:0.75rem">Tax settings</h3>
           <div class="form-row">
-            <div><label>Tax rate (basis points, 700 = 7%)</label><input id="tax-bps" type="number" value="${esc(String((JSON.parse(localStorage.getItem('qh_tax_'+tenantId)||'{}').tax_rate_bps)||0))}" placeholder="0" /></div>
+            <div><label>Sales tax %</label><input id="tax-bps" type="number" min="0" max="25" step="0.01" value="${esc(bpsToPercent((JSON.parse(localStorage.getItem('qh_tax_'+tenantId)||'{}').tax_rate_bps)||0))}" placeholder="0" /><span class="muted" style="font-size:0.75rem">A percentage, so 7.25 means 7.25%. Leave 0 if you don't collect sales tax.</span></div>
             <div><label>Tax label</label><input id="tax-label" value="Sales tax" /></div>
           </div>
           <button class="secondary" onclick="saveTaxSettings()">Save tax</button>
@@ -2417,7 +2513,7 @@
           <h3 style="margin-bottom:0.75rem">Add product</h3>
           <div class="form-row">
             <div><label>Name</label><input id="p-name" placeholder="Block of the month kit" /></div>
-            <div><label>Price (cents)</label><input id="p-price" type="number" value="2500" /></div>
+            <div><label>Price</label><input id="p-price" type="number" min="0" step="0.01" value="25.00" placeholder="25.00" /></div>
           </div>
           <div class="form-row">
             <div><label>Inventory (blank = unlimited)</label><input id="p-inv" type="number" placeholder="unlimited" /></div>
@@ -2462,7 +2558,9 @@
       `;
     }
     async function saveTaxSettings() {
-      const tax_rate_bps = Number(document.getElementById("tax-bps").value) || 0;
+      // The box is a percentage; the wire format and the database stay bps.
+      const tax_rate_bps = qhReadPercent("tax-bps", "Sales tax", 0);
+      if (tax_rate_bps === null) return;
       const tax_label = document.getElementById("tax-label").value || "Sales tax";
       localStorage.setItem("qh_tax_" + tenantId, JSON.stringify({ tax_rate_bps }));
       const tenant = await api(`/api/tenants/${tenantId}`);
@@ -2477,11 +2575,13 @@
     }
     async function addProduct() {
       const inv = document.getElementById("p-inv").value;
+      const price = qhReadMoney("p-price", "Price");
+      if (price === null) return;
       await api(`/api/tenants/${tenantId}/products`, {
         method: "POST",
         body: JSON.stringify({
           name: document.getElementById("p-name").value,
-          price_cents: Number(document.getElementById("p-price").value),
+          price_cents: price,
           description: document.getElementById("p-desc").value || undefined,
           inventory: inv === "" ? null : Number(inv),
           sku: document.getElementById("p-sku")?.value || undefined,
@@ -7294,10 +7394,11 @@
               <input type="search" id="inv-member-q" placeholder="Search email or name…" />
               <select id="inv-member"><option value="">— optional —</option></select>
             </div>
-            <div><label>Tax (cents)</label><input id="inv-tax" type="number" value="0" /></div>
+            <div><label>Tax</label><input id="inv-tax" type="number" min="0" step="0.01" value="0.00" placeholder="0.00" /><span class="muted" style="font-size:0.75rem">A dollar amount added to the total.</span></div>
           </div>
-          <label>Lines (one per line: description | qty | unit cents)</label>
-          <textarea id="inv-lines" rows="4" style="width:100%;padding:0.6rem;border:1px solid #ccc;border-radius:8px;font:inherit" placeholder="Annual booth fee | 1 | 7500&#10;Extra table | 2 | 1500"></textarea>
+          <label>Lines</label>
+          <div id="inv-lines-rows"></div>
+          <button type="button" class="secondary" onclick="invAddLine()">+ Add line</button>
           <label>Notes</label>
           <input id="inv-notes" placeholder="Optional" />
           <button onclick="createInvoice()" style="margin-top:0.5rem">Create &amp; issue</button>
@@ -7334,31 +7435,118 @@
         if (cur) sel.value = cur;
       }
       fillInvMembers("");
+      invAddLine();
       invQ?.addEventListener("input", () => {
         clearTimeout(invTimer);
         invTimer = setTimeout(() => fillInvMembers(invQ.value.trim()), 300);
       });
     }
+    /* Invoice lines: a repeatable description / quantity / unit-price editor.
+       Unit prices are dollars in the UI; invCollectLines() builds the same
+       lines[] payload the API has always taken:
+         [{ description: string, quantity: number, unit_cents: integer }] */
+    function invLineRow() {
+      const row = document.createElement("div");
+      row.className = "qh-line-row qh-inv-line";
+      const field = (text, input) => {
+        const wrap = document.createElement("div");
+        const label = document.createElement("label");
+        label.textContent = text;
+        wrap.append(label, input);
+        return wrap;
+      };
+      const desc = document.createElement("input");
+      desc.type = "text";
+      desc.className = "inv-line-desc";
+      desc.placeholder = "Annual booth fee";
+      const qty = document.createElement("input");
+      qty.type = "number";
+      qty.className = "inv-line-qty";
+      qty.min = "0.01";
+      qty.step = "1";
+      qty.value = "1";
+      const unit = document.createElement("input");
+      unit.type = "number";
+      unit.className = "inv-line-unit";
+      unit.min = "0";
+      unit.step = "0.01";
+      unit.placeholder = "75.00";
+      const removeWrap = document.createElement("div");
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "secondary";
+      remove.textContent = "×";
+      remove.title = "Remove this line";
+      remove.setAttribute("aria-label", "Remove this line");
+      remove.onclick = () => {
+        const host = document.getElementById("inv-lines-rows");
+        row.remove();
+        if (host && !host.children.length) invAddLine();
+      };
+      removeWrap.append(remove);
+      row.append(field("Description", desc), field("Qty", qty), field("Unit price", unit), removeWrap);
+      return row;
+    }
+    function invAddLine(values) {
+      const host = document.getElementById("inv-lines-rows");
+      if (!host) return null;
+      const row = invLineRow();
+      if (values) {
+        row.querySelector(".inv-line-desc").value = values.description || "";
+        row.querySelector(".inv-line-qty").value = values.quantity == null ? 1 : values.quantity;
+        row.querySelector(".inv-line-unit").value = centsToDollars(values.unit_cents || 0);
+      }
+      host.append(row);
+      return row;
+    }
+    /** Lines payload, or null when a row is invalid (field errors are shown). */
+    function invCollectLines() {
+      const host = document.getElementById("inv-lines-rows");
+      const rows = host ? Array.from(host.querySelectorAll(".qh-inv-line")) : [];
+      const lines = [];
+      let ok = true;
+      for (const row of rows) {
+        const descEl = row.querySelector(".inv-line-desc");
+        const qtyEl = row.querySelector(".inv-line-qty");
+        const unitEl = row.querySelector(".inv-line-unit");
+        const description = String(descEl.value || "").trim();
+        const rawQty = String(qtyEl.value || "").trim();
+        const rawUnit = String(unitEl.value || "").trim();
+        // An untouched row is not a line.
+        if (!description && !rawUnit) continue;
+        qhFieldError(descEl, description ? "" : "Describe what this line is for");
+        if (!description) ok = false;
+        const quantity = rawQty === "" ? 1 : Number(rawQty);
+        const qtyOk = Number.isFinite(quantity) && quantity > 0;
+        qhFieldError(qtyEl, qtyOk ? "" : "Quantity must be more than 0");
+        if (!qtyOk) ok = false;
+        const unitCents = qhReadMoney(unitEl, "Unit price", 0);
+        if (unitCents === null) ok = false;
+        if (ok) lines.push({ description, quantity, unit_cents: unitCents });
+      }
+      return ok ? lines : null;
+    }
     async function createInvoice() {
-      const lines = document.getElementById("inv-lines").value.split("\n").map((line) => {
-        const parts = line.split("|").map((s) => s.trim());
-        if (parts.length < 3) return null;
-        return { description: parts[0], quantity: Number(parts[1]) || 1, unit_cents: Number(parts[2]) || 0 };
-      }).filter(Boolean);
-      if (!lines.length) { document.getElementById("inv-msg").textContent = "Add at least one line"; return; }
+      const msg = document.getElementById("inv-msg");
+      const lines = invCollectLines();
+      if (lines === null) { msg.textContent = "Fix the highlighted lines."; return; }
+      if (!lines.length) { msg.textContent = "Add at least one line"; return; }
+      const tax = qhReadMoney("inv-tax", "Tax", 0);
+      if (tax === null) { msg.textContent = "Fix the tax amount."; return; }
+      msg.textContent = "";
       try {
         await api(`/api/tenants/${tenantId}/invoices`, {
           method: "POST",
           body: JSON.stringify({
             member_id: document.getElementById("inv-member").value || undefined,
-            tax_cents: Number(document.getElementById("inv-tax").value) || 0,
+            tax_cents: tax,
             notes: document.getElementById("inv-notes").value || undefined,
             lines,
             status: "sent",
           }),
         });
         navigate("invoices");
-      } catch (e) { document.getElementById("inv-msg").textContent = e.message; }
+      } catch (e) { msg.textContent = e.message; }
     }
     async function markInvoicePaid(id) {
       await api(`/api/tenants/${tenantId}/invoices/${id}`, { method: "PATCH", body: JSON.stringify({ status: "paid" }) });

@@ -1,5 +1,8 @@
 import { Hono } from "hono";
+import type { Context } from "hono";
+import { z } from "zod";
 import type { Env, Event, TenantVariables } from "../types";
+import { centsField } from "../lib/utils/money";
 import { generateId, generateTicketCode } from "../lib/utils/id";
 import { all, first } from "../lib/db";
 import { sendEmail, waitlistPromotedEmail } from "../lib/email";
@@ -13,6 +16,27 @@ export const eventRoutes = new Hono<{
   Bindings: Env;
   Variables: TenantVariables;
 }>();
+
+/**
+ * Prices cross the wire as integer cents (the admin types dollars — see the
+ * MONEY block in public/admin.html). A float here means a conversion went
+ * wrong, so answer with a field error rather than flooring it silently.
+ */
+const priceSchema = z.object({
+  member_price_cents: centsField("member_price_cents").optional(),
+  non_member_price_cents: centsField("non_member_price_cents").optional(),
+});
+
+function validationError(c: Context, error: z.ZodError) {
+  const issue = error.issues[0];
+  return c.json(
+    {
+      error: issue ? `${issue.path.join(".") || "body"}: ${issue.message}` : "Invalid request body",
+      issues: error.issues.map((i) => ({ path: i.path.join("."), message: i.message })),
+    },
+    400
+  );
+}
 
 type Registration = {
   id: string;
@@ -64,6 +88,17 @@ eventRoutes.post("/", async (c) => {
   if (!body.title || !body.start_at) {
     return c.json({ error: "title and start_at are required" }, 400);
   }
+  const prices = priceSchema.safeParse({
+    ...(body.member_price_cents !== undefined && body.member_price_cents !== null
+      ? { member_price_cents: body.member_price_cents }
+      : {}),
+    ...(body.non_member_price_cents !== undefined && body.non_member_price_cents !== null
+      ? { non_member_price_cents: body.non_member_price_cents }
+      : {}),
+  });
+  if (!prices.success) return validationError(c, prices.error);
+  const memberPrice = prices.data.member_price_cents ?? 0;
+  const nonMemberPrice = prices.data.non_member_price_cents ?? 0;
   const rule = parseRecurrence(body.recurrence);
   const questions = normalizeQuestions(body.questions);
   const settingsJson = JSON.stringify({ questions });
@@ -79,7 +114,7 @@ eventRoutes.post("/", async (c) => {
     .bind(
       id, tenant.id, body.title, body.description ?? null, body.location ?? null,
       body.start_at, body.end_at ?? null, body.capacity ?? null,
-      body.member_price_cents ?? 0, body.non_member_price_cents ?? 0,
+      memberPrice, nonMemberPrice,
       body.is_public === false ? 0 : 1, body.waitlist_enabled ? 1 : 0,
       settingsJson, now, now
     )
@@ -110,7 +145,7 @@ eventRoutes.post("/", async (c) => {
         ).bind(
           generateId(), tenant.id, body.title, body.description ?? null,
           body.location ?? null, startIso, endIso, body.capacity ?? null,
-          body.member_price_cents ?? 0, body.non_member_price_cents ?? 0,
+          memberPrice, nonMemberPrice,
           body.is_public === false ? 0 : 1, body.waitlist_enabled ? 1 : 0,
           settingsJson, id, now, now
         )
@@ -195,12 +230,12 @@ eventRoutes.patch("/:eventId", async (c) => {
       set("capacity", n);
     }
   }
-  // Prices: required integers, never cleared (null is ignored).
+  // Prices: whole cents, never cleared (null is ignored).
   for (const col of ["member_price_cents", "non_member_price_cents"] as const) {
     if (body[col] === undefined || body[col] === null) continue;
-    const n = Number(body[col]);
-    if (!Number.isInteger(n) || n < 0) return c.json({ error: `${col} must be a non-negative integer` }, 400);
-    set(col, n);
+    const parsed = priceSchema.safeParse({ [col]: body[col] });
+    if (!parsed.success) return validationError(c, parsed.error);
+    set(col, parsed.data[col]);
   }
   // Flags.
   for (const col of ["registration_open", "is_public", "waitlist_enabled"] as const) {

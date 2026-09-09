@@ -29,6 +29,7 @@ function harness() {
     settings_json: JSON.stringify({ questions: [{ key: "diet", label: "Diet", type: "text" }] }),
   };
   const updates: { sql: string; binds: unknown[] }[] = [];
+  const inserts: { sql: string; binds: unknown[] }[] = [];
   const db = {
     prepare(sql: string) {
       return {
@@ -40,6 +41,7 @@ function harness() {
             },
             async run() {
               if (sql.startsWith("UPDATE events SET")) updates.push({ sql, binds });
+              if (sql.includes("INSERT INTO events")) inserts.push({ sql, binds });
               return { success: true, meta: { changes: 1 } };
             },
           };
@@ -60,6 +62,12 @@ function harness() {
       { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
       env
     );
+  const post = (body: unknown) =>
+    app.request(
+      "/",
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
+      env
+    );
   /** Map of column -> bound value from the single UPDATE the route issued. */
   const setMap = () => {
     expect(updates.length).toBe(1);
@@ -72,7 +80,7 @@ function harness() {
     expect(binds.length).toBe(cols.length + 2);
     return Object.fromEntries(cols.map((c, i) => [c, binds[i]]));
   };
-  return { patch, updates, setMap };
+  return { patch, post, updates, inserts, setMap };
 }
 
 describe("PATCH /events/:id", () => {
@@ -144,5 +152,58 @@ describe("PATCH /events/:id", () => {
     expect((await h.patch({ capacity: -3 })).status).toBe(400);
     expect((await h.patch({ capacity: 2.5 })).status).toBe(400);
     expect(h.updates.length).toBe(0);
+  });
+
+  // Ease-layer phase 3, Task B: the admin's price boxes are dollars now, so a
+  // float on the wire means a conversion went wrong. Say so instead of
+  // flooring it (3500.4 -> 3500 was invisible; 35.5 -> 35 charged 35 cents).
+  it("rejects a float or negative price with a field error", async () => {
+    for (const body of [
+      { member_price_cents: 1500.5 },
+      { non_member_price_cents: 0.35 },
+      { member_price_cents: -100 },
+      { member_price_cents: "1500" },
+    ]) {
+      const h = harness();
+      const res = await h.patch(body);
+      expect(res.status, JSON.stringify(body)).toBe(400);
+      const json = (await res.json()) as { error: string; issues: { path: string; message: string }[] };
+      expect(json.issues.length).toBe(1);
+      expect(json.issues[0].path).toBe(Object.keys(body)[0]);
+      expect(h.updates.length).toBe(0);
+    }
+  });
+});
+
+describe("POST /events — price validation", () => {
+  it("stores whole cents and defaults missing prices to free", async () => {
+    const h = harness();
+    const res = await h.post({ title: "Retreat", start_at: "2026-10-01T15:00:00.000Z", member_price_cents: 1500 });
+    expect(res.status).toBe(201);
+    // INSERT column 9/10 are member_price_cents / non_member_price_cents.
+    expect(h.inserts[0].binds[8]).toBe(1500);
+    expect(h.inserts[0].binds[9]).toBe(0);
+  });
+
+  it("rejects a float, a negative and a numeric string", async () => {
+    for (const prices of [
+      { member_price_cents: 1500.5 },
+      { non_member_price_cents: -1 },
+      { member_price_cents: "1500" },
+    ]) {
+      const h = harness();
+      const res = await h.post({ title: "Retreat", start_at: "2026-10-01T15:00:00.000Z", ...prices });
+      expect(res.status, JSON.stringify(prices)).toBe(400);
+      const json = (await res.json()) as { issues: { path: string }[] };
+      expect(json.issues[0].path).toBe(Object.keys(prices)[0]);
+      expect(h.inserts.length).toBe(0);
+    }
+  });
+
+  it("keeps the existing title/start_at requirement", async () => {
+    const h = harness();
+    const res = await h.post({ title: "", start_at: "" });
+    expect(res.status).toBe(400);
+    expect((await res.json() as { error: string }).error).toBe("title and start_at are required");
   });
 });

@@ -1,6 +1,9 @@
 import { Hono } from "hono";
+import type { Context } from "hono";
+import { z } from "zod";
 import type { Env, TenantVariables } from "../types";
 import { all, first } from "../lib/db";
+import { centsField } from "../lib/utils/money";
 import { generateId } from "../lib/utils/id";
 import {
   computeLines,
@@ -13,6 +16,49 @@ export const invoiceRoutes = new Hono<{
   Bindings: Env;
   Variables: TenantVariables;
 }>();
+
+/**
+ * Unit prices and tax cross the wire as integer cents; the admin's line
+ * editor types dollars (see the MONEY block in public/admin.html). computeLines
+ * would floor a float, so a mis-converted $35.00 line became $0.35 in silence.
+ */
+const lineSchema = z.object({
+  description: z.string().max(300).optional(),
+  quantity: z
+    .number({ invalid_type_error: "quantity must be a number" })
+    .positive("quantity must be more than 0")
+    .max(100_000, "quantity is too large")
+    .optional(),
+  unit_cents: centsField("unit_cents").optional(),
+});
+const linesSchema = z.object({ lines: z.array(lineSchema).max(500, "too many line items") });
+const taxSchema = z.object({ tax_cents: centsField("tax_cents") });
+
+function validationError(c: Context, error: z.ZodError) {
+  const issue = error.issues[0];
+  return c.json(
+    {
+      error: issue ? `${issue.path.join(".") || "body"}: ${issue.message}` : "Invalid request body",
+      issues: error.issues.map((i) => ({ path: i.path.join("."), message: i.message })),
+    },
+    400
+  );
+}
+
+/** Validate lines[] as whole cents; issue paths read "lines.0.unit_cents". */
+function parseLines(c: Context, lines: unknown) {
+  const parsed = linesSchema.safeParse({ lines });
+  if (!parsed.success) return { error: validationError(c, parsed.error) } as const;
+  return { lines: parsed.data.lines as InvoiceLineInput[] } as const;
+}
+
+/** Validate an optional tax_cents; null and undefined both mean "not given". */
+function parseTax(c: Context, tax: unknown) {
+  if (tax === undefined || tax === null) return { tax: undefined } as const;
+  const parsed = taxSchema.safeParse({ tax_cents: tax });
+  if (!parsed.success) return { error: validationError(c, parsed.error) } as const;
+  return { tax: parsed.data.tax_cents } as const;
+}
 
 type InvoiceRow = {
   id: string;
@@ -67,9 +113,13 @@ invoiceRoutes.post("/", async (c) => {
   if (!Array.isArray(body.lines) || !body.lines.length) {
     return c.json({ error: "At least one line item is required" }, 400);
   }
-  const { rows, subtotal } = computeLines(body.lines);
+  const parsedLines = parseLines(c, body.lines);
+  if ("error" in parsedLines) return parsedLines.error;
+  const parsedTax = parseTax(c, body.tax_cents);
+  if ("error" in parsedTax) return parsedTax.error;
+  const { rows, subtotal } = computeLines(parsedLines.lines);
   if (!rows.length) return c.json({ error: "Invalid line items" }, 400);
-  const tax = Math.max(0, Math.floor(Number(body.tax_cents) || 0));
+  const tax = parsedTax.tax ?? 0;
   const total = subtotal + tax;
   const id = generateId();
   const now = new Date().toISOString();
@@ -159,10 +209,15 @@ invoiceRoutes.patch("/:invoiceId", async (c) => {
   let tax = inv.tax_cents;
   let total = inv.total_cents;
 
+  const parsedTax = parseTax(c, body.tax_cents);
+  if ("error" in parsedTax) return parsedTax.error;
+
   if (Array.isArray(body.lines)) {
-    const { rows, subtotal: s } = computeLines(body.lines);
+    const parsedLines = parseLines(c, body.lines);
+    if ("error" in parsedLines) return parsedLines.error;
+    const { rows, subtotal: s } = computeLines(parsedLines.lines);
     subtotal = s;
-    tax = body.tax_cents !== undefined ? Math.max(0, Math.floor(body.tax_cents)) : tax;
+    tax = parsedTax.tax !== undefined ? parsedTax.tax : tax;
     total = subtotal + tax;
     await c.env.DB.prepare(`DELETE FROM invoice_lines WHERE invoice_id = ?`)
       .bind(inv.id)
@@ -183,8 +238,8 @@ invoiceRoutes.patch("/:invoiceId", async (c) => {
         )
         .run();
     }
-  } else if (body.tax_cents !== undefined) {
-    tax = Math.max(0, Math.floor(body.tax_cents));
+  } else if (parsedTax.tax !== undefined) {
+    tax = parsedTax.tax;
     total = subtotal + tax;
   }
 

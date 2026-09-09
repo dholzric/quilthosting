@@ -60,7 +60,7 @@
           <thead><tr><th>Setting</th><th>What it means</th></tr></thead>
           <tbody>
             <tr><td>Name</td><td>Shown on the join page and in the portal.</td></tr>
-            <tr><td>Price</td><td>Entered in <strong>cents</strong>: 2500 is $25.00. A price of 0 activates the member immediately with no card.</td></tr>
+            <tr><td>Price</td><td>Entered in <strong>dollars</strong>: type <code>25</code> or <code>25.00</code> for $25.00. A price of 0 activates the member immediately with no card.</td></tr>
             <tr><td>Duration (months)</td><td>How long one term lasts, counted from the day the member joins or renews. Default 12.</td></tr>
             <tr><td>Renewal</td><td><strong>Manual</strong>: the member pays again each term. <strong>Auto</strong>: the first payment starts a Stripe subscription that charges again each term (yearly when the duration is 12 months or more, otherwise monthly).</td></tr>
           </tbody>
@@ -70,7 +70,7 @@
           <li>There is no family or household bundle; each person is one member.</li>
           <li>Levels cannot be deleted. <strong>Archive</strong> hides a level from the join page, the portal and imports, while every membership that used it keeps its history.</li>
         </ul>
-        <div class="callout warn">The price box is in cents. Typing <code>35</code> makes a 35-cent level; type <code>3500</code> for $35.</div>
+        <div class="callout ok">Every price box in the admin is in dollars. Type <code>35</code> or <code>35.00</code> for a $35 level; <code>$</code> signs and commas are fine too.</div>
 
         <h2 id="list">Members list</h2>
         <p>Admin → <strong>Members</strong>. Search by name or email, filter by status (All, Active, Pending, Lapsed, Cancelled), and page through 50 at a time. The list is always sorted by last name, then first name. From here you can <strong>Add Member</strong>, <strong>Export CSV</strong> and <strong>Import CSV</strong>.</p>
