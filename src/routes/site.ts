@@ -247,13 +247,30 @@ export type SiteRoute =
   | { kind: Exclude<SystemPageKind, "members_only" | "not_found">; param?: string };
 
 /**
+ * The renderer's own files, served from `public/` rather than being site
+ * routes. Every one a rendered page can ask for has to be here: on a tenant
+ * host this router sees the whole origin, so anything missing comes back as
+ * the site's own 404 *page*, and the browser refuses to run HTML as script.
+ *
+ * qh-cal.js is loaded lazily by qh-site.js the first time a calendar section
+ * appears, which is why its absence only showed up on a tenant host with an
+ * event on the page. rendererAssets.test.ts fails if a file the site
+ * references is not in this set.
+ */
+export const RENDERER_ASSETS: ReadonlySet<string> = new Set([
+  "/qh-site.css",
+  "/qh-site.js",
+  "/qh-cal.js",
+]);
+
+/**
  * The routing table, on the path AFTER the base path. `null` means "not a
  * site route" (the renderer's own assets), so the caller falls through to the
  * static asset binding. System routes win over a stored page with the same
  * slug; anything deeper than the shapes below is `not_found`.
  */
 export function resolveSiteRoute(path: string): SiteRoute | null {
-  if (path === "/qh-site.css" || path === "/qh-site.js") return null;
+  if (RENDERER_ASSETS.has(path)) return null;
   const rel = path.replace(/^\/+/, "").replace(/\/+$/, "");
   if (rel === "") return { kind: "home" };
   const parts = rel.split("/");
