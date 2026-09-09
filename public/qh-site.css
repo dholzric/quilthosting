@@ -41,7 +41,10 @@
   --_container:var(--qh-container,1120px);
   --_w-narrow:44rem;--_w-wide:1440px;
   --_gutter:1.5rem;--_header-h:4.5rem;
-  --_scrim:linear-gradient(180deg,rgb(0 0 0/.25),rgb(0 0 0/.65));
+  /* Two-axis scrim: a side wash keeps the headline legible over a busy
+     photo (light stripes, sky), the vertical one anchors the copy. */
+  --_scrim:linear-gradient(180deg,rgb(0 0 0/.2),rgb(0 0 0/.62)),
+    linear-gradient(90deg,rgb(0 0 0/.55) 0%,rgb(0 0 0/.28) 45%,rgb(0 0 0/.05) 75%);
   --_focus:var(--_primary)}
 
 /* ---- Base ---------------------------------------------------------------- */
@@ -227,7 +230,15 @@ html{scroll-padding-top:calc(var(--_header-h) + 1rem)}
   background-position:center,var(--qh-s-focal,50% 50%)}
 .qh-hero--image .qh-hero__media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
   object-position:var(--qh-s-focal,50% 50%);z-index:0}
-.qh-hero--image .qh-hero__body{position:relative;z-index:1}
+/* The responsive <img> paints over the section's background, so the scrim
+   has to be its own layer between the photo and the copy. */
+.qh-hero--image::after{content:"";position:absolute;inset:0;background:var(--_scrim);
+  z-index:1;pointer-events:none}
+.qh-hero--image .qh-hero__body{position:relative;z-index:2}
+
+:is(.qh-hero--image,.qh-s--bg-image).qh-s--align-center{
+  --_scrim:linear-gradient(180deg,rgb(0 0 0/.3),rgb(0 0 0/.62)),
+    radial-gradient(120% 90% at 50% 55%,rgb(0 0 0/.5),rgb(0 0 0/.1) 70%)}
 .qh-hero--split{grid-template-columns:1fr 1fr;gap:3rem}
 .qh-hero--split .qh-hero__media,.qh-hero--split .qh-media{margin:0;min-width:0}
 .qh-hero--split img{width:100%;aspect-ratio:4/3;object-fit:cover;object-position:var(--qh-s-focal,50% 50%);
