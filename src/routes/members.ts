@@ -12,6 +12,16 @@ import {
 } from "../lib/plans";
 import { MAX_EXPORT_BATCH } from "../lib/pagination";
 import { listMembersPage } from "../lib/membersList";
+import {
+  activeMembershipFilter,
+  addToHousehold,
+  createHousehold,
+  householdFor,
+  householdsForMembers,
+  inAnyHousehold,
+  removeFromHousehold,
+  MAX_HOUSEHOLD_PEOPLE,
+} from "../lib/households";
 
 export const memberRoutes = new Hono<{
   Bindings: Env;
@@ -32,7 +42,74 @@ memberRoutes.get("/", async (c) => {
     offset: c.req.query("offset") || undefined,
     page: c.req.query("page") || undefined,
   });
-  return c.json(result);
+
+  // Two things the roster row cannot read off `members` alone:
+  //
+  //   household        — which household (if any) this person is on, so the
+  //                      treasurer can see "one payment, three people" at a
+  //                      glance rather than three unexplained active rows.
+  //   is_active_member — the DERIVED answer (src/lib/households.ts). A
+  //                      household member has no membership of her own; her
+  //                      members.status can be stale in both directions, and
+  //                      the roster must show what the door and the directory
+  //                      will show.
+  //
+  // Two extra queries for the whole PAGE, not per row.
+  const ids = result.members.map((m) => m.id);
+  const [households, activeRows] = await Promise.all([
+    householdsForMembers(c.env.DB, tenant.id, ids),
+    ids.length
+      ? all<{ id: string }>(
+          c.env.DB.prepare(
+            `SELECT m.id FROM members m
+              WHERE m.tenant_id = ? AND m.id IN (${ids.map(() => "?").join(", ")})
+                AND ${activeMembershipFilter("m")}`
+          ).bind(tenant.id, ...ids)
+        )
+      : Promise.resolve([] as Array<{ id: string }>),
+  ]);
+  const activeIds = new Set(activeRows.map((r) => r.id));
+
+  return c.json({
+    ...result,
+    members: result.members.map((m) => ({
+      ...m,
+      household: households.get(m.id) ?? null,
+      is_active_member: activeIds.has(m.id),
+    })),
+  });
+});
+
+/**
+ * GET /households — every household in this guild, for the admin's
+ * "move into a household" picker. Small by nature (one row per paying
+ * household), so it is not paginated.
+ *
+ * Declared BEFORE /:memberId or Hono would read "households" as a member id.
+ */
+memberRoutes.get("/households", async (c) => {
+  const tenant = c.get("tenant");
+  const rows = await all<{
+    id: string;
+    name: string;
+    payer_member_id: string;
+    payer_first_name: string | null;
+    payer_last_name: string | null;
+    payer_email: string | null;
+    people: number;
+  }>(
+    c.env.DB.prepare(
+      `SELECT h.id, h.name, h.payer_member_id,
+              p.first_name AS payer_first_name, p.last_name AS payer_last_name,
+              p.email AS payer_email,
+              (SELECT COUNT(*) FROM household_members hm WHERE hm.household_id = h.id) AS people
+         FROM households h
+         LEFT JOIN members p ON p.id = h.payer_member_id AND p.tenant_id = h.tenant_id
+        WHERE h.tenant_id = ?
+        ORDER BY h.name COLLATE NOCASE`
+    ).bind(tenant.id)
+  );
+  return c.json({ households: rows });
 });
 
 memberRoutes.post("/", async (c) => {
@@ -321,7 +398,86 @@ memberRoutes.get("/:memberId", async (c) => {
     ).bind(memberId, tenant.id)
   );
   if (!member) return c.json({ error: "Not found" }, 404);
-  return c.json(member);
+  // Household mates ride along on the detail so the drawer can say who else
+  // this one payment covers without a second request.
+  const household = await householdFor(c.env.DB, tenant.id, memberId);
+  return c.json({ ...member, household });
+});
+
+/* ————————————————— Household actions (spec §4.4) —————————————————
+ *
+ * "Move out of household" must never delete anybody: the person stays on the
+ * roster, they just stop deriving a membership from someone else's payment
+ * (src/lib/households.ts explains why that also drops them to 'lapsed'
+ * unless they hold a membership of their own).
+ */
+
+/** GET the household this member is on, or null. */
+memberRoutes.get("/:memberId/household", async (c) => {
+  const tenant = c.get("tenant");
+  return c.json({ household: await householdFor(c.env.DB, tenant.id, c.req.param("memberId")) });
+});
+
+/**
+ * POST /:memberId/household — move this member INTO a household.
+ *
+ * Body is either { household_id } to join an existing one, or { name } to
+ * start a new household with this member as its payer.
+ */
+memberRoutes.post("/:memberId/household", async (c) => {
+  const tenant = c.get("tenant");
+  const memberId = c.req.param("memberId");
+  let body: { household_id?: unknown; name?: unknown } = {};
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "Request body must be valid JSON" }, 400);
+  }
+
+  const member = await first<Member>(
+    c.env.DB.prepare("SELECT * FROM members WHERE id = ? AND tenant_id = ?").bind(
+      memberId,
+      tenant.id
+    )
+  );
+  if (!member) return c.json({ error: "Member not found" }, 404);
+  if (await inAnyHousehold(c.env.DB, tenant.id, memberId)) {
+    return c.json(
+      {
+        error: "That member is already in a household. Move them out of it first.",
+        code: "already_in_household",
+      },
+      409
+    );
+  }
+
+  const now = new Date().toISOString();
+  if (typeof body.household_id === "string" && body.household_id) {
+    try {
+      await addToHousehold(c.env.DB, tenant.id, body.household_id, memberId, now);
+    } catch (e) {
+      return c.json({ error: (e as Error).message || "Could not move that member" }, 409);
+    }
+    return c.json({ household: await householdFor(c.env.DB, tenant.id, memberId) });
+  }
+
+  const name =
+    typeof body.name === "string" && body.name.trim()
+      ? body.name.trim().slice(0, 120)
+      : `${member.last_name || member.first_name || member.email} household`;
+  await createHousehold(c.env.DB, tenant.id, memberId, name, [], now);
+  return c.json({ household: await householdFor(c.env.DB, tenant.id, memberId) }, 201);
+});
+
+/** DELETE /:memberId/household — "Move out of household". Keeps the person. */
+memberRoutes.delete("/:memberId/household", async (c) => {
+  const tenant = c.get("tenant");
+  const memberId = c.req.param("memberId");
+  const household = await householdFor(c.env.DB, tenant.id, memberId);
+  if (!household) return c.json({ error: "That member is not in a household" }, 404);
+  const dissolved = household.payer_member_id === memberId;
+  await removeFromHousehold(c.env.DB, tenant.id, memberId, new Date().toISOString());
+  return c.json({ ok: true, dissolved });
 });
 
 // GET /api/tenants/:tenantId/members/:memberId/memberships

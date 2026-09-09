@@ -15,6 +15,7 @@
 
 import type { Env, Tenant } from "../../types";
 import { contentFromPage } from "../blocks";
+import { activeMembershipFilter } from "../households";
 import {
   levelsStatement,
   eventsStatement,
@@ -127,10 +128,11 @@ type DirectoryRow = { id: string; first_name: string | null; last_name: string |
 function directoryStatement(db: D1Database, tenantId: string, limit: number): D1PreparedStatement {
   return db
     .prepare(
-      `SELECT id, first_name, last_name, bio, photo_file_id, showcase_json FROM members
-       WHERE tenant_id = ? AND status = 'active'
-         AND coalesce(directory_visible, 1) = 1
-       ORDER BY last_name, first_name LIMIT ?`
+      `SELECT m.id, m.first_name, m.last_name, m.bio, m.photo_file_id, m.showcase_json
+         FROM members m
+        WHERE m.tenant_id = ? AND ${activeMembershipFilter("m")}
+          AND coalesce(directory_visible, 1) = 1
+        ORDER BY m.last_name, m.first_name LIMIT ?`
     )
     .bind(tenantId, limit);
 }

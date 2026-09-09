@@ -502,6 +502,20 @@ async function handleCheckoutCompleted(
           portalUrl: portalUrl(env.APP_URL, tenant.slug),
         });
         await sendEmail(env, { to: member.email, subject, html });
+        // Household levels (migration 0031): everybody else this one payment
+        // covers gets their own magic-link welcome. Only the payer's mail —
+        // the one just sent — says anything about the money.
+        try {
+          const { sendHouseholdWelcomes } = await import("../lib/households");
+          await sendHouseholdWelcomes(env, {
+            tenantId,
+            payerMemberId: memberId,
+            guildName: tenant.name,
+            slug: tenant.slug,
+          });
+        } catch (e) {
+          console.warn("household welcome failed", e);
+        }
         try {
           const { enrollMemberActivated } = await import("../lib/automations");
           await enrollMemberActivated(env, tenantId, memberId);

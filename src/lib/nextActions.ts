@@ -25,6 +25,7 @@ import type { Tenant } from "../types";
 import { SAMPLE_MARKER } from "./starterSite";
 import { isBusiness } from "./tenantType";
 import { activeMemberLimitForTenant } from "./plans";
+import { activeMembershipFilter } from "./households";
 import { stripControlChars } from "./sanitize";
 
 export type NextActionSeverity = "do" | "consider" | "celebrate";
@@ -366,7 +367,7 @@ export async function nextActions(
                                        WHERE s.email = m.email
                                          AND (s.tenant_id IS NULL OR s.tenant_id = m.tenant_id))
                          THEN 1 ELSE 0 END) AS no_consent
-           FROM members m WHERE m.tenant_id = ? AND m.status = 'active'`
+           FROM members m WHERE m.tenant_id = ? AND ${activeMembershipFilter("m")}`
       )
       .bind(tenant.id),
     db

@@ -114,6 +114,10 @@ export interface MembershipLevel {
   term_anchor?: string | null;
   proration?: string | null;
   grace_days?: number | null;
+  /** Household level (migration 0031). 1 = an ordinary individual level. */
+  household_max?: number | null;
+  /** Flat add-on per extra person in a household, in cents. */
+  household_add_cents?: number | null;
   benefits_json: string;
   is_public: number;
   sort_order: number;

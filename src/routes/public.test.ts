@@ -1877,3 +1877,202 @@ describe("POST /public/:slug/join — dues policy pricing", () => {
     expect(h.membershipInsert()!.binds[5]).toBe("2027-10-15T12:00:00.000Z");
   });
 });
+
+/* ————————————————— Household join (spec §4.3) —————————————————
+ *
+ * "One payment, two quilters at the same address." These run the real join
+ * route against a real in-memory SQLite (src/lib/householdTestDb.ts) rather
+ * than the SQL-shape fake above, because what matters is what ends up in the
+ * database: N member rows, one household, one price.
+ */
+import {
+  createHouseholdTestDb,
+  seedLevel,
+  seedMember,
+  seedTenant,
+  type HouseholdTestDb,
+} from "../lib/householdTestDb";
+
+describe("POST /public/:slug/join — household levels", () => {
+  let hdb: HouseholdTestDb;
+
+  const env = () =>
+    ({
+      DB: hdb,
+      APP_URL: "https://quilthosting.test",
+      JWT_SECRET: "test-secret",
+      STRIPE_SECRET_KEY: "sk_test_x",
+      ENVIRONMENT: "test",
+    }) as unknown as Env;
+
+  // Hono throws "This context has no ExecutionContext" without a fourth
+  // argument, and the join route schedules an outbox dispatch on it.
+  const ctx = { waitUntil: () => {}, passThroughOnException: () => {} };
+
+  function join(body: Record<string, unknown>) {
+    return publicRoutes.request(
+      "http://x/stitchers/join",
+      { method: "POST", body: JSON.stringify(body) },
+      env(),
+      ctx as unknown as ExecutionContext
+    );
+  }
+
+  beforeEach(() => {
+    hdb = createHouseholdTestDb();
+    seedTenant(hdb, { slug: "stitchers" });
+    seedLevel(hdb, {
+      id: "household-level",
+      name: "Household",
+      price_cents: 4000,
+      household_max: 3,
+      household_add_cents: 1500,
+    });
+    seedLevel(hdb, { id: "solo-level", name: "Regular", price_cents: 4000 });
+    vi.mocked(createCheckoutSession).mockClear();
+  });
+
+  it("creates the members, the household and its rows in ONE batch, and charges the household price", async () => {
+    const res = await join({
+      level_id: "household-level",
+      email: "Jane@Example.test",
+      first_name: "Jane",
+      last_name: "Alvarez",
+      household_name: "The Alvarez household",
+      people: [
+        { email: "Dana@Example.test", first_name: "Dana", last_name: "Alvarez" },
+        { email: "kim@example.test", first_name: "Kim" },
+      ],
+    });
+    expect(res.status).toBe(200);
+    expect((await res.json()) as { status: string }).toMatchObject({ status: "checkout" });
+
+    // Three people, all pending until the card clears.
+    const members = hdb.rows<{ email: string; status: string }>(
+      "SELECT email, status FROM members ORDER BY email"
+    );
+    expect(members.map((m) => m.email)).toEqual([
+      "dana@example.test",
+      "jane@example.test",
+      "kim@example.test",
+    ]);
+    expect(members.every((m) => m.status === "pending")).toBe(true);
+
+    const households = hdb.rows<{ id: string; name: string; payer_member_id: string }>(
+      "SELECT * FROM households"
+    );
+    expect(households).toHaveLength(1);
+    expect(households[0].name).toBe("The Alvarez household");
+
+    const links = hdb.rows<{ member_id: string; role: string }>(
+      `SELECT hm.member_id, hm.role FROM household_members hm ORDER BY hm.role`
+    );
+    expect(links).toHaveLength(3);
+    expect(links.filter((l) => l.role === "payer")).toHaveLength(1);
+    expect(links.find((l) => l.role === "payer")?.member_id).toBe(households[0].payer_member_id);
+
+    // $40 + 2 × $15.
+    expect(vi.mocked(createCheckoutSession).mock.calls[0][1]).toMatchObject({
+      amountCents: 7000,
+      type: "dues",
+      relatedId: "household-level",
+    });
+  });
+
+  it("charges the plain level price when nobody else is named", async () => {
+    await join({ level_id: "household-level", email: "jane@example.test" });
+    expect(vi.mocked(createCheckoutSession).mock.calls[0][1]).toMatchObject({ amountCents: 4000 });
+    expect(hdb.rows("SELECT * FROM households")).toHaveLength(0);
+  });
+
+  it("refuses more people than the level covers", async () => {
+    const res = await join({
+      level_id: "household-level",
+      email: "jane@example.test",
+      people: [
+        { email: "a@example.test" },
+        { email: "b@example.test" },
+        { email: "c@example.test" },
+      ],
+    });
+    expect(res.status).toBe(400);
+    expect((await res.json()) as { code: string }).toMatchObject({ code: "household_too_many" });
+    expect(hdb.rows("SELECT * FROM members")).toHaveLength(0);
+  });
+
+  it("refuses extra people on an individual level", async () => {
+    const res = await join({
+      level_id: "solo-level",
+      email: "jane@example.test",
+      people: [{ email: "dana@example.test" }],
+    });
+    expect(res.status).toBe(400);
+    expect((await res.json()) as { code: string }).toMatchObject({ code: "not_a_household_level" });
+  });
+
+  it("refuses two people sharing one email address", async () => {
+    const res = await join({
+      level_id: "household-level",
+      email: "jane@example.test",
+      people: [{ email: "JANE@example.test" }],
+    });
+    expect(res.status).toBe(400);
+    expect((await res.json()) as { code: string }).toMatchObject({
+      code: "duplicate_person_email",
+    });
+  });
+
+  it("refuses someone who is already on another household", async () => {
+    seedMember(hdb, { id: "p2", email: "other@example.test" });
+    seedMember(hdb, { id: "dana", email: "dana@example.test" });
+    hdb.run(
+      `INSERT INTO households (id, tenant_id, name, payer_member_id, created_at, updated_at)
+       VALUES ('h-other', 'tenant-1', 'Other', 'p2', '', '')`
+    );
+    hdb.run(
+      `INSERT INTO household_members (household_id, member_id, role, added_at)
+       VALUES ('h-other', 'p2', 'payer', ''), ('h-other', 'dana', 'member', '')`
+    );
+
+    const res = await join({
+      level_id: "household-level",
+      email: "jane@example.test",
+      people: [{ email: "dana@example.test" }],
+    });
+    expect(res.status).toBe(409);
+    expect((await res.json()) as { code: string }).toMatchObject({ code: "already_in_household" });
+    // Nothing new was written.
+    expect(hdb.rows("SELECT * FROM households")).toHaveLength(1);
+    expect(hdb.rows("SELECT * FROM members")).toHaveLength(2);
+  });
+
+  it("activates the whole household on a free level and ties the membership to it", async () => {
+    seedLevel(hdb, {
+      id: "free-household",
+      name: "Free household",
+      price_cents: 0,
+      household_max: 2,
+    });
+    const res = await join({
+      level_id: "free-household",
+      email: "jane@example.test",
+      people: [{ email: "dana@example.test" }],
+    });
+    expect(res.status).toBe(200);
+    expect((await res.json()) as { status: string }).toMatchObject({ status: "active" });
+
+    const members = hdb.rows<{ email: string; status: string }>(
+      "SELECT email, status FROM members ORDER BY email"
+    );
+    expect(members).toEqual([
+      { email: "dana@example.test", status: "active" },
+      { email: "jane@example.test", status: "active" },
+    ]);
+
+    const ms = hdb.rows<{ member_id: string; household_id: string | null }>(
+      "SELECT member_id, household_id FROM memberships"
+    );
+    expect(ms).toHaveLength(1); // ONE membership for the whole household
+    expect(ms[0].household_id).toBeTruthy();
+  });
+});

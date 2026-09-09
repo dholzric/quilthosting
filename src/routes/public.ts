@@ -25,6 +25,16 @@ import { formatMoney } from "../lib/utils/money";
 import { activateMembership, portalUrl } from "../lib/memberships";
 import { readDuesPolicy, prorateCents, describePolicy } from "../lib/dues";
 import { assertCanActivateMember } from "../lib/plans";
+import {
+  activeMembershipFilter,
+  buildCreateHouseholdStatements,
+  emailsAlreadyInHousehold,
+  householdMax,
+  householdPriceCents,
+  isActiveMember,
+  isHouseholdLevel,
+  MAX_HOUSEHOLD_PEOPLE,
+} from "../lib/households";
 import { rateLimit } from "../middleware/rateLimit";
 import {
   parseEventSettings,
@@ -701,6 +711,10 @@ publicRoutes.post("/:slug/join", async (c) => {
     first_name?: string;
     last_name?: string;
     custom_fields?: Record<string, string>;
+    /** Household levels only: the other people this one payment covers. */
+    people?: Array<{ email?: unknown; first_name?: unknown; last_name?: unknown }>;
+    /** What the guild calls this household on the roster. */
+    household_name?: string;
   }>();
 
   // Only keep answers for fields this guild actually defined
@@ -731,6 +745,78 @@ publicRoutes.post("/:slug/join", async (c) => {
   );
   if (!level) {
     return c.json({ error: "Membership level not found" }, 404);
+  }
+
+  /* ——— Household join (spec §4.3; the engine is src/lib/households.ts) ———
+   *
+   * A level with household_max > 1 sells "one payment, two quilters at the
+   * same address": the payer plus up to household_max - 1 named people, each
+   * of whom gets their own login, directory entry and member pricing.
+   *
+   * Everything is validated BEFORE any row is written, because a half-made
+   * household — a member row created for a spouse whose email turned out to
+   * be someone else's already — is worse than a rejected form.
+   */
+  const maxPeople = householdMax(level);
+  const rawPeople = Array.isArray(body.people) ? body.people : [];
+  const people: Array<{ email: string; first_name: string | null; last_name: string | null }> = [];
+  const seen = new Set<string>([email]);
+  for (const raw of rawPeople) {
+    const e = typeof raw?.email === "string" ? raw.email.toLowerCase().trim() : "";
+    if (!e) continue;
+    if (!e.includes("@") || e.length > 254) {
+      return c.json({ error: `"${e}" is not an email address.`, code: "bad_person_email" }, 400);
+    }
+    if (seen.has(e)) {
+      return c.json(
+        { error: "Each person needs their own email address.", code: "duplicate_person_email" },
+        400
+      );
+    }
+    seen.add(e);
+    people.push({
+      email: e,
+      first_name: typeof raw.first_name === "string" ? raw.first_name.trim().slice(0, 80) : null,
+      last_name: typeof raw.last_name === "string" ? raw.last_name.trim().slice(0, 80) : null,
+    });
+  }
+
+  if (people.length && !isHouseholdLevel(level)) {
+    return c.json(
+      { error: "This membership is for one person.", code: "not_a_household_level" },
+      400
+    );
+  }
+  if (people.length > maxPeople - 1) {
+    return c.json(
+      {
+        error: `This membership covers ${maxPeople} ${maxPeople === 1 ? "person" : "people"}.`,
+        code: "household_too_many",
+      },
+      400
+    );
+  }
+
+  // Somebody already on another household cannot be double-counted onto this
+  // one: their membership would derive from two payers at once and the plan
+  // cap would count them twice.
+  if (people.length) {
+    const taken = await emailsAlreadyInHousehold(
+      c.env.DB,
+      tenant.id,
+      [email, ...people.map((p) => p.email)]
+    );
+    if (taken.length) {
+      return c.json(
+        {
+          error: `${taken.join(", ")} ${
+            taken.length === 1 ? "is" : "are"
+          } already part of a household membership here.`,
+          code: "already_in_household",
+        },
+        409
+      );
+    }
   }
 
   // Find or create member
@@ -812,6 +898,81 @@ publicRoutes.post("/:slug/join", async (c) => {
     return c.json({ error: "Failed to create member" }, 500);
   }
 
+  /* ——— The household, written before any money moves ———
+   *
+   * The payer's own member row has always been created here as 'pending'
+   * before Stripe Checkout opens; the people on their household are created
+   * the same way, in ONE batch with the households and household_members
+   * rows, so a browser that dies mid-checkout leaves either a complete
+   * pending household or nothing at all. Nobody is active until the payment
+   * clears — `buildActivateMembershipStatements` (src/lib/fulfillment.ts)
+   * flips the whole household in the fulfillment batch.
+   */
+  let householdId: string | null = null;
+  if (people.length) {
+    const stmts: D1PreparedStatement[] = [];
+    const memberIds: string[] = [];
+    for (const person of people) {
+      const existing = await first<Member>(
+        c.env.DB.prepare("SELECT * FROM members WHERE tenant_id = ? AND email = ?").bind(
+          tenant.id,
+          person.email
+        )
+      );
+      if (existing) {
+        memberIds.push(existing.id);
+        continue;
+      }
+      const personId = generateId();
+      memberIds.push(personId);
+      stmts.push(
+        c.env.DB.prepare(
+          `INSERT INTO members
+           (id, tenant_id, email, first_name, last_name, status, joined_at, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)`
+        ).bind(
+          personId,
+          tenant.id,
+          person.email,
+          person.first_name,
+          person.last_name,
+          now,
+          now,
+          now
+        )
+      );
+    }
+    householdId = generateId();
+    const householdName =
+      (typeof body.household_name === "string" && body.household_name.trim().slice(0, 120)) ||
+      `${body.last_name || body.first_name || email} household`;
+    stmts.push(
+      ...buildCreateHouseholdStatements(c.env.DB, {
+        tenantId: tenant.id,
+        householdId,
+        name: householdName,
+        payerMemberId: member.id,
+        memberIds,
+        now,
+      })
+    );
+    try {
+      await c.env.DB.batch(stmts);
+    } catch (e) {
+      // The UNIQUE (member_id) index on household_members is the real guard
+      // against a person joining two households; the pre-flight check above
+      // only makes the common case a readable message.
+      console.error("join: household batch failed, nothing saved", e);
+      return c.json(
+        {
+          error: "One of those people is already part of a household membership here.",
+          code: "already_in_household",
+        },
+        409
+      );
+    }
+  }
+
   /* ——— What this person pays today (src/lib/dues.ts) ———
    *
    * On an anniversary level (every level nobody has edited) this is the
@@ -828,15 +989,18 @@ publicRoutes.post("/:slug/join", async (c) => {
    * two-phase subscription schedule to hang the first term on.
    */
   const policy = readDuesPolicy(level);
-  let chargeCents = level.price_cents;
-  if (policy.proration !== "none" && level.renewal_type !== "auto" && level.price_cents > 0) {
+  // The household price is the level price plus the extra-person add-on for
+  // everyone past the payer; on an individual level it IS the level price.
+  const fullPriceCents = householdPriceCents(level, 1 + people.length);
+  let chargeCents = fullPriceCents;
+  if (policy.proration !== "none" && level.renewal_type !== "auto" && fullPriceCents > 0) {
     const prior = await first<{ id: string }>(
       c.env.DB.prepare(
         `SELECT id FROM memberships
          WHERE tenant_id = ? AND member_id = ? AND level_id = ? LIMIT 1`
       ).bind(tenant.id, member.id, level.id)
     );
-    if (!prior) chargeCents = prorateCents(policy, level.price_cents, now);
+    if (!prior) chargeCents = prorateCents(policy, fullPriceCents, now);
   }
 
   // Free membership — activate immediately. Keyed on what they OWE, so a
@@ -860,12 +1024,40 @@ publicRoutes.post("/:slug/join", async (c) => {
       policy,
     });
 
+    // A free household: tie the one membership to the household and let the
+    // people it covers in. The paid path does the same work inside the
+    // fulfillment batch (src/lib/fulfillment.ts).
+    if (householdId) {
+      await c.env.DB.batch([
+        c.env.DB.prepare(
+          "UPDATE memberships SET household_id = ?, updated_at = ? WHERE id = ? AND tenant_id = ?"
+        ).bind(householdId, now, membershipId, tenant.id),
+        c.env.DB.prepare(
+          `UPDATE members SET status = 'active', joined_at = coalesce(joined_at, ?), updated_at = ?
+           WHERE tenant_id = ? AND id IN (
+             SELECT hm.member_id FROM household_members hm WHERE hm.household_id = ?
+           )`
+        ).bind(now, now, tenant.id, householdId),
+      ]);
+    }
+
     const { subject, html } = welcomeEmail({
       guildName: tenant.name,
       firstName: member.first_name ?? undefined,
       portalUrl: portalUrl(c.env.APP_URL, tenant.slug),
     });
     await sendEmail(c.env, { to: email, subject, html });
+    if (householdId) {
+      // Each person gets their OWN magic-link sign-in. Only the payer's mail
+      // carries anything about the payment.
+      const { sendHouseholdWelcomes } = await import("../lib/households");
+      await sendHouseholdWelcomes(c.env, {
+        tenantId: tenant.id,
+        payerMemberId: member.id,
+        guildName: tenant.name,
+        slug: tenant.slug,
+      });
+    }
     try {
       const { enrollMemberActivated } = await import("../lib/automations");
       await enrollMemberActivated(c.env, tenant.id, member.id);
@@ -956,7 +1148,7 @@ publicRoutes.post("/:slug/join", async (c) => {
       [body.first_name, body.last_name].filter(Boolean).join(" ") || undefined,
     amountCents: chargeCents,
     description:
-      chargeCents !== level.price_cents
+      chargeCents !== fullPriceCents
         ? `${tenant.name} – ${level.name} Membership (rest of the membership year)`
         : `${tenant.name} – ${level.name} Membership`,
     type: "dues",
@@ -1028,9 +1220,12 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
     ).bind(tenant.id, email)
   );
   const memberId = memberRow?.id ?? null;
-  const isActiveMember = memberRow?.status === "active";
+  // Derived, not read off members.status: the second quilter on a household
+  // membership pays the member price at the door like anybody else, and a
+  // household member whose payer lapsed does not. src/lib/households.ts.
+  const memberIsActive = memberId ? await isActiveMember(db, tenant.id, memberId) : false;
   let memberPriceVerified: number | null = null;
-  if (isActiveMember && memberRow) {
+  if (memberIsActive && memberRow) {
     memberPriceVerified = 0;
     const token = extractBearer(c.req.header("Authorization"));
     if (token && c.env.JWT_SECRET) {
@@ -1044,7 +1239,7 @@ publicRoutes.post("/:slug/events/:eventId/register", async (c) => {
       }
     }
   }
-  const priceCents = isActiveMember
+  const priceCents = memberIsActive
     ? event.member_price_cents
     : event.non_member_price_cents;
 
@@ -1849,10 +2044,11 @@ publicRoutes.get("/:slug/directory", async (c) => {
       showcase_json: string | null;
     }>(
       c.env.DB.prepare(
-        `SELECT id, first_name, last_name, bio, photo_file_id, showcase_json FROM members
-         WHERE tenant_id = ? AND status = 'active'
-           AND coalesce(directory_visible, 1) = 1
-         ORDER BY last_name, first_name LIMIT 500`
+        `SELECT m.id, m.first_name, m.last_name, m.bio, m.photo_file_id, m.showcase_json
+           FROM members m
+          WHERE m.tenant_id = ? AND ${activeMembershipFilter("m")}
+            AND coalesce(m.directory_visible, 1) = 1
+          ORDER BY m.last_name, m.first_name LIMIT 500`
       ).bind(tenant.id)
     );
     return c.json({
@@ -1880,10 +2076,10 @@ publicRoutes.get("/:slug/directory", async (c) => {
       last_name: string | null;
     }>(
       c.env.DB.prepare(
-        `SELECT first_name, last_name FROM members
-         WHERE tenant_id = ? AND status = 'active'
-           AND coalesce(directory_visible, 1) = 1
-         ORDER BY last_name, first_name LIMIT 500`
+        `SELECT m.first_name, m.last_name FROM members m
+          WHERE m.tenant_id = ? AND ${activeMembershipFilter("m")}
+            AND coalesce(m.directory_visible, 1) = 1
+          ORDER BY m.last_name, m.first_name LIMIT 500`
       ).bind(tenant.id)
     );
     return c.json({ tenant: { name: tenant.name, slug: tenant.slug }, members });
@@ -1897,8 +2093,8 @@ publicRoutes.get("/:slug/member-photo/:fileId", async (c) => {
   const fileId = c.req.param("fileId");
   const member = await first(
     c.env.DB.prepare(
-      `SELECT id FROM members WHERE tenant_id = ? AND photo_file_id = ?
-         AND coalesce(directory_visible, 1) = 1 AND status = 'active'`
+      `SELECT m.id FROM members m WHERE m.tenant_id = ? AND m.photo_file_id = ?
+         AND coalesce(m.directory_visible, 1) = 1 AND ${activeMembershipFilter("m")}`
     ).bind(tenant.id, fileId)
   );
   if (!member) return c.json({ error: "Not found" }, 404);

@@ -283,6 +283,22 @@ export function buildActivateMembershipStatements(
   // computeTermEnd falls back to the anniversary math for untouched levels.
   const endDate = params.endDate ?? computeTermEnd(readDuesPolicy(level), now, now);
   const guard = `EXISTS (SELECT 1 FROM payments WHERE id = ? AND fulfilled_at IS NULL)`;
+
+  /* ——— Household (migration 0031) ———
+   *
+   * The public join form writes the household and its people BEFORE opening
+   * Stripe Checkout, exactly as it has always written the payer's own pending
+   * member row, so the roster the payment activates is already known here and
+   * no household data has to ride through Stripe metadata.
+   *
+   * Both statements below are correlated subqueries against that household.
+   * On the ordinary individual join there is no household row, the subquery
+   * yields nothing, household_id lands NULL and the second statement matches
+   * no rows — byte-identical behavior for every level nobody has edited.
+   */
+  const householdOfPayer = `(SELECT h.id FROM households h
+      WHERE h.tenant_id = ? AND h.payer_member_id = ?)`;
+
   const stmts = [
     db
       .prepare(
@@ -294,8 +310,9 @@ export function buildActivateMembershipStatements(
       .prepare(
         `INSERT INTO memberships
          (id, tenant_id, member_id, level_id, start_date, end_date, status,
-          amount_paid_cents, stripe_subscription_id, auto_renew, created_at, updated_at)
-         SELECT ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?
+          amount_paid_cents, stripe_subscription_id, auto_renew, household_id,
+          created_at, updated_at)
+         SELECT ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ${householdOfPayer}, ?, ?
          WHERE ${guard}`
       )
       .bind(
@@ -308,6 +325,8 @@ export function buildActivateMembershipStatements(
         amountPaidCents,
         params.stripeSubscriptionId,
         params.autoRenew ? 1 : 0,
+        tenantId,
+        memberId,
         now,
         now,
         paymentId
@@ -318,6 +337,17 @@ export function buildActivateMembershipStatements(
          WHERE id = ? AND tenant_id = ?`
       )
       .bind(now, now, memberId, tenantId),
+    // Everybody else this one payment covers. They were created 'pending' at
+    // join time and become members the moment the payer's card clears.
+    db
+      .prepare(
+        `UPDATE members SET status = 'active', joined_at = coalesce(joined_at, ?), updated_at = ?
+         WHERE tenant_id = ? AND id IN (
+           SELECT hm.member_id FROM household_members hm
+            WHERE hm.household_id = ${householdOfPayer}
+         ) AND ${guard}`
+      )
+      .bind(now, now, tenantId, tenantId, memberId, paymentId),
   ];
   return { membershipId, stmts };
 }

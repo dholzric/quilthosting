@@ -528,8 +528,17 @@
           return;
         }
 
-        const m = data.membership;
-        const status = m?.status || data.member.status;
+        /* A household member holds no membership row of her own: the payer
+         * does. Show the payment that actually covers her, name who made it,
+         * and do not offer her a renew button for somebody else's card. */
+        const household = data.household || null;
+        const isPayer = !household || household.payer_member_id === data.member.id;
+        const m = data.membership || (!isPayer ? data.household_membership : null) || null;
+        const status = data.is_member ? "active" : m?.status || data.member.status;
+        const payer = household ? household.members.find((x) => x.role === "payer") || null : null;
+        const payerName = payer
+          ? [payer.first_name, payer.last_name].filter(Boolean).join(" ") || payer.email
+          : "";
         home.innerHTML = `
           <div class="card">
             <h2>Membership</h2>
@@ -537,16 +546,22 @@
               <span class="badge ${status}">${status}</span>
               ${m ? `· <strong>${esc(m.level_name)}</strong>` : ""}
             </p>
-            ${m?.end_date ? `<p class="muted" style="margin-top:0.5rem">Renews / ends: ${new Date(m.end_date).toLocaleDateString()}</p>` : ""}
-            <div class="row" style="margin-top:1rem">
-              <button onclick="doRenew()">Renew membership</button>
-            </div>
+            ${household && !isPayer
+              ? `<p class="muted" style="margin-top:0.5rem">Your household membership, paid by ${esc(payerName)}${m?.end_date ? ", renews " + new Date(m.end_date).toLocaleDateString() : ""}.</p>`
+              : m?.end_date
+                ? `<p class="muted" style="margin-top:0.5rem">Renews / ends: ${new Date(m.end_date).toLocaleDateString()}</p>`
+                : ""}
+            ${isPayer
+              ? `<div class="row" style="margin-top:1rem"><button onclick="doRenew()">Renew membership</button></div>`
+              : `<p class="muted" style="margin-top:0.75rem;font-size:0.9rem">${esc(payerName)} renews this membership for the household.</p>`}
             ${params.get("renewed") === "1" ? `<p style="color:var(--success);margin-top:0.75rem">Renewal payment received — thank you!</p>` : ""}
           </div>
+          <div class="card hidden" id="household-card"></div>
           <div class="card">
             <h2>Hello${data.member.first_name ? ", " + esc(data.member.first_name) : ""}</h2>
             <p class="muted">Use the tabs above to view events, invoices, and update your profile.</p>
           </div>`;
+        if (household) loadHousehold();
       } catch (e) {
         if (String(e.message).includes("Unauthorized") || String(e.message).includes("Invalid")) {
           localStorage.removeItem("gb_token");
@@ -628,6 +643,123 @@
         onEventClick: (ev) => { portalEventsMode("list"); },
         onMonthChange: (ny, nm) => { pCalCursor = { y: ny, m: nm }; drawPortalCalendar(); },
       });
+    }
+
+    /* ——— Household (spec §4.3) ———
+     *
+     * Everyone on the household sees who is on it. Only the payer can change
+     * the names: it is their card, and a second person able to add or drop
+     * people from someone else's membership is a refund question waiting to
+     * happen.
+     */
+    async function loadHousehold() {
+      const card = document.getElementById("household-card");
+      if (!card) return;
+      let data;
+      try {
+        data = await api(`/api/portal/${slug}/household`);
+      } catch {
+        return;
+      }
+      if (!data || !data.household) return;
+      window._household = data;
+      const people = data.household.members
+        .map((person) => {
+          const name =
+            [person.first_name, person.last_name].filter(Boolean).join(" ") || person.email;
+          const who = person.role === "payer" ? " · pays" : "";
+          const remove =
+            data.is_payer && person.role !== "payer"
+              ? ` <button class="secondary" style="padding:0.2rem 0.5rem;font-size:0.8rem" onclick='removeFromHousehold(${JSON.stringify(person.id)}, ${JSON.stringify(name)})'>Remove</button>`
+              : "";
+          return `<li style="margin:0.25rem 0">${esc(name)} <span class="muted" style="font-size:0.85rem">${esc(person.email)}${esc(who)}</span>${remove}</li>`;
+        })
+        .join("");
+      const count = data.household.members.length;
+      const room = data.max_people && count < data.max_people ? data.max_people - count : 0;
+      card.innerHTML = `
+        <h2>${esc(data.household.name)}</h2>
+        <p class="muted">One membership, ${count} ${count === 1 ? "person" : "people"}. Everyone here has their own sign-in, directory entry and member prices.</p>
+        <ul style="margin:0.75rem 0 0 1.1rem;padding:0">${people}</ul>
+        ${data.is_payer
+          ? `
+          <div style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid var(--border,#ddd)">
+            <label for="hh-name">Household name</label>
+            <div class="row" style="justify-content:flex-start;gap:0.5rem">
+              <input id="hh-name" value="${esc(data.household.name)}" />
+              <button class="secondary" onclick="renameHousehold()">Rename</button>
+            </div>
+            ${room
+              ? `
+              <p class="muted" style="margin-top:1rem;font-size:0.9rem">You can add ${room} more ${room === 1 ? "person" : "people"}.</p>
+              <div class="row" style="justify-content:flex-start;gap:0.5rem;flex-wrap:wrap">
+                <input id="hh-first" placeholder="First name" aria-label="First name" />
+                <input id="hh-last" placeholder="Last name" aria-label="Last name" />
+                <input id="hh-email" type="email" placeholder="their@email" aria-label="Their email address" />
+                <button onclick="addPersonToHousehold()">Add person</button>
+              </div>`
+              : `<p class="muted" style="margin-top:1rem;font-size:0.9rem">This membership is full.</p>`}
+          </div>`
+          : `<p class="muted" style="margin-top:1rem;font-size:0.9rem">Only the person who pays can change who is on this membership.</p>`}`;
+      card.classList.remove("hidden");
+    }
+
+    async function renameHousehold() {
+      const field = document.getElementById("hh-name");
+      const name = field ? field.value.trim() : "";
+      if (!name) {
+        alert("A household needs a name.");
+        return;
+      }
+      try {
+        await api(`/api/portal/${slug}/household`, {
+          method: "PATCH",
+          body: JSON.stringify({ name }),
+        });
+        await loadHousehold();
+      } catch (e) {
+        alert(e.message || "Could not rename the household.");
+      }
+    }
+
+    async function addPersonToHousehold() {
+      const emailField = document.getElementById("hh-email");
+      const email = emailField ? emailField.value.trim() : "";
+      if (!email) {
+        alert("An email address is how they sign in, so we need one.");
+        return;
+      }
+      const first = document.getElementById("hh-first");
+      const last = document.getElementById("hh-last");
+      try {
+        await api(`/api/portal/${slug}/household/people`, {
+          method: "POST",
+          body: JSON.stringify({
+            email,
+            first_name: first ? first.value.trim() : "",
+            last_name: last ? last.value.trim() : "",
+          }),
+        });
+        await loadHousehold();
+      } catch (e) {
+        alert(e.message || "Could not add that person.");
+      }
+    }
+
+    async function removeFromHousehold(memberId, name) {
+      if (
+        !confirm(
+          `Take ${name} off this membership? They keep their own record with the guild, but the membership that came with this payment ends for them.`
+        )
+      ) {
+        return;
+      }
+      try {
+        await api(`/api/portal/${slug}/household/people/${memberId}`, { method: "DELETE" });
+        await loadHousehold();
+      } catch (e) {
+        alert(e.message || "Could not remove that person.");
+      }
     }
 
     async function loadEvents() {

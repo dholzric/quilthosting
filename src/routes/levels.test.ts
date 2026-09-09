@@ -251,3 +251,74 @@ describe("PATCH /levels/:id — dues policy", () => {
     expect((await h.patch({ duration_months: 0 })).status).toBe(400);
   });
 });
+
+/* ————————————————— Household columns (migration 0031) —————————————————
+ *
+ * A level that says nothing about households is an individual level, which
+ * is what every level was before this migration. The binds are read straight
+ * out of the statement the route sent, in the positions the SQL writes them.
+ */
+function householdInsertBinds(runs: { sql: string; binds: unknown[] }[]) {
+  const r = runs.find((x) => x.sql.includes("INSERT INTO membership_levels"))!;
+  return { household_max: r.binds[12], household_add_cents: r.binds[13] };
+}
+function householdUpdateBinds(runs: { sql: string; binds: unknown[] }[]) {
+  const r = runs.find((x) => x.sql.includes("UPDATE membership_levels SET"))!;
+  return { household_max: r.binds[10], household_add_cents: r.binds[11] };
+}
+
+describe("levels — household membership", () => {
+  it("creates an individual level when the request says nothing", async () => {
+    const h = harness();
+    expect((await h.post({ name: "Individual", price_cents: 3500 })).status).toBe(201);
+    expect(householdInsertBinds(h.runs)).toEqual({ household_max: 1, household_add_cents: 0 });
+  });
+
+  it("stores a household level with its extra-person price", async () => {
+    const h = harness();
+    const res = await h.post({
+      name: "Household",
+      price_cents: 4000,
+      household_max: 3,
+      household_add_cents: 1500,
+    });
+    expect(res.status).toBe(201);
+    expect(householdInsertBinds(h.runs)).toEqual({ household_max: 3, household_add_cents: 1500 });
+  });
+
+  it("leaves the stored household settings alone on a PATCH that omits them", async () => {
+    const h = harness({ household_max: 2, household_add_cents: 1000 });
+    expect((await h.patch({ name: "Renamed" })).status).toBe(200);
+    // NULL through coalesce(?, household_max) keeps the column.
+    expect(householdUpdateBinds(h.runs)).toEqual({
+      household_max: null,
+      household_add_cents: null,
+    });
+  });
+
+  it("turns a household level back into an individual one", async () => {
+    const h = harness({ household_max: 3, household_add_cents: 1500 });
+    expect((await h.patch({ household_max: 1, household_add_cents: 0 })).status).toBe(200);
+    expect(householdUpdateBinds(h.runs)).toEqual({ household_max: 1, household_add_cents: 0 });
+  });
+
+  it("rejects a household of nobody, a household of fifty, and a fractional one", async () => {
+    for (const bad of [0, -1, 50, 2.5]) {
+      const h = harness();
+      const res = await h.post({ name: "X", household_max: bad });
+      expect(res.status, `household_max ${bad}`).toBe(400);
+      expect((await res.json()) as { error: string }).toMatchObject({
+        error: expect.stringContaining("household_max"),
+      });
+    }
+  });
+
+  it("rejects a negative extra-person price", async () => {
+    const h = harness();
+    const res = await h.post({ name: "X", household_add_cents: -100 });
+    expect(res.status).toBe(400);
+    expect((await res.json()) as { error: string }).toMatchObject({
+      error: expect.stringContaining("household_add_cents"),
+    });
+  });
+});

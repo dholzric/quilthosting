@@ -12,6 +12,7 @@ import {
   type TermMode,
   type Proration,
 } from "../lib/dues";
+import { MAX_HOUSEHOLD_PEOPLE } from "../lib/households";
 
 export const levelRoutes = new Hono<{
   Bindings: Env;
@@ -56,6 +57,25 @@ const graceDaysSchema = z
   .min(0, "grace_days cannot be negative")
   .max(MAX_GRACE_DAYS, `grace_days cannot be more than ${MAX_GRACE_DAYS}`);
 
+/* ——— Household (migration 0031; the engine is src/lib/households.ts) ———
+ *
+ * household_max = 1 is an ordinary individual level — every level that
+ * existed before 0031 — and > 1 turns the public join form into "the payer
+ * plus up to household_max - 1 more people, one payment".
+ * household_add_cents is the flat add-on per extra person; 0 means the
+ * household costs one membership, which is what "couples join together" is.
+ */
+const householdMaxSchema = z
+  .number({ invalid_type_error: "household_max must be a whole number of people" })
+  .int("household_max must be a whole number of people")
+  .min(1, `household_max must be between 1 and ${MAX_HOUSEHOLD_PEOPLE}`)
+  .max(MAX_HOUSEHOLD_PEOPLE, `household_max must be between 1 and ${MAX_HOUSEHOLD_PEOPLE}`);
+const householdAddCentsSchema = z
+  .number({ invalid_type_error: "household_add_cents must be a whole number of cents" })
+  .int("household_add_cents must be a whole number of cents")
+  .min(0, "household_add_cents cannot be negative")
+  .max(100_000_000, "household_add_cents is too large");
+
 const createLevelSchema = z.object({
   name: nameSchema,
   description: descriptionSchema.optional(),
@@ -67,6 +87,8 @@ const createLevelSchema = z.object({
   term_anchor: termAnchorSchema.optional(),
   proration: prorationSchema.optional(),
   grace_days: graceDaysSchema.optional(),
+  household_max: householdMaxSchema.optional(),
+  household_add_cents: householdAddCentsSchema.optional(),
 });
 const patchLevelSchema = createLevelSchema.partial();
 
@@ -156,8 +178,9 @@ levelRoutes.post("/", async (c) => {
   await c.env.DB.prepare(
     `INSERT INTO membership_levels
      (id, tenant_id, name, description, price_cents, duration_months, renewal_type, is_public,
-      term_mode, term_anchor, proration, grace_days, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      term_mode, term_anchor, proration, grace_days,
+      household_max, household_add_cents, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   )
     .bind(
       id,
@@ -172,6 +195,8 @@ levelRoutes.post("/", async (c) => {
       resolved.policy.term_anchor,
       resolved.policy.proration,
       resolved.policy.grace_days,
+      body.household_max ?? 1,
+      body.household_add_cents ?? 0,
       now,
       now
     )
@@ -224,6 +249,8 @@ levelRoutes.patch("/:levelId", async (c) => {
        term_anchor = ?,
        proration = ?,
        grace_days = ?,
+       household_max = coalesce(?, household_max),
+       household_add_cents = coalesce(?, household_add_cents),
        updated_at = ?
      WHERE id = ? AND tenant_id = ?`
   )
@@ -238,6 +265,8 @@ levelRoutes.patch("/:levelId", async (c) => {
       resolved.policy.term_anchor,
       resolved.policy.proration,
       resolved.policy.grace_days,
+      body.household_max ?? null,
+      body.household_add_cents ?? null,
       now,
       levelId,
       tenant.id

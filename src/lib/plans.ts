@@ -1,5 +1,6 @@
 import type { Plan, Tenant } from "../types";
 import { first } from "./db";
+import { activeMembershipFilter, isActiveMember } from "./households";
 import { isBusiness } from "./tenantType";
 
 /** Free / Starter tier: max active members before upgrade required. */
@@ -61,6 +62,16 @@ export function activeMemberLimitForTenant(
   return activeMemberLimit(effectivePlan(tenant));
 }
 
+/**
+ * How many people this tenant has an active membership for.
+ *
+ * THE CAP COUNTS PEOPLE, NOT PAYMENTS. A household of three is three active
+ * members: that is the honest reading of "30 active members", and it keeps
+ * the pricing promise unambiguous rather than letting a guild of 90 sit on
+ * the free plan behind 30 household levels. `activeMembershipFilter`
+ * (src/lib/households.ts) is what makes the two people riding on a payer's
+ * membership count here without a membership row of their own.
+ */
 export async function countActiveMembers(
   db: D1Database,
   tenantId: string
@@ -68,8 +79,8 @@ export async function countActiveMembers(
   const row = await first<{ cnt: number }>(
     db
       .prepare(
-        `SELECT COUNT(*) as cnt FROM members
-         WHERE tenant_id = ? AND status = 'active'`
+        `SELECT COUNT(*) as cnt FROM members m
+         WHERE m.tenant_id = ? AND ${activeMembershipFilter("m")}`
       )
       .bind(tenantId)
   );
@@ -88,15 +99,10 @@ export async function assertCanActivateMember(
   const limit = activeMemberLimitForTenant(tenant);
   if (limit == null) return;
 
-  if (memberId) {
-    const existing = await first<{ status: string }>(
-      db
-        .prepare("SELECT status FROM members WHERE id = ? AND tenant_id = ?")
-        .bind(memberId, tenant.id)
-    );
-    // Renewing / re-activating an already-active member does not consume a slot
-    if (existing?.status === "active") return;
-  }
+  // Renewing / re-activating someone who is already an active member does not
+  // consume a slot — including a household member, who is already counted
+  // through the payer and must not be billed for a second time by the cap.
+  if (memberId && (await isActiveMember(db, tenant.id, memberId))) return;
 
   const count = await countActiveMembers(db, tenant.id);
   if (count >= limit) {

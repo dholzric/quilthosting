@@ -374,3 +374,237 @@ describe("GET /api/portal/:slug/pages — trashed pages are hidden", () => {
     expect(rows.map((r) => r.slug)).toEqual(["live"]);
   });
 });
+
+/* ————————————————— The portal's household view (spec §4.3) —————————————————
+ *
+ * "Your household membership, paid by Jane, renews December 31." The payer
+ * manages who is on it; everybody else can see it and edit only themselves.
+ *
+ * Real in-memory SQLite (src/lib/householdTestDb.ts) rather than the fake
+ * above, because the answers here — who is on the household, and whether the
+ * spouse counts as a member — come out of SQL.
+ */
+import { beforeEach } from "vitest";
+import {
+  createHouseholdTestDb,
+  seedLevel,
+  seedMember,
+  seedMembership,
+  seedTenant,
+  type HouseholdTestDb,
+} from "../lib/householdTestDb";
+
+describe("portal households", () => {
+  let hdb: HouseholdTestDb;
+
+  const env = () =>
+    ({ DB: hdb, JWT_SECRET, APP_URL: "https://quilthosting.test" }) as unknown as Env;
+  const ctx = { waitUntil: () => {}, passThroughOnException: () => {} };
+
+  async function as(email: string, path: string, init: RequestInit = {}) {
+    const token = await signJwt({ sub: `u-${email}`, email }, JWT_SECRET, 600);
+    return portalRoutes.request(
+      `http://x${path}`,
+      { ...init, headers: { ...(init.headers || {}), Authorization: `Bearer ${token}` } },
+      env(),
+      ctx as unknown as ExecutionContext
+    );
+  }
+
+  beforeEach(() => {
+    hdb = createHouseholdTestDb();
+    seedTenant(hdb, { slug: "stitchers", name: "Stitchers Guild" });
+    seedLevel(hdb, { id: "hl", name: "Household", price_cents: 4000, household_max: 3 });
+    seedMember(hdb, {
+      id: "payer",
+      email: "jane@example.test",
+      first_name: "Jane",
+      last_name: "Alvarez",
+    });
+    seedMember(hdb, {
+      id: "spouse",
+      email: "dana@example.test",
+      first_name: "Dana",
+      last_name: "Alvarez",
+      status: "pending",
+    });
+    seedMembership(hdb, {
+      id: "ms",
+      member_id: "payer",
+      level_id: "hl",
+      household_id: "h1",
+      end_date: "2026-12-31T23:59:59.999Z",
+    });
+    hdb.run(
+      `INSERT INTO households (id, tenant_id, name, payer_member_id, created_at, updated_at)
+       VALUES ('h1', 'tenant-1', 'The Alvarez household', 'payer', '', '')`
+    );
+    hdb.run(
+      `INSERT INTO household_members (household_id, member_id, role, added_at)
+       VALUES ('h1', 'payer', 'payer', ''), ('h1', 'spouse', 'member', '')`
+    );
+  });
+
+  it("tells a household member who paid and when it renews", async () => {
+    const res = await as("dana@example.test", "/stitchers/household");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      household: { name: string; members: Array<{ id: string; role: string }> };
+      is_payer: boolean;
+      payer: { first_name: string };
+      membership: { end_date: string; level_name: string };
+      max_people: number;
+    };
+    expect(body.household.name).toBe("The Alvarez household");
+    expect(body.household.members.map((m) => m.id)).toEqual(["payer", "spouse"]);
+    expect(body.is_payer).toBe(false);
+    expect(body.payer.first_name).toBe("Jane");
+    expect(body.membership.end_date).toBe("2026-12-31T23:59:59.999Z");
+    expect(body.membership.level_name).toBe("Household");
+    expect(body.max_people).toBe(3);
+  });
+
+  it("marks the payer as the payer", async () => {
+    const body = (await (await as("jane@example.test", "/stitchers/household")).json()) as {
+      is_payer: boolean;
+    };
+    expect(body.is_payer).toBe(true);
+  });
+
+  it("returns household: null for a member in none", async () => {
+    seedMember(hdb, { id: "solo", email: "solo@example.test" });
+    const body = (await (await as("solo@example.test", "/stitchers/household")).json()) as {
+      household: unknown;
+    };
+    expect(body.household).toBeNull();
+  });
+
+  it("carries the household and the payer's membership on /me", async () => {
+    const body = (await (await as("dana@example.test", "/stitchers/me")).json()) as {
+      membership: unknown;
+      household: { payer_member_id: string };
+      household_membership: { end_date: string } | null;
+      is_member: boolean;
+    };
+    expect(body.membership).toBeNull(); // she holds none of her own
+    expect(body.household.payer_member_id).toBe("payer");
+    expect(body.household_membership?.end_date).toBe("2026-12-31T23:59:59.999Z");
+    expect(body.is_member).toBe(true); // derived from the payer
+  });
+
+  it("gives a household member the member price on events", async () => {
+    const body = (await (await as("dana@example.test", "/stitchers/events")).json()) as {
+      is_member: boolean;
+    };
+    expect(body.is_member).toBe(true);
+  });
+
+  it("lists a household member in the directory", async () => {
+    const body = (await (await as("jane@example.test", "/stitchers/directory")).json()) as {
+      members: Array<{ first_name: string }>;
+      total: number;
+    };
+    expect(body.members.map((m) => m.first_name).sort()).toEqual(["Dana", "Jane"]);
+    expect(body.total).toBe(2);
+  });
+
+  describe("payer-only management", () => {
+    it("lets the payer rename the household", async () => {
+      const res = await as("jane@example.test", "/stitchers/household", {
+        method: "PATCH",
+        body: JSON.stringify({ name: "Alvarez-Chen" }),
+      });
+      expect(res.status).toBe(200);
+      expect(
+        hdb.rows<{ name: string }>("SELECT name FROM households WHERE id = 'h1'")[0].name
+      ).toBe("Alvarez-Chen");
+    });
+
+    it("refuses a rename from anybody else", async () => {
+      const res = await as("dana@example.test", "/stitchers/household", {
+        method: "PATCH",
+        body: JSON.stringify({ name: "Someone else's house" }),
+      });
+      expect(res.status).toBe(403);
+      expect(
+        hdb.rows<{ name: string }>("SELECT name FROM households WHERE id = 'h1'")[0].name
+      ).toBe("The Alvarez household");
+    });
+
+    it("lets the payer add a person, up to the level's household_max", async () => {
+      const res = await as("jane@example.test", "/stitchers/household/people", {
+        method: "POST",
+        body: JSON.stringify({ email: "Kim@Example.test", first_name: "Kim" }),
+      });
+      expect(res.status).toBe(200);
+      expect(hdb.rows("SELECT * FROM household_members WHERE household_id = 'h1'")).toHaveLength(3);
+      expect(
+        hdb.rows<{ email: string; status: string }>(
+          "SELECT email, status FROM members WHERE email = 'kim@example.test'"
+        )[0]
+      ).toMatchObject({ status: "pending" });
+
+      // A fourth is one too many for a household_max of 3.
+      const full = await as("jane@example.test", "/stitchers/household/people", {
+        method: "POST",
+        body: JSON.stringify({ email: "sam@example.test" }),
+      });
+      expect(full.status).toBe(409);
+      expect((await full.json()) as { code: string }).toMatchObject({ code: "household_full" });
+    });
+
+    it("refuses to add someone who is already in another household", async () => {
+      seedMember(hdb, { id: "other-payer", email: "other@example.test" });
+      seedMember(hdb, { id: "taken", email: "taken@example.test" });
+      hdb.run(
+        `INSERT INTO households (id, tenant_id, name, payer_member_id, created_at, updated_at)
+         VALUES ('h2', 'tenant-1', 'Other', 'other-payer', '', '')`
+      );
+      hdb.run(
+        `INSERT INTO household_members (household_id, member_id, role, added_at)
+         VALUES ('h2', 'other-payer', 'payer', ''), ('h2', 'taken', 'member', '')`
+      );
+      const res = await as("jane@example.test", "/stitchers/household/people", {
+        method: "POST",
+        body: JSON.stringify({ email: "taken@example.test" }),
+      });
+      expect(res.status).toBe(409);
+      expect((await res.json()) as { code: string }).toMatchObject({
+        code: "already_in_household",
+      });
+    });
+
+    it("refuses an add from a non-payer", async () => {
+      const res = await as("dana@example.test", "/stitchers/household/people", {
+        method: "POST",
+        body: JSON.stringify({ email: "kim@example.test" }),
+      });
+      expect(res.status).toBe(403);
+      expect(hdb.rows("SELECT * FROM household_members")).toHaveLength(2);
+    });
+
+    it("lets the payer remove someone without deleting them", async () => {
+      const res = await as("jane@example.test", "/stitchers/household/people/spouse", {
+        method: "DELETE",
+      });
+      expect(res.status).toBe(200);
+      expect(hdb.rows("SELECT * FROM household_members WHERE household_id = 'h1'")).toHaveLength(1);
+      const spouse = hdb.rows<{ status: string }>(
+        "SELECT status FROM members WHERE id = 'spouse'"
+      )[0];
+      expect(spouse).toBeTruthy();
+      expect(spouse.status).toBe("pending"); // never was active in her own right
+    });
+
+    it("will not let the payer remove themselves", async () => {
+      const res = await as("jane@example.test", "/stitchers/household/people/payer", {
+        method: "DELETE",
+      });
+      expect(res.status).toBe(400);
+      expect((await res.json()) as { code: string }).toMatchObject({
+        code: "payer_cannot_leave",
+      });
+      expect(hdb.rows("SELECT * FROM households")).toHaveLength(1);
+    });
+  });
+});

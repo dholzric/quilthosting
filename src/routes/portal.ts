@@ -6,6 +6,16 @@ import { contentFromPage } from "../lib/blocks";
 import { createCheckoutSession } from "../lib/stripe";
 import { activateMembership, portalUrl } from "../lib/memberships";
 import { assertCanActivateMember } from "../lib/plans";
+import {
+  activeMembershipFilter,
+  addToHousehold,
+  householdFor,
+  householdMax,
+  inAnyHousehold,
+  isActiveMember,
+  removeFromHousehold,
+  MAX_HOUSEHOLD_PEOPLE,
+} from "../lib/households";
 import { renderReceiptHtml } from "../lib/receipts";
 import { optOutMember, clearUnsubscribe } from "../lib/suppression";
 import { parseEventSettings } from "../lib/eventQuestions";
@@ -134,10 +144,33 @@ portalRoutes.get("/:slug/me", async (c) => {
     ).bind(member.id, tenant.id)
   );
 
+  // A household member has no membership row of their own — the payer holds
+  // it. Hand the portal the payer's membership as `household_membership` so
+  // "Your household membership, paid by Jane, renews December 31" is one
+  // render and not a second round trip.
+  const household = await householdFor(c.env.DB, tenant.id, member.id);
+  let householdMembership: typeof membership = null;
+  if (household && household.payer_member_id !== member.id) {
+    householdMembership = await first<NonNullable<typeof membership>>(
+      c.env.DB.prepare(
+        `SELECT m.id, m.level_id, m.start_date, m.end_date, m.status,
+                l.name as level_name, l.price_cents
+         FROM memberships m
+         JOIN membership_levels l ON l.id = m.level_id
+         WHERE m.member_id = ? AND m.tenant_id = ?
+         ORDER BY CASE m.status WHEN 'active' THEN 0 ELSE 1 END, m.created_at DESC
+         LIMIT 1`
+      ).bind(household.payer_member_id, tenant.id)
+    );
+  }
+
   return c.json({
     tenant: { name: tenant.name, slug: tenant.slug },
     member,
     membership,
+    household,
+    household_membership: householdMembership,
+    is_member: await isActiveMember(c.env.DB, tenant.id, member.id),
     user: { email: user.email, name: user.name },
   });
 });
@@ -189,7 +222,9 @@ portalRoutes.get("/:slug/events", async (c) => {
       questions: parseEventSettings(e.settings_json).questions || [],
     })),
     my_registrations: myRegs,
-    is_member: !!member && member.status === "active",
+    // Derived (src/lib/households.ts): the second person on a household
+    // membership gets member prices here exactly as the payer does.
+    is_member: member ? await isActiveMember(c.env.DB, tenant.id, member.id) : false,
   });
 });
 
@@ -552,6 +587,197 @@ async function requireGuildMember(c: any, slug: string) {
   return { user, tenant, member };
 }
 
+/* ————————————————— Household (spec §4.3) —————————————————
+ *
+ * One payment, many members. The membership belongs to the PAYER, so the
+ * payer is the only person who may change who is on it — everybody else can
+ * see the household and edit themselves, which is what the rest of the portal
+ * already lets them do. That is deliberate for the first release: a second
+ * person able to add or drop names on someone else's card is a refund
+ * question waiting to happen.
+ */
+
+/** The household view: who is on it, who paid, and when it renews. */
+portalRoutes.get("/:slug/household", async (c) => {
+  const ctx = await requireGuildMember(c, c.req.param("slug"));
+  if ("error" in ctx) return ctx.error;
+  const household = await householdFor(c.env.DB, ctx.tenant.id, ctx.member.id);
+  if (!household) return c.json({ household: null, is_payer: false });
+
+  const payer = household.members.find((m) => m.role === "payer") ?? null;
+  const membership = await first<{
+    id: string;
+    end_date: string | null;
+    status: string;
+    level_name: string;
+    household_max: number | null;
+  }>(
+    c.env.DB.prepare(
+      `SELECT m.id, m.end_date, m.status, l.name AS level_name, l.household_max
+         FROM memberships m
+         JOIN membership_levels l ON l.id = m.level_id
+        WHERE m.member_id = ? AND m.tenant_id = ?
+        ORDER BY CASE m.status WHEN 'active' THEN 0 ELSE 1 END, m.created_at DESC
+        LIMIT 1`
+    ).bind(household.payer_member_id, ctx.tenant.id)
+  );
+
+  return c.json({
+    household: {
+      id: household.id,
+      name: household.name,
+      members: household.members,
+    },
+    is_payer: household.payer_member_id === ctx.member.id,
+    payer: payer && {
+      first_name: payer.first_name,
+      last_name: payer.last_name,
+      email: payer.email,
+    },
+    membership: membership && {
+      id: membership.id,
+      level_name: membership.level_name,
+      status: membership.status,
+      end_date: membership.end_date,
+    },
+    max_people: membership ? householdMax({ household_max: membership.household_max }) : null,
+  });
+});
+
+/** Rename the household. Payer only. */
+portalRoutes.patch("/:slug/household", async (c) => {
+  const ctx = await requireGuildMember(c, c.req.param("slug"));
+  if ("error" in ctx) return ctx.error;
+  const household = await householdFor(c.env.DB, ctx.tenant.id, ctx.member.id);
+  if (!household) return c.json({ error: "You are not in a household" }, 404);
+  if (household.payer_member_id !== ctx.member.id) {
+    return c.json({ error: "Only the person who pays can change the household" }, 403);
+  }
+  let body: { name?: unknown } = {};
+  try {
+    body = await c.req.json<{ name?: unknown }>();
+  } catch {
+    return c.json({ error: "Request body must be valid JSON" }, 400);
+  }
+  const name = typeof body.name === "string" ? body.name.trim().slice(0, 120) : "";
+  if (!name) return c.json({ error: "A household name is required" }, 400);
+  await c.env.DB.prepare(
+    "UPDATE households SET name = ?, updated_at = ? WHERE id = ? AND tenant_id = ?"
+  )
+    .bind(name, new Date().toISOString(), household.id, ctx.tenant.id)
+    .run();
+  return c.json({ ok: true, name });
+});
+
+/** Add a person to the household. Payer only, within the level's household_max. */
+portalRoutes.post("/:slug/household/people", async (c) => {
+  const ctx = await requireGuildMember(c, c.req.param("slug"));
+  if ("error" in ctx) return ctx.error;
+  const household = await householdFor(c.env.DB, ctx.tenant.id, ctx.member.id);
+  if (!household) return c.json({ error: "You are not in a household" }, 404);
+  if (household.payer_member_id !== ctx.member.id) {
+    return c.json({ error: "Only the person who pays can change the household" }, 403);
+  }
+
+  let body: { email?: unknown; first_name?: unknown; last_name?: unknown } = {};
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "Request body must be valid JSON" }, 400);
+  }
+  const email = typeof body.email === "string" ? body.email.toLowerCase().trim() : "";
+  if (!email || !email.includes("@")) return c.json({ error: "A valid email is required" }, 400);
+
+  const levelRow = await first<{ household_max: number | null }>(
+    c.env.DB.prepare(
+      `SELECT l.household_max FROM memberships m
+         JOIN membership_levels l ON l.id = m.level_id
+        WHERE m.member_id = ? AND m.tenant_id = ?
+        ORDER BY CASE m.status WHEN 'active' THEN 0 ELSE 1 END, m.created_at DESC
+        LIMIT 1`
+    ).bind(household.payer_member_id, ctx.tenant.id)
+  );
+  const maxPeople = householdMax({ household_max: levelRow?.household_max });
+  if (household.members.length >= maxPeople) {
+    return c.json(
+      { error: `This membership covers ${maxPeople} people.`, code: "household_full" },
+      409
+    );
+  }
+
+  const now = new Date().toISOString();
+  let member = await first<Member>(
+    c.env.DB.prepare("SELECT * FROM members WHERE tenant_id = ? AND email = ?").bind(
+      ctx.tenant.id,
+      email
+    )
+  );
+  if (member && (await inAnyHousehold(c.env.DB, ctx.tenant.id, member.id))) {
+    return c.json(
+      { error: "That person is already in a household.", code: "already_in_household" },
+      409
+    );
+  }
+  if (!member) {
+    const { generateId } = await import("../lib/utils/id");
+    const id = generateId();
+    await c.env.DB.prepare(
+      `INSERT INTO members
+       (id, tenant_id, email, first_name, last_name, status, joined_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)`
+    )
+      .bind(
+        id,
+        ctx.tenant.id,
+        email,
+        typeof body.first_name === "string" ? body.first_name.trim().slice(0, 80) : null,
+        typeof body.last_name === "string" ? body.last_name.trim().slice(0, 80) : null,
+        now,
+        now,
+        now
+      )
+      .run();
+    member = await first<Member>(
+      c.env.DB.prepare("SELECT * FROM members WHERE id = ?").bind(id)
+    );
+  }
+  if (!member) return c.json({ error: "Could not add that person" }, 500);
+
+  try {
+    await addToHousehold(c.env.DB, ctx.tenant.id, household.id, member.id, now, maxPeople);
+  } catch (e) {
+    return c.json({ error: (e as Error).message || "Could not add that person" }, 409);
+  }
+  return c.json({ ok: true, household: await householdFor(c.env.DB, ctx.tenant.id, ctx.member.id) });
+});
+
+/** Take a person off the household. Payer only; the payer cannot remove themselves here. */
+portalRoutes.delete("/:slug/household/people/:memberId", async (c) => {
+  const ctx = await requireGuildMember(c, c.req.param("slug"));
+  if ("error" in ctx) return ctx.error;
+  const household = await householdFor(c.env.DB, ctx.tenant.id, ctx.member.id);
+  if (!household) return c.json({ error: "You are not in a household" }, 404);
+  if (household.payer_member_id !== ctx.member.id) {
+    return c.json({ error: "Only the person who pays can change the household" }, 403);
+  }
+  const memberId = c.req.param("memberId");
+  if (memberId === household.payer_member_id) {
+    return c.json(
+      {
+        error:
+          "You pay for this membership, so you cannot remove yourself. Ask the guild to move the membership first.",
+        code: "payer_cannot_leave",
+      },
+      400
+    );
+  }
+  if (!household.members.some((m) => m.id === memberId)) {
+    return c.json({ error: "That person is not in your household" }, 404);
+  }
+  await removeFromHousehold(c.env.DB, ctx.tenant.id, memberId, new Date().toISOString());
+  return c.json({ ok: true, household: await householdFor(c.env.DB, ctx.tenant.id, ctx.member.id) });
+});
+
 // GET /api/portal/:slug/directory — active members + showcase
 portalRoutes.get("/:slug/directory", async (c) => {
   const ctx = await requireGuildMember(c, c.req.param("slug"));
@@ -566,17 +792,18 @@ portalRoutes.get("/:slug/directory", async (c) => {
       showcase_json: string | null;
     }>(
       c.env.DB.prepare(
-        `SELECT first_name, last_name, joined_at, bio, photo_file_id, showcase_json FROM members
-         WHERE tenant_id = ? AND status = 'active'
-           AND coalesce(directory_visible, 1) = 1
-         ORDER BY last_name, first_name LIMIT 100 OFFSET ?`
+        `SELECT m.first_name, m.last_name, m.joined_at, m.bio, m.photo_file_id, m.showcase_json
+           FROM members m
+          WHERE m.tenant_id = ? AND ${activeMembershipFilter("m")}
+            AND coalesce(m.directory_visible, 1) = 1
+          ORDER BY m.last_name, m.first_name LIMIT 100 OFFSET ?`
       ).bind(ctx.tenant.id, Math.max(0, Math.min(5000, Number(c.req.query("offset")) || 0)))
     );
     const countRow = await first<{ cnt: number }>(
       c.env.DB.prepare(
-        `SELECT COUNT(*) as cnt FROM members
-         WHERE tenant_id = ? AND status = 'active'
-           AND coalesce(directory_visible, 1) = 1`
+        `SELECT COUNT(*) as cnt FROM members m
+          WHERE m.tenant_id = ? AND ${activeMembershipFilter("m")}
+            AND coalesce(m.directory_visible, 1) = 1`
       ).bind(ctx.tenant.id)
     );
     return c.json({
@@ -593,9 +820,9 @@ portalRoutes.get("/:slug/directory", async (c) => {
       joined_at: string | null;
     }>(
       c.env.DB.prepare(
-        `SELECT first_name, last_name, joined_at FROM members
-         WHERE tenant_id = ? AND status = 'active'
-         ORDER BY last_name, first_name LIMIT 100`
+        `SELECT m.first_name, m.last_name, m.joined_at FROM members m
+          WHERE m.tenant_id = ? AND ${activeMembershipFilter("m")}
+          ORDER BY m.last_name, m.first_name LIMIT 100`
       ).bind(ctx.tenant.id)
     );
     return c.json({ tenant: { name: ctx.tenant.name }, members: rows, total: rows.length });

@@ -2185,6 +2185,7 @@
             <div id="em-groups-list" class="muted" style="font-size:0.85rem">Loading…</div>
           </div>
           <div id="em-memberships" style="margin:1rem 0;padding-top:0.75rem;border-top:1px solid var(--border)"></div>
+          <div id="em-household" style="margin:1rem 0;padding-top:0.75rem;border-top:1px solid var(--border)"></div>
           <div id="em-assign" class="card" style="margin:0.75rem 0;background:var(--bg)">
             <h3 style="margin:0 0 0.5rem;font-size:0.95rem">Assign / renew membership</h3>
             <p class="muted" style="font-size:0.8rem;margin:0 0 0.5rem">For cash, check, or comps. Creates a real membership with an end date (not just status=active).</p>
@@ -2213,13 +2214,14 @@
         </div>
         <div class="card" id="members-list-card">
           <table>
-            <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Joined</th><th></th></tr></thead>
+            <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Household</th><th>Joined</th><th></th></tr></thead>
             <tbody id="members-tbody">
-              ${members.length === 0 ? `<tr><td colspan="5" class="muted">No members match.</td></tr>` : members.map((m) => `
+              ${members.length === 0 ? `<tr><td colspan="6" class="muted">No members match.</td></tr>` : members.map((m) => `
                 <tr>
                   <td>${esc([m.first_name, m.last_name].filter(Boolean).join(" ") || "—")}</td>
                   <td>${esc(m.email)}</td>
-                  <td><span class="badge ${m.status}">${m.status}</span></td>
+                  <td>${memberStatusCell(m)}</td>
+                  <td>${memberHouseholdCell(m)}</td>
                   <td>${m.joined_at ? new Date(m.joined_at).toLocaleDateString() : "—"}</td>
                   <td><button class="secondary" onclick='editMember(${JSON.stringify(m.id)})'>Edit</button></td>
                 </tr>
@@ -2487,6 +2489,15 @@
         }
       } catch {
         document.getElementById("em-memberships").innerHTML = "";
+      }
+      // Household mates (migration 0031). One payment can cover several
+      // people; the drawer names them so nobody wonders why the spouse is
+      // active without a membership of her own.
+      try {
+        const hres = await api(`/api/tenants/${tenantId}/members/${id}/household`);
+        renderMemberHousehold(id, (hres && hres.household) || null);
+      } catch {
+        document.getElementById("em-household").innerHTML = "";
       }
       for (const f of defs) {
         const wrap = document.createElement("div");
@@ -2926,6 +2937,138 @@
       navigate("members");
     }
 
+    /* ——— Households (migration 0031; engine is src/lib/households.ts) ———
+     *
+     * One payment, several people. The membership belongs to the payer and
+     * everybody else's is DERIVED from it, which is why the roster shows a
+     * separate "Household" column and why the status badge can read
+     * "active" for someone whose own row says pending: `is_active_member`
+     * is the answer the door, the directory and the plan cap all use.
+     */
+    function memberStatusCell(m) {
+      const badge = `<span class="badge ${esc(m.status)}">${esc(m.status)}</span>`;
+      // A household member with no membership of her own is still a member.
+      if (m.is_active_member && m.status !== "active") {
+        return badge + ` <span class="muted" style="font-size:0.75rem">· member via household</span>`;
+      }
+      // Conversely: an 'active' row whose household payment has lapsed.
+      if (!m.is_active_member && m.status === "active" && m.household) {
+        return badge + ` <span class="muted" style="font-size:0.75rem">· household lapsed</span>`;
+      }
+      return badge;
+    }
+    function memberHouseholdCell(m) {
+      if (!m.household) return `<span class="muted">—</span>`;
+      const who = m.household.role === "payer" ? " (pays)" : "";
+      return `${esc(m.household.name)}<span class="muted" style="font-size:0.75rem">${esc(who)}</span>`;
+    }
+
+    /** The household block in the member drawer. */
+    function renderMemberHousehold(memberId, household) {
+      const box = document.getElementById("em-household");
+      if (!box) return;
+      window._editingHousehold = household;
+      if (household) {
+        const mates = household.members
+          .map((p) => {
+            const name = [p.first_name, p.last_name].filter(Boolean).join(" ") || p.email;
+            const role = p.role === "payer" ? " — pays for the membership" : "";
+            const self = p.id === memberId ? " (this member)" : "";
+            return `<li>${esc(name)} <span class="muted" style="font-size:0.8rem">${esc(p.email)}${esc(role)}${esc(self)}</span></li>`;
+          })
+          .join("");
+        const isPayer = household.payer_member_id === memberId;
+        box.innerHTML = `
+          <p style="font-size:0.85rem;font-weight:600;margin:0 0 0.35rem">Household — ${esc(household.name)}</p>
+          <ul style="margin:0 0 0.5rem 1.1rem;font-size:0.85rem">${mates}</ul>
+          <p class="muted" style="font-size:0.8rem;margin:0 0 0.5rem">
+            ${isPayer
+              ? "This member pays for the household. Moving them out ends the household for everyone on it; nobody is deleted."
+              : "This member's membership comes from the household payment. Moving them out keeps their record and ends that membership."}
+          </p>
+          <button class="secondary" onclick='moveOutOfHousehold(${JSON.stringify(memberId)})'>Move out of household</button>`;
+        return;
+      }
+      box.innerHTML = `
+        <p style="font-size:0.85rem;font-weight:600;margin:0 0 0.35rem">Household</p>
+        <p class="muted" style="font-size:0.8rem;margin:0 0 0.5rem">Not in a household. A household is one payment covering several people — never guessed from a shared surname or address.</p>
+        <div class="form-row">
+          <div>
+            <label for="em-household-pick">Move into a household</label>
+            <select id="em-household-pick"><option value="">Loading…</option></select>
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:0.5rem">
+            <button class="secondary" onclick='moveIntoHousehold(${JSON.stringify(memberId)})'>Move in</button>
+            <button class="secondary" onclick='startHousehold(${JSON.stringify(memberId)})'>Start one</button>
+          </div>
+        </div>`;
+      loadHouseholdPicker();
+    }
+
+    async function loadHouseholdPicker() {
+      const sel = document.getElementById("em-household-pick");
+      if (!sel) return;
+      try {
+        const res = await api(`/api/tenants/${tenantId}/members/households`);
+        const list = asList(res, "households");
+        sel.innerHTML = list.length
+          ? `<option value="">Choose a household…</option>` +
+            list
+              .map((h) => `<option value="${esc(h.id)}">${esc(h.name)} (${h.people} ${h.people === 1 ? "person" : "people"})</option>`)
+              .join("")
+          : `<option value="">No households yet</option>`;
+      } catch {
+        sel.innerHTML = `<option value="">Could not load households</option>`;
+      }
+    }
+
+    async function moveIntoHousehold(memberId) {
+      const sel = document.getElementById("em-household-pick");
+      const householdId = sel ? sel.value : "";
+      if (!householdId) { alert("Choose a household first."); return; }
+      try {
+        const res = await api(`/api/tenants/${tenantId}/members/${memberId}/household`, {
+          method: "POST",
+          body: JSON.stringify({ household_id: householdId }),
+        });
+        renderMemberHousehold(memberId, (res && res.household) || null);
+        renderMembers(document.getElementById("page-content"));
+      } catch (e) {
+        alert((e && e.message) || "Could not move that member.");
+      }
+    }
+
+    async function startHousehold(memberId) {
+      const name = prompt("What should this household be called?", "");
+      if (name === null) return;
+      try {
+        const res = await api(`/api/tenants/${tenantId}/members/${memberId}/household`, {
+          method: "POST",
+          body: JSON.stringify(name.trim() ? { name: name.trim() } : {}),
+        });
+        renderMemberHousehold(memberId, (res && res.household) || null);
+        renderMembers(document.getElementById("page-content"));
+      } catch (e) {
+        alert((e && e.message) || "Could not start a household.");
+      }
+    }
+
+    async function moveOutOfHousehold(memberId) {
+      const h = window._editingHousehold;
+      const isPayer = h && h.payer_member_id === memberId;
+      const msg = isPayer
+        ? "This member pays for the household, so moving them out ends it for everyone on it. Nobody is deleted. Continue?"
+        : "Move this member out of the household? They stay on the roster; the membership that came with the household payment ends.";
+      if (!confirm(msg)) return;
+      try {
+        await api(`/api/tenants/${tenantId}/members/${memberId}/household`, { method: "DELETE" });
+        renderMemberHousehold(memberId, null);
+        renderMembers(document.getElementById("page-content"));
+      } catch (e) {
+        alert((e && e.message) || "Could not move that member out.");
+      }
+    }
+
     async function renderLevels(el) {
       const levels = asList(await api(`/api/tenants/${tenantId}/levels`), "levels");
       el.innerHTML = `
@@ -2943,6 +3086,7 @@
             </div>
           </div>
           ${levelPolicyFields("l")}
+          ${levelHouseholdFields("l")}
           <button onclick="addLevel()">Save</button>
           <button class="secondary" onclick="hide(document.getElementById('add-level-form'))">Cancel</button>
         </div>
@@ -2960,6 +3104,7 @@
             </div>
           </div>
           ${levelPolicyFields("el")}
+          ${levelHouseholdFields("el")}
           <button onclick="saveLevel()">Save</button>
           <button class="secondary" onclick="hide(document.getElementById('edit-level-form'))">Close</button>
         </div>
@@ -2969,7 +3114,7 @@
             <tbody>
               ${levels.map((l) => `
                 <tr>
-                  <td>${esc(l.name)}</td>
+                  <td>${esc(l.name)}${(l.household_max || 1) > 1 ? ` <span class="muted" style="font-size:0.75rem">· household of ${Number(l.household_max)}</span>` : ""}</td>
                   <td>$${centsToDollars(l.price_cents)}</td>
                   <td>${esc(levelYearLabel(l))}</td>
                   <td>${l.renewal_type}</td>
@@ -2996,6 +3141,8 @@
       window._levels = levels;
       levelPolicyInit("l");
       levelPolicyInit("el");
+      levelHouseholdChanged("l");
+      levelHouseholdChanged("el");
     }
 
     /* ——— Membership year (the dues policy; engine is src/lib/dues.ts) ———
@@ -3124,6 +3271,80 @@
       if (graceEl) graceEl.value = String(policy.graceDays);
       levelPolicyChanged(p);
     }
+    /* ——— Household membership (migration 0031; src/lib/households.ts) ———
+     *
+     * Off by default, and off is exactly what every level has always been:
+     * household_max = 1 is an ordinary individual level. Switched on, the
+     * public join form asks for the payer plus up to household_max - 1 more
+     * people and charges the price plus the extra-person price for each.
+     */
+    function levelHouseholdFields(p) {
+      return `
+        <fieldset class="qh-dues" id="${p}-household">
+          <legend>Household membership</legend>
+          <label class="qh-dues-choice">
+            <input type="checkbox" id="${p}-household-on" onchange="levelHouseholdChanged('${p}')" />
+            One payment covers several people at the same address
+          </label>
+          <div id="${p}-household-row" class="form-row hidden">
+            <div>
+              <label for="${p}-household-max">People it covers</label>
+              <input id="${p}-household-max" type="number" min="2" max="12" step="1" value="2" oninput="levelHouseholdChanged('${p}')" />
+            </div>
+            <div>
+              <label for="${p}-household-add">Each extra person adds ($)</label>
+              <input id="${p}-household-add" type="number" min="0" step="0.01" value="0.00" oninput="levelHouseholdChanged('${p}')" />
+            </div>
+          </div>
+          <p class="muted qh-dues-note" id="${p}-household-note"></p>
+        </fieldset>`;
+    }
+    /** The household half of the form, as the API wants it. */
+    function levelHouseholdFromForm(p) {
+      const on = document.getElementById(p + "-household-on");
+      if (!on || !on.checked) return { household_max: 1, household_add_cents: 0 };
+      const maxEl = document.getElementById(p + "-household-max");
+      const addEl = document.getElementById(p + "-household-add");
+      const people = Math.max(2, Math.min(12, Math.floor(Number(maxEl && maxEl.value) || 2)));
+      const add = Math.max(0, Math.round((Number(addEl && addEl.value) || 0) * 100));
+      return { household_max: people, household_add_cents: add };
+    }
+    /** Show the numbers only when it IS a household, and price it in words. */
+    function levelHouseholdChanged(p) {
+      const fieldset = document.getElementById(p + "-household");
+      if (!fieldset) return;
+      const on = document.getElementById(p + "-household-on");
+      const row = document.getElementById(p + "-household-row");
+      if (row) row.classList.toggle("hidden", !(on && on.checked));
+      const note = document.getElementById(p + "-household-note");
+      if (!note) return;
+      if (!on || !on.checked) {
+        note.textContent = "One membership, one person. This is how every level works unless you change it.";
+        return;
+      }
+      const h = levelHouseholdFromForm(p);
+      const priceEl = document.getElementById(p + "-price");
+      const base = Math.max(0, Math.round((Number(priceEl && priceEl.value) || 0) * 100));
+      const full = base + h.household_add_cents * (h.household_max - 1);
+      const extra = h.household_add_cents
+        ? ` Each person past the first adds $${centsToDollars(h.household_add_cents)}, so a full household of ${h.household_max} pays $${centsToDollars(full)}.`
+        : " Everyone on it is covered by the one price.";
+      note.textContent =
+        `One payment covers up to ${h.household_max} people. Each of them gets their own sign-in, ` +
+        `a directory entry and member prices, and each counts toward your plan's member limit.` + extra;
+    }
+    /** Put a stored household setting back on the form (Edit). */
+    function levelHouseholdToForm(p, level) {
+      const people = Math.floor(Number(level && level.household_max) || 1);
+      const on = document.getElementById(p + "-household-on");
+      if (on) on.checked = people > 1;
+      const maxEl = document.getElementById(p + "-household-max");
+      if (maxEl) maxEl.value = String(people > 1 ? Math.min(12, people) : 2);
+      const addEl = document.getElementById(p + "-household-add");
+      if (addEl) addEl.value = centsToDollars((level && level.household_add_cents) || 0);
+      levelHouseholdChanged(p);
+    }
+
     /** Short "Membership year" column label for the levels table. */
     function levelYearLabel(level) {
       const policy = qhReadDuesPolicy(level);
@@ -3147,6 +3368,7 @@
       // re-render and only warn when the officer actually moved the year.
       window._editingLevelTermMode = qhReadDuesPolicy(l).termMode;
       levelPolicyToForm("el", l);
+      levelHouseholdToForm("el", l);
       show(document.getElementById("edit-level-form"));
     }
     async function saveLevel() {
@@ -3165,6 +3387,7 @@
           term_anchor: policy.term_anchor,
           proration: policy.proration,
           grace_days: policy.grace_days,
+          ...levelHouseholdFromForm("el"),
         }),
       });
       navigate("levels");
@@ -3190,6 +3413,7 @@
           term_anchor: policy.term_anchor,
           proration: policy.proration,
           grace_days: policy.grace_days,
+          ...levelHouseholdFromForm("l"),
         }),
       });
       navigate("levels");
