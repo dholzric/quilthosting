@@ -169,9 +169,14 @@ describe("POST / — small (sync) blasts", () => {
 
   it("records failed and suppressed recipients with delivery_status failed/skipped", async () => {
     audience.fetchAudiencePage.mockImplementationOnce(async () => members as never);
-    email.sendEmail
-      .mockImplementationOnce(async () => ({ id: "", success: false, error: "boom", retryable: false }) as never)
-      .mockImplementationOnce(async () => ({ id: "", success: false, suppressed: true, reason: "unsubscribe" }) as never);
+    // The route sends the page with Promise.all, so recipients can reach
+    // sendEmail in either order. Key the outcome on the address rather than
+    // the call order, or this test flakes when the awaits interleave.
+    email.sendEmail.mockImplementation((async (_env: unknown, opts: { to: string }) =>
+      (opts.to === "a@example.test"
+        ? { id: "", success: false, error: "boom", retryable: false }
+        : { id: "", success: false, suppressed: true, reason: "unsubscribe" }) as never) as never
+    );
     const { app, env, batches } = buildApp([]);
     const res = await app.request(
       "/",
