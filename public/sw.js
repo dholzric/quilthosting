@@ -1,6 +1,6 @@
 /* QuiltHosting service worker — network-first for HTML so API shape changes ship;
    cache shell assets for offline check-in. */
-const CACHE = "qh-v24.1";
+const CACHE = "qh-v25";
 const PRECACHE = [
   "/qh.css",
   "/manifest.webmanifest",
@@ -38,8 +38,16 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Network-first for HTML shells (admin/portal/docs) so deploys are not stuck on old JS
+  // Network-first for every page, not just the app shells. A tenant site page
+  // on the platform host (/g/<slug>, /g/<slug>/<page>) has no extension and is
+  // not /admin, /portal or /docs, so the old path-sniffing list dropped it into
+  // the cache-first branch below: whichever version was cached first kept
+  // serving forever, while a link the visitor had never opened came fresh off
+  // the network. One site, two designs. Any navigation is HTML — ask the
+  // request what it is instead of guessing from the path.
   const isHtml =
+    req.mode === "navigate" ||
+    (req.headers.get("accept") || "").includes("text/html") ||
     url.pathname === "/" ||
     url.pathname === "/admin" ||
     url.pathname.endsWith(".html") ||
