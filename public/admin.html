@@ -2844,13 +2844,9 @@
 
     // Section documents (the new site renderer, src/lib/site/sections/).
     // Labels, groups, variants and fields come from GET /pages/section-catalog
-    // (derived from the zod schema server-side); only icons, friendlier option
-    // labels, and the starter content for a freshly added section live here.
-    const WB_SECTION_ICONS = {
-      hero: "★", rich_text: "¶", image: "▣", feature_grid: "▦", faq: "?", membership_levels: "◈", join_band: "✦",
-      meeting_info: "⌂", events: "◷", gallery: "▤", testimonials: "❝", blog_teaser: "✎", quote_cta: "✉", store_teaser: "$",
-      contact: "@", cta: "▢", divider: "—", spacer: "↕", embed: "</>",
-    };
+    // (derived from the zod schema server-side); only thumbnail art
+    // (WB_THUMB_ART), friendlier option labels, and the starter content for a
+    // freshly added section live here.
     const WB_VARIANT_LABELS = {
       image: "Photo (full width)", split: "Split — photo beside text", pattern: "Quilt pattern band", minimal: "Minimal", stats: "Numbers strip",
       prose: "Single column", two_column: "Two columns", with_image: "With a side image", single: "Single", full_bleed: "Full width", duo: "Two side by side",
@@ -2867,6 +2863,78 @@
     const WB_STYLE_FALLBACK = {
       bg: ["none", "tint", "brand", "dark", "image", "pattern"], width: ["narrow", "normal", "wide", "full"],
       spacing: ["tight", "normal", "airy"], align: ["left", "center"], media: ["left", "right", "top"],
+    };
+    // Mirrors DEFAULT_STYLE in src/lib/site/sections/schema.ts ("Reset style" returns to this).
+    const WB_DEFAULT_STYLE = { bg: "none", width: "normal", spacing: "normal", align: "left", media: "right" };
+    // Mirrors the pattern ids accepted by IMAGE_REF_RE ("pattern:<id>") in sections/schema.ts.
+    const WB_PATTERN_IDS = ["nine-patch", "flying-geese", "log-cabin", "churn-dash", "bear-paw"];
+    // Browser-side image pipeline (Task B contract): the original is uploaded
+    // as-is, then WebP + JPEG variants at these widths (skipping any wider than
+    // the original) go to POST /files/:id/variants. Per-file cap 10 MB original,
+    // 25 MB of variants; the server re-validates every part by magic bytes.
+    const WB_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
+    const WB_VARIANTS_MAX_BYTES = 25 * 1024 * 1024;
+    const WB_VARIANT_WIDTHS = [480, 960, 1600, 2400];
+    const WB_VARIANT_QUALITY = 0.82;
+    const WB_VARIANT_FORMATS = [["webp", "image/webp"], ["jpg", "image/jpeg"]];
+    // Section thumbnails: line-art on a 64x40 grid, tinted with the tenant
+    // primary at draw time (wbSectionThumb). Tokens: band (soft fill), block
+    // (medium fill), solid (button/strong fill), line (text line, x,y,w),
+    // circle (cx,cy,r), frame (outline), pat (quilt checker), dot (bullet).
+    const WB_THUMB_ART = {
+      hero: {
+        image: "band:0,0,64,40 line:8,12,30 line:8,18,22 solid:8,26,14,5",
+        split: "band:34,0,30,40 line:6,12,22 line:6,18,16 solid:6,26,12,5",
+        pattern: "pat:0,0,64,40 line:8,14,30 line:8,20,22 solid:8,27,14,5",
+        minimal: "line:10,12,44 line:10,18,30 solid:10,26,14,5",
+        stats: "line:8,7,48 block:8,16,14,16 block:25,16,14,16 block:42,16,14,16",
+      },
+      rich_text: {
+        prose: "line:8,8,48 line:8,14,44 line:8,20,46 line:8,26,30",
+        two_column: "line:6,8,24 line:6,14,22 line:6,20,24 line:34,8,24 line:34,14,22 line:34,20,24",
+        with_image: "line:6,10,26 line:6,16,22 line:6,22,24 block:38,6,20,28",
+      },
+      image: { single: "block:12,4,40,28 line:20,35,24", full_bleed: "block:0,2,64,32", duo: "block:4,6,26,26 block:34,6,26,26" },
+      feature_grid: {
+        cards: "frame:4,6,17,28 frame:24,6,17,28 frame:44,6,17,28 line:7,24,11 line:27,24,11 line:47,24,11",
+        icons: "circle:12,13,5 circle:32,13,5 circle:52,13,5 line:6,24,12 line:26,24,12 line:46,24,12",
+        numbered: "circle:8,10,4 line:16,9,40 circle:8,20,4 line:16,19,36 circle:8,30,4 line:16,29,38",
+      },
+      faq: { "": "line:8,8,40 dot:56,8 line:8,17,36 dot:56,17 line:8,26,42 dot:56,26" },
+      membership_levels: { cards: "frame:4,4,17,32 frame:24,4,17,32 frame:44,4,17,32 solid:7,26,11,4 solid:27,26,11,4 solid:47,26,11,4", compact: "line:8,8,30 solid:46,7,12,4 line:8,18,26 solid:46,17,12,4 line:8,28,32 solid:46,27,12,4" },
+      join_band: { "": "solid:0,8,64,24 line:10,17,26 block:44,16,12,6" },
+      meeting_info: { "": "circle:10,12,5 line:20,10,30 line:20,16,22 block:8,24,48,10" },
+      events: {
+        cards: "frame:4,6,26,28 frame:34,6,26,28 block:7,9,8,6 block:37,9,8,6 line:7,20,18 line:37,20,18",
+        list: "block:6,6,8,6 line:18,8,34 block:6,17,8,6 line:18,19,30 block:6,28,8,6 line:18,30,32",
+        calendar: "frame:8,4,48,32 line:12,10,40 block:12,15,8,6 block:24,15,8,6 block:36,15,8,6 block:12,24,8,6 block:24,24,8,6",
+        next_up: "block:6,6,22,28 line:34,10,24 line:34,16,18 solid:34,24,14,5",
+        compact: "line:8,8,48 line:8,15,44 line:8,22,46 line:8,29,40",
+      },
+      gallery: { grid: "block:4,4,17,14 block:24,4,17,14 block:44,4,17,14 block:4,21,17,14 block:24,21,17,14 block:44,21,17,14", masonry: "block:4,4,17,20 block:24,4,17,12 block:44,4,17,16 block:4,27,17,9 block:24,19,17,17 block:44,23,17,13" },
+      testimonials: { "": "circle:12,10,5 line:22,8,34 line:22,14,28 circle:12,28,5 line:22,26,32 line:22,32,26" },
+      blog_teaser: { "": "block:4,4,17,12 block:24,4,17,12 block:44,4,17,12 line:4,20,14 line:24,20,14 line:44,20,14 line:4,26,17 line:24,26,17 line:44,26,17" },
+      quote_cta: { "": "frame:8,4,48,32 line:12,10,30 frame:12,16,40,6 frame:12,24,40,6" },
+      store_teaser: { "": "block:4,4,17,17 block:24,4,17,17 block:44,4,17,17 line:4,26,12 line:24,26,12 line:44,26,12 solid:4,31,8,3 solid:24,31,8,3 solid:44,31,8,3" },
+      contact: { "": "frame:4,4,30,32 frame:7,8,24,5 frame:7,16,24,5 solid:7,26,12,5 line:40,8,18 line:40,14,14 line:40,20,16" },
+      cta: { "": "solid:20,15,24,9" },
+      divider: { "": "line:8,19,48" },
+      spacer: { "": "frame:8,4,48,32" },
+      embed: { "": "frame:8,4,48,32 circle:32,20,6" },
+      timeline: { "": "circle:8,8,3 line:16,7,30 circle:8,20,3 line:16,19,36 circle:8,32,3 line:16,31,26" },
+      quote: { "": "line:14,12,36 line:14,19,40 line:14,26,28 line:40,33,14" },
+      officers: { "": "circle:12,12,6 line:6,22,12 line:6,27,10 circle:32,12,6 line:26,22,12 line:26,27,10 circle:52,12,6 line:46,22,12 line:46,27,10" },
+      benefits: { "": "dot:8,9 line:16,8,40 dot:8,18 line:16,17,34 dot:8,27 line:16,26,38" },
+      event_spotlight: { "": "band:0,0,64,40 block:6,8,20,24 line:32,12,24 line:32,18,18 solid:32,26,14,5" },
+      projects: { "": "block:4,4,26,16 block:34,4,26,16 line:4,24,20 line:34,24,20 line:4,30,14 line:34,30,14" },
+      sponsors: { "": "frame:4,12,12,16 frame:20,12,12,16 frame:36,12,12,16 frame:52,12,8,16" },
+      newsletter_signup: { "": "band:0,6,64,28 line:8,13,30 frame:8,21,30,7 solid:40,21,14,7" },
+      services: { cards: "frame:4,4,17,32 frame:24,4,17,32 frame:44,4,17,32 line:7,24,11 line:27,24,11 line:47,24,11", table: "line:6,8,52 line:6,15,52 line:6,22,52 line:6,29,52 solid:46,7,12,2 solid:46,14,12,2 solid:46,21,12,2" },
+      portfolio: { grid: "block:4,4,26,14 block:34,4,26,14 block:4,22,26,14 block:34,22,26,14", featured: "block:4,4,36,32 block:44,4,16,14 block:44,22,16,14" },
+      hours_location: { "": "line:6,8,20 line:6,14,16 line:6,20,20 line:6,26,14 block:34,6,26,28" },
+      process: { "": "circle:8,10,4 line:16,9,40 circle:8,20,4 line:16,19,36 circle:8,30,4 line:16,29,38" },
+      documents: { "": "frame:8,4,14,18 frame:26,4,14,18 frame:44,4,14,18 line:8,28,14 line:26,28,14 line:44,28,14" },
+      donate: { "": "line:8,8,40 solid:8,18,14,7 solid:25,18,14,7 solid:42,18,14,7" },
     };
     // Starter content for a new section: generic, not the fixture copy.
     const WB_SECTION_DEFAULTS = {
@@ -2927,6 +2995,8 @@
       // renderer serves this tenant ("legacy" | "sections"), the section
       // catalog (fetched once), and the design vars applied to the canvas.
       format: "blocks", renderer: "sections", catalog: null, designVars: "",
+      // Which props tab is open ("content" | "style") and the section-picker search text.
+      propsTab: "content", paletteQuery: "",
     };
 
     function wbIsGuild() { return WB.tenantType !== "business"; }
@@ -3043,7 +3113,7 @@
       const variants = ((cat && cat.variants) || []).filter((v) => v);
       if (variants.length) s.variant = variants[0];
       s.id = wbSectionId();
-      s.style = { bg: "none", width: "normal", spacing: "normal", align: "left", media: "right" };
+      s.style = { ...WB_DEFAULT_STYLE };
       return s;
     }
 
@@ -3494,7 +3564,9 @@
           accent: accentFit.color, onAccent: accentFit.on, dark: darkRole, onDark: bestInk(darkRole), tint: tintRole,
         };
       }
-      return { normalizeHex, contrastRatio, deriveRoles };
+      // hexToOklch / oklchToHex are exported for the palette-from-logo scoring
+      // (chroma = how vivid, l = how dark) and the Style tab's tile painting.
+      return { normalizeHex, contrastRatio, deriveRoles, hexToOklch, oklchToHex };
     })();
 
     const qhDesignFontsLoaded = new Set();
@@ -3608,7 +3680,14 @@
         const btn = mk("button");
         btn.type = "button";
         btn.setAttribute("data-write", "");
-        btn.addEventListener("click", () => save(renderer === "legacy" ? "sections" : "legacy"));
+        // Task D endpoints: the upgrade composes styled sections from the
+        // block pages (previewed first, in a dialog); the downgrade restores
+        // the snapshots. The panel re-renders from fresh server state after.
+        const rerender = (next) => qhDesignPanel(host, opts).then(() => { if (opts.onRendererChange) opts.onRendererChange(next); });
+        btn.addEventListener("click", () => {
+          if (renderer === "legacy") qhSiteUpgrade({ kits, onDone: () => rerender("sections") });
+          else qhSiteDowngrade(btn, () => rerender("legacy"), (e) => { msg.textContent = e.message; });
+        });
         box.appendChild(copy);
         box.appendChild(btn);
         host.appendChild(box);
@@ -3716,6 +3795,56 @@
       custom.appendChild(customGrid);
       custom.appendChild(mk("p", "muted", "Custom palettes use a light background. Text and button colors are adjusted automatically until they pass the readability check."));
       palSec.appendChild(custom);
+
+      // ---- From your logo: dominant colours -> three candidate palettes ----
+      const logoRow = mk("div", "qh-logo-pal");
+      const logoBtn = mk("button", "secondary", "From your logo");
+      logoBtn.type = "button";
+      logoBtn.title = "Read the colours of your uploaded logo and suggest palettes";
+      const logoMsg = mk("span", "muted");
+      logoMsg.setAttribute("aria-live", "polite");
+      const logoTiles = mk("div", "wb-presets qh-logo-pal-tiles");
+      logoRow.appendChild(logoBtn);
+      logoRow.appendChild(logoMsg);
+      palSec.appendChild(logoRow);
+      palSec.appendChild(logoTiles);
+      logoBtn.addEventListener("click", async () => {
+        logoMsg.textContent = "Reading your logo…";
+        logoTiles.replaceChildren();
+        let tenantSettings = {};
+        try { tenantSettings = JSON.parse((tenantRow && tenantRow.settings_json) || "{}"); } catch { tenantSettings = {}; }
+        try {
+          const candidates = await qhPaletteFromLogo(tenantSettings);
+          candidates.forEach((cand) => {
+            const r = qhDesignColor.deriveRoles(cand.input, false, defaults.palette.input);
+            const checks = [[r.ink, r.bg], [r.inkMuted, r.surfaceAlt], [r.onPrimary, r.primary], [r.onAccent, r.accent], [r.onDark, r.dark]];
+            const passing = checks.filter(([fg, bg]) => qhDesignColor.contrastRatio(fg, bg) >= 4.5).length;
+            const tile = mk("button", "wb-preset");
+            tile.type = "button";
+            tile.setAttribute("aria-label", `Use the ${cand.name} palette from your logo`);
+            const sw = mk("div", "wb-preset-swatches");
+            [r.bg, r.primary, r.accent, r.ink].forEach((c) => {
+              const s = mk("span");
+              s.style.background = c;
+              s.style.border = "1px solid rgba(0,0,0,0.08)";
+              sw.appendChild(s);
+            });
+            tile.appendChild(sw);
+            tile.appendChild(mk("div", "wb-preset-name", cand.name));
+            tile.appendChild(mk("div", "muted qh-logo-pal-score", cand.hint));
+            tile.appendChild(mk("div", "muted qh-logo-pal-score", `${passing} of ${checks.length} readability checks pass`));
+            tile.addEventListener("click", () => {
+              design.palette = { input: { ...cand.input } };
+              custom.open = true;
+              refresh();
+            });
+            logoTiles.appendChild(tile);
+          });
+          logoMsg.textContent = "Pick one to fill in the custom colors, then adjust them below.";
+        } catch (e) {
+          logoMsg.textContent = e.message;
+        }
+      });
 
       const readoutTitle = mk("div", "qh-design-family", "Readability check");
       const readout = mk("ul", "qh-design-readout");
@@ -3953,6 +4082,201 @@
       return { renderer, design };
     }
     window.qhDesignPanel = qhDesignPanel;
+
+    /* ---------- palette from logo ---------- */
+    // Reads the uploaded logo (settings.profile.logo_file_id for a guild,
+    // settings.assets.logo_file_id for a business), samples it on a <= 32 px
+    // canvas, median-cuts to six dominant colours and proposes three
+    // palettes for the Custom inputs. Pure client work; nothing is uploaded.
+    async function qhPaletteFromLogo(settings) {
+      const s = settings && typeof settings === "object" ? settings : {};
+      const id = (s.profile && s.profile.logo_file_id) || (s.assets && s.assets.logo_file_id) || "";
+      if (!/^[A-Za-z0-9_-]{1,64}$/.test(String(id))) throw new Error("Upload a logo first (Settings → Profile), then try again.");
+      if (typeof createImageBitmap !== "function") throw new Error("This browser cannot read images here; try a current Chrome, Edge, Firefox or Safari.");
+      const res = await fetch(`${API}/api/tenants/${tenantId}/files/${id}/download`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error("Your logo could not be loaded.");
+      let bitmap;
+      try { bitmap = await createImageBitmap(await res.blob()); }
+      catch { throw new Error("Your logo is not an image this browser can read (PNG, JPEG or WebP work best)."); }
+      const colors = qhMedianCut(qhLogoPixels(bitmap), 6);
+      if (typeof bitmap.close === "function") bitmap.close();
+      if (!colors.length) throw new Error("Your logo is all white or transparent, so there are no colours to work from.");
+      return qhPaletteCandidates(colors);
+    }
+    function qhLogoPixels(bitmap) {
+      const scale = Math.min(1, 32 / Math.max(bitmap.width, bitmap.height));
+      const w = Math.max(1, Math.round(bitmap.width * scale));
+      const h = Math.max(1, Math.round(bitmap.height * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(bitmap, 0, 0, w, h);
+      const data = ctx.getImageData(0, 0, w, h).data;
+      const px = [];
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i + 3] < 128) continue; // transparent
+        if (data[i] > 245 && data[i + 1] > 245 && data[i + 2] > 245) continue; // white paper behind the mark
+        px.push([data[i], data[i + 1], data[i + 2]]);
+      }
+      return px;
+    }
+    // Median cut: split the most populous box along its widest channel at the
+    // median until there are n boxes; each box's mean is one dominant colour.
+    function qhMedianCut(pixels, n) {
+      if (!pixels.length) return [];
+      const boxes = [pixels.slice()];
+      while (boxes.length < n) {
+        boxes.sort((a, b) => b.length - a.length);
+        const box = boxes[0];
+        const range = [0, 1, 2].map((ch) => {
+          let lo = 255, hi = 0;
+          for (const p of box) { if (p[ch] < lo) lo = p[ch]; if (p[ch] > hi) hi = p[ch]; }
+          return hi - lo;
+        });
+        const ch = range.indexOf(Math.max(range[0], range[1], range[2]));
+        if (box.length < 2 || range[ch] === 0) break;
+        box.sort((a, b) => a[ch] - b[ch]);
+        const mid = box.length >> 1;
+        boxes.splice(0, 1, box.slice(0, mid), box.slice(mid));
+      }
+      const hex2 = (v) => Math.round(v).toString(16).padStart(2, "0");
+      return boxes.map((box) => {
+        const sum = [0, 0, 0];
+        for (const p of box) { sum[0] += p[0]; sum[1] += p[1]; sum[2] += p[2]; }
+        return { hex: "#" + hex2(sum[0] / box.length) + hex2(sum[1] / box.length) + hex2(sum[2] / box.length), count: box.length };
+      }).sort((a, b) => b.count - a.count);
+    }
+    // brand = most saturated, accent = next saturated on a different hue,
+    // brandAlt = darkest, neutral = darkest low-chroma; three arrangements.
+    function qhPaletteCandidates(colors) {
+      const cs = colors.map((c) => Object.assign({}, c, qhDesignColor.hexToOklch(c.hex)));
+      const hueGap = (a, b) => { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; };
+      const bySat = cs.slice().sort((a, b) => b.c - a.c);
+      const byDark = cs.slice().sort((a, b) => a.l - b.l);
+      const brand = bySat[0];
+      const accent = bySat.find((c) => c !== brand && c.c >= 0.04 && hueGap(c.h, brand.h) > 25) || bySat.find((c) => c !== brand) || brand;
+      const darkest = byDark[0];
+      const neutral = byDark.find((c) => c.c < 0.06) || darkest;
+      const brandAlt = darkest !== brand ? darkest : (byDark[1] || darkest);
+      const cand = (name, hint, b, alt, acc) => ({ name, hint, input: { brand: b.hex, brandAlt: alt.hex, accent: acc.hex, neutral: neutral.hex } });
+      return [
+        cand("Bold", "Your most vivid colour leads", brand, brandAlt, accent),
+        cand("Swapped", "Second colour leads; the vivid one accents", accent, brandAlt, brand),
+        cand("Quiet", "Darkest colour leads; the vivid ones support", brandAlt, brand, accent),
+      ];
+    }
+    window.qhPaletteFromLogo = qhPaletteFromLogo;
+
+    /* ---------- try the new design / back to classic (Task D) ---------- */
+    // Preview the composed home page in a dialog (GET /site/upgrade?preview=1),
+    // pick a design, then POST /site/upgrade { kit }. Nothing is written until
+    // the button in the dialog is pressed.
+    async function qhSiteUpgrade(opts) {
+      opts = opts || {};
+      const mk = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+      let dlg = document.getElementById("qh-upgrade-dlg");
+      if (!dlg) {
+        dlg = document.createElement("dialog");
+        dlg.id = "qh-upgrade-dlg"; dlg.className = "qh-upgrade-dlg"; dlg.setAttribute("aria-label", "Try the new design");
+        document.body.appendChild(dlg);
+      }
+      dlg.replaceChildren();
+      const head = mk("div", "wb-lib-head");
+      head.appendChild(mk("h3", "", "Try the new design"));
+      const close = mk("button", "secondary", "✕");
+      close.type = "button"; close.setAttribute("aria-label", "Close");
+      close.addEventListener("click", () => dlg.close());
+      head.appendChild(close);
+      dlg.appendChild(head);
+      dlg.appendChild(mk("p", "muted", "A preview of your home page in the new design, composed from the pages you already have. Nothing changes until you press “Use the new design”. Your pages are kept, and “Back to classic” restores them exactly as they are now."));
+      const tools = mk("div", "wb-lib-tools");
+      const kits = Array.isArray(opts.kits) ? opts.kits : [];
+      let kitId = opts.defaultKit || (kits.some((k) => k.id === "heritage") ? "heritage" : (kits[0] && kits[0].id) || "");
+      if (kits.length) {
+        const kitSel = document.createElement("select");
+        kitSel.setAttribute("aria-label", "Design");
+        kits.forEach((k) => { const o = document.createElement("option"); o.value = k.id; o.textContent = k.name; kitSel.appendChild(o); });
+        kitSel.value = kitId;
+        kitSel.addEventListener("change", () => { kitId = kitSel.value; load(); });
+        const lab = mk("label", "", "Design ");
+        lab.appendChild(kitSel);
+        tools.appendChild(lab);
+      }
+      const status = mk("span", "wb-hint");
+      status.setAttribute("aria-live", "polite");
+      tools.appendChild(status);
+      dlg.appendChild(tools);
+      const frame = document.createElement("iframe");
+      frame.className = "qh-upgrade-frame";
+      frame.title = "Preview of your home page in the new design";
+      frame.setAttribute("sandbox", "allow-same-origin allow-scripts");
+      dlg.appendChild(frame);
+      const actions = mk("div", "wb-props-actions");
+      const go = mk("button", "", "Use the new design");
+      go.type = "button"; go.setAttribute("data-write", ""); go.disabled = true;
+      const cancel = mk("button", "secondary", "Cancel");
+      cancel.type = "button";
+      cancel.addEventListener("click", () => dlg.close());
+      actions.appendChild(go); actions.appendChild(cancel);
+      dlg.appendChild(actions);
+      let seq = 0;
+      async function load() {
+        const my = ++seq;
+        status.textContent = "Building preview…";
+        go.disabled = true;
+        try {
+          const q = kitId ? `&kit=${encodeURIComponent(kitId)}` : "";
+          const res = await fetch(`${API}/api/tenants/${tenantId}/site/upgrade?preview=1${q}`, { headers: { Authorization: `Bearer ${token}` } });
+          if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(data.error || res.statusText || "Preview failed"); }
+          const html = await res.text();
+          if (my !== seq) return;
+          frame.srcdoc = html;
+          status.textContent = "";
+          go.disabled = false;
+        } catch (e) {
+          if (my === seq) status.textContent = `Preview unavailable: ${e.message}`;
+        }
+      }
+      go.addEventListener("click", async () => {
+        go.disabled = true;
+        status.textContent = "Switching your site to the new design…";
+        try {
+          await api(`/api/tenants/${tenantId}/site/upgrade`, { method: "POST", body: JSON.stringify(kitId ? { kit: kitId } : {}) });
+          dlg.close();
+          if (typeof opts.onDone === "function") opts.onDone("sections");
+        } catch (e) {
+          status.textContent = e.status === 409 ? "Your site is already on the new design." : e.message;
+          go.disabled = false;
+        }
+      });
+      dlg.showModal();
+      load();
+      return dlg;
+    }
+    window.qhSiteUpgrade = qhSiteUpgrade;
+    // "Back to classic": the second click within five seconds confirms, then
+    // POST /site/downgrade restores every page from its pre-upgrade snapshot.
+    function qhSiteDowngrade(btn, onDone, onError) {
+      const disarm = () => { delete btn.dataset.armed; btn.classList.remove("wb-armed"); btn.textContent = "Back to classic"; };
+      if (btn.dataset.armed !== "1") {
+        btn.dataset.armed = "1";
+        btn.classList.add("wb-armed");
+        btn.textContent = "Click again to go back to classic";
+        setTimeout(() => { if (btn.dataset.armed === "1") disarm(); }, 5000);
+        return;
+      }
+      disarm();
+      btn.disabled = true;
+      btn.textContent = "Restoring your pages…";
+      api(`/api/tenants/${tenantId}/site/downgrade`, { method: "POST", body: "{}" })
+        .then(() => { if (typeof onDone === "function") onDone("legacy"); })
+        .catch((e) => {
+          btn.disabled = false;
+          disarm();
+          if (typeof onError === "function") onError(e.status === 409 ? new Error("Your site is already on the classic look.") : e);
+        });
+    }
+    window.qhSiteDowngrade = qhSiteDowngrade;
 
     /* ---------- navigation editor (shared) ---------- */
     // window.qhNavEditor(container, { items, pages, linkFor(page), onChange }) -> { getItems() }
@@ -4231,7 +4555,7 @@
           <div class="wb-grid" id="wb-edit-mode">
             <aside class="wb-palette" aria-label="Add a section">
               <h4>Add a section</h4>
-              ${wbPaletteHtml()}
+              <div id="wb-palette-list">${wbPaletteHtml()}</div>
               <p class="muted" style="font-size:0.75rem;margin-top:0.75rem">Click to add at the end, or drag onto the page.</p>
             </aside>
             <div class="wb-canvas-wrap">
@@ -4295,11 +4619,11 @@
         const input = document.getElementById(`wb-m-${k}`);
         if (input) input.addEventListener("change", () => { WB.meta[k] = input.checked; wbMarkDirty(true); });
       });
-      // Palette.
-      document.querySelectorAll(".wb-chip").forEach((chip) => {
-        chip.addEventListener("click", () => wbAddBlock(chip.dataset.type));
-        chip.addEventListener("dragstart", (e) => { _dragFromPalette = chip.dataset.type; _dragBi = null; e.dataTransfer.effectAllowed = "copy"; e.dataTransfer.setData("text/plain", "palette:" + chip.dataset.type); });
-      });
+      // Palette: a section document gets thumbnails, a search box and arrow-key
+      // navigation (wbRenderPalette builds and wires its own chips); a block
+      // document keeps the classic text chips, wired here.
+      wbRenderPalette();
+      document.querySelectorAll(".wb-chip:not([data-wired])").forEach((chip) => wbWireChip(chip));
       const canvas = document.getElementById("wb-canvas");
       canvas.addEventListener("dragover", (e) => e.preventDefault());
       canvas.addEventListener("dragleave", (e) => { if (!canvas.contains(e.relatedTarget)) document.querySelectorAll(".wb-drop.over").forEach((x) => x.classList.remove("over")); });
@@ -4327,20 +4651,147 @@
                   <button type="button" class="wb-chip" draggable="true" data-type="${esc(type)}" title="${esc(hint || "")}">
                     <span class="ico" aria-hidden="true">${icon}</span><span>${esc(label)}</span>
                   </button>`;
-      if (wbIsSections()) {
-        const cat = WB.catalog;
-        if (!cat) return `<p class="muted" style="font-size:0.8rem">The section list could not be loaded. Reload the page to try again.</p>`;
-        return (cat.groups || []).map((g) => {
-          const types = cat.types.filter((t) => t.group === g);
-          if (!types.length) return "";
-          return `<h5>${esc(g)}</h5>${types.map((t) => chip(t.type, t.label, WB_SECTION_ICONS[t.type] || "▪", t.hint)).join("")}`;
-        }).join("");
-      }
+      // Section documents are filled in by wbRenderPalette (DOM, with thumbnails).
+      if (wbIsSections()) return "";
       return WB_GROUPS.map((g) => {
         const types = g.types.filter((t) => wbTypesForTenant().includes(t));
         if (!types.length) return "";
         return `<h5>${esc(g.name)}</h5>${types.map((t) => chip(t, WB_BLOCK_META[t].label, WB_BLOCK_META[t].icon, WB_BLOCK_META[t].hint)).join("")}`;
       }).join("");
+    }
+    // Section picker for a section document: a search box, the catalog's
+    // groups, one thumbnail chip per type (line-art tinted with the tenant
+    // primary; the type's first layout), arrow keys to move between chips,
+    // Enter/Space to add (native button), drag onto the page still works.
+    function wbRenderPalette() {
+      const host = document.getElementById("wb-palette-list");
+      if (!host || !wbIsSections()) return;
+      const cat = WB.catalog;
+      host.replaceChildren();
+      const muted = (text) => { const p = document.createElement("p"); p.className = "muted"; p.style.fontSize = "0.8rem"; p.textContent = text; return p; };
+      if (!cat) { host.appendChild(muted("The section list could not be loaded. Reload the page to try again.")); return; }
+      const search = document.createElement("input");
+      search.type = "search"; search.className = "wb-pal-search"; search.placeholder = "Find a section…";
+      search.setAttribute("aria-label", "Find a section");
+      search.value = WB.paletteQuery || "";
+      const list = document.createElement("div");
+      list.className = "wb-pal-list";
+      const primary = wbDesignRoles().primary;
+      const draw = () => {
+        list.replaceChildren();
+        const q = search.value.trim().toLowerCase();
+        WB.paletteQuery = search.value;
+        let shown = 0;
+        (cat.groups || []).forEach((g) => {
+          const types = cat.types.filter((t) => t.group === g && (!q || `${t.label} ${t.hint || ""} ${t.type}`.toLowerCase().includes(q)));
+          if (!types.length) return;
+          const h = document.createElement("h5"); h.textContent = g; list.appendChild(h);
+          types.forEach((t) => {
+            const variants = (t.variants || []).filter((v) => v);
+            const chip = document.createElement("button");
+            chip.type = "button"; chip.className = "wb-chip wb-chip--thumb"; chip.draggable = true;
+            chip.dataset.type = t.type; chip.title = t.hint || "";
+            chip.appendChild(wbSectionThumb(t.type, variants[0] || "", primary));
+            const text = document.createElement("span"); text.className = "wb-chip-text";
+            const name = document.createElement("span"); name.textContent = t.label; text.appendChild(name);
+            if (variants.length > 1) { const sub = document.createElement("small"); sub.textContent = `${variants.length} layouts`; text.appendChild(sub); }
+            chip.appendChild(text);
+            wbWireChip(chip);
+            list.appendChild(chip);
+            shown++;
+          });
+        });
+        if (!shown) list.appendChild(muted("No sections match."));
+      };
+      search.addEventListener("input", draw);
+      search.addEventListener("keydown", (e) => {
+        if (e.key !== "ArrowDown") return;
+        const first = list.querySelector(".wb-chip");
+        if (first) { e.preventDefault(); first.focus(); }
+      });
+      list.addEventListener("keydown", (e) => {
+        const dir = e.key === "ArrowDown" ? 1 : e.key === "ArrowUp" ? -1 : 0;
+        if (!dir) return;
+        const chips = [...list.querySelectorAll(".wb-chip")];
+        const at = chips.indexOf(document.activeElement);
+        if (at < 0) return;
+        e.preventDefault();
+        if (at === 0 && dir < 0) { search.focus(); return; }
+        const next = chips[(at + dir + chips.length) % chips.length];
+        if (next) next.focus();
+      });
+      host.appendChild(search);
+      host.appendChild(list);
+      draw();
+    }
+    function wbWireChip(chip) {
+      if (chip.dataset.wired) return;
+      chip.dataset.wired = "1";
+      chip.addEventListener("click", () => wbAddBlock(chip.dataset.type));
+      chip.addEventListener("dragstart", (e) => { _dragFromPalette = chip.dataset.type; _dragBi = null; e.dataTransfer.effectAllowed = "copy"; e.dataTransfer.setData("text/plain", "palette:" + chip.dataset.type); });
+    }
+    // The tenant's design roles, read back from the --qh-* vars the server
+    // preview hands over (buildDesignVars in src/lib/site/design/tokens.ts).
+    // Fallbacks are the Heritage defaults so tiles paint before the first
+    // preview round-trip lands.
+    function wbDesignRoles() {
+      const out = {
+        bg: "#fbfaf8", surface: "#ffffff", surfaceAlt: "#f1eee9", ink: "#1f1d1a", inkMuted: "#5d5850", border: "#e2ddd5",
+        primary: "#8a2060", onPrimary: "#ffffff", primaryHover: "#6a1048", accent: "#b5501f", onAccent: "#ffffff",
+        dark: "#2a1a24", onDark: "#ffffff", tint: "#f7e9f1",
+      };
+      String(WB.designVars || "").split(";").forEach((decl) => {
+        const at = decl.indexOf(":");
+        if (at <= 0) return;
+        const m = /^--qh-([a-z-]+)$/.exec(decl.slice(0, at).trim());
+        if (!m) return;
+        const key = m[1].replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+        const v = qhDesignColor.normalizeHex(decl.slice(at + 1).trim());
+        if (v && Object.prototype.hasOwnProperty.call(out, key)) out[key] = v;
+      });
+      return out;
+    }
+    // Line-art renderer for WB_THUMB_ART strings and the Style tab's icon
+    // tiles: a 64-wide viewBox, `vbH` tall. Text lines use currentColor so
+    // they follow the admin's ink; everything else is the tint.
+    function wbLineArt(art, color, vbH) {
+      const NS = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(NS, "svg");
+      svg.setAttribute("viewBox", `0 0 64 ${vbH || 40}`);
+      svg.setAttribute("aria-hidden", "true");
+      svg.setAttribute("focusable", "false");
+      const tint = qhDesignColor.normalizeHex(color) || "#8a2060";
+      const add = (name, attrs) => {
+        const n = document.createElementNS(NS, name);
+        Object.keys(attrs).forEach((k) => n.setAttribute(k, String(attrs[k])));
+        svg.appendChild(n);
+      };
+      String(art || "").trim().split(/\s+/).forEach((tok) => {
+        const [kind, rest] = tok.split(":");
+        const [x, y, w, h] = (rest || "").split(",").map(Number);
+        switch (kind) {
+          case "band": add("rect", { x, y, width: w, height: h, fill: tint, "fill-opacity": 0.16 }); break;
+          case "block": add("rect", { x, y, width: w, height: h, rx: 1.5, fill: tint, "fill-opacity": 0.4 }); break;
+          case "solid": add("rect", { x, y, width: w, height: h, rx: 1.5, fill: tint }); break;
+          case "frame": add("rect", { x: x + 0.5, y: y + 0.5, width: w - 1, height: h - 1, rx: 1.5, fill: "none", stroke: tint, "stroke-opacity": 0.7 }); break;
+          case "line": add("rect", { x, y, width: w, height: 2, rx: 1, fill: "currentColor", "fill-opacity": 0.45 }); break;
+          case "dot": add("circle", { cx: x, cy: y + 1, r: 1.6, fill: tint }); break;
+          case "circle": add("circle", { cx: x, cy: y, r: w, fill: tint, "fill-opacity": 0.5 }); break;
+          case "pat":
+            for (let r = 0; r < 4; r++) for (let c = 0; c < 8; c++) {
+              if ((r + c) % 2 === 0) add("rect", { x: x + c * (w / 8), y: y + r * (h / 4), width: w / 8, height: h / 4, fill: tint, "fill-opacity": 0.2 });
+            }
+            break;
+        }
+      });
+      return svg;
+    }
+    function wbSectionThumb(type, variant, color) {
+      const arts = WB_THUMB_ART[type] || {};
+      const art = arts[variant] || arts[""] || arts[Object.keys(arts)[0]] || "frame:8,4,48,32 line:14,12,36 line:14,20,28";
+      const svg = wbLineArt(art, color || wbDesignRoles().primary, 40);
+      svg.classList.add("wb-thumb-svg");
+      return svg;
     }
 
     function wbSlugPreview() {
@@ -4734,6 +5185,8 @@
           const name = decl.slice(0, at).trim();
           if (/^--qh-[a-z0-9-]+$/.test(name)) page.style.setProperty(name, decl.slice(at + 1).trim());
         });
+        // Re-tint the section thumbnails with the tenant's real primary.
+        wbRenderPalette();
       }
       if (fontsHref && /^https:\/\/fonts\.googleapis\.com\//.test(fontsHref) && ![...document.querySelectorAll("link[data-wb-fonts]")].some((l) => l.href === fontsHref)) {
         const link = document.createElement("link");
@@ -4887,39 +5340,154 @@
       }
       if (def.hint) note(def.hint);
       const set = (patch, key) => wbPatchBlock(i, patch, key);
-      const live = () => WB.blocks[i] || b;
       const variants = (def.variants || []).filter((v) => v);
-      if (variants.length > 1) {
-        panel.appendChild(wbSelectField("Layout", b.variant || variants[0], variants.map((v) => [v, wbVariantLabel(v)]), (v) => set({ variant: v })));
-      }
+      // Two tabs: Content (layout + every catalog field) and Style.
+      const tabs = document.createElement("div");
+      tabs.className = "wb-ptabs"; tabs.setAttribute("role", "tablist"); tabs.setAttribute("aria-label", "Section settings");
+      const panes = { content: document.createElement("div"), style: document.createElement("div") };
+      const tabBtns = {};
+      const showTab = (key) => {
+        WB.propsTab = key;
+        Object.keys(panes).forEach((k) => {
+          const on = k === key;
+          panes[k].hidden = !on;
+          tabBtns[k].classList.toggle("on", on);
+          tabBtns[k].setAttribute("aria-selected", String(on));
+          tabBtns[k].tabIndex = on ? 0 : -1;
+        });
+      };
+      [["content", "Content"], ["style", "Style"]].forEach(([key, text]) => {
+        const t = document.createElement("button");
+        t.type = "button"; t.setAttribute("role", "tab"); t.id = `wb-ptab-${key}`; t.textContent = text;
+        panes[key].className = "wb-ppane"; panes[key].setAttribute("role", "tabpanel"); panes[key].setAttribute("aria-labelledby", t.id);
+        t.addEventListener("click", () => showTab(key));
+        tabBtns[key] = t;
+        tabs.appendChild(t);
+      });
+      tabs.addEventListener("keydown", (e) => {
+        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+        e.preventDefault();
+        const next = WB.propsTab === "style" ? "content" : "style";
+        showTab(next);
+        tabBtns[next].focus();
+      });
+      panel.appendChild(tabs); panel.appendChild(panes.content); panel.appendChild(panes.style);
+      if (variants.length > 1) panes.content.appendChild(wbVariantTiles(i, b, variants, (v) => set({ variant: v })));
       (def.fields || []).forEach((f) => {
         const el = wbSectionField(i, b, f, set);
-        if (el) panel.appendChild(el);
+        if (el) panes.content.appendChild(el);
       });
-      // Style row.
-      const box = document.createElement("fieldset");
-      box.className = "wb-item";
-      const legend = document.createElement("legend"); legend.textContent = "Style"; box.appendChild(legend);
-      const styleOpts = (WB.catalog && WB.catalog.style) || WB_STYLE_FALLBACK;
-      const styleSel = (label, key) => {
-        const options = (styleOpts[key] || WB_STYLE_FALLBACK[key]).map((v) => [v, (WB_STYLE_LABELS[key] || {})[v] || wbHumanize(v)]);
-        box.appendChild(wbSelectField(label, (b.style || {})[key], options, (v) => set({ style: { ...(live().style || {}), [key]: v } })));
+      wbRenderStyleTab(panes.style, i, b);
+      showTab(WB.propsTab === "style" ? "style" : "content");
+    }
+    // Arrow keys on a radiogroup of .wb-tile buttons: pick the next option and move focus to it.
+    function wbRadioKeys(group, options, current, pick) {
+      group.addEventListener("keydown", (e) => {
+        const dir = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
+        if (!dir) return;
+        e.preventDefault();
+        const idx = Math.max(0, options.indexOf(current()));
+        const next = options[(idx + dir + options.length) % options.length];
+        pick(next);
+        const btn = [...group.querySelectorAll(".wb-tile")].find((t) => t.dataset.value === next);
+        if (btn) btn.focus();
+      });
+    }
+    function wbTileGroup(labelText, idKey, options, paint, current, pick, labelFor) {
+      const row = document.createElement("div"); row.className = "wb-style-row";
+      const l = document.createElement("div"); l.className = "wb-style-label"; l.id = `wb-tiles-${idKey}-label`; l.textContent = labelText; row.appendChild(l);
+      const group = document.createElement("div");
+      group.className = "wb-tiles"; group.setAttribute("role", "radiogroup"); group.setAttribute("aria-labelledby", l.id);
+      const sync = () => {
+        const v = current();
+        group.querySelectorAll(".wb-tile").forEach((t) => {
+          const on = t.dataset.value === v;
+          t.classList.toggle("on", on); t.setAttribute("aria-checked", String(on)); t.tabIndex = on ? 0 : -1;
+        });
       };
-      styleSel("Background", "bg");
-      styleSel("Width", "width");
-      styleSel("Spacing", "spacing");
-      styleSel("Text alignment", "align");
-      styleSel("Image side", "media");
-      box.appendChild(wbImageField("Background or side image", b.style && b.style.imageId ? wbImageUrl(b.style.imageId) : "", (url) => {
-        const style = { ...(live().style || {}) };
+      options.forEach((v) => {
+        const text = labelFor(v);
+        const t = document.createElement("button");
+        t.type = "button"; t.className = "wb-tile"; t.setAttribute("role", "radio"); t.dataset.value = v; t.title = text;
+        paint(t, v);
+        const cap = document.createElement("span"); cap.className = "wb-tile-cap"; cap.textContent = text; t.appendChild(cap);
+        t.addEventListener("click", () => { pick(v); sync(); });
+        group.appendChild(t);
+      });
+      wbRadioKeys(group, options, current, (v) => { pick(v); sync(); });
+      sync();
+      row.appendChild(group);
+      return { row, group, sync };
+    }
+    // Layout picker: one thumbnail tile per variant of the section type.
+    function wbVariantTiles(i, b, variants, onPick) {
+      const live = () => WB.blocks[i] || b;
+      const { row, group } = wbTileGroup("Layout", "variant", variants, (t, v) => t.appendChild(wbSectionThumb(b.type, v)),
+        () => live().variant || variants[0], onPick, wbVariantLabel);
+      group.classList.add("wb-tiles--variants");
+      return row;
+    }
+    // Style tab: background tiles painted in the tenant's own roles, icon
+    // tiles for width / spacing / alignment / media side, the background or
+    // side image with its focal point, a quilt-pattern override for pattern
+    // backgrounds, and a reset to the design's defaults. Reads live values so
+    // a second change never overwrites the first.
+    function wbRenderStyleTab(host, i, b) {
+      const live = () => WB.blocks[i] || b;
+      const cur = () => live().style || {};
+      const setStyle = (patch) => {
+        const style = { ...cur() };
+        Object.keys(patch).forEach((k) => { if (patch[k] === undefined) delete style[k]; else style[k] = patch[k]; });
+        wbPatchBlock(i, { style });
+      };
+      const styleOpts = (WB.catalog && WB.catalog.style) || WB_STYLE_FALLBACK;
+      const roles = wbDesignRoles();
+      const syncs = [];
+      const tiles = (label, key, paint) => {
+        const options = styleOpts[key] || WB_STYLE_FALLBACK[key];
+        const g = wbTileGroup(label, key, options, paint, () => cur()[key] || WB_DEFAULT_STYLE[key],
+          (v) => { setStyle({ [key]: v }); syncs.forEach((fn) => fn()); }, (v) => (WB_STYLE_LABELS[key] || {})[v] || wbHumanize(v));
+        syncs.push(g.sync);
+        host.appendChild(g.row);
+      };
+      const svgTile = (t, art) => t.appendChild(wbLineArt(art, roles.primary, 24));
+      tiles("Background", "bg", (t, v) => {
+        const sw = document.createElement("span"); sw.className = "wb-tile-swatch";
+        const map = { none: [roles.bg, roles.ink], tint: [roles.tint, roles.ink], brand: [roles.primary, roles.onPrimary], dark: [roles.dark, roles.onDark] };
+        if (map[v]) { sw.style.background = map[v][0]; sw.style.color = map[v][1]; sw.textContent = "Aa"; }
+        else if (v === "image") { sw.style.background = `linear-gradient(135deg, ${roles.primary} 0%, ${roles.dark} 100%)`; sw.style.color = roles.onDark; sw.textContent = "Aa"; }
+        else { sw.style.background = roles.bg; sw.appendChild(wbLineArt("pat:0,0,64,40", roles.primary, 40)); }
+        t.appendChild(sw);
+      });
+      tiles("Width", "width", (t, v) => svgTile(t, { narrow: "block:20,8,24,8", normal: "block:12,8,40,8", wide: "block:5,8,54,8", full: "block:0,8,64,8" }[v] || "block:12,8,40,8"));
+      tiles("Spacing", "spacing", (t, v) => svgTile(t, { tight: "line:8,9,48 line:8,15,48", normal: "line:8,7,48 line:8,17,48", airy: "line:8,4,48 line:8,20,48" }[v] || "line:8,7,48 line:8,17,48"));
+      tiles("Text alignment", "align", (t, v) => svgTile(t, v === "center" ? "line:12,7,40 line:20,13,24 line:16,19,32" : "line:8,7,40 line:8,13,24 line:8,19,32"));
+      tiles("Image side", "media", (t, v) => svgTile(t, { left: "block:4,4,22,16 line:30,8,26 line:30,14,20", right: "line:8,8,26 line:8,14,20 block:38,4,22,16", top: "block:16,2,32,10 line:12,16,40 line:16,21,32" }[v] || "line:8,8,26 line:8,14,20 block:38,4,22,16"));
+      // Image + focal point. A "pattern:<id>" ref is generated art, not a file, so the field shows empty for it.
+      const imageId = () => { const id = cur().imageId; return id && !/^pattern:/.test(id) ? id : ""; };
+      host.appendChild(wbImageField("Background or side image", imageId() ? wbImageUrl(imageId()) : "", (url) => {
         const id = wbFileIdFromUrl(url);
-        if (id) style.imageId = id; else delete style.imageId;
-        set({ style });
-      }));
+        setStyle({ imageId: id || undefined, imageFocal: undefined });
+      }, { focal: { get: () => cur().imageFocal, set: (f) => setStyle({ imageFocal: f }) } }));
       const hint = document.createElement("p"); hint.className = "wb-hint";
-      hint.textContent = "Photo backgrounds use this image; split heroes and text-with-image sections show it beside the text.";
-      box.appendChild(hint);
-      panel.appendChild(box);
+      hint.textContent = "Photo backgrounds use this image; split heroes and text-with-image sections show it beside the text. Use “Focal point” to choose what stays in view on phones.";
+      host.appendChild(hint);
+      // Pattern override (shown for pattern backgrounds): which quilt block this section uses.
+      const patWrap = document.createElement("div"); patWrap.className = "wb-style-pattern";
+      const patId = () => { const m = /^pattern:(.+)$/.exec(cur().imageId || ""); return m ? m[1] : ""; };
+      const patLabel = (p) => (typeof QH_PATTERN_LABELS !== "undefined" && QH_PATTERN_LABELS[p]) || wbHumanize(p);
+      patWrap.appendChild(wbSelectField("Quilt pattern", patId(), [["", "Site pattern (from Design)"], ...WB_PATTERN_IDS.map((p) => [p, patLabel(p)])], (v) => {
+        setStyle({ imageId: v ? `pattern:${v}` : undefined, imageFocal: undefined });
+        wbRenderProps();
+      }));
+      host.appendChild(patWrap);
+      syncs.push(() => { patWrap.hidden = (cur().bg || WB_DEFAULT_STYLE.bg) !== "pattern"; });
+      const reset = document.createElement("button");
+      reset.type = "button"; reset.className = "secondary wb-style-reset"; reset.textContent = "Reset to design defaults";
+      reset.title = "Plain background, normal width and spacing, left-aligned text, image on the right; removes this section's image.";
+      reset.addEventListener("click", () => { wbPatchBlock(i, { style: { ...WB_DEFAULT_STYLE } }); wbRenderProps(); });
+      host.appendChild(reset);
+      syncs.forEach((fn) => fn());
     }
     function wbSectionField(i, b, f, set) {
       const name = f.name;
@@ -4931,7 +5499,8 @@
         case "link":
           return wbLinkField(f.label, val || "", (v) => set({ [name]: v }, name));
         case "image":
-          return wbImageField(f.label, val ? wbImageUrl(val) : "", (url) => set({ [name]: wbFileIdFromUrl(url) || undefined }));
+          // Content images keep their focal point on the file (PATCH); renderers read it through imgMeta.
+          return wbImageField(f.label, val ? wbImageUrl(val) : "", (url) => set({ [name]: wbFileIdFromUrl(url) || undefined }), { focal: {} });
         case "number": {
           const dflt = f.default != null ? f.default : (f.min != null ? f.min : 0);
           return wbTextField(f.label, val == null ? dflt : val, (v) => {
@@ -5083,7 +5652,7 @@
           fields.forEach((f) => {
             const setVal = (v) => { const n = items().map((x) => ({ ...x })); n[j][f.key] = v; commit(n, `${prop}.${j}.${f.key}`); };
             if (f.image) box.appendChild(wbImageField(f.label, it[f.key] || "", (v) => { setVal(v); }));
-            else if (f.imageId) box.appendChild(wbImageField(f.label, it[f.key] ? wbImageUrl(it[f.key]) : "", (url) => setVal(wbFileIdFromUrl(url) || undefined)));
+            else if (f.imageId) box.appendChild(wbImageField(f.label, it[f.key] ? wbImageUrl(it[f.key]) : "", (url) => setVal(wbFileIdFromUrl(url) || undefined), { focal: {} }));
             else if (f.link) box.appendChild(wbLinkField(f.label, it[f.key] || "", setVal));
             else if (f.number) box.appendChild(wbTextField(f.label, it[f.key] == null ? "" : it[f.key], (v) => setVal(v === "" ? undefined : Number(v)), { type: "number" }));
             else box.appendChild(wbTextField(f.label, it[f.key] || "", setVal, f));
@@ -5102,7 +5671,11 @@
     }
 
     /* ---------- images ---------- */
-    function wbImageField(label, value, onChange) {
+    // opts.focal: show a "Focal point" toggle once an image is set. With
+    // { get, set } the point is also kept on the section (style.imageFocal);
+    // with {} it is only PATCHed onto the file.
+    function wbImageField(label, value, onChange, opts) {
+      opts = opts || {};
       const wrap = document.createElement("div");
       wrap.className = "wb-image-field";
       const l = document.createElement("label"); l.textContent = label; wrap.appendChild(l);
@@ -5123,45 +5696,264 @@
       const file = document.createElement("input"); file.type = "file"; file.accept = "image/png,image/jpeg,image/gif,image/webp"; file.className = "hidden"; file.setAttribute("aria-hidden", "true"); file.tabIndex = -1;
       const up = document.createElement("button"); up.type = "button"; up.className = "secondary"; up.textContent = "Upload image";
       const lib = document.createElement("button"); lib.type = "button"; lib.className = "secondary"; lib.textContent = "Choose from library";
+      const focalBtn = document.createElement("button"); focalBtn.type = "button"; focalBtn.className = "secondary"; focalBtn.textContent = "Focal point"; focalBtn.setAttribute("aria-expanded", "false");
       const rm = document.createElement("button"); rm.type = "button"; rm.className = "secondary"; rm.textContent = "Remove"; rm.classList.toggle("hidden", !value);
+      const bar = document.createElement("progress"); bar.className = "wb-progress hidden"; bar.max = 100; bar.setAttribute("aria-label", "Upload progress");
       const status = document.createElement("span"); status.className = "wb-hint"; status.setAttribute("aria-live", "polite");
-      row.appendChild(up); row.appendChild(lib); row.appendChild(rm); row.appendChild(file);
-      wrap.appendChild(row); wrap.appendChild(status);
-      const setUrl = (url) => { value = url; drawThumb(url); rm.classList.toggle("hidden", !url); onChange(url); };
+      row.appendChild(up); row.appendChild(lib); if (opts.focal) row.appendChild(focalBtn); row.appendChild(rm); row.appendChild(file);
+      wrap.appendChild(row); wrap.appendChild(bar); wrap.appendChild(status);
+      const focalHost = document.createElement("div"); wrap.appendChild(focalHost);
+      let focalOpen = false;
+      const drawFocal = () => {
+        if (!opts.focal) return;
+        focalHost.replaceChildren();
+        const id = wbFileIdFromUrl(value);
+        focalBtn.classList.toggle("hidden", !id);
+        focalBtn.setAttribute("aria-expanded", String(focalOpen && !!id));
+        if (!focalOpen || !id) return;
+        const stored = typeof opts.focal.get === "function" ? opts.focal.get() : null;
+        focalHost.appendChild(wbFocalPicker(id, stored, (f) => { if (typeof opts.focal.set === "function") opts.focal.set(f); }));
+      };
+      focalBtn.addEventListener("click", () => { focalOpen = !focalOpen; drawFocal(); });
+      const setUrl = (url) => { value = url; drawThumb(url); rm.classList.toggle("hidden", !url); onChange(url); drawFocal(); };
+      const progress = wbProgressHandler(status, bar);
       up.addEventListener("click", () => file.click());
       file.addEventListener("change", async () => {
         const f = file.files && file.files[0];
         if (!f) return;
-        status.textContent = "Uploading…";
-        try { const id = await wbUploadImage(f); setUrl(wbImageUrl(id)); status.textContent = "Uploaded."; }
-        catch (e) { status.textContent = e.message; }
+        try { const id = await wbUploadImage(f, progress); setUrl(wbImageUrl(id)); progress({ stage: "done" }); }
+        catch (e) { progress({ stage: "error", message: e.message }); }
         file.value = "";
       });
       lib.addEventListener("click", () => wbOpenLibrary((id) => setUrl(wbImageUrl(id))));
       rm.addEventListener("click", () => setUrl(""));
+      drawFocal();
       return wrap;
     }
-    async function wbUploadImage(f) {
+    // Progress readout for the upload pipeline: a text line plus a <progress>
+    // bar while resizing or uploading. A variants warning survives "done".
+    function wbProgressHandler(status, bar) {
+      let warned = "";
+      return (p) => {
+        p = p || {};
+        const count = p.loaded != null ? p.loaded : p.done;
+        const pct = p.total && count != null ? Math.min(100, Math.round((count / p.total) * 100)) : null;
+        let text = "";
+        switch (p.stage) {
+          case "resize": warned = ""; text = p.total > 1 ? `Preparing sizes… ${p.done || 0} of ${p.total}` : "Preparing sizes…"; break;
+          case "original": text = pct != null ? `Uploading… ${pct}%` : "Uploading…"; break;
+          case "variants": text = pct != null ? `Uploading sizes… ${pct}%` : "Uploading sizes…"; break;
+          case "warn": warned = p.message || ""; text = warned; break;
+          case "error": text = p.message || "Upload failed."; break;
+          case "done": text = warned || "Uploaded."; break;
+          default: text = "";
+        }
+        status.textContent = text;
+        const busy = p.stage === "resize" || p.stage === "original" || p.stage === "variants";
+        if (bar) {
+          bar.classList.toggle("hidden", !busy);
+          if (busy && pct != null) bar.value = pct; else bar.removeAttribute("value");
+        }
+      };
+    }
+    // Upload pipeline: reject > 10 MB, decode with createImageBitmap, encode
+    // WebP + JPEG at 480/960/1600/2400 (quality 0.82, skipping widths wider
+    // than the original), upload the original (POST /files), then the sizes
+    // (POST /files/:id/variants). The sizes are best-effort: the original is
+    // usable on its own, so a variants failure is reported, not thrown.
+    async function wbUploadImage(f, onProgress) {
+      const progress = typeof onProgress === "function" ? onProgress : () => {};
       if (!/^image\/(png|jpeg|gif|webp)$/.test(f.type)) throw new Error("Please choose a PNG, JPEG, GIF or WebP image.");
-      const res = await fetch(`${API}/api/tenants/${tenantId}/files?filename=${encodeURIComponent(f.name)}`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": f.type },
-        body: f,
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Upload failed");
+      if (f.size > WB_IMAGE_MAX_BYTES) {
+        throw new Error(`This image is ${(f.size / 1048576).toFixed(1)} MB; the limit is 10 MB. Export it smaller (2400 px wide is plenty for the web) and try again.`);
+      }
+      progress({ stage: "resize", done: 0, total: 1 });
+      // GIFs keep their animation only as the original, so no sizes for them.
+      const resized = f.type === "image/gif" ? null : await wbResizeImage(f, progress);
+      progress({ stage: "original" });
+      const data = await wbXhr("POST", `${API}/api/tenants/${tenantId}/files?filename=${encodeURIComponent(f.name)}`, f, { "Content-Type": f.type },
+        (p) => progress({ stage: "original", loaded: p.loaded, total: p.total }));
+      if (!data || !data.id) throw new Error("Upload failed");
       WB.files = null; // refresh library next time
+      if (resized && resized.variants.length) {
+        try {
+          await wbUploadVariants(data.id, resized, (p) => progress({ stage: "variants", loaded: p.loaded, total: p.total }));
+        } catch (e) {
+          progress({ stage: "warn", message: `Uploaded, but the phone-sized versions could not be saved (${e.message}). The full-size image will be used.` });
+        }
+      }
       return data.id;
+    }
+    // Decode once, draw each width on a canvas, encode both formats. Returns
+    // null when the browser cannot decode the file (the server still
+    // validates the original). JPEG gets a white ground so transparency does
+    // not turn black.
+    async function wbResizeImage(file, onProgress) {
+      if (typeof createImageBitmap !== "function") return null;
+      let bitmap;
+      try { bitmap = await createImageBitmap(file); } catch { return null; }
+      const width = bitmap.width, height = bitmap.height;
+      const widths = WB_VARIANT_WIDTHS.filter((w) => w <= width);
+      const total = widths.length * WB_VARIANT_FORMATS.length;
+      const variants = [];
+      let done = 0;
+      for (const w of widths) {
+        const h = Math.max(1, Math.round((height * w) / width));
+        for (const [ext, mime] of WB_VARIANT_FORMATS) {
+          const canvas = document.createElement("canvas");
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          if (mime === "image/jpeg") { ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, w, h); }
+          ctx.drawImage(bitmap, 0, 0, w, h);
+          const blob = await new Promise((resolve) => canvas.toBlob(resolve, mime, WB_VARIANT_QUALITY));
+          done++;
+          if (onProgress) onProgress({ stage: "resize", done, total });
+          // A browser that cannot encode the format hands back PNG (or null): skip it.
+          if (blob && blob.type === mime) variants.push({ w, ext, format: ext === "jpg" ? "jpeg" : "webp", blob });
+        }
+      }
+      if (typeof bitmap.close === "function") bitmap.close();
+      return { width, height, variants };
+    }
+    // Multipart parts named w<width>.<webp|jpg>; the original's pixel size in
+    // X-Image-Width / X-Image-Height. Trims the largest sizes to stay under
+    // the server's 25 MB variants cap.
+    async function wbUploadVariants(fileId, resized, onProgress) {
+      let variants = resized.variants.slice();
+      const total = () => variants.reduce((n, v) => n + v.blob.size, 0);
+      while (variants.length && total() > WB_VARIANTS_MAX_BYTES) {
+        variants.sort((a, b) => b.blob.size - a.blob.size);
+        variants.shift();
+      }
+      if (!variants.length) return null;
+      const form = new FormData();
+      variants.forEach((v) => form.append(`w${v.w}.${v.ext}`, v.blob, `w${v.w}.${v.ext}`));
+      return wbXhr("POST", `${API}/api/tenants/${tenantId}/files/${fileId}/variants`, form, {
+        "X-Image-Width": String(resized.width),
+        "X-Image-Height": String(resized.height),
+      }, onProgress);
+    }
+    // fetch() has no upload progress, so uploads go through XMLHttpRequest.
+    // Resolves with the parsed JSON body; rejects with the server's error.
+    function wbXhr(method, url, body, headers, onProgress) {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open(method, url);
+        if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+        Object.keys(headers || {}).forEach((k) => xhr.setRequestHeader(k, headers[k]));
+        if (xhr.upload && typeof onProgress === "function") {
+          xhr.upload.addEventListener("progress", (e) => { if (e.lengthComputable) onProgress({ loaded: e.loaded, total: e.total }); });
+        }
+        xhr.addEventListener("load", () => {
+          let data = {};
+          try { data = JSON.parse(xhr.responseText || "{}"); } catch { data = {}; }
+          if (xhr.status === 401) { if (typeof sessionExpired === "function") sessionExpired(); reject(new Error("Your session expired. Please sign in again.")); return; }
+          if (xhr.status >= 200 && xhr.status < 300) { resolve(data); return; }
+          const err = new Error(data.error || xhr.statusText || "Upload failed");
+          err.status = xhr.status;
+          reject(err);
+        });
+        xhr.addEventListener("error", () => reject(new Error("Upload failed — check your connection and try again.")));
+        xhr.addEventListener("abort", () => reject(new Error("Upload cancelled.")));
+        xhr.send(body);
+      });
+    }
+    async function wbLoadFiles() {
+      if (Array.isArray(WB.files)) return WB.files;
+      try { WB.files = asList(await api(`/api/tenants/${tenantId}/files`), "files").map(wbNormalizeFileRow); }
+      catch { WB.files = []; }
+      return WB.files;
+    }
+    // GET /files rows carry width, height, focal, alt, has_variants (Task B); focal may arrive as JSON text.
+    function wbNormalizeFileRow(f) {
+      if (f && typeof f.focal === "string") { try { f.focal = JSON.parse(f.focal); } catch { f.focal = null; } }
+      return f;
+    }
+    function wbFileMeta(fileId) {
+      return (Array.isArray(WB.files) ? WB.files : []).find((f) => f && f.id === fileId) || null;
+    }
+    // Focal point: click the picture (or use the arrow keys) to choose the
+    // point that stays in view when the image is cropped; the 16:9 and 1:1
+    // previews show what a phone hero and a square card keep. Reports through
+    // onChange (style.imageFocal) and PATCHes the file so every use of the
+    // image and the og:image share the point.
+    function wbFocalPicker(fileId, focal, onChange) {
+      const clamp = (n) => Math.min(1, Math.max(0, Number(n) || 0));
+      const pair = (v) => (Array.isArray(v) && v.length === 2 && isFinite(Number(v[0])) && isFinite(Number(v[1])) ? [clamp(v[0]), clamp(v[1])] : null);
+      const stored = wbFileMeta(fileId);
+      let cur = pair(focal) || pair(stored && stored.focal) || [0.5, 0.5];
+      let moved = false;
+      const wrap = document.createElement("div"); wrap.className = "wb-focal";
+      const stage = document.createElement("div");
+      stage.className = "wb-focal-stage"; stage.tabIndex = 0;
+      stage.setAttribute("role", "img");
+      stage.setAttribute("aria-label", "Focal point picker: click the picture, or use the arrow keys, to choose the point that stays in view");
+      const img = document.createElement("img"); img.alt = ""; img.draggable = false;
+      const mark = document.createElement("span"); mark.className = "wb-focal-mark"; mark.setAttribute("aria-hidden", "true");
+      stage.appendChild(img); stage.appendChild(mark);
+      const crops = document.createElement("div"); crops.className = "wb-crops";
+      const cropImgs = [["16 / 9", "Phone hero (16:9)"], ["1 / 1", "Square card (1:1)"]].map(([ratio, label]) => {
+        const box = document.createElement("figure"); box.className = "wb-crop"; box.style.aspectRatio = ratio;
+        const ci = document.createElement("img"); ci.alt = ""; box.appendChild(ci);
+        const cap = document.createElement("figcaption"); cap.textContent = label; box.appendChild(cap);
+        crops.appendChild(box);
+        return ci;
+      });
+      const note = document.createElement("p"); note.className = "wb-hint"; note.setAttribute("aria-live", "polite");
+      wrap.appendChild(stage); wrap.appendChild(crops); wrap.appendChild(note);
+      const paint = () => {
+        const px = Math.round(cur[0] * 100), py = Math.round(cur[1] * 100);
+        mark.style.left = `${cur[0] * 100}%`; mark.style.top = `${cur[1] * 100}%`;
+        cropImgs.forEach((ci) => { ci.style.objectPosition = `${px}% ${py}%`; });
+        stage.setAttribute("aria-description", `Focal point ${px}% across, ${py}% down`);
+      };
+      let timer = null;
+      const commit = () => {
+        moved = true;
+        cur = [Math.round(cur[0] * 1000) / 1000, Math.round(cur[1] * 1000) / 1000];
+        paint();
+        onChange(cur.slice());
+        note.textContent = "Saving focal point…";
+        clearTimeout(timer);
+        timer = setTimeout(async () => {
+          try {
+            await api(`/api/tenants/${tenantId}/files/${fileId}`, { method: "PATCH", body: JSON.stringify({ focal: cur }) });
+            const meta = wbFileMeta(fileId);
+            if (meta) meta.focal = cur.slice();
+            note.textContent = "Focal point saved.";
+          } catch (e) {
+            note.textContent = `Kept for this section, but it could not be saved on the image: ${e.message}`;
+          }
+        }, 400);
+      };
+      stage.addEventListener("click", (e) => {
+        const r = img.getBoundingClientRect();
+        if (!r.width || !r.height) return;
+        cur = [clamp((e.clientX - r.left) / r.width), clamp((e.clientY - r.top) / r.height)];
+        commit();
+      });
+      stage.addEventListener("keydown", (e) => {
+        const step = e.shiftKey ? 0.1 : 0.02;
+        const d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
+        if (!d) return;
+        e.preventDefault();
+        cur = [clamp(cur[0] + d[0]), clamp(cur[1] + d[1])];
+        commit();
+      });
+      // No point given and the library not loaded yet: fetch it for the file's stored focal.
+      if (!pair(focal) && !Array.isArray(WB.files)) {
+        wbLoadFiles().then(() => { const m = wbFileMeta(fileId); const p = pair(m && m.focal); if (p && !moved) { cur = p; paint(); } });
+      }
+      wbResolveImg(wbImageUrl(fileId)).then((src) => { img.src = src; cropImgs.forEach((ci) => { ci.src = src; }); });
+      paint();
+      return wrap;
     }
     async function wbOpenLibrary(onPick) {
       const dlg = document.getElementById("wb-library");
       if (!dlg) return;
       dlg.innerHTML = `<h3 style="margin-top:0">Choose an image</h3><p class="muted" style="font-size:0.85rem">Loading…</p>`;
       dlg.showModal();
-      let files = WB.files;
-      if (!files) {
-        try { files = WB.files = asList(await api(`/api/tenants/${tenantId}/files`), "files"); } catch (e) { files = []; }
-      }
+      const files = await wbLoadFiles();
       const images = files.filter((f) => /^image\/(png|jpeg|gif|webp)$/.test(f.content_type || ""));
       dlg.innerHTML = `
         <div class="wb-lib-head">
@@ -5189,10 +5981,9 @@
       file.addEventListener("change", async () => {
         const f = file.files && file.files[0];
         if (!f) return;
-        const st = dlg.querySelector("#wb-lib-status");
-        st.textContent = "Uploading…";
-        try { const id = await wbUploadImage(f); dlg.close(); onPick(id); }
-        catch (e) { st.textContent = e.message; }
+        const progress = wbProgressHandler(dlg.querySelector("#wb-lib-status"), null);
+        try { const id = await wbUploadImage(f, progress); dlg.close(); onPick(id); }
+        catch (e) { progress({ stage: "error", message: e.message }); }
       });
     }
 
