@@ -121,3 +121,7 @@ Migration `0030_dues_policy_households.sql` adds columns with defaults matching 
 
 - Whether a household counts as one or many toward the free-30 cap. This design says many, which is the honest reading; the alternative is a marketing choice the owner should make deliberately.
 - Whether non-payers may renew on the payer's behalf. This design says no for the first release: it avoids a second payer and the refund questions that follow.
+
+## Implementation note
+
+**Shipped 2026-09-08 as v0.60.0-preview.** Phase 1 (policy engine, migration 0030) and phase 2 (households, migration 0031) both landed; §4.5 import columns remain for a follow-up. Corrections found during integration: paid joins were computing an anniversary end date at Stripe fulfillment even when the price had been prorated to a calendar year; derived membership needed an exclusive branch rather than an OR, or household members would have stayed active forever after the payer lapsed; and a security review of the households commit found two defects that are fixed with regression tests — the portal interpolated a member's name into a single-quoted `onclick` (attribute breakout, and the portal holds the session token), and a payer could enroll any existing member without consent, which also blocked that person from forming their own household. Evidence: 2640 unit tests, typecheck clean.
