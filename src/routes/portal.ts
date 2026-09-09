@@ -718,6 +718,21 @@ portalRoutes.post("/:slug/household/people", async (c) => {
       409
     );
   }
+  // A member cannot be pulled into someone else's household from the portal.
+  // Enrolling an existing person changes whose payment their membership hangs
+  // on and blocks them from forming their own household, so it needs either
+  // their consent or an officer. Adding a brand-new person is fine: the payer
+  // is vouching for someone the guild has never heard of.
+  if (member && member.id !== ctx.member.id) {
+    return c.json(
+      {
+        error:
+          "Someone with that email is already a member of this guild. Ask an officer to add them to your household.",
+        code: "existing_member",
+      },
+      409
+    );
+  }
   if (!member) {
     const { generateId } = await import("../lib/utils/id");
     const id = generateId();

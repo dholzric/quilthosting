@@ -608,3 +608,24 @@ describe("portal households", () => {
     });
   });
 });
+
+describe("household enrolment needs consent or an officer", () => {
+  it("refuses to pull an existing member into the payer's household", async () => {
+    // A payer could otherwise enroll any member of the guild without asking:
+    // it moves whose payment their membership hangs on, and household_members
+    // has UNIQUE(member_id), so it also blocks them forming their own.
+    const src = await import("node:fs").then((fs) =>
+      fs.readFileSync("src/routes/portal.ts", "utf8")
+    );
+    expect(src).toContain('code: "existing_member"');
+    const addHandler = src.slice(
+      src.indexOf('portalRoutes.post("/:slug/household/people"'),
+      src.indexOf('portalRoutes.delete("/:slug/household/people/:memberId"')
+    );
+    expect(addHandler).toMatch(/member && member\.id !== ctx\.member\.id/);
+    // and the refusal must come before any write
+    expect(addHandler.indexOf('code: "existing_member"')).toBeLessThan(
+      addHandler.indexOf("INSERT INTO members")
+    );
+  });
+});

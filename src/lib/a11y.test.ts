@@ -376,3 +376,14 @@ describe("the admin palette clears WCAG AA at the token level", () => {
     expect(css).toMatch(/\.sidebar,\.portal-header,\.qh-fleet-footer\{--focus-ring:#ffffff;?\}/);
   });
 });
+
+describe("no user data is interpolated into inline event handlers", () => {
+  it("portal.html never builds an onclick from a member-supplied name", () => {
+    const portal = readFileSync(path.join(REPO_ROOT, "public/portal.html"), "utf8");
+    // JSON.stringify escapes " but not ', so a name like O'Brien breaks out of
+    // a single-quoted onclick. Names must reach the DOM as text, never markup.
+    const handlerWithStringify = /on[a-z]+\s*=\s*'[^']*\$\{JSON\.stringify\([^)]*name[^)]*\)\}/i;
+    expect(portal).not.toMatch(handlerWithStringify);
+    expect(portal).not.toMatch(/onclick='removeFromHousehold\(/);
+  });
+});

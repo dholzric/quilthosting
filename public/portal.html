@@ -663,24 +663,39 @@
       }
       if (!data || !data.household) return;
       window._household = data;
-      const people = data.household.members
-        .map((person) => {
-          const name =
-            [person.first_name, person.last_name].filter(Boolean).join(" ") || person.email;
-          const who = person.role === "payer" ? " · pays" : "";
-          const remove =
-            data.is_payer && person.role !== "payer"
-              ? ` <button class="secondary" style="padding:0.2rem 0.5rem;font-size:0.8rem" onclick='removeFromHousehold(${JSON.stringify(person.id)}, ${JSON.stringify(name)})'>Remove</button>`
-              : "";
-          return `<li style="margin:0.25rem 0">${esc(name)} <span class="muted" style="font-size:0.85rem">${esc(person.email)}${esc(who)}</span>${remove}</li>`;
-        })
-        .join("");
+      // Rows are built with DOM APIs, never string-interpolated: a name is
+      // member-supplied, and JSON.stringify does not escape the single quote
+      // that would otherwise close an onclick="..." attribute.
+      const peopleList = document.createElement("ul");
+      peopleList.style.cssText = "margin:0.75rem 0 0 1.1rem;padding:0";
+      for (const person of data.household.members) {
+        const name =
+          [person.first_name, person.last_name].filter(Boolean).join(" ") || person.email;
+        const li = document.createElement("li");
+        li.style.margin = "0.25rem 0";
+        li.append(name + " ");
+        const meta = document.createElement("span");
+        meta.className = "muted";
+        meta.style.fontSize = "0.85rem";
+        meta.textContent = person.email + (person.role === "payer" ? " · pays" : "");
+        li.appendChild(meta);
+        if (data.is_payer && person.role !== "payer") {
+          const btn = document.createElement("button");
+          btn.className = "secondary";
+          btn.style.cssText = "padding:0.2rem 0.5rem;font-size:0.8rem;margin-left:0.4rem";
+          btn.textContent = "Remove";
+          btn.setAttribute("aria-label", "Remove " + name + " from this household");
+          btn.addEventListener("click", () => removeFromHousehold(person.id, name));
+          li.appendChild(btn);
+        }
+        peopleList.appendChild(li);
+      }
       const count = data.household.members.length;
       const room = data.max_people && count < data.max_people ? data.max_people - count : 0;
       card.innerHTML = `
         <h2>${esc(data.household.name)}</h2>
         <p class="muted">One membership, ${count} ${count === 1 ? "person" : "people"}. Everyone here has their own sign-in, directory entry and member prices.</p>
-        <ul style="margin:0.75rem 0 0 1.1rem;padding:0">${people}</ul>
+        <ul data-household-people style="margin:0.75rem 0 0 1.1rem;padding:0"></ul>
         ${data.is_payer
           ? `
           <div style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid var(--border,#ddd)">
@@ -701,6 +716,9 @@
               : `<p class="muted" style="margin-top:1rem;font-size:0.9rem">This membership is full.</p>`}
           </div>`
           : `<p class="muted" style="margin-top:1rem;font-size:0.9rem">Only the person who pays can change who is on this membership.</p>`}`;
+      // The people list is DOM-built above; drop it into its placeholder.
+      const slot = card.querySelector("[data-household-people]");
+      if (slot) slot.replaceWith(peopleList);
       card.classList.remove("hidden");
     }
 
