@@ -22,7 +22,8 @@
 import type { Env, MembershipLevel } from "../types";
 import { all, first } from "./db";
 import { generateId } from "./utils/id";
-import { computeMembershipEnd } from "./memberships";
+
+import { readDuesPolicy, computeTermEnd } from "./dues";
 
 /**
  * Minutes past hold_expires_at before the sweeper releases a hold. Stripe
@@ -271,11 +272,16 @@ export function buildActivateMembershipStatements(
     stripeSubscriptionId: string | null;
     autoRenew: boolean;
     now: string;
+    /** Overrides the policy calculation (imports and admin corrections). */
+    endDate?: string;
   }
 ): { membershipId: string; stmts: D1PreparedStatement[] } {
   const { tenantId, memberId, level, amountPaidCents, paymentId, now } = params;
   const membershipId = generateId();
-  const endDate = computeMembershipEnd(now, level.duration_months, now);
+  // A paid join must land on the same term the public price was quoted for:
+  // a calendar-year level ends on its anchor, not a year from the payment.
+  // computeTermEnd falls back to the anniversary math for untouched levels.
+  const endDate = params.endDate ?? computeTermEnd(readDuesPolicy(level), now, now);
   const guard = `EXISTS (SELECT 1 FROM payments WHERE id = ? AND fulfilled_at IS NULL)`;
   const stmts = [
     db

@@ -556,3 +556,55 @@ describe("POST /api/webhooks/stripe — inbox + idempotent fulfillment", () => {
     expect(h.runs.length).toBe(0);
   });
 });
+
+describe("paid dues honour the level's membership year", () => {
+  it("a calendar-year level ends on its anchor, not a year from the payment", async () => {
+    const { buildActivateMembershipStatements } = await import("../lib/fulfillment");
+    const db = {
+      prepare(sql: string) {
+        return { bind: (...binds: unknown[]) => ({ sql, binds }) };
+      },
+    } as unknown as D1Database;
+    const level = {
+      id: "lvl", tenant_id: "t1", name: "Annual", description: null,
+      price_cents: 3500, duration_months: 12, renewal_type: "manual" as const,
+      term_mode: "calendar", term_anchor: null, proration: "none", grace_days: 0,
+      benefits_json: "[]", is_public: 1, sort_order: 0, status: "active",
+      created_at: "2026-01-01T00:00:00.000Z", updated_at: "2026-01-01T00:00:00.000Z",
+    };
+    const { stmts } = buildActivateMembershipStatements(db, {
+      tenantId: "t1", memberId: "m1", level, amountPaidCents: 3500,
+      paymentId: "p1", stripeSubscriptionId: null, autoRenew: false,
+      now: "2026-10-15T12:00:00.000Z",
+    });
+    const insert = (stmts as unknown as { sql: string; binds: unknown[] }[]).find((s) =>
+      s.sql.includes("INSERT INTO memberships")
+    )!;
+    const endDate = String(insert.binds.find((b) => String(b).startsWith("2026-12-31")) || "");
+    expect(endDate).toMatch(/^2026-12-31/);
+  });
+
+  it("an untouched anniversary level is unchanged", async () => {
+    const { buildActivateMembershipStatements } = await import("../lib/fulfillment");
+    const db = {
+      prepare(sql: string) {
+        return { bind: (...binds: unknown[]) => ({ sql, binds }) };
+      },
+    } as unknown as D1Database;
+    const level = {
+      id: "lvl", tenant_id: "t1", name: "Annual", description: null,
+      price_cents: 3500, duration_months: 12, renewal_type: "manual" as const,
+      benefits_json: "[]", is_public: 1, sort_order: 0, status: "active",
+      created_at: "2026-01-01T00:00:00.000Z", updated_at: "2026-01-01T00:00:00.000Z",
+    };
+    const { stmts } = buildActivateMembershipStatements(db, {
+      tenantId: "t1", memberId: "m1", level, amountPaidCents: 3500,
+      paymentId: "p1", stripeSubscriptionId: null, autoRenew: false,
+      now: "2026-10-15T12:00:00.000Z",
+    });
+    const insert = (stmts as unknown as { sql: string; binds: unknown[] }[]).find((s) =>
+      s.sql.includes("INSERT INTO memberships")
+    )!;
+    expect(insert.binds.some((b) => String(b).startsWith("2027-10-15"))).toBe(true);
+  });
+});

@@ -109,6 +109,11 @@ export interface MembershipLevel {
   price_cents: number;
   duration_months: number;
   renewal_type: "manual" | "auto";
+  /** Dues policy (migration 0030). Absent on rows read before it applied. */
+  term_mode?: string | null;
+  term_anchor?: string | null;
+  proration?: string | null;
+  grace_days?: number | null;
   benefits_json: string;
   is_public: number;
   sort_order: number;
