@@ -45,8 +45,6 @@
     .qh-pattern-tile { height: 60px; border-radius: 4px; border: 1px solid var(--border); background-color: var(--surface); background-size: 48px 48px; margin-bottom: 0.35rem; }
     .qh-design-check { display: inline-flex; align-items: center; gap: 0.4rem; margin: 0.4rem 1rem 0 0; font-weight: 500; font-size: 0.85rem; }
     .qh-design-check input { margin: 0; width: auto; }
-    .qh-design-renderer { background: var(--brand-soft); padding: 0.75rem 1rem; border-radius: var(--r-sm); margin: 0 0 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; justify-content: space-between; }
-    .qh-design-renderer p { margin: 0; flex: 1 1 22rem; font-size: 0.88rem; }
     /* Grouped sidebar (rendered from ADMIN_NAV by renderSidebarNav) */
     .sidebar nav .qh-nav-label {
       font-size: 0.66rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
@@ -4405,8 +4403,7 @@
        (WB_BLOCK_META) and section documents (every item has a `style`
        object; src/lib/site/sections/schema.ts). The server detects the
        format; the editor keeps whichever the page has (WB.format) and shows
-       the matching palette and settings panel. New pages start as sections
-       unless the guild is on the classic renderer.
+       the matching palette and settings panel. New pages start as sections.
        ================================================================ */
 
     // Block catalogue. Field names mirror the PageBlock union in
@@ -4591,13 +4588,13 @@
       page: null, meta: {}, blocks: [], selected: null,
       undo: [], redo: [], hiddenStack: [], lastKey: null, lastAt: 0,
       revision: null, hasDraft: false, dirty: false, saveTimer: null, saveState: "idle", savePromise: null,
-      mode: "edit", previewWidth: "desktop", previewTimer: null, previewSeq: 0, previewReady: false,
+      mode: "edit", previewWidth: "desktop", previewTimer: null, previewSeq: 0,
       serverParts: null, files: null, forms: null, imgCache: {}, siteCssLoaded: false, canWrite: true,
       slugTouched: false, armed: {},
-      // Document format of the open page ("blocks" | "sections"), which
-      // renderer serves this tenant ("legacy" | "sections"), the section
-      // catalog (fetched once), and the design vars applied to the canvas.
-      format: "blocks", renderer: "sections", catalog: null, designVars: "",
+      // Document format of the open page ("blocks" | "sections"), the
+      // section catalog (fetched once), and the design vars applied to the
+      // canvas.
+      format: "blocks", catalog: null, designVars: "",
       // Which props tab is open ("content" | "style") and the section-picker search text.
       propsTab: "content", paletteQuery: "",
     };
@@ -4622,8 +4619,9 @@
     // A section item carries a `style` object (isSectionDocument's rule server-side).
     function wbIsSectionItem(b) { return !!b && !!b.style && typeof b.style === "object" && !Array.isArray(b.style); }
     function wbCatalogType(type) { return (WB.catalog && WB.catalog.types || []).find((t) => t.type === type) || null; }
-    // What an empty page becomes: sections on the new renderer, blocks on the classic one.
-    function wbDefaultFormat() { return WB.renderer === "legacy" ? "blocks" : "sections"; }
+    // What an empty page becomes. Existing block pages still open and save as
+    // blocks; only a new, empty page starts as a section document.
+    function wbDefaultFormat() { return "sections"; }
     function wbDocFormat(items) {
       if (items.some(wbIsSectionItem)) return "sections";
       return items.length ? "blocks" : wbDefaultFormat();
@@ -4851,18 +4849,15 @@
         reload: () => navigate("pages"),
       });
       wbRenderNavCard(document.getElementById("wb-nav-card"));
-      // The Design panel fetches the design library and the renderer flag;
-      // the legacy "Look & feel" card only applies while the guild is still
-      // on the classic renderer (settings.site.renderer === "legacy").
+      // The Design panel owns colour, type and layout for the site.
       const designState = await qhDesignPanel(document.getElementById("wb-design-host"), {
         tenantType: "guild",
-        onRendererChange: () => navigate("pages"),
       });
       const themeCard = document.getElementById("wb-theme-card");
       if (themeCard) {
-        // Keep the classic card when the panel could not load, so a network
-        // blip never hides the only theme controls a legacy guild has.
-        if (!designState || designState.renderer === "legacy") wbRenderGuildTheme(themeCard);
+        // Keep the older "Look & feel" card when the panel could not load, so
+        // a network blip never leaves the guild with no theme controls at all.
+        if (!designState) wbRenderGuildTheme(themeCard);
         else themeCard.remove();
       }
       applyReadOnlyState("pages");
@@ -5027,12 +5022,11 @@
        window.qhDesignPanel(host, { tenantType, showCredit, onRendererChange })
        renders the site design controls: palette library grouped by family,
        custom colors with a live readability readout, type pair with a sample
-       line in the pair, shape, rhythm, header, footer, pattern — and, for
-       guilds, the "Try the new design" / "Back to classic" switch. The
-       library comes from GET /api/tenants/:id/design-options so nothing is
+       line in the pair, shape, rhythm, header, footer, pattern. The library
+       comes from GET /api/tenants/:id/design-options so nothing is
        hard-coded here. Save PATCHes the tenant with the merged settings
-       (settings.design, and settings.site.renderer for guilds). DOM APIs
-       only — tenant data never goes through innerHTML. */
+       (settings.design, and settings.site.kit for guilds). DOM APIs only —
+       tenant data never goes through innerHTML. */
 
     // Client-side port of src/lib/site/design/color.ts + deriveRoles() in
     // tokens.ts, used ONLY for the live readout and sample. The server
@@ -5221,7 +5215,6 @@
       const clone = (v) => JSON.parse(JSON.stringify(v));
       const defaults = options.defaults;
       const design = clone(options.current || defaults);
-      let renderer = options.renderer === "legacy" ? "legacy" : "sections";
       const paletteById = (id) => options.palettes.find((p) => p.id === id) || null;
       const pairById = (id) => options.typePairs.find((p) => p.id === id) || options.typePairs[0];
       const displayName = (tenantRow && tenantRow.name) || (typeof tenantName !== "undefined" && tenantName) || (isGuild ? "Your guild" : "Your business");
@@ -5275,39 +5268,6 @@
         return l;
       }
 
-      // ---- Renderer switch (guilds only) ----
-      let refreshRenderer = () => {};
-      if (isGuild) {
-        const box = mk("div", "qh-design-renderer");
-        const copy = mk("p");
-        const btn = mk("button");
-        btn.type = "button";
-        btn.setAttribute("data-write", "");
-        // Task D endpoints: the upgrade composes styled sections from the
-        // block pages (previewed first, in a dialog); the downgrade restores
-        // the snapshots. The panel re-renders from fresh server state after.
-        const rerender = (next) => qhDesignPanel(host, opts).then(() => { if (opts.onRendererChange) opts.onRendererChange(next); });
-        btn.addEventListener("click", () => {
-          if (renderer === "legacy") qhSiteUpgrade({ kits, onDone: () => rerender("sections") });
-          else qhSiteDowngrade(btn, () => rerender("legacy"), (e) => { msg.textContent = e.message; });
-        });
-        box.appendChild(copy);
-        box.appendChild(btn);
-        host.appendChild(box);
-        refreshRenderer = () => {
-          if (renderer === "legacy") {
-            copy.textContent = "Your site uses the classic look. The new design renders every page with the colors, fonts and layout you choose below. Switching is reversible — nothing is deleted, and you can come back to classic any time.";
-            btn.textContent = "Try the new design";
-            btn.className = "";
-          } else {
-            copy.textContent = "Your site uses the new design. You can go back to the classic look any time; your pages and design choices are kept.";
-            btn.textContent = "Back to classic";
-            btn.className = "secondary";
-          }
-        };
-        refreshRenderer();
-      }
-
       // ---- Browse designs (kits) ----
       const kits = (options.kits || []).filter((k) => k.audience === "both" || k.audience === (isGuild ? "guild" : "business"));
       if (kits.length) {
@@ -5335,7 +5295,7 @@
           use.addEventListener("click", () => {
             Object.assign(design, clone(k.design));
             refresh();
-            save(null, k.id);
+            save(k.id);
           });
           card.appendChild(use);
           strip.appendChild(card);
@@ -5578,7 +5538,7 @@
       const saveBtn = mk("button", "", "Save design");
       saveBtn.type = "button";
       saveBtn.setAttribute("data-write", "");
-      saveBtn.addEventListener("click", () => save(null));
+      saveBtn.addEventListener("click", () => save());
       const msg = mk("span", "muted");
       msg.style.marginLeft = "0.5rem";
       msg.setAttribute("aria-live", "polite");
@@ -5586,7 +5546,7 @@
       saveRow.appendChild(msg);
       host.appendChild(saveRow);
 
-      async function save(nextRenderer, kitId) {
+      async function save(kitId) {
         msg.textContent = "Saving…";
         try {
           // Always merge into the freshest settings so other screens' keys
@@ -5597,11 +5557,10 @@
           if (!base || typeof base !== "object" || Array.isArray(base)) base = {};
           const next = { ...base, design: clone(design) };
           const site = base.site && typeof base.site === "object" && !Array.isArray(base.site) ? base.site : {};
-          if (isGuild) next.site = { ...site, renderer: nextRenderer || renderer };
+          if (isGuild) next.site = { ...site, renderer: "sections" };
           if (kitId) next.site = { ...(next.site || site), kit: kitId };
           if (credit) next.branding = { ...((base.branding && typeof base.branding === "object") ? base.branding : {}), show_platform_credit: credit.checked };
           const row = await api(`/api/tenants/${tenantId}`, { method: "PATCH", body: JSON.stringify({ settings: next }) });
-          if (nextRenderer) renderer = nextRenderer;
           if (row && row.settings_json) {
             try { Object.assign(next, JSON.parse(row.settings_json)); } catch {}
             if (typeof currentTenant !== "undefined" && currentTenant) currentTenant.settings_json = row.settings_json;
@@ -5617,12 +5576,10 @@
               if (document.getElementById("wb-preview-frame")) wbRefreshPreview();
             }
           }
-          msg.textContent = nextRenderer
-            ? (nextRenderer === "legacy" ? "Saved. Your site is back on the classic look." : "Saved. Your site now uses the new design.")
-            : kitId ? "Saved. Your site now uses this design; fine-tune it below." : "Saved. Your site now uses this design.";
-          refreshRenderer();
+          msg.textContent = kitId
+            ? "Saved. Your site now uses this design; fine-tune it below."
+            : "Saved. Your site now uses this design.";
           refresh();
-          if (nextRenderer && opts.onRendererChange) opts.onRendererChange(nextRenderer);
         } catch (e) {
           msg.textContent = e.issues && e.issues.length ? e.issues.map((i) => i.message).join(" ") : e.message;
         }
@@ -5682,7 +5639,7 @@
         refreshers.forEach((fn) => fn());
       }
       refresh();
-      return { renderer, design };
+      return { renderer: "sections", design };
     }
     window.qhDesignPanel = qhDesignPanel;
 
@@ -5770,116 +5727,7 @@
     }
     window.qhPaletteFromLogo = qhPaletteFromLogo;
 
-    /* ---------- try the new design / back to classic (Task D) ---------- */
-    // Preview the composed home page in a dialog (GET /site/upgrade?preview=1),
-    // pick a design, then POST /site/upgrade { kit }. Nothing is written until
-    // the button in the dialog is pressed.
-    async function qhSiteUpgrade(opts) {
-      opts = opts || {};
-      const mk = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
-      let dlg = document.getElementById("qh-upgrade-dlg");
-      if (!dlg) {
-        dlg = document.createElement("dialog");
-        dlg.id = "qh-upgrade-dlg"; dlg.className = "qh-upgrade-dlg"; dlg.setAttribute("role", "dialog"); dlg.setAttribute("aria-modal", "true"); dlg.setAttribute("aria-label", "Try the new design");
-        document.body.appendChild(dlg);
-      }
-      dlg.replaceChildren();
-      const head = mk("div", "wb-lib-head");
-      head.appendChild(mk("h3", "", "Try the new design"));
-      const close = mk("button", "secondary", "✕");
-      close.type = "button"; close.setAttribute("aria-label", "Close");
-      close.addEventListener("click", () => dlg.close());
-      head.appendChild(close);
-      dlg.appendChild(head);
-      dlg.appendChild(mk("p", "muted", "A preview of your home page in the new design, composed from the pages you already have. Nothing changes until you press “Use the new design”. Your pages are kept, and “Back to classic” restores them exactly as they are now."));
-      const tools = mk("div", "wb-lib-tools");
-      const kits = Array.isArray(opts.kits) ? opts.kits : [];
-      let kitId = opts.defaultKit || (kits.some((k) => k.id === "heritage") ? "heritage" : (kits[0] && kits[0].id) || "");
-      if (kits.length) {
-        const kitSel = document.createElement("select");
-        kitSel.setAttribute("aria-label", "Design");
-        kits.forEach((k) => { const o = document.createElement("option"); o.value = k.id; o.textContent = k.name; kitSel.appendChild(o); });
-        kitSel.value = kitId;
-        kitSel.addEventListener("change", () => { kitId = kitSel.value; load(); });
-        const lab = mk("label", "", "Design ");
-        lab.appendChild(kitSel);
-        tools.appendChild(lab);
-      }
-      const status = mk("span", "wb-hint");
-      status.setAttribute("aria-live", "polite");
-      tools.appendChild(status);
-      dlg.appendChild(tools);
-      const frame = document.createElement("iframe");
-      frame.className = "qh-upgrade-frame";
-      frame.title = "Preview of your home page in the new design";
-      frame.setAttribute("sandbox", "allow-same-origin allow-scripts");
-      dlg.appendChild(frame);
-      const actions = mk("div", "wb-props-actions");
-      const go = mk("button", "", "Use the new design");
-      go.type = "button"; go.setAttribute("data-write", ""); go.disabled = true;
-      const cancel = mk("button", "secondary", "Cancel");
-      cancel.type = "button";
-      cancel.addEventListener("click", () => dlg.close());
-      actions.appendChild(go); actions.appendChild(cancel);
-      dlg.appendChild(actions);
-      let seq = 0;
-      async function load() {
-        const my = ++seq;
-        status.textContent = "Building preview…";
-        go.disabled = true;
-        try {
-          const q = kitId ? `&kit=${encodeURIComponent(kitId)}` : "";
-          const res = await fetch(`${API}/api/tenants/${tenantId}/site/upgrade?preview=1${q}`, { headers: { Authorization: `Bearer ${token}` } });
-          if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(data.error || res.statusText || "Preview failed"); }
-          const html = await res.text();
-          if (my !== seq) return;
-          frame.srcdoc = html;
-          status.textContent = "";
-          go.disabled = false;
-        } catch (e) {
-          if (my === seq) status.textContent = `Preview unavailable: ${e.message}`;
-        }
-      }
-      go.addEventListener("click", async () => {
-        go.disabled = true;
-        status.textContent = "Switching your site to the new design…";
-        try {
-          await api(`/api/tenants/${tenantId}/site/upgrade`, { method: "POST", body: JSON.stringify(kitId ? { kit: kitId } : {}) });
-          dlg.close();
-          if (typeof opts.onDone === "function") opts.onDone("sections");
-        } catch (e) {
-          status.textContent = e.status === 409 ? "Your site is already on the new design." : e.message;
-          go.disabled = false;
-        }
-      });
-      dlg.showModal();
-      load();
-      return dlg;
-    }
-    window.qhSiteUpgrade = qhSiteUpgrade;
-    // "Back to classic": the second click within five seconds confirms, then
-    // POST /site/downgrade restores every page from its pre-upgrade snapshot.
-    function qhSiteDowngrade(btn, onDone, onError) {
-      const disarm = () => { delete btn.dataset.armed; btn.classList.remove("wb-armed"); btn.textContent = "Back to classic"; };
-      if (btn.dataset.armed !== "1") {
-        btn.dataset.armed = "1";
-        btn.classList.add("wb-armed");
-        btn.textContent = "Click again to go back to classic";
-        setTimeout(() => { if (btn.dataset.armed === "1") disarm(); }, 5000);
-        return;
-      }
-      disarm();
-      btn.disabled = true;
-      btn.textContent = "Restoring your pages…";
-      api(`/api/tenants/${tenantId}/site/downgrade`, { method: "POST", body: "{}" })
-        .then(() => { if (typeof onDone === "function") onDone("legacy"); })
-        .catch((e) => {
-          btn.disabled = false;
-          disarm();
-          if (typeof onError === "function") onError(e.status === 409 ? new Error("Your site is already on the classic look.") : e);
-        });
-    }
-    window.qhSiteDowngrade = qhSiteDowngrade;
+  window.qhSiteDowngrade = qhSiteDowngrade;
 
     /* ---------- navigation editor (shared) ---------- */
     // window.qhNavEditor(container, { items, pages, linkFor(page), onChange }) -> { getItems() }
@@ -6040,15 +5888,14 @@
       Object.assign(WB, {
         view: "editor", page: null, blocks: [], selected: null, undo: [], redo: [], hiddenStack: [],
         revision: null, hasDraft: false, dirty: false, saveState: "idle", savePromise: null, mode: opts.mode || "edit",
-        serverParts: null, previewReady: false, slugTouched: !!(pageOrNull && pageOrNull.id), armed: {},
+        serverParts: null, slugTouched: !!(pageOrNull && pageOrNull.id), armed: {},
       });
       clearTimeout(WB.saveTimer);
       try {
         // Always refetch: the theme (Appearance / Look & feel) and the page
         // list may have changed since the editor was last open.
-        // The tenant row tells us which renderer serves the site (guild
-        // settings.site.renderer; a business is always on the new one) and,
-        // for a business, its legacy theme for the canvas.
+        // The tenant row carries the design tokens for the canvas and, for a
+        // business, its legacy theme.
         const [tenantRow, siteSettings, pageRows, catalog] = await Promise.all([
           api(`/api/tenants/${tenantId}`).catch(() => null),
           wbIsGuild() ? api(`${wbBase()}/site/settings`).catch(() => null) : Promise.resolve(null),
@@ -6058,8 +5905,6 @@
         let tenantSettings = null;
         if (tenantRow) { try { tenantSettings = JSON.parse(tenantRow.settings_json || "{}"); } catch { tenantSettings = {}; } }
         if (tenantSettings && !wbIsGuild()) WB.settings = tenantSettings;
-        const siteCfg = tenantSettings && tenantSettings.site && typeof tenantSettings.site === "object" ? tenantSettings.site : {};
-        WB.renderer = wbIsGuild() && siteCfg.renderer === "legacy" ? "legacy" : "sections";
         if (catalog && Array.isArray(catalog.types)) WB.catalog = catalog;
         if (siteSettings) WB.site = { theme: siteSettings.theme || {}, nav: siteSettings.nav || [] };
         WB.pages = asList(pageRows, "pages").filter((p) => (p.page_type || "page") !== "blog_post");
@@ -7905,22 +7750,7 @@
       await wbFlushSave();
       const blocks = wbSnapshot();
       try {
-        // Guilds on the classic renderer preview inside guild.html; a guild
-        // on the new renderer (and every business) previews the rendered
-        // document directly.
-        if (wbIsGuild() && WB.renderer === "legacy") {
-          const res = await api(`${wbBase()}/preview`, { method: "POST", body: JSON.stringify({ blocks }) });
-          if (seq !== WB.previewSeq) return;
-          const page = { title: WB.meta.title || "Untitled page", html: res.html || "", slug: WB.meta.slug || "home" };
-          const target = `/g/${encodeURIComponent(tenantSlug)}/__preview`;
-          const post = () => frame.contentWindow && frame.contentWindow.postMessage({ type: "qh:preview", page }, location.origin);
-          if (frame.dataset.src === target && WB.previewReady) { post(); return; }
-          WB.previewReady = false;
-          WB.pendingPreview = post;
-          frame.dataset.src = target;
-          frame.removeAttribute("srcdoc");
-          frame.src = target;
-        } else {
+        {
           let html;
           // GET /:id/preview answers with a full document for a business only (JSON for a guild).
           if (!wbIsGuild() && WB.page && !WB.dirty && WB.saveState !== "error") {
@@ -7941,12 +7771,6 @@
         frame.srcdoc = `<p style="font-family:system-ui;padding:1rem">Preview unavailable: ${esc(e.message)}</p>`;
       }
     }
-    window.addEventListener("message", (e) => {
-      if (e.origin !== location.origin || !e.data || e.data.type !== "qh:preview-ready") return;
-      WB.previewReady = true;
-      if (WB.pendingPreview) { WB.pendingPreview(); WB.pendingPreview = null; }
-    });
-
     /* ---------- history ---------- */
     async function wbOpenHistory() {
       const dlg = document.getElementById("wb-history-dlg");

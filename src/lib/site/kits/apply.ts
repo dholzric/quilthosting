@@ -11,7 +11,7 @@
  * - `kitSettingsJson` produces settings_json: the kit's design expanded from
  *   the palette library, plus `site.renderer = "sections"` for serveSite.
  * - `sectionsToLegacyBlocks` downgrades sections to the block model that
- *   guild.html and the guild website builder render, for the legacy starter
+ *   the guild website builder renders, for the block-shaped starter
  *   site (src/lib/starterSite.ts) until every guild is on the new renderer.
  */
 

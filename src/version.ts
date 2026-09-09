@@ -3,4 +3,4 @@
  * Keep in sync with package.json when cutting a release — the API and every
  * page footer read from here so they can never drift apart again.
  */
-export const APP_VERSION = "0.60.0-preview";
+export const APP_VERSION = "0.61.0-preview";

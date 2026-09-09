@@ -54,7 +54,7 @@ import { processQueuedBlasts } from "./lib/blastSend";
 import { generateId } from "./lib/utils/id";
 import { getTenantByHost } from "./lib/tenantHost";
 import { isBusiness } from "./lib/tenantType";
-import { serveSite, useLegacyRenderer, getTenantBySlug } from "./routes/site";
+import { serveSite, getTenantBySlug } from "./routes/site";
 import { handleWebhookQueue } from "./consumers/webhookConsumer";
 import { sweepOutbox } from "./lib/webhookOutbox";
 import { sweepExpired } from "./lib/idempotency";
@@ -104,7 +104,8 @@ app.use("*", async (c, next) => {
   const tenant = await getTenantByHost(c.env.DB, host, c.env.APP_URL);
   if (!tenant) return next();
 
-  // Business tenants get the server-rendered site. Guilds keep guild.html.
+  // Both tenant types are server-rendered; a business takes the branch
+  // below because its platform-path list differs from a guild's.
   if (isBusiness(tenant)) {
     // Platform surfaces stay on the platform, even on a custom domain.
     //
@@ -116,8 +117,8 @@ app.use("*", async (c, next) => {
     // widened to match it, a business-tenant request to e.g. "/g/x" or
     // "/guildxyz" stops 404ing via `serveBusinessSite` below and instead
     // falls through the rest of this middleware into the guild-oriented
-    // tail (the `/g/` redirect and the final "serve guild.html" catch-all),
-    // serving the wrong product's shell on a paying business's domain. That
+    // tail (the `/g/` redirect and the guild site catch-all), serving the
+    // wrong product's pages on a paying business's domain. That
     // is a routing regression, not a security hole (siteGate.ts's own
     // reserved-prefix check is what actually keeps the gate closed on those
     // paths), but it's real, so it wasn't done silently as part of Task 10 —
@@ -162,8 +163,6 @@ app.use("*", async (c, next) => {
     path === "/terms" ||
     path === "/terms.html" ||
     path === "/qh.css" ||
-    path === "/guild" ||
-    path === "/guild.html" ||
     path === "/sw.js" ||
     path === "/manifest.webmanifest" ||
     path === "/icon.svg" ||
@@ -175,22 +174,14 @@ app.use("*", async (c, next) => {
   if (path.startsWith("/g/")) {
     return c.redirect("/" + path.split("/").slice(3).join("/"), 302);
   }
-  // Any other path on a tenant host is the public guild site: server-rendered
-  // through serveSite unless the guild still carries the legacy flag
-  // (settings.site.renderer === "legacy", written by migration 0026 for
-  // guilds that existed before the section renderer), in which case the
-  // classic guild.html shell keeps serving until an admin opts in.
-  if (!useLegacyRenderer(tenant)) {
-    const res = await serveSite(c, tenant);
-    if (res) return res;
-    // qh-site.css / qh-site.js: fall through to the static asset binding.
-    return c.notFound();
-  }
-  {
-    const url = new URL(c.req.url);
-    url.pathname = "/guild";
-    return c.env.ASSETS.fetch(new Request(url.toString(), c.req.raw));
-  }
+  // Any other path on a tenant host is the public site, server-rendered
+  // through serveSite. There is one renderer: the classic guild.html shell
+  // and its settings.site.renderer === "legacy" flag were removed in
+  // v0.61.0 once every tenant had been upgraded.
+  const res = await serveSite(c, tenant);
+  if (res) return res;
+  // qh-site.css / qh-site.js: fall through to the static asset binding.
+  return c.notFound();
 });
 
 // Landing page for browsers on the platform host; JSON status for API clients
@@ -216,23 +207,17 @@ app.get("/auth/verify", magicLinkLanding);
 
 // Public guild multi-page site on the platform host: /g/:slug and
 // /g/:slug/:pageSlug… Server-rendered through serveSite with the base path
-// "/g/<slug>" unless the tenant carries the legacy flag, in which case the
-// classic guild.html shell serves. /g/:slug/__preview ALWAYS serves
-// guild.html: the admin's guild preview mode (public/admin.html) loads it in
-// an iframe and guild.html's own router handles "__preview".
+// "/g/<slug>". An unknown slug, or a path that is not under the base path,
+// is a plain 404 — the classic guild.html shell it used to fall back to was
+// removed in v0.61.0.
 async function serveGuildPath(c: Context<{ Bindings: Env }>) {
   const url = new URL(c.req.url);
-  const guildAsset = () => {
-    const assetUrl = new URL(url.toString());
-    assetUrl.pathname = "/guild";
-    return c.env.ASSETS.fetch(new Request(assetUrl.toString(), c.req.raw));
-  };
   const slug = c.req.param("slug") || "";
   const basePath = `/g/${slug}`;
   const rel = url.pathname === basePath ? "/" : url.pathname.startsWith(basePath + "/") ? url.pathname.slice(basePath.length) : null;
-  if (rel === null || rel === "/__preview") return guildAsset();
+  if (rel === null) return c.notFound();
   const tenant = await getTenantBySlug(c.env.DB, slug);
-  if (!tenant || useLegacyRenderer(tenant)) return guildAsset();
+  if (!tenant) return c.notFound();
   const res = await serveSite(c, tenant, { basePath });
   return res ?? c.notFound();
 }

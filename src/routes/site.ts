@@ -3,8 +3,8 @@
 // renderer: pages, the composed home, system pages (membership, events,
 // calendar, galleries, blog), images, sitemap, robots, and the business
 // quote/e-signature pages. `serveSite` is the entry point for tenant hosts
-// and for /g/<slug>/* on the platform host; `useLegacyRenderer` tells
-// index.ts when a guild still gets the classic guild.html shell instead.
+// and for /g/<slug>/* on the platform host. It is the only renderer: the
+// classic guild.html shell was removed in v0.61.0.
 
 import type { Context } from "hono";
 import type { Env, Tenant, Project, ProjectLine, AgreementSignature } from "../types";
@@ -236,16 +236,6 @@ function parseSettings(settingsJson: string | null | undefined): Record<string, 
   } catch {
     return {};
   }
-}
-
-/**
- * `settings.site.renderer === "legacy"` exactly. Existing guilds get that
- * value from migration 0026 so they keep guild.html until an admin opts in;
- * a missing key (new guilds, every business) means the section renderer.
- */
-export function useLegacyRenderer(tenant: Pick<Tenant, "settings_json">): boolean {
-  const site = parseSettings(tenant.settings_json).site;
-  return !!site && typeof site === "object" && (site as { renderer?: unknown }).renderer === "legacy";
 }
 
 export type SiteRoute =

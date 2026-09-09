@@ -9,7 +9,7 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import type { Env, Tenant } from "../../types";
 
-const { serveSite, serveBusinessSite, useLegacyRenderer, resolveSiteRoute, getTenantBySlug } = await import(
+const { serveSite, serveBusinessSite, resolveSiteRoute, getTenantBySlug } = await import(
   "../../routes/site"
 );
 
@@ -357,19 +357,6 @@ describe("resolveSiteRoute", () => {
   it("the renderer's own assets are not site routes (null lets the caller fall through to assets)", () => {
     expect(resolveSiteRoute("/qh-site.css")).toBeNull();
     expect(resolveSiteRoute("/qh-site.js")).toBeNull();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// useLegacyRenderer
-
-describe("useLegacyRenderer", () => {
-  it("is true only for settings.site.renderer === 'legacy'", () => {
-    expect(useLegacyRenderer(makeTenant({ settings_json: JSON.stringify({ site: { renderer: "legacy" } }) }))).toBe(true);
-    expect(useLegacyRenderer(makeTenant({ settings_json: JSON.stringify({ site: { renderer: "sections", kit: "classic" } }) }))).toBe(false);
-    expect(useLegacyRenderer(makeTenant({ settings_json: "{}" }))).toBe(false);
-    expect(useLegacyRenderer(makeTenant({ settings_json: "not json" }))).toBe(false);
-    expect(useLegacyRenderer(makeTenant({ settings_json: JSON.stringify({ site: "legacy" }) }))).toBe(false);
   });
 });
 

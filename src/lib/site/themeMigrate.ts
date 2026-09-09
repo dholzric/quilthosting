@@ -1,4 +1,5 @@
-// Converts between the legacy five-field SiteTheme (which guild.html reads)
+// Converts between the legacy five-field SiteTheme (which the public JSON
+// API still emits for embeds and third-party consumers)
 // and the thirteen-token ThemeConfig the server renderer uses.
 //
 // Both directions matter. Expansion powers the backfill and the renderer;

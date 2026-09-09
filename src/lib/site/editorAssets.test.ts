@@ -53,7 +53,6 @@ const NEW_FUNCTIONS = [
   "wbRenderStyleTab", "wbVariantTiles", "wbTileGroup", "wbRadioKeys",
   "wbSectionThumb", "wbLineArt", "wbRenderPalette", "wbWireChip", "wbDesignRoles",
   "qhPaletteFromLogo", "qhLogoPixels", "qhMedianCut", "qhPaletteCandidates",
-  "qhSiteUpgrade", "qhSiteDowngrade",
 ];
 
 describe("admin.html editor phase 2 — functions and contracts", () => {
@@ -104,21 +103,6 @@ describe("admin.html editor phase 2 — functions and contracts", () => {
     // Tiles read the tenant roles (from --qh-* vars), not hard-coded colours.
     expect(style).toContain("wbDesignRoles()");
     expect(fnSource("wbDesignRoles")).toContain("--qh-");
-  });
-
-  it("the upgrade / downgrade buttons call the Task D endpoints", () => {
-    const up = fnSource("qhSiteUpgrade");
-    expect(up).toContain("/site/upgrade?preview=1");
-    expect(up).toContain("/site/upgrade`");
-    expect(up).toContain('method: "POST"');
-    expect(up).toContain("frame.srcdoc = html");
-    const down = fnSource("qhSiteDowngrade");
-    expect(down).toContain("/site/downgrade");
-    // The Design panel's renderer switch is wired to them (not the settings PATCH).
-    const panel = fnSource("qhDesignPanel");
-    expect(panel).toContain("qhSiteUpgrade({");
-    expect(panel).toContain("qhSiteDowngrade(");
-    expect(panel).not.toContain('save(renderer === "legacy" ? "sections" : "legacy")');
   });
 
   it("palette-from-logo samples on a <= 32 px canvas, median-cuts to six colours, offers three candidates", () => {

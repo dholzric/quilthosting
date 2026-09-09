@@ -37,7 +37,7 @@ All routes are mounted at `/api/tenants/:tenantId/pages` behind `requireAuth` + 
 | GET | `/:pageId/revisions` | Up to 50 (`kind`, title, timestamp, author, block count). |
 | GET | `/:pageId/revisions/:rid` | One snapshot. |
 | POST | `/:pageId/revisions/:rid/restore` | Snapshots current live as `pre_restore`, then writes the chosen revision **into the draft**. Live untouched. Pre-block-editor content is wrapped in one sanitized `html` block. |
-| GET | `/:pageId/preview?source=draft|live` | Business tenants: a full HTML document built by the same `buildRenderArgs` + `renderPageHtml` as the live site; headers `Cache-Control: no-store`, `X-Robots-Tag: noindex`, `X-Preview-Source`. Guild tenants: `{title, slug, html}` JSON, handed to `guild.html`'s `/g/<slug>/__preview` via `postMessage`. |
+| GET | `/:pageId/preview?source=draft|live` | Business tenants: a full HTML document built by the same `buildRenderArgs` + `renderPageHtml` as the live site; headers `Cache-Control: no-store`, `X-Robots-Tag: noindex`, `X-Preview-Source`. Guild tenants: `{title, slug, html}` JSON, which the editor wraps in the site shell and renders in its own iframe. |
 
 ## Concurrency (CAS)
 
@@ -72,7 +72,7 @@ Allowlist tokenizer; output is re-serialized, never passed through. Allowed tags
 
 ## Redirects
 
-`slugRedirectStatements(tenantId, from, to)` on PATCH/publish rename: delete any redirect *from* the new slug, re-point every redirect that targeted the old slug at the new one, upsert old→new. Lookup is therefore single-hop. Business hosts answer `301` to `${baseUrl}/<newSlug>` (query preserved); guild `/g/<slug>/<page>` gets a `redirects` map from `GET /public/:slug/pages` and `guild.html` rewrites with `history.replaceState` (no HTTP redirect). Trashing writes no redirect; permanent delete removes redirects touching the slug.
+`slugRedirectStatements(tenantId, from, to)` on PATCH/publish rename: delete any redirect *from* the new slug, re-point every redirect that targeted the old slug at the new one, upsert old→new. Lookup is therefore single-hop. Business hosts answer `301` to `${baseUrl}/<newSlug>` (query preserved); guild `/g/<slug>/<page>` gets a `redirects` map from `GET /public/:slug/pages` for clients that still resolve slugs themselves. Trashing writes no redirect; permanent delete removes redirects touching the slug.
 
 ## Editor behaviour worth knowing
 

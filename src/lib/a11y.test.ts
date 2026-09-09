@@ -137,11 +137,17 @@ describe("every <dialog> is a labelled modal", () => {
     expect(SITE_JS).toContain("if (refocusToggle) toggle.focus();");
   });
 
-  it("admin builds its runtime dialog with the same three attributes", () => {
-    const up = ADMIN.slice(ADMIN.indexOf('dlg.id = "qh-upgrade-dlg"'));
-    expect(up.slice(0, 400)).toMatch(/setAttribute\("role", "dialog"\)/);
-    expect(up.slice(0, 400)).toMatch(/setAttribute\("aria-modal", "true"\)/);
-    expect(up.slice(0, 400)).toMatch(/setAttribute\("aria-label",/);
+  // Admin's dialogs are all in the markup today (covered above), but the rule
+  // has to hold for any it builds at runtime too: the three attributes within
+  // a few lines of the createElement call. Loops over zero matches now; it
+  // starts asserting again the moment someone adds a runtime dialog.
+  it("any dialog admin builds at runtime carries the same three attributes", () => {
+    for (const m of ADMIN.matchAll(/createElement\("dialog"\)/g)) {
+      const built = ADMIN.slice(m.index!, m.index! + 400);
+      expect(built).toMatch(/setAttribute\("role", "dialog"\)/);
+      expect(built).toMatch(/setAttribute\("aria-modal", "true"\)/);
+      expect(built).toMatch(/setAttribute\("aria-label(ledby)?",/);
+    }
   });
 });
 
