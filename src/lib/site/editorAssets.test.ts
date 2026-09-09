@@ -97,7 +97,11 @@ describe("admin.html editor phase 2 — functions and contracts", () => {
     expect(props).toContain("wbRenderStyleTab(");
     expect(props).not.toContain('legend.textContent = "Style"');
     const style = fnSource("wbRenderStyleTab");
-    for (const key of ["bg", "width", "spacing", "align", "media"]) expect(style).toContain(`"${key}"`);
+    // layout/divider are the composition axes; the Style tab is where a
+    // guild reaches them, so they must not quietly drop out of it.
+    for (const key of ["bg", "width", "spacing", "align", "media", "layout", "divider"]) {
+      expect(style, key).toContain(`"${key}"`);
+    }
     expect(style).toContain("WB_PATTERN_IDS"); // pattern override
     expect(style).toContain("Reset to design defaults");
     // Tiles read the tenant roles (from --qh-* vars), not hard-coded colours.

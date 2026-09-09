@@ -4506,14 +4506,34 @@
       spacing: { tight: "Tight", normal: "Normal", airy: "Airy" },
       align: { left: "Left", center: "Centered" },
       media: { left: "Left", right: "Right", top: "Top" },
+      layout: { band: "Full width", framed: "Framed panel", offset: "Overlapping", bleed: "Photo to the edge", asym: "Wide picture", asym_reverse: "Wide words" },
+      divider: { none: "Straight", rule: "Hairline", points: "Prairie points", scallop: "Clamshell", notch: "Notch" },
     };
     // Mirrors STYLE_OPTIONS in src/routes/pages.ts; the catalog's `style` wins when loaded.
     const WB_STYLE_FALLBACK = {
       bg: ["none", "tint", "brand", "dark", "image", "pattern"], width: ["narrow", "normal", "wide", "full"],
       spacing: ["tight", "normal", "airy"], align: ["left", "center"], media: ["left", "right", "top"],
+      layout: ["band", "framed", "offset", "bleed", "asym", "asym_reverse"],
+      divider: ["none", "rule", "points", "scallop", "notch"],
     };
     // Mirrors DEFAULT_STYLE in src/lib/site/sections/schema.ts ("Reset style" returns to this).
-    const WB_DEFAULT_STYLE = { bg: "none", width: "normal", spacing: "normal", align: "left", media: "right" };
+    const WB_DEFAULT_STYLE = { bg: "none", width: "normal", spacing: "normal", align: "left", media: "right", layout: "band", divider: "none" };
+    // Mirrors SECTION_LAYOUTS / SECTION_DIVIDERS in sections/schema.ts.
+    const WB_LAYOUTS = [
+      ["band", "Full width", "A strip across the page. The usual choice."],
+      ["framed", "Framed panel", "Inset from the edges, so the page shows around it."],
+      ["offset", "Overlapping", "Pulls up over the section above. Wants a different background."],
+      ["bleed", "Photo to the edge", "The picture runs off the side; the words stay in the column."],
+      ["asym", "Wide picture", "Two columns at 62/38 instead of half and half."],
+      ["asym_reverse", "Wide words", "The same, weighted the other way."],
+    ];
+    const WB_DIVIDERS = [
+      ["none", "Straight", "A plain edge."],
+      ["rule", "Hairline", "A thin line along the top edge."],
+      ["points", "Prairie points", "A row of triangles, like the quilt edging."],
+      ["scallop", "Clamshell", "A scalloped edge."],
+      ["notch", "Notch", "One centred notch."],
+    ];
     // Mirrors the pattern ids accepted by IMAGE_REF_RE ("pattern:<id>") in sections/schema.ts.
     const WB_PATTERN_IDS = ["nine-patch", "flying-geese", "log-cabin", "churn-dash", "bear-paw"];
     // Browser-side image pipeline (Task B contract): the original is uploaded
@@ -7320,6 +7340,25 @@
       tiles("Spacing", "spacing", (t, v) => svgTile(t, { tight: "line:8,9,48 line:8,15,48", normal: "line:8,7,48 line:8,17,48", airy: "line:8,4,48 line:8,20,48" }[v] || "line:8,7,48 line:8,17,48"));
       tiles("Text alignment", "align", (t, v) => svgTile(t, v === "center" ? "line:12,7,40 line:20,13,24 line:16,19,32" : "line:8,7,40 line:8,13,24 line:8,19,32"));
       tiles("Image side", "media", (t, v) => svgTile(t, { left: "block:4,4,22,16 line:30,8,26 line:30,14,20", right: "line:8,8,26 line:8,14,20 block:38,4,22,16", top: "block:16,2,32,10 line:12,16,40 line:16,21,32" }[v] || "line:8,8,26 line:8,14,20 block:38,4,22,16"));
+      // Composition: the shape of the section on the page, and the edge where
+      // it meets the one above. Both default to the plain band, so a section
+      // nobody touches looks exactly as it always did.
+      tiles("Section shape", "layout", (t, v) => svgTile(t, {
+        band: "block:2,6,60,12",
+        framed: "frame:8,4,48,16",
+        offset: "block:2,10,60,10 frame:10,2,44,12",
+        bleed: "block:0,4,30,16 line:36,9,24 line:36,15,18",
+        asym: "block:2,4,38,16 line:44,9,16 line:44,15,12",
+        asym_reverse: "line:4,9,16 line:4,15,12 block:24,4,38,16",
+      }[v] || "block:2,6,60,12"));
+      tiles("Top edge", "divider", (t, v) => svgTile(t, {
+        none: "block:2,8,60,12",
+        rule: "line:2,6,60 block:2,9,60,11",
+        points: "block:2,10,60,10 dot:10,7 dot:22,7 dot:34,7 dot:46,7",
+        scallop: "block:2,10,60,10 circle:12,8,4 circle:26,8,4 circle:40,8,4",
+        notch: "block:2,10,60,10 dot:32,6",
+      }[v] || "block:2,8,60,12"));
+
       // Image + focal point. A "pattern:<id>" ref is generated art, not a file, so the field shows empty for it.
       const imageId = () => { const id = cur().imageId; return id && !/^pattern:/.test(id) ? id : ""; };
       host.appendChild(wbImageField("Background or side image", imageId() ? wbImageUrl(imageId()) : "", (url) => {

@@ -220,6 +220,16 @@ html{scroll-padding-top:calc(var(--_header-h) + 1rem)}
 /* On colored grounds: text, links, muted text, and buttons inherit the ground's ink. */
 :is(.qh-s--bg-brand,.qh-s--bg-dark,.qh-s--bg-image) :is(a,.qh-eyebrow,.qh-muted,.muted,.qh-lead){color:inherit}
 :is(.qh-s--bg-brand,.qh-s--bg-dark,.qh-s--bg-image) :is(.qh-muted,.muted,.qh-lead){opacity:.85}
+/* Twenty components set their secondary text to --_muted, which is derived
+   for a light page: on a coloured ground they were near-invisible — meeting
+   labels, event meta, feature copy, level bodies, post dates, captions. Naming
+   each one here would miss the next one, so the TOKEN is redefined instead,
+   and everything that reads it follows. The fallback is full-strength ink,
+   which is readable even where color-mix is not supported. */
+:is(.qh-s--bg-brand,.qh-s--bg-dark,.qh-s--bg-image){--_muted:currentColor}
+@supports (color:color-mix(in oklab,#000 50%,transparent)){
+  :is(.qh-s--bg-brand,.qh-s--bg-dark,.qh-s--bg-image){--_muted:color-mix(in oklab,currentColor 78%,transparent)}
+}
 /* The inverted primary button is a light chip on a dark ground, so its
    currentColor is dark — and the ring is drawn *outside* it (offset 3px), on
    the dark ground. Point --_focus back at the ground's ink or the ring
@@ -231,6 +241,68 @@ html{scroll-padding-top:calc(var(--_header-h) + 1rem)}
 .qh-s--align-center{text-align:center}
 .qh-s--align-center :is(.qh-actions,.qh-hero__actions,.qh-grid,.qh-hero__stats){justify-content:center}
 .qh-s--align-center :is(.qh-lead,.qh-rich--prose,.qh-hero__body,.qh-s__heading,.qh-empty){margin-inline:auto}
+
+/* ---- Composition: how a section is shaped, independent of its colour -----
+   Every section used to be a full-width band, which is why kits could only
+   differ by palette, type and order. These are the other shapes. `band` is
+   the default and adds no class, so a page that does not ask for one of
+   these renders exactly as it did before they existed. */
+
+/* Framed: the band inset from the page edges, so the page shows around it. */
+.qh-s--layout-framed{margin-inline:var(--_gutter);border-radius:var(--_radius);
+  padding-inline:max(1.5rem,calc((100% - var(--_container))/2))}
+.qh-s--layout-framed.qh-s--bg-none{border:1px solid var(--_border)}
+@media (min-width:60rem){.qh-s--layout-framed{margin-inline:max(var(--_gutter),calc((100% - var(--_w-wide))/2))}}
+
+/* Offset: pulls up over the section above, overlapping the seam. */
+.qh-s--layout-offset{z-index:1;margin-block-start:calc(var(--_section-y)*-1);
+  margin-inline:var(--_gutter);border-radius:var(--_radius);box-shadow:var(--_shadow);
+  padding-inline:max(1.5rem,calc((100% - var(--_container))/2))}
+@media (min-width:60rem){.qh-s--layout-offset{margin-inline:max(var(--_gutter),calc((100% - var(--_w-wide))/2))}}
+
+/* Bleed: the picture runs out to the viewport edge; the words stay put. */
+@media (min-width:60rem){
+  .qh-s--layout-bleed .qh-media{margin-inline-end:calc(var(--_gutter)*-1)}
+  .qh-s--layout-bleed.qh-s--media-left .qh-media{margin-inline:calc(var(--_gutter)*-1) 0}
+  .qh-s--layout-bleed .qh-media img{border-radius:0;width:100%}
+}
+
+/* Asymmetric split: 62/38 rather than half and half, either way round. */
+@media (min-width:60rem){
+  .qh-s--layout-asym:is(.qh-hero--split,.qh-rich--with_image),
+  .qh-s--layout-asym .qh-contact__grid{grid-template-columns:1.62fr 1fr}
+  .qh-s--layout-asym-reverse:is(.qh-hero--split,.qh-rich--with_image),
+  .qh-s--layout-asym-reverse .qh-contact__grid{grid-template-columns:1fr 1.62fr}
+}
+
+/* ---- Dividers: the edge where a section meets the one above -------------
+   Drawn in the section's own ground, so a section with no background has
+   nothing to draw and the divider is simply invisible. Quilt shapes on
+   purpose: prairie points and a clamshell scallop are edges a quilter reads
+   as their own craft. */
+.qh-s--bg-tint{--_div-ink:var(--_tint)}
+.qh-s--bg-brand{--_div-ink:var(--_primary)}
+.qh-s--bg-dark{--_div-ink:var(--_dark)}
+.qh-s--bg-pattern{--_div-ink:var(--_tint)}
+.qh-s--bg-surface{--_div-ink:var(--_surface)}
+:is(.qh-s--divider-points,.qh-s--divider-scallop,.qh-s--divider-notch)::after{
+  content:"";position:absolute;left:0;right:0;top:calc(var(--_div-h) * -1 + 1px);height:var(--_div-h);
+  background:var(--_div-ink,transparent);pointer-events:none;
+  -webkit-mask:var(--_div-mask) repeat-x top center/var(--_div-size);
+  mask:var(--_div-mask) repeat-x top center/var(--_div-size)}
+.qh-s--divider-points{--_div-h:18px;--_div-size:36px 18px;
+  --_div-mask:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='18'%3E%3Cpath d='M0 18 18 0l18 18z' fill='%23000'/%3E%3C/svg%3E")}
+.qh-s--divider-scallop{--_div-h:20px;--_div-size:40px 20px;
+  --_div-mask:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='20'%3E%3Cpath d='M0 20a20 20 0 0 1 40 0z' fill='%23000'/%3E%3C/svg%3E")}
+.qh-s--divider-notch{--_div-h:22px;--_div-size:100% 22px;
+  --_div-mask:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='22' preserveAspectRatio='none'%3E%3Cpath d='M0 22h44l16-18 16 18h44z' fill='%23000'/%3E%3C/svg%3E")}
+/* A hairline needs no mask, and reads on any ground. */
+.qh-s--divider-rule{border-top:1px solid var(--_border)}
+/* An overlapping section draws its own edge, and the section it overlaps
+   cannot show one underneath it — the panel covers exactly where it would be.
+   Neither draws, rather than drawing something half-hidden. */
+.qh-s--layout-offset::after,.qh-s--layout-offset + .qh-s::after{display:none}
+
 .qh-s--media-left .qh-media{order:-1}
 .qh-s--media-right .qh-media{order:1}
 

@@ -350,6 +350,10 @@ function wrap(s: Section, inner: string, opts: WrapOpts = {}): string {
   const classes = ["qh-s", `qh-s--bg-${st.bg}`, `qh-s--w-${st.width}`, `qh-s--sp-${st.spacing}`];
   if (st.align === "center") classes.push("qh-s--align-center");
   classes.push(`qh-s--media-${st.media}`);
+  // Composition. The defaults emit nothing, so a page that never asks for a
+  // shape renders exactly the markup it did before these existed.
+  if (st.layout && st.layout !== "band") classes.push(`qh-s--layout-${st.layout.replace(/_/g, "-")}`);
+  if (st.divider && st.divider !== "none") classes.push(`qh-s--divider-${st.divider}`);
   if (opts.extraClass) classes.push(opts.extraClass);
 
   const decls: string[] = [];

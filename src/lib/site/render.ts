@@ -37,6 +37,7 @@ import { renderSections } from "./sections/render";
 import type { RenderContext } from "./sections/render";
 import { sectionsFromPage } from "./sections/normalize";
 import type { Section } from "./sections/schema";
+import { DEFAULT_STYLE } from "./sections/schema";
 import { readProfile } from "./data";
 import type { SiteData, SiteProfile } from "./data.types";
 
@@ -563,7 +564,7 @@ export function renderPageHtml(args: RenderArgs): string {
     // becomes one prose section, so a page never renders empty when it
     // still has content the normaliser could not classify.
     const { html } = contentFromPage(page);
-    if (html.trim()) sections = [{ type: "rich_text", variant: "prose", html, style: { bg: "none", width: "normal", spacing: "normal", align: "left", media: "right" }, id: "s_0" }];
+    if (html.trim()) sections = [{ type: "rich_text", variant: "prose", html, style: { ...DEFAULT_STYLE }, id: "s_0" }];
   }
 
   // Legacy nav is already host-shaped (root-relative on tenant hosts); do not re-prefix.

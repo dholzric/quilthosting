@@ -1504,7 +1504,7 @@ describe("GET /:id/preview", () => {
 // and read them back without ever running them through parseBlocks.
 // ---------------------------------------------------------------------------
 
-const STYLE = { bg: "none", width: "normal", spacing: "normal", align: "left", media: "right" };
+const STYLE = { bg: "none", width: "normal", spacing: "normal", align: "left", media: "right", layout: "band", divider: "none" };
 const SECTION_DOC = [
   {
     type: "hero",

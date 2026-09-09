@@ -73,11 +73,15 @@ describe("qh-site.css class contract", () => {
   });
 
   it("switches to the drawer under 800px", () => {
-    const mobile = noComments.match(/@media\s*\(max-width:\s*799\.98px\)\s*\{([\s\S]*?)\n\}/);
-    expect(mobile).not.toBeNull();
-    const block = mobile![1].replace(/\s+/g, "");
-    expect(block).toContain(".qh-nav{display:none}");
-    expect(block).toContain(".qh-nav-toggle{display:inline-flex}");
+    // There is more than one max-width:799.98px block, and matching only the
+    // first made this depend on where every other rule happened to sit — a
+    // nested min-width query added later ended the match early. Take all of
+    // them and require that the drawer lives in one.
+    const blocks = [...noComments.matchAll(/@media\s*\(max-width:\s*799\.98px\)\s*\{([\s\S]*?)\n\}/g)]
+      .map((m) => m[1].replace(/\s+/g, ""));
+    expect(blocks.length).toBeGreaterThan(0);
+    expect(blocks.some((b) => b.includes(".qh-nav{display:none}")), "drawer hides the nav").toBe(true);
+    expect(blocks.some((b) => b.includes(".qh-nav-toggle{display:inline-flex}")), "drawer shows the toggle").toBe(true);
   });
 });
 
@@ -125,8 +129,11 @@ describe("qh-site.css design rules", () => {
   });
 
   it("stays a single readable file", () => {
-    // 650 covered the 19-section library; the fourteen phase-2 sections add ~100 lines.
-    expect(css.split("\n").length).toBeLessThanOrEqual(760);
+    // 650 covered the 19-section library; the fourteen phase-2 sections added
+    // ~100; the composition axes (six section shapes, five quilt-shaped edges)
+    // add ~45. The cap keeps the one stylesheet every visitor downloads
+    // readable by a person — it is not meant to freeze the file.
+    expect(css.split("\n").length).toBeLessThanOrEqual(810);
   });
 
   it("phase 2: sponsors logos are grayscale until hover, process steps use counter(), services table scrolls in its wrapper", () => {

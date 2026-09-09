@@ -107,7 +107,7 @@ describe("sectionWrapper", () => {
     const s = section({
       type: "divider",
       id: "rule-1",
-      style: { bg: "tint", width: "wide", spacing: "airy", align: "center", media: "top" },
+      style: { ...DEFAULT_STYLE, bg: "tint", width: "wide", spacing: "airy", align: "center", media: "top" },
     });
     const html = sectionWrapper(s, "<hr>", "qh-divider");
     expect(html).toContain('id="rule-1"');

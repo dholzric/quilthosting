@@ -23,17 +23,57 @@ import { blocksToSections, isLegacyBlockItem } from "./normalize";
 // Style
 // ---------------------------------------------------------------------------
 
+/**
+ * How a section is composed on the page, independent of its colour.
+ *
+ * Everything used to be a `band`: a full-width strip with the content in a
+ * centred column. That is why ninety-two kits could only differ by palette,
+ * type and section order — the shape of every page was identical. These are
+ * the shapes; `band` is unchanged, so nothing that does not ask for one of
+ * the others moves a pixel.
+ *
+ *  band     Full-width strip. The default, and still the right answer for most.
+ *  framed   The band inset from the page edges as a panel, so the page shows
+ *           around it. Reads as a card the width of the content.
+ *  offset   Pulls up over the section above it, overlapping the seam. Wants a
+ *           contrasting background to be worth doing.
+ *  bleed    Media runs out to the viewport edge while the words stay in the
+ *           column. Only means anything on a section that has media.
+ *  asym     A two-column section at 62/38 instead of 50/50; `asym_reverse`
+ *           weights the other side. Only means anything on a split section.
+ */
+export type SectionLayout = "band" | "framed" | "offset" | "bleed" | "asym" | "asym_reverse";
+
+/**
+ * The edge drawn where this section meets the one above. Quilt-shaped on
+ * purpose: prairie points and a clamshell scallop are edges a quilter reads
+ * as their own craft, and no other site builder offers them.
+ *
+ * Drawn in the section's own background colour, so it is invisible — and
+ * harmless — on a section with no background.
+ */
+export type SectionDivider = "none" | "rule" | "points" | "scallop" | "notch";
+
 export type SectionStyle = {
   bg: "none" | "tint" | "brand" | "dark" | "image" | "pattern";
   width: "narrow" | "normal" | "wide" | "full";
   spacing: "tight" | "normal" | "airy";
   align: "left" | "center";
   media: "left" | "right" | "top";
+  layout: SectionLayout;
+  divider: SectionDivider;
   /** files.id, served at /public/:slug/img/:id (platform host) or /img/:id (tenant host). */
   imageId?: string;
   /** 0..1 focal point for `bg: "image"`; default [0.5, 0.5]. */
   imageFocal?: [number, number];
 };
+
+export const SECTION_LAYOUTS: readonly SectionLayout[] = Object.freeze([
+  "band", "framed", "offset", "bleed", "asym", "asym_reverse",
+]);
+export const SECTION_DIVIDERS: readonly SectionDivider[] = Object.freeze([
+  "none", "rule", "points", "scallop", "notch",
+]);
 
 export const DEFAULT_STYLE: SectionStyle = Object.freeze({
   bg: "none",
@@ -41,6 +81,8 @@ export const DEFAULT_STYLE: SectionStyle = Object.freeze({
   spacing: "normal",
   align: "left",
   media: "right",
+  layout: "band",
+  divider: "none",
 }) as SectionStyle;
 
 /** Matches the id shape used by files.id and section ids alike. */
@@ -56,6 +98,8 @@ const styleSchema = z
     spacing: z.enum(["tight", "normal", "airy"]).default(DEFAULT_STYLE.spacing),
     align: z.enum(["left", "center"]).default(DEFAULT_STYLE.align),
     media: z.enum(["left", "right", "top"]).default(DEFAULT_STYLE.media),
+    layout: z.enum(["band", "framed", "offset", "bleed", "asym", "asym_reverse"]).default(DEFAULT_STYLE.layout),
+    divider: z.enum(["none", "rule", "points", "scallop", "notch"]).default(DEFAULT_STYLE.divider),
     imageId: z.string().regex(IMAGE_REF_RE).optional(),
     imageFocal: z.tuple([z.number().min(0).max(1), z.number().min(0).max(1)]).optional(),
   })

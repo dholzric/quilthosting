@@ -25,7 +25,10 @@ describe("parseSections", () => {
     expect(s.variant).toBe("split");
     expect(s.title).toBe("Hill Country Quilt Guild");
     expect(s.ctaHref).toBe("/membership");
-    expect(s.style).toEqual({ bg: "tint", width: "wide", spacing: "airy", align: "center", media: "left" });
+    expect(s.style).toEqual({
+      bg: "tint", width: "wide", spacing: "airy", align: "center", media: "left",
+      layout: "band", divider: "none",
+    });
   });
 
   it("rejects an unknown type with a path and drops the item", () => {
@@ -281,6 +284,10 @@ describe("SECTION_TYPES / SECTION_VARIANTS", () => {
   });
 
   it("DEFAULT_STYLE is the neutral style", () => {
-    expect(DEFAULT_STYLE).toEqual({ bg: "none", width: "normal", spacing: "normal", align: "left", media: "right" });
+    // band + none keep every existing page rendering exactly as it did.
+    expect(DEFAULT_STYLE).toEqual({
+      bg: "none", width: "normal", spacing: "normal", align: "left", media: "right",
+      layout: "band", divider: "none",
+    });
   });
 });

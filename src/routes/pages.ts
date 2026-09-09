@@ -719,6 +719,9 @@ export const STYLE_OPTIONS = {
   spacing: ["tight", "normal", "airy"],
   align: ["left", "center"],
   media: ["left", "right", "top"],
+  // Composition: the shape of the section, independent of its colour.
+  layout: ["band", "framed", "offset", "bleed", "asym", "asym_reverse"],
+  divider: ["none", "rule", "points", "scallop", "notch"],
 } as const;
 
 let catalogCache: CatalogType[] | null = null;

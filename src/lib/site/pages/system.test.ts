@@ -411,7 +411,7 @@ describe("invariants", () => {
       expect(new Set(ids).size, kind).toBe(ids.length);
       for (const s of r.sections) {
         expect(s.id, kind).toMatch(/^[A-Za-z0-9_-]+$/);
-        expect(Object.keys(s.style).sort()).toEqual(["align", "bg", "media", "spacing", "width"]);
+        expect(Object.keys(s.style).sort()).toEqual(["align", "bg", "divider", "layout", "media", "spacing", "width"]);
       }
     }
   });
