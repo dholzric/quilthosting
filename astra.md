@@ -299,3 +299,22 @@ Deployed as `0.56.0-preview` (Worker version `18a7c4ea`, commits `f11b09c`, `354
 | OPS-2 | Partial | `.github/workflows/ci.yml` | — | CI runs typecheck, tests, fresh-DB migrations, secret scan | No restore rehearsal, alerting, or release manifest yet |
 | PERF-1 | Partial | `/public/:slug/site-bootstrap` (7 boot requests → 1), lazy images, nav-aware SSR cache key | — | Byte-equality tests vs the seven endpoints | No measured budgets; admin.html still one bundle; guild pages still client-rendered |
 | COMP-1 | Not started | — | — | — | Household bundles, level-specific page access, calendar-year dues remain open |
+
+---
+
+## Implementation notes, round two — Claude, September 8, 2026
+
+Two further releases since the notes above. Deployed and verified in production: **v0.57.0-preview** (Worker `58451096`) and **v0.58.0-preview** (Worker `c8d079f5`). Migrations 0025–0028 applied. Evidence for both: `npx tsc --noEmit` clean, `npx vitest run` 2013 tests, local end-to-end passes on a real Worker, and desktop/phone browser passes with no console errors or horizontal overflow. Guild sites in production remain behind the stealth gate; the guild publication policy you asked for is still an explicit decision, not a code change.
+
+| ID | Status | Changed files (main) | Migration | Regression evidence | Residual |
+|---|---|---|---|---|---|
+| BUILD-1 (extended) | Done | `src/lib/site/design/*` (26 palettes, 12 type pairs, contrast-checked derivation), `src/lib/site/sections/*` (33 section types with variants and style props), `public/qh-site.css`, `public/admin.html` (Design panel, Style tab, section thumbnails, palette from logo) | — | 1117 site tests; browser pass across five kits | Inline canvas editing is phase 4; rich text still uses `execCommand` |
+| PERF-1 (partial) | Improved | `src/routes/stats.ts`, `src/lib/onboarding.ts`, `src/middleware/tenant.ts` (+`auth.ts`), `src/lib/images.ts`, `src/lib/site/sections/render.ts` | 0028 | Dashboard data 30s → ~0.5s; admin calls 85–185 ms warm; stats 367 → 173 ms; images now variant-served with `srcset` and intrinsic size | No published budget in CI yet; no load test at 1k/10k members |
+| COMP-1 (site) | Done | `src/routes/site.ts` (one renderer for guilds and businesses behind `settings.site.renderer`), `src/lib/site/render.ts`, `public/qh-site.js` | 0026 | 197 routing tests; production: new guild renders six routes, legacy guild still classic, business unchanged | `guild.html` retires in phase 4 once tenants are migrated |
+| COMP-1 (parity) | Done | `src/lib/site/pages/system.ts`, `src/routes/site.ts`, `src/lib/site/seo.ts`, `src/middleware/siteGate.ts` | — | Event ICS + Google Calendar links, volunteer sign-up, public directory, donate page, full sitemap, Organization/Event JSON-LD, all tested | Guild sitemaps are empty until guilds are launched (`isLaunched` is business-only today) — deliberate while stealth |
+| ONB-1 (extended) | Done | `src/lib/site/kits/*` (92 kits via the authoring pipeline), `src/lib/starterSite.ts`, `src/routes/tenants.ts` | 0024 | New guilds seed a full kit site on the new renderer; 416 kit-validator tests | First-run wizard is phase 3, in progress |
+| §5 migration | Done | `src/lib/site/migrateGuild.ts`, `src/routes/tenants.ts` (`/site/upgrade`, `/site/downgrade`) | — | 82 tests; local round trip: legacy → converted → restored byte-identical | Pages created after an upgrade are left alone on downgrade, by design |
+
+Two product reviews arrived from the owner's other tools and are committed as `GLMUpgrades.md` and `CodexRecommendations.md`. Their shared conclusion matches yours: the remaining risk is not missing features but a default surface that overwhelms a volunteer. Phase 3 (`docs/superpowers/plans/2026-09-08-ease-layer-phase3.md`) is that work — a Simple/Advanced switch with grouped role-aware navigation, money in dollars everywhere, a first-run wizard, a next-best-action dashboard, automation triggers with recipes, and a reports screen. Household and calendar-year dues, which you and Codex both flag as the quilt-guild purchase driver, are deliberately deferred to their own spec because they change the dues model rather than the interface.
+
+Your gates still stand as written. Gate A is close: the P0 regressions are closed with tests, and join/register work on the server-rendered routes. What Gate A still needs before a supervised pilot is a paid join/renew/event/refund run in Stripe test mode against the current fulfillment code, and the Resend webhook secret so bounces and complaints are ingested.
