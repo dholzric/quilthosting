@@ -124,7 +124,12 @@ button,input,select,textarea{font:inherit;color:inherit}
 .qh-brand,.qh-site-brand{display:flex;align-items:center;gap:.75rem;min-width:0;font-family:var(--_display);
   font-size:1.3rem;font-weight:600;text-decoration:none;color:inherit;line-height:1.2}
 .qh-brand:hover,.qh-site-brand:hover{color:inherit}
-.qh-brand span,.qh-site-brand span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Guild names are long ("Austin Area Quilt Guild"). Wrapping to a second
+   line is right; clipping the name to an ellipsis is not. Balance the two
+   lines and let the header grow. */
+.qh-brand span,.qh-site-brand span{overflow-wrap:break-word;text-wrap:balance;
+  max-width:22ch;line-height:1.15}
+@media (max-width:799.98px){.qh-brand span,.qh-site-brand span{max-width:min(60vw,18ch);font-size:.95em}}
 /* Logos are sized by height so a wide wordmark keeps its aspect ratio. */
 .qh-brand__logo,.qh-site-logo{height:44px;width:auto;max-width:240px;object-fit:contain;display:block}
 .qh-header__cta{margin-left:.5rem;flex:0 0 auto}
