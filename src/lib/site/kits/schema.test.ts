@@ -14,6 +14,7 @@ import { RESERVED_SLUGS } from "../../../routes/pages";
 import { SECTION_TYPES, SECTION_VARIANTS } from "../sections/schema";
 import { SAMPLE_MARKER } from "../../starterSite";
 
+import { stockPhoto } from "../photos";
 const KITS_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(KITS_DIR, "../../../..");
 
@@ -286,13 +287,22 @@ describe("kit files in src/lib/site/kits", () => {
         }
       });
 
-      it("ships every photo it references with a LICENSE.txt", () => {
+      it("can account for the licence of every photo it references", () => {
         const kit = kitSchema.parse(raw);
         for (const img of kit.imagery) {
           if (img.kind !== "photo") continue;
-          const abs = path.join(REPO_ROOT, img.src as string);
-          expect(fileExists(abs), `${img.src} missing`).toBe(true);
-          expect(fileExists(path.join(path.dirname(abs), "LICENSE.txt")), `LICENSE.txt next to ${img.src}`).toBe(true);
+          const src = img.src as string;
+          if (src.startsWith("photo:")) {
+            // Stock photography: the id must be one the library holds, and the
+            // licence is recorded once for the whole library in
+            // docs/photo-credits.md rather than as a file beside each photo.
+            expect(stockPhoto(src), `${src} is not in the stock library`).not.toBeNull();
+            expect(fileExists(path.join(REPO_ROOT, "docs/photo-credits.md")), "photo credits").toBe(true);
+            continue;
+          }
+          const abs = path.join(REPO_ROOT, src);
+          expect(fileExists(abs), `${src} missing`).toBe(true);
+          expect(fileExists(path.join(path.dirname(abs), "LICENSE.txt")), `LICENSE.txt next to ${src}`).toBe(true);
         }
       });
     });

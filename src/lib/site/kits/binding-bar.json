@@ -34,6 +34,12 @@
       "id": "hero-art",
       "kind": "pattern",
       "alt": ""
+    },
+    {
+      "id": "hero-photo",
+      "kind": "photo",
+      "alt": "Silk and scissors laid out on a table",
+      "src": "photo:1516707471165-777029111409"
     }
   ],
   "previewSeed": {
@@ -49,7 +55,7 @@
         {
           "type": "hero",
           "id": "welcome",
-          "variant": "minimal",
+          "variant": "split",
           "eyebrow": "Finishing in {{city}}",
           "title": "You quilted it. We will bind it.",
           "subtitle": "Sample text — replace me: {{guild_name}} is a finishing counter, not a longarm. Machine binding, a hanging sleeve, and a Friday pick-up.",
@@ -61,7 +67,8 @@
             "bg": "none",
             "width": "narrow",
             "spacing": "airy",
-            "align": "center"
+            "align": "center",
+            "imageId": "hero-photo"
           }
         },
         {

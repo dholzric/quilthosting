@@ -34,6 +34,12 @@
       "id": "hero-art",
       "kind": "pattern",
       "alt": ""
+    },
+    {
+      "id": "hero-photo",
+      "kind": "photo",
+      "alt": "A checked quilt over a wooden railing",
+      "src": "photo:1755138207288-b5c8fb5b8614"
     }
   ],
   "previewSeed": {
@@ -49,7 +55,7 @@
         {
           "type": "hero",
           "id": "welcome",
-          "variant": "minimal",
+          "variant": "split",
           "eyebrow": "Fiber artists in {{city}}",
           "title": "{{guild_name}}",
           "subtitle": "Sample text — replace me: Art quilts, fiber sculpture, and surface design. A small membership, a serious hanging committee.",
@@ -61,7 +67,8 @@
             "bg": "none",
             "width": "narrow",
             "spacing": "airy",
-            "align": "center"
+            "align": "center",
+            "imageId": "hero-photo"
           }
         },
         {

@@ -34,6 +34,12 @@
       "id": "hero-art",
       "kind": "pattern",
       "alt": ""
+    },
+    {
+      "id": "hero-photo",
+      "kind": "photo",
+      "alt": "A colourful quilt on a bed",
+      "src": "photo:1692561141101-c1528235e6bf"
     }
   ],
   "previewSeed": {
@@ -71,7 +77,7 @@
         {
           "type": "hero",
           "id": "welcome",
-          "variant": "minimal",
+          "variant": "split",
           "eyebrow": "Quilting bees, matched by neighborhood",
           "title": "{{guild_name}}",
           "subtitle": "Sample text — replace me: Tell us your corner of town and your free evenings; we will find three quilters nearby who sew the same night.",
@@ -83,7 +89,8 @@
             "bg": "none",
             "width": "narrow",
             "spacing": "airy",
-            "align": "center"
+            "align": "center",
+            "imageId": "hero-photo"
           }
         },
         {

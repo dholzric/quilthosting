@@ -32,8 +32,9 @@
   "imagery": [
     {
       "id": "hero-art",
-      "kind": "pattern",
-      "alt": ""
+      "kind": "photo",
+      "alt": "A sewing machine on a wooden table",
+      "src": "photo:1626274890657-e28d5b65b04b"
     }
   ],
   "previewSeed": {

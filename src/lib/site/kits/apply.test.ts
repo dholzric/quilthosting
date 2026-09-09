@@ -220,13 +220,27 @@ describe("registry", () => {
 
 
 describe("resolveKitImagery", () => {
-  it("rewrites pattern imagery ids to pattern:<id> for the Heritage kit", async () => {
-    const { kitPageRows } = await import("./apply");
-    const { kitById } = await import("./index");
-    const kit = kitById("heritage")!;
-    const rows = kitPageRows(kit, { id: "t1", name: "Test Guild" }, "2026-09-08T00:00:00.000Z");
-    const home = rows.find((r) => r.slug === "home")!;
-    expect(home.blocks_json).toContain('"imageId":"pattern:');
-    expect(home.blocks_json).not.toContain('"imageId":"hero-log-cabin"');
+  it("rewrites an imagery id to the art it stands for, drawn or photographed", async () => {
+    const { resolveKitImagery } = await import("./apply");
+    const secs = [
+      { type: "hero", id: "h", variant: "split", title: "x", style: { imageId: "hero-art" } },
+    ] as never[];
+    const base = { defaults: { pattern: { id: "log-cabin" } } };
+    const idOf = (out: unknown[]) => (out[0] as { style: { imageId: string } }).style.imageId;
+
+    // Declared as drawn art: becomes the kit's pattern reference.
+    const drawn = resolveKitImagery(secs, { ...base, imagery: [{ id: "hero-art", kind: "pattern", alt: "" }] } as never);
+    expect(idOf(drawn)).toBe("pattern:log-cabin");
+
+    // Declared as a photograph: becomes the stock reference held in `src`, so
+    // a kit swaps a drawn block for a photo by editing one line.
+    const shot = resolveKitImagery(secs, {
+      ...base,
+      imagery: [{ id: "hero-art", kind: "photo", alt: "A quilt", src: "photo:1594526761005-4ccdbd608d2b" }],
+    } as never);
+    expect(idOf(shot)).toBe("photo:1594526761005-4ccdbd608d2b");
+
+    // Either way the kit's own id never reaches the page.
+    expect(JSON.stringify(drawn) + JSON.stringify(shot)).not.toContain('"hero-art"');
   });
 });

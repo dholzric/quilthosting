@@ -32,8 +32,9 @@
   "imagery": [
     {
       "id": "hero-art",
-      "kind": "pattern",
-      "alt": ""
+      "kind": "photo",
+      "alt": "A quilt spread across a bed, seen close",
+      "src": "photo:1634075853493-66688f345d87"
     }
   ],
   "previewSeed": {

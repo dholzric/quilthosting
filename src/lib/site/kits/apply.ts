@@ -136,15 +136,25 @@ export type PageInsert = {
  */
 export function resolveKitImagery(sections: Section[], kit: Kit): Section[] {
   const patternIds = new Set(kit.imagery.filter((im) => im.kind === "pattern").map((im) => im.id));
-  if (!patternIds.size) return sections;
+  // A photo entry carries the real reference in `src` ("photo:<id>"), so a kit
+  // names its art once — `imageId: "hero-art"` — and the imagery block decides
+  // whether that is a drawn quilt block or a photograph. Swapping one for the
+  // other is then a single line in the kit, not an edit to every section.
+  const photoRefs = new Map(
+    kit.imagery
+      .filter((im) => im.kind === "photo" && typeof im.src === "string" && im.src.startsWith("photo:"))
+      .map((im) => [im.id, im.src as string])
+  );
+  if (!patternIds.size && !photoRefs.size) return sections;
   const pid = kit.defaults.pattern?.id && kit.defaults.pattern.id !== "none" ? kit.defaults.pattern.id : "log-cabin";
   const ref = `pattern:${pid}`;
+  const resolve = (val: string): string => photoRefs.get(val) ?? (patternIds.has(val) ? ref : val);
   const fix = (v: unknown): unknown => {
     if (Array.isArray(v)) return v.map(fix);
     if (v && typeof v === "object") {
       const out: Record<string, unknown> = {};
       for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
-        out[k] = k === "imageId" && typeof val === "string" && patternIds.has(val) ? ref : fix(val);
+        out[k] = k === "imageId" && typeof val === "string" ? resolve(val) : fix(val);
       }
       return out;
     }

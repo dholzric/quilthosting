@@ -88,8 +88,15 @@ export const DEFAULT_STYLE: SectionStyle = Object.freeze({
 /** Matches the id shape used by files.id and section ids alike. */
 const ID_RE = /^[a-z0-9_-]{1,40}$/;
 const FILE_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
-// Kits reference generated quilt-block art as "pattern:<id>" (see kits/apply.ts).
-const IMAGE_REF_RE = new RegExp("^(?:pattern:(?:nine-patch|flying-geese|log-cabin|churn-dash|bear-paw)|" + /^[A-Za-z0-9_-]{1,64}$/.source + ")$");
+// Kits reference generated quilt-block art as "pattern:<id>" (see kits/apply.ts)
+// and stock photography as "photo:<id>" (see ../photos.ts). Neither is a file:
+// a pattern is drawn from the palette, a photo is served from Unsplash's CDN.
+// The shape is checked here; whether the id is one we know is checked at render.
+const IMAGE_REF_RE = new RegExp(
+  "^(?:pattern:(?:nine-patch|flying-geese|log-cabin|churn-dash|bear-paw)" +
+    "|photo:[0-9]{10,14}-[A-Za-z0-9]{8,20}" +
+    "|" + /^[A-Za-z0-9_-]{1,64}$/.source.replace(/^\^|\$$/g, "") + ")$"
+);
 
 const styleSchema = z
   .object({

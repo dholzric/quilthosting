@@ -16,6 +16,7 @@
 import { z } from "zod";
 import { RESERVED_SLUGS } from "../../../routes/pages";
 import { contrastRatio } from "../design/color";
+import { stockPhoto } from "../photos";
 import { paletteById } from "../design/palettes";
 import { deriveRoles, siteDesignSchema } from "../design/tokens";
 import type { SiteDesign } from "../design/tokens";
@@ -349,10 +350,18 @@ function checkImagery(kit: Kit, issues: KitIssue[]): void {
     if (seen.has(img.id)) issues.push({ path: `imagery.${i}.id`, message: `Duplicate image id "${img.id}"` });
     seen.add(img.id);
     if (img.kind === "photo") {
+      // Two ways to hold a photo, and no third: a file the kit ships, or a
+      // reference to the stock library (src/lib/site/photos.ts), whose ids are
+      // fixed and verified. Checking membership is stricter than checking a
+      // path — a stock ref cannot point anywhere we have not already looked.
       if (!img.src) {
-        issues.push({ path: `imagery.${i}.src`, message: `Photo "${img.id}" needs src under ${prefix} (with a LICENSE.txt beside it)` });
+        issues.push({ path: `imagery.${i}.src`, message: `Photo "${img.id}" needs src under ${prefix}, or a "photo:<id>" from the stock library` });
+      } else if (img.src.startsWith("photo:")) {
+        if (!stockPhoto(img.src)) {
+          issues.push({ path: `imagery.${i}.src`, message: `Photo "${img.src}" is not in the stock library (src/lib/site/photos.ts)` });
+        }
       } else if (!img.src.startsWith(prefix) || img.src.includes("..")) {
-        issues.push({ path: `imagery.${i}.src`, message: `Photo src must live under ${prefix}` });
+        issues.push({ path: `imagery.${i}.src`, message: `Photo src must live under ${prefix}, or be a "photo:<id>" from the stock library` });
       }
       if (!img.alt) issues.push({ path: `imagery.${i}.alt`, message: `Photo "${img.id}" needs alt text` });
     }

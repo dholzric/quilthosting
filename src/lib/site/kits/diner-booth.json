@@ -32,8 +32,9 @@
   "imagery": [
     {
       "id": "hero-art",
-      "kind": "pattern",
-      "alt": ""
+      "kind": "photo",
+      "alt": "A patchwork quilt in white, brown and black",
+      "src": "photo:1594526761005-4ccdbd608d2b"
     }
   ],
   "previewSeed": {

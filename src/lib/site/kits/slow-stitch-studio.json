@@ -34,6 +34,12 @@
       "id": "hero-art",
       "kind": "pattern",
       "alt": ""
+    },
+    {
+      "id": "hero-photo",
+      "kind": "photo",
+      "alt": "A sewing machine on a wooden table",
+      "src": "photo:1626274890657-e28d5b65b04b"
     }
   ],
   "previewSeed": {
@@ -71,7 +77,7 @@
         {
           "type": "hero",
           "id": "welcome",
-          "variant": "minimal",
+          "variant": "split",
           "eyebrow": "Hand stitching, in no hurry",
           "title": "{{guild_name}}",
           "subtitle": "Sample text — replace me: Sashiko, whole cloth, and big-stitch quilting, taught slowly and sold as kits with the threads already matched.",
@@ -83,7 +89,8 @@
             "bg": "none",
             "width": "narrow",
             "spacing": "airy",
-            "align": "center"
+            "align": "center",
+            "imageId": "hero-photo"
           }
         },
         {

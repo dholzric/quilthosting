@@ -32,8 +32,9 @@
   "imagery": [
     {
       "id": "hero-art",
-      "kind": "pattern",
-      "alt": ""
+      "kind": "photo",
+      "alt": "Someone working at a sewing machine",
+      "src": "photo:1630930678172-63343537a00a"
     }
   ],
   "previewSeed": {

@@ -34,6 +34,12 @@
       "id": "hero-art",
       "kind": "pattern",
       "alt": ""
+    },
+    {
+      "id": "hero-photo",
+      "kind": "photo",
+      "alt": "Someone working at a sewing machine",
+      "src": "photo:1630930678172-63343537a00a"
     }
   ],
   "previewSeed": {
@@ -71,7 +77,7 @@
         {
           "type": "hero",
           "id": "welcome",
-          "variant": "minimal",
+          "variant": "split",
           "eyebrow": "Pantographs for computerized longarms",
           "title": "{{guild_name}}",
           "subtitle": "Sample text — replace me: Edge-to-edge designs drawn point by point, delivered in every format your frame speaks, with printable previews for the table.",
@@ -83,7 +89,8 @@
             "bg": "none",
             "width": "narrow",
             "spacing": "airy",
-            "align": "center"
+            "align": "center",
+            "imageId": "hero-photo"
           }
         },
         {

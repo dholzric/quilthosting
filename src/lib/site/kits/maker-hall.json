@@ -32,8 +32,9 @@
   "imagery": [
     {
       "id": "hero-art",
-      "kind": "pattern",
-      "alt": ""
+      "kind": "photo",
+      "alt": "Hands guiding fabric through a sewing machine",
+      "src": "photo:1641320197434-6ae0ca235048"
     }
   ],
   "previewSeed": {

@@ -34,6 +34,12 @@
       "id": "hero-art",
       "kind": "pattern",
       "alt": ""
+    },
+    {
+      "id": "hero-photo",
+      "kind": "photo",
+      "alt": "A quilt spread across a bed, seen close",
+      "src": "photo:1634075853493-66688f345d87"
     }
   ],
   "previewSeed": {
@@ -49,7 +55,7 @@
         {
           "type": "hero",
           "id": "welcome",
-          "variant": "minimal",
+          "variant": "split",
           "eyebrow": "A silent sew in {{city}}",
           "title": "{{guild_name}}",
           "subtitle": "Sample text — replace me: {{guild_name}} meets {{meeting_info}}. We sew. We do not chat. Questions go on an index card, not into the air.",
@@ -61,7 +67,8 @@
             "bg": "dark",
             "width": "narrow",
             "spacing": "airy",
-            "align": "center"
+            "align": "center",
+            "imageId": "hero-photo"
           }
         },
         {

@@ -32,8 +32,9 @@
   "imagery": [
     {
       "id": "hero-art",
-      "kind": "pattern",
-      "alt": ""
+      "kind": "photo",
+      "alt": "A sewing needle, very close",
+      "src": "photo:1502217625004-89c03571bcca"
     }
   ],
   "previewSeed": {

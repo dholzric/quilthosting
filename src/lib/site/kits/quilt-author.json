@@ -34,6 +34,12 @@
       "id": "hero-art",
       "kind": "pattern",
       "alt": ""
+    },
+    {
+      "id": "hero-photo",
+      "kind": "photo",
+      "alt": "Silk and scissors laid out on a table",
+      "src": "photo:1516707471165-777029111409"
     }
   ],
   "previewSeed": {
@@ -71,7 +77,7 @@
         {
           "type": "hero",
           "id": "welcome",
-          "variant": "minimal",
+          "variant": "split",
           "eyebrow": "Quilt history, patterns, and one stubborn series",
           "title": "{{guild_name}}",
           "subtitle": "Sample text — replace me: Four books on the shelf, a tour that visits forty guilds a year, and a letter from the writing room each month.",
@@ -83,7 +89,8 @@
             "bg": "none",
             "width": "narrow",
             "spacing": "airy",
-            "align": "center"
+            "align": "center",
+            "imageId": "hero-photo"
           }
         },
         {

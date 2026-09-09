@@ -32,8 +32,9 @@
   "imagery": [
     {
       "id": "hero-log-cabin",
-      "kind": "pattern",
-      "alt": ""
+      "kind": "photo",
+      "alt": "A checked quilt over a wooden railing",
+      "src": "photo:1755138207288-b5c8fb5b8614"
     }
   ],
   "previewSeed": {

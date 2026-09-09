@@ -34,6 +34,12 @@
       "id": "hero-art",
       "kind": "pattern",
       "alt": ""
+    },
+    {
+      "id": "hero-photo",
+      "kind": "photo",
+      "alt": "A quilt in white, red and green",
+      "src": "photo:1623111773154-05d3be4a70d7"
     }
   ],
   "previewSeed": {
@@ -75,7 +81,7 @@
         {
           "type": "hero",
           "id": "welcome",
-          "variant": "minimal",
+          "variant": "split",
           "eyebrow": "Open Tuesday through Sunday",
           "title": "{{guild_name}}",
           "subtitle": "Sample text — replace me: Four centuries of American quilts, three exhibitions a year, and a study room open to any researcher with a question.",
@@ -87,7 +93,8 @@
             "bg": "none",
             "width": "narrow",
             "spacing": "airy",
-            "align": "center"
+            "align": "center",
+            "imageId": "hero-photo"
           }
         },
         {

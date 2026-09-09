@@ -42,6 +42,8 @@ import type { SiteData, SiteDocument, SiteEvent, SiteLevel, SitePost, SiteProduc
 import { DEFAULT_STYLE } from "./schema";
 import type { Section, SectionStyle } from "./schema";
 
+// Stock photography the kits ship with; see ../photos.ts.
+import { stockPhoto, stockPhotoUrl } from "../photos";
 /** What the renderer knows about a stored image (from serveSite's batch). */
 export type ImgMeta = { w?: number | null; h?: number | null; focal?: [number, number] };
 
@@ -167,14 +169,16 @@ function uploadedImg(
   const meta = ctx.imgMeta?.(fileId);
   const focal = focalOverride ?? meta?.focal;
   const attrs: string[] = [];
-  const srcset = srcsetFor((w) => ctx.imgUrl(fileId, w), [...VARIANT_WIDTHS].filter((w) => w <= 1600));
+  const srcset = srcsetFor((w) => imageSrc(fileId, ctx, w), [...VARIANT_WIDTHS].filter((w) => w <= 1600));
   if (srcset) attrs.push(` srcset="${esc(srcset)}" sizes="${esc(sizesFor(kind))}"`);
   if (focal) attrs.push(` style="object-position:${esc(focalToObjectPosition(focal))}"`);
   const size =
     meta && typeof meta.w === "number" && meta.w > 0 && typeof meta.h === "number" && meta.h > 0
       ? { width: meta.w, height: meta.h }
       : {};
-  const tag = img(ctx.imgUrl(fileId, baseW), alt, { ...opts, ...size });
+  // A stock photo carries its own alt text, written for a screen reader; a
+  // caller's alt still wins when it has one.
+  const tag = img(imageSrc(fileId, ctx, baseW), alt || stockPhoto(fileId)?.alt || "", { ...opts, ...size });
   return attrs.length ? tag.slice(0, -1) + attrs.join("") + ">" : tag;
 }
 
@@ -185,6 +189,22 @@ function uploadedImg(
  */
 export function isPatternRef(imageId: string | undefined): boolean {
   return typeof imageId === "string" && imageId.startsWith("pattern:");
+}
+
+/**
+ * Stock photography a kit ships with: `photo:<id>`, served from Unsplash's
+ * CDN, which resizes on request — so asking for the width a slot needs is the
+ * whole responsive story and there is nothing for us to store. An id we do not
+ * know renders nothing rather than a broken image.
+ */
+function stockUrl(imageId: string, w: number): string | null {
+  const photo = stockPhoto(imageId);
+  return photo ? stockPhotoUrl(photo.id, w) : null;
+}
+
+/** The URL for an image reference at a width: stock photo, else tenant file. */
+function imageSrc(imageId: string, ctx: RenderContext, w: number): string {
+  return stockUrl(imageId, w) ?? ctx.imgUrl(imageId, w);
 }
 function patternRefUri(imageId: string, ctx: RenderContext): string {
   const raw = imageId.slice("pattern:".length);
@@ -220,7 +240,7 @@ function mediaImg(
 
 function mediaSrc(item: { imageId?: string; url?: string }, ctx: RenderContext, w: number): string | null {
   if (isPatternRef(item.imageId)) return null;
-  if (item.imageId) return ctx.imgUrl(item.imageId, w);
+  if (item.imageId) return imageSrc(item.imageId, ctx, w);
   if (item.url) return sanitizeUrl(item.url, "image");
   return null;
 }
@@ -361,7 +381,7 @@ function wrap(s: Section, inner: string, opts: WrapOpts = {}): string {
   const wantsImage = st.bg === "image" || (isHero && s.variant === "image");
   const wantsPattern = st.bg === "pattern" || (isHero && s.variant === "pattern");
   if (opts.ctx && wantsImage && st.imageId && !isPatternRef(st.imageId)) {
-    decls.push(`--qh-s-image:${cssUrl(opts.ctx.imgUrl(st.imageId, 1600))}`);
+    decls.push(`--qh-s-image:${cssUrl(imageSrc(st.imageId, opts.ctx, 1600))}`);
     const [fx, fy] = st.imageFocal ?? [0.5, 0.5];
     decls.push(`--qh-s-focal:${pct(fx)} ${pct(fy)}`);
   }

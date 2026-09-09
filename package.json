@@ -1,6 +1,6 @@
 {
   "name": "quilthosting",
-  "version": "0.71.0-preview",
+  "version": "0.72.0-preview",
   "private": true,
   "type": "module",
   "scripts": {
@@ -20,7 +20,8 @@
     "test:business-site": "node scripts/verify-business-site.mjs",
     "kits:validate": "node scripts/kits-validate.mjs",
     "kits:preview": "node scripts/kits-preview.mjs",
-    "kits:gallery": "node scripts/kits-gallery.mjs"
+    "kits:gallery": "node scripts/kits-gallery.mjs",
+    "photos:check": "node scripts/photos-check.mjs"
   },
   "dependencies": {
     "hono": "^4.7.0",

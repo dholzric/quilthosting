@@ -32,8 +32,9 @@
   "imagery": [
     {
       "id": "hero-art",
-      "kind": "pattern",
-      "alt": ""
+      "kind": "photo",
+      "alt": "A quilt in grey and green",
+      "src": "photo:1570362685387-3cf5499c3fdc"
     }
   ],
   "previewSeed": {

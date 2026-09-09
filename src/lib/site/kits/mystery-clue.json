@@ -32,8 +32,9 @@
   "imagery": [
     {
       "id": "hero-art",
-      "kind": "pattern",
-      "alt": ""
+      "kind": "photo",
+      "alt": "A patchwork quilt of many colours and patterns",
+      "src": "photo:1701350659612-c4740dac512b"
     }
   ],
   "previewSeed": {

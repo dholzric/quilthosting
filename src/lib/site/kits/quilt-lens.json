@@ -32,8 +32,9 @@
   "imagery": [
     {
       "id": "hero-art",
-      "kind": "pattern",
-      "alt": ""
+      "kind": "photo",
+      "alt": "A tape measure and scissors",
+      "src": "photo:1536867520774-5b4f2628a69b"
     }
   ],
   "previewSeed": {

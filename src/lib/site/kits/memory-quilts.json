@@ -34,6 +34,12 @@
       "id": "hero-art",
       "kind": "pattern",
       "alt": ""
+    },
+    {
+      "id": "hero-photo",
+      "kind": "photo",
+      "alt": "Hands guiding fabric through a sewing machine",
+      "src": "photo:1641320197434-6ae0ca235048"
     }
   ],
   "previewSeed": {
@@ -71,7 +77,7 @@
         {
           "type": "hero",
           "id": "welcome",
-          "variant": "minimal",
+          "variant": "split",
           "eyebrow": "Memory quilts sewn from the clothes you keep",
           "title": "{{guild_name}}",
           "subtitle": "Sample text — replace me: Baby onesies, a father's flannel, choir robes, and a drawer of plaid, pieced into quilts you can actually hold.",
@@ -83,7 +89,8 @@
             "bg": "none",
             "width": "narrow",
             "spacing": "airy",
-            "align": "center"
+            "align": "center",
+            "imageId": "hero-photo"
           }
         },
         {

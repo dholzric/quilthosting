@@ -32,8 +32,9 @@
   "imagery": [
     {
       "id": "hero-art",
-      "kind": "pattern",
-      "alt": ""
+      "kind": "photo",
+      "alt": "Silk and scissors laid out on a table",
+      "src": "photo:1516707471165-777029111409"
     }
   ],
   "previewSeed": {

@@ -32,8 +32,9 @@
   "imagery": [
     {
       "id": "hero-art",
-      "kind": "pattern",
-      "alt": ""
+      "kind": "photo",
+      "alt": "Threads and scissors on a work table",
+      "src": "photo:1578353022142-09264fd64295"
     }
   ],
   "previewSeed": {

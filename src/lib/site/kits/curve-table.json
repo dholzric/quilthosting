@@ -32,8 +32,9 @@
   "imagery": [
     {
       "id": "hero-art",
-      "kind": "pattern",
-      "alt": ""
+      "kind": "photo",
+      "alt": "A colourful quilt over a wooden fence post",
+      "src": "photo:1755138452921-650d508d6b54"
     }
   ],
   "previewSeed": {
