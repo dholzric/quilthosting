@@ -7,134 +7,377 @@
     "palette": "modern-charcoal-coral",
     "typePair": "newsreader-ibmplexsans",
     "scale": "editorial",
-    "shape": { "radius": "sharp", "shadow": "none" },
-    "rhythm": { "spacing": "tight", "container": "normal" },
-    "header": { "variant": "split", "sticky": true, "cta": "none", "overlayHero": false },
-    "footer": { "variant": "simple" },
-    "pattern": { "id": "flying-geese", "opacity": 0.1 }
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "tight",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "split",
+      "sticky": true,
+      "cta": "none",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "flying-geese",
+      "opacity": 0.1
+    }
   },
-  "imagery": [{ "id": "hero-art", "kind": "pattern", "alt": "" }],
-  "previewSeed": { "guildName": "Geese & Grain Patterns", "city": "Hudson, New York" },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Geese & Grain Patterns",
+    "city": "Hudson, New York"
+  },
   "pages": [
     {
-      "slug": "home", "title": "Home", "nav": false,
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
       "sections": [
         {
-          "type": "hero", "id": "welcome", "variant": "split",
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
           "eyebrow": "Patterns, workshops, and a yearly retreat",
           "title": "{{guild_name}}",
           "subtitle": "Sample text — replace me: Paper-pieced geese, strip-pieced grainlines, and classes that start with a cutting demo, not a lecture.",
-          "ctaLabel": "Shop patterns", "ctaHref": "/patterns",
-          "secondaryLabel": "Workshops", "secondaryHref": "/workshops",
-          "style": { "bg": "dark", "width": "wide", "spacing": "airy", "media": "left", "imageId": "hero-art" }
+          "ctaLabel": "Shop patterns",
+          "ctaHref": "/patterns",
+          "secondaryLabel": "Workshops",
+          "secondaryHref": "/workshops",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "airy",
+            "media": "left",
+            "imageId": "hero-art"
+          }
         },
         {
-          "type": "testimonials", "id": "home-press", "variant": "grid",
+          "type": "testimonials",
+          "id": "home-press",
+          "variant": "grid",
           "items": [
-            { "quote": "The flying-geese paper is actually the size it claims to be. That should not be notable, and yet.", "author": "A print magazine review" },
-            { "quote": "Taught a room of forty and still walked the aisles during the first seam.", "author": "A guild workshop chair in {{city}}" }
+            {
+              "quote": "The flying-geese paper is actually the size it claims to be. That should not be notable, and yet.",
+              "author": "A print magazine review"
+            },
+            {
+              "quote": "Taught a room of forty and still walked the aisles during the first seam.",
+              "author": "A guild workshop chair in {{city}}"
+            }
           ],
-          "style": { "bg": "none" }
+          "style": {
+            "bg": "none"
+          }
         },
-        { "type": "store_teaser", "id": "home-shop", "heading": "In the shop", "limit": 4, "style": { "bg": "tint", "width": "wide" } },
-        { "type": "events", "id": "home-workshops", "variant": "cards", "heading": "Upcoming workshops", "limit": 3, "style": { "bg": "none", "width": "wide" } },
-        { "type": "cta", "id": "home-press-link", "label": "Press and teaching", "href": "/press", "kind": "secondary", "style": { "bg": "brand", "align": "center" } }
+        {
+          "type": "store_teaser",
+          "id": "home-shop",
+          "heading": "In the shop",
+          "limit": 4,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "events",
+          "id": "home-workshops",
+          "variant": "cards",
+          "heading": "Upcoming workshops",
+          "limit": 3,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "cta",
+          "id": "home-press-link",
+          "label": "Press and teaching",
+          "href": "/press",
+          "kind": "secondary",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
+        }
       ]
     },
     {
-      "slug": "patterns", "title": "Patterns", "nav": true,
+      "slug": "patterns",
+      "title": "Patterns",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "p-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "p-hero",
+          "variant": "minimal",
           "title": "Patterns",
           "subtitle": "Sample text — replace me: PDF and paper. Yardage is written for three sizes. Templates are nested on one sheet.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
-        { "type": "store_teaser", "id": "p-shop", "heading": "Current releases", "limit": 8, "style": { "bg": "tint", "width": "wide" } },
         {
-          "type": "rich_text", "id": "p-note", "variant": "prose",
+          "type": "store_teaser",
+          "id": "p-shop",
+          "heading": "Current releases",
+          "limit": 8,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "p-note",
+          "variant": "prose",
           "html": "<p>Tested by three guilds before a pattern is listed. Errata, when they happen, go on this page and in the PDF you already bought.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         }
       ]
     },
     {
-      "slug": "workshops", "title": "Workshops", "nav": true,
+      "slug": "workshops",
+      "title": "Workshops",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "w-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "w-hero",
+          "variant": "minimal",
           "title": "Workshops and the retreat",
           "subtitle": "Sample text — replace me: Guild bookings, shop classes, and a three-day retreat in the fall.",
-          "ctaLabel": "Calendar", "ctaHref": "/events",
-          "style": { "bg": "pattern", "align": "center", "imageId": "hero-art" }
+          "ctaLabel": "Calendar",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "pattern",
+            "align": "center",
+            "imageId": "hero-art"
+          }
         },
-        { "type": "events", "id": "w-list", "variant": "list", "heading": "Open to the public", "limit": 6, "style": { "bg": "none", "width": "wide" } },
         {
-          "type": "feature_grid", "id": "w-kinds", "variant": "numbered",
+          "type": "events",
+          "id": "w-list",
+          "variant": "list",
+          "heading": "Open to the public",
+          "limit": 6,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "w-kinds",
+          "variant": "numbered",
           "items": [
-            { "title": "Guild booking", "body": "A full-day class, 16 to 20 students, supply list sent six weeks ahead." },
-            { "title": "Shop class", "body": "Half-day, usually a mini. The host shop sells the kit." },
-            { "title": "Retreat", "body": "Three days, one pattern, no unfinished-object guilt. Meals included." }
+            {
+              "title": "Guild booking",
+              "body": "A full-day class, 16 to 20 students, supply list sent six weeks ahead."
+            },
+            {
+              "title": "Shop class",
+              "body": "Half-day, usually a mini. The host shop sells the kit."
+            },
+            {
+              "title": "Retreat",
+              "body": "Three days, one pattern, no unfinished-object guilt. Meals included."
+            }
           ],
-          "style": { "bg": "tint", "width": "wide" }
-        },
-        { "type": "quote_cta", "id": "w-book", "projectType": "custom_quilt", "heading": "Book a guild workshop", "submitLabel": "Send dates", "style": { "bg": "dark" } }
-      ]
-    },
-    {
-      "slug": "about", "title": "About", "nav": true,
-      "sections": [
-        {
-          "type": "hero", "id": "a-hero", "variant": "minimal",
-          "title": "About the studio",
-          "subtitle": "Sample text — replace me: A spare room in {{city}}, a design wall, and a printer that has seen too many nested templates.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
         },
         {
-          "type": "rich_text", "id": "a-body", "variant": "two_column",
-          "html": "<p>I wrote patterns for my own guild first, because the published geese I liked never quite nested. The first PDF sold to people I already knew. The rest followed from workshops.</p><p>Teaching is still the better part of the year. Pattern math happens on the weeks in between.</p>",
-          "style": { "bg": "tint" }
-        },
-        { "type": "meeting_info", "id": "a-where", "heading": "Studio", "when": "By appointment", "where": "{{city}}", "note": "Workshops are not held here unless the listing says so.", "style": { "bg": "none" } }
-      ]
-    },
-    {
-      "slug": "press", "title": "Press", "nav": true,
-      "sections": [
-        {
-          "type": "hero", "id": "pr-hero", "variant": "minimal",
-          "title": "Press and teaching credits",
-          "subtitle": "Sample text — replace me: Magazines, podcasts, and guilds that have had me in.",
-          "style": { "bg": "none", "align": "center" }
-        },
-        {
-          "type": "testimonials", "id": "pr-quotes", "variant": "grid",
-          "items": [
-            { "quote": "Clear cutting diagrams, and she says out loud when a step is fussy.", "author": "A quilting blog review" },
-            { "quote": "The retreat pattern was finished by Sunday noon, which has not happened to me in years.", "author": "A student, 2025 retreat" },
-            { "quote": "We booked her two years in a row because the waitlist from the first class filled the second.", "author": "A Midwest guild president" }
-          ],
-          "style": { "bg": "tint" }
-        },
-        {
-          "type": "rich_text", "id": "pr-bio", "variant": "prose",
-          "heading": "Short bio for programs",
-          "html": "<p>{{guild_name}} designs paper-pieced and strip-pieced patterns and teaches guild workshops across the country from a studio in {{city}}.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "type": "quote_cta",
+          "id": "w-book",
+          "projectType": "custom_quilt",
+          "heading": "Book a guild workshop",
+          "submitLabel": "Send dates",
+          "style": {
+            "bg": "dark"
+          }
         }
       ]
     },
     {
-      "slug": "contact", "title": "Contact", "nav": true,
+      "slug": "about",
+      "title": "About",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "c-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
+          "title": "About the studio",
+          "subtitle": "Sample text — replace me: A spare room in {{city}}, a design wall, and a printer that has seen too many nested templates.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "two_column",
+          "html": "<p>I wrote patterns for my own guild first, because the published geese I liked never quite nested. The first PDF sold to people I already knew. The rest followed from workshops.</p><p>Teaching is still the better part of the year. Pattern math happens on the weeks in between.</p>",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "a-where",
+          "heading": "Studio",
+          "when": "By appointment",
+          "where": "{{city}}",
+          "note": "Workshops are not held here unless the listing says so.",
+          "style": {
+            "bg": "none"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "press",
+      "title": "Press",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "pr-hero",
+          "variant": "minimal",
+          "title": "Press and teaching credits",
+          "subtitle": "Sample text — replace me: Magazines, podcasts, and guilds that have had me in.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "testimonials",
+          "id": "pr-quotes",
+          "variant": "grid",
+          "items": [
+            {
+              "quote": "Clear cutting diagrams, and she says out loud when a step is fussy.",
+              "author": "A quilting blog review"
+            },
+            {
+              "quote": "The retreat pattern was finished by Sunday noon, which has not happened to me in years.",
+              "author": "A student, 2025 retreat"
+            },
+            {
+              "quote": "We booked her two years in a row because the waitlist from the first class filled the second.",
+              "author": "A Midwest guild president"
+            }
+          ],
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "rich_text",
+          "id": "pr-bio",
+          "variant": "prose",
+          "heading": "Short bio for programs",
+          "html": "<p>{{guild_name}} designs paper-pieced and strip-pieced patterns and teaches guild workshops across the country from a studio in {{city}}.</p>",
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
           "title": "Contact",
           "subtitle": "Sample text — replace me: Guild bookings, pattern questions, and press.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
-        { "type": "contact", "id": "form", "showDetails": true, "style": { "bg": "tint" } },
-        { "type": "cta", "id": "c-book", "label": "Book a workshop", "href": "/workshops", "kind": "primary", "style": { "bg": "dark", "align": "center" } }
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "hours_location",
+          "id": "hours",
+          "heading": "Hours and where to find us",
+          "hours": [
+            {
+              "day": "Monday – Thursday",
+              "open": "10:00 – 5:00"
+            },
+            {
+              "day": "Friday",
+              "open": "10:00 – 4:00"
+            },
+            {
+              "day": "Saturday",
+              "open": "By appointment"
+            },
+            {
+              "day": "Sunday",
+              "open": "Closed"
+            }
+          ],
+          "address": "118 Mill Street, Hudson, New York",
+          "phone": "555-0100",
+          "email": "hello@example.com",
+          "note": "Sample text — replace me: Drop-off and pick-up any time during opening hours; call first if you are bringing a full-size top.",
+          "style": {
+            "bg": "none",
+            "width": "normal",
+            "spacing": "normal",
+            "align": "left",
+            "media": "right"
+          }
+        },
+        {
+          "type": "cta",
+          "id": "c-book",
+          "label": "Book a workshop",
+          "href": "/workshops",
+          "kind": "primary",
+          "style": {
+            "bg": "dark",
+            "align": "center"
+          }
+        }
       ]
     }
   ]

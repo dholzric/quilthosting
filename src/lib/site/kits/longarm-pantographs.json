@@ -7,22 +7,60 @@
     "palette": "dark-charcoal-gold",
     "typePair": "manrope",
     "scale": "compact",
-    "shape": { "radius": "sharp", "shadow": "none" },
-    "rhythm": { "spacing": "tight", "container": "normal" },
-    "header": { "variant": "left", "sticky": true, "cta": "quote", "overlayHero": false },
-    "footer": { "variant": "simple" },
-    "pattern": { "id": "flying-geese", "opacity": 0.1 }
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "tight",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "flying-geese",
+      "opacity": 0.1
+    }
   },
   "imagery": [
-    { "id": "hero-art", "kind": "pattern", "alt": "" }
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
   ],
-  "previewSeed": { "guildName": "Quiltline Studio", "city": "Wichita, Kansas" },
+  "previewSeed": {
+    "guildName": "Quiltline Studio",
+    "city": "Wichita, Kansas"
+  },
   "menu": [
-    { "label": "Designs", "href": "/designs" },
-    { "label": "Formats", "href": "/formats" },
-    { "label": "About", "href": "/about" },
-    { "label": "Contact", "href": "/contact" },
-    { "label": "Custom digitizing", "href": "/request-a-quote" }
+    {
+      "label": "Designs",
+      "href": "/designs"
+    },
+    {
+      "label": "Formats",
+      "href": "/formats"
+    },
+    {
+      "label": "About",
+      "href": "/about"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    },
+    {
+      "label": "Custom digitizing",
+      "href": "/request-a-quote"
+    }
   ],
   "pages": [
     {
@@ -41,14 +79,22 @@
           "ctaHref": "/designs",
           "secondaryLabel": "Custom digitizing",
           "secondaryHref": "/request-a-quote",
-          "style": { "bg": "none", "width": "narrow", "spacing": "airy", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy",
+            "align": "center"
+          }
         },
         {
           "type": "store_teaser",
           "id": "home-new",
           "heading": "Newest pantographs",
           "limit": 4,
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
         },
         {
           "type": "feature_grid",
@@ -56,12 +102,34 @@
           "variant": "icons",
           "heading": "Every design ships with",
           "items": [
-            { "icon": "📁", "title": "Every format", "body": "The big four frame languages and the smaller ones, in one download.", "href": "/formats" },
-            { "icon": "🖨", "title": "A printed preview", "body": "A full-size sheet to tape on the table so you and the customer agree before loading.", "href": "/formats" },
-            { "icon": "✏", "title": "Drawn by hand", "body": "No auto-tracing. Curves are built point by point and stitched before release.", "href": "/about" },
-            { "icon": "↺", "title": "Free updates", "body": "Buy once. Re-download forever, including the occasional revised row height." }
+            {
+              "icon": "📁",
+              "title": "Every format",
+              "body": "The big four frame languages and the smaller ones, in one download.",
+              "href": "/formats"
+            },
+            {
+              "icon": "🖨",
+              "title": "A printed preview",
+              "body": "A full-size sheet to tape on the table so you and the customer agree before loading.",
+              "href": "/formats"
+            },
+            {
+              "icon": "✏",
+              "title": "Drawn by hand",
+              "body": "No auto-tracing. Curves are built point by point and stitched before release.",
+              "href": "/about"
+            },
+            {
+              "icon": "↺",
+              "title": "Free updates",
+              "body": "Buy once. Re-download forever, including the occasional revised row height."
+            }
           ],
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
         },
         {
           "type": "gallery",
@@ -70,7 +138,10 @@
           "source": "gallery",
           "gallerySlug": "stitched",
           "heading": "Stitched by customers",
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
         },
         {
           "type": "quote_cta",
@@ -78,7 +149,11 @@
           "projectType": "digitizing",
           "heading": "Have a design nobody sells",
           "submitLabel": "Ask about digitizing",
-          "style": { "bg": "none", "width": "normal", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "normal",
+            "align": "center"
+          }
         }
       ]
     },
@@ -93,14 +168,22 @@
           "variant": "minimal",
           "title": "The design catalog",
           "subtitle": "Sample text — replace me: Edge-to-edge pantographs from dense to open, seasonal to geometric, each stitched out before it is listed.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "store_teaser",
           "id": "designs-list",
           "heading": "In the catalog",
           "limit": 8,
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
         },
         {
           "type": "rich_text",
@@ -108,7 +191,10 @@
           "variant": "prose",
           "heading": "Licensing, briefly",
           "html": "<p>One purchase covers one longarm: stitch it on customer quilts, show quilts, and everything in between. Reselling or sharing the file is the one thing the license is strict about, because the digitizer eats the same way you do.</p>",
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -123,7 +209,11 @@
           "variant": "minimal",
           "title": "Formats and machines",
           "subtitle": "Sample text — replace me: What is in the download and which frames run it without conversion.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "rich_text",
@@ -131,18 +221,33 @@
           "variant": "two_column",
           "heading": "What the download holds",
           "html": "<p>Every purchase includes the file in the major frame languages, a printable full-size preview sheet with the row height marked, and a text file with the recommended stitch length and spacing tested on the studio machine.</p><p>If your system wants something unusual, write before you buy; conversion is quick and included. Computerized frames of every era are supported, from the early ones that count stitches like beads to the newest that take cloud uploads.</p>",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal"
+          }
         },
         {
           "type": "faq",
           "id": "formats-faq",
           "heading": "Setup questions",
           "items": [
-            { "q": "Will these run on my robot?", "a": "If it speaks one of the major formats, yes, and the formats page of the checkout tells you exactly which file to load. When in doubt, write first; the answer is usually yes." },
-            { "q": "What row height should I use?", "a": "Each design lists the tested range. Running tighter than tested is fine; running wider than tested is how backgrounds go threadbare." },
-            { "q": "Do you take design requests?", "a": "Suggestions go in the contact form and a few become catalog designs. The fast route to exactly what you want is custom digitizing." }
+            {
+              "q": "Will these run on my robot?",
+              "a": "If it speaks one of the major formats, yes, and the formats page of the checkout tells you exactly which file to load. When in doubt, write first; the answer is usually yes."
+            },
+            {
+              "q": "What row height should I use?",
+              "a": "Each design lists the tested range. Running tighter than tested is fine; running wider than tested is how backgrounds go threadbare."
+            },
+            {
+              "q": "Do you take design requests?",
+              "a": "Suggestions go in the contact form and a few become catalog designs. The fast route to exactly what you want is custom digitizing."
+            }
           ],
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -157,23 +262,37 @@
           "variant": "minimal",
           "title": "About the studio",
           "subtitle": "Sample text — replace me: Ten years at a CAD desk, then a longarm in the garage, and the discovery that curves are honest work.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "rich_text",
           "id": "about-body",
           "variant": "two_column",
           "html": "<p>I drew piping and lot lines for a decade before a longarm arrived in the garage, and the first pantograph was drawn for a customer quilt nobody could find a design for. It stitched well, then stitched well again for someone else, and the catalog started by accident the way most small studios do.</p><p>Every design is still drawn point by point on the same software, stitched out on the studio machine, and photographed before it goes in the catalog. If a design cannot survive a king-size wholecloth, it does not ship.</p>",
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         },
         {
           "type": "testimonials",
           "id": "about-quote",
           "variant": "single",
           "items": [
-            { "quote": "The printed preview sheet alone is worth the price. My customers choose from the table and trust the result.", "author": "A longarm renter" }
+            {
+              "quote": "The printed preview sheet alone is worth the price. My customers choose from the table and trust the result.",
+              "author": "A longarm renter"
+            }
           ],
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal"
+          }
         }
       ]
     },
@@ -189,7 +308,11 @@
           "variant": "minimal",
           "title": "Custom digitizing",
           "subtitle": "Sample text — replace me: Send a sketch, a logo, or a photograph of a quilt you are trying to echo. I reply with a price and a timeline.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "quote_cta",
@@ -197,18 +320,33 @@
           "projectType": "digitizing",
           "heading": "Send the sketch",
           "submitLabel": "Get a quote",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal"
+          }
         },
         {
           "type": "faq",
           "id": "quote-faq",
           "heading": "Custom work",
           "items": [
-            { "q": "What do you need from me?", "a": "A clear photo or scan of the idea, the finished size it should cover, and the row height you plan to run. Pencil on graph paper is genuinely fine." },
-            { "q": "How long does it take?", "a": "Five to seven days for most pantographs, longer in December. Rush slots exist and are honest about costing more." },
-            { "q": "Who owns the design?", "a": "You own a lifetime license for one machine; I keep the right to add it to the catalog later if you choose the shared option, which costs less." }
+            {
+              "q": "What do you need from me?",
+              "a": "A clear photo or scan of the idea, the finished size it should cover, and the row height you plan to run. Pencil on graph paper is genuinely fine."
+            },
+            {
+              "q": "How long does it take?",
+              "a": "Five to seven days for most pantographs, longer in December. Rush slots exist and are honest about costing more."
+            },
+            {
+              "q": "Who owns the design?",
+              "a": "You own a lifetime license for one machine; I keep the right to add it to the catalog later if you choose the shared option, which costs less."
+            }
           ],
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -223,14 +361,21 @@
           "variant": "minimal",
           "title": "Contact the studio",
           "subtitle": "Sample text — replace me: File questions, format worries, and design requests all answered from the same desk.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "contact",
           "id": "contact-form",
           "heading": "Send a message",
           "showDetails": true,
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         },
         {
           "type": "rich_text",
@@ -238,7 +383,44 @@
           "variant": "prose",
           "heading": "Stuck on a file",
           "html": "<p>If a design will not load, write with your frame model and the error message; the fix is usually a two-line reply and it is free forever, even if someone else sold you the file.</p>",
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "hours_location",
+          "id": "hours",
+          "heading": "Hours and where to find us",
+          "hours": [
+            {
+              "day": "Monday – Thursday",
+              "open": "10:00 – 5:00"
+            },
+            {
+              "day": "Friday",
+              "open": "10:00 – 4:00"
+            },
+            {
+              "day": "Saturday",
+              "open": "By appointment"
+            },
+            {
+              "day": "Sunday",
+              "open": "Closed"
+            }
+          ],
+          "address": "118 Mill Street, Wichita, Kansas",
+          "phone": "555-0100",
+          "email": "hello@example.com",
+          "note": "Sample text — replace me: Drop-off and pick-up any time during opening hours; call first if you are bringing a full-size top.",
+          "style": {
+            "bg": "none",
+            "width": "normal",
+            "spacing": "normal",
+            "align": "left",
+            "media": "right"
+          }
         }
       ]
     }

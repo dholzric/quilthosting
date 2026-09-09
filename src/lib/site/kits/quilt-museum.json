@@ -408,6 +408,37 @@
             "bg": "none",
             "width": "normal"
           }
+        },
+        {
+          "type": "officers",
+          "id": "officers",
+          "heading": "Your board",
+          "items": [
+            {
+              "name": "Ada Patterson",
+              "role": "President — replace with your own",
+              "email": "president@example.com"
+            },
+            {
+              "name": "Ruth Delaney",
+              "role": "Vice President"
+            },
+            {
+              "name": "Miriam Okonkwo",
+              "role": "Secretary"
+            },
+            {
+              "name": "Joan Whitfield",
+              "role": "Treasurer"
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "spacing": "normal",
+            "align": "left",
+            "media": "right"
+          }
         }
       ]
     },

@@ -7,22 +7,60 @@
     "palette": "naturals-sage",
     "typePair": "nunito",
     "scale": "comfortable",
-    "shape": { "radius": "round", "shadow": "subtle" },
-    "rhythm": { "spacing": "normal", "container": "normal" },
-    "header": { "variant": "left", "sticky": true, "cta": "join", "overlayHero": false },
-    "footer": { "variant": "meeting" },
-    "pattern": { "id": "nine-patch", "opacity": 0.1 }
+    "shape": {
+      "radius": "round",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "meeting"
+    },
+    "pattern": {
+      "id": "nine-patch",
+      "opacity": 0.1
+    }
   },
   "imagery": [
-    { "id": "hero-art", "kind": "pattern", "alt": "" }
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
   ],
-  "previewSeed": { "guildName": "The Bee Network", "city": "Minneapolis, Minnesota" },
+  "previewSeed": {
+    "guildName": "The Bee Network",
+    "city": "Minneapolis, Minnesota"
+  },
   "menu": [
-    { "label": "How it works", "href": "/how-it-works" },
-    { "label": "Join", "href": "/why-join" },
-    { "label": "Events", "href": "/events" },
-    { "label": "About", "href": "/about" },
-    { "label": "Contact", "href": "/contact" }
+    {
+      "label": "How it works",
+      "href": "/how-it-works"
+    },
+    {
+      "label": "Join",
+      "href": "/why-join"
+    },
+    {
+      "label": "Events",
+      "href": "/events"
+    },
+    {
+      "label": "About",
+      "href": "/about"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    }
   ],
   "pages": [
     {
@@ -41,7 +79,12 @@
           "ctaHref": "/why-join",
           "secondaryLabel": "How matching works",
           "secondaryHref": "/how-it-works",
-          "style": { "bg": "none", "width": "narrow", "spacing": "airy", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy",
+            "align": "center"
+          }
         },
         {
           "type": "feature_grid",
@@ -49,12 +92,27 @@
           "variant": "numbered",
           "heading": "Four steps to a bee",
           "items": [
-            { "title": "Fill in the form", "body": "Your cross streets, your nights, your machine or lack of one, and your skill level in your own words." },
-            { "title": "The match", "body": "A volunteer matches you with two or three neighbors inside a reasonable bus ride." },
-            { "title": "The first evening", "body": "Someone's kitchen table, a snack budget of ten dollars, and quilts that need exactly what you have." },
-            { "title": "The check-in", "body": "The network checks every quarter: still meeting, need a new member, or ready to hatch a second bee." }
+            {
+              "title": "Fill in the form",
+              "body": "Your cross streets, your nights, your machine or lack of one, and your skill level in your own words."
+            },
+            {
+              "title": "The match",
+              "body": "A volunteer matches you with two or three neighbors inside a reasonable bus ride."
+            },
+            {
+              "title": "The first evening",
+              "body": "Someone's kitchen table, a snack budget of ten dollars, and quilts that need exactly what you have."
+            },
+            {
+              "title": "The check-in",
+              "body": "The network checks every quarter: still meeting, need a new member, or ready to hatch a second bee."
+            }
           ],
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
         },
         {
           "type": "meeting_info",
@@ -63,7 +121,10 @@
           "when": "{{meeting_info}}",
           "where": "{{city}}",
           "note": "An open monthly gathering for anyone between bees, with the matchmakers at the back table.",
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         },
         {
           "type": "events",
@@ -71,17 +132,29 @@
           "variant": "next_up",
           "heading": "Next open hive night",
           "limit": 1,
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal"
+          }
         },
         {
           "type": "testimonials",
           "id": "home-quotes",
           "variant": "grid",
           "items": [
-            { "quote": "I moved here knowing nobody and now Tuesday nights belong to four women who argue about borders with me.", "author": "A member, one year in" },
-            { "quote": "Our bee has met eleven months running, which for a group of strangers is basically a marriage.", "author": "A host, Northeast" }
+            {
+              "quote": "I moved here knowing nobody and now Tuesday nights belong to four women who argue about borders with me.",
+              "author": "A member, one year in"
+            },
+            {
+              "quote": "Our bee has met eleven months running, which for a group of strangers is basically a marriage.",
+              "author": "A host, Northeast"
+            }
           ],
-          "style": { "bg": "dark", "width": "normal" }
+          "style": {
+            "bg": "dark",
+            "width": "normal"
+          }
         },
         {
           "type": "join_band",
@@ -89,7 +162,11 @@
           "title": "Ten dollars covers the whole year",
           "body": "Matching, the quarterly check-in, the hive nights, and the retreat lottery.",
           "ctaLabel": "Join the network",
-          "style": { "bg": "brand", "width": "full", "align": "center" }
+          "style": {
+            "bg": "brand",
+            "width": "full",
+            "align": "center"
+          }
         }
       ]
     },
@@ -104,7 +181,11 @@
           "variant": "minimal",
           "title": "How matching works",
           "subtitle": "Sample text — replace me: No algorithms, just volunteers with a map, a spreadsheet, and strong opinions about Thursday.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "rich_text",
@@ -112,19 +193,37 @@
           "variant": "two_column",
           "heading": "The rules the matchkeepers use",
           "html": "<p>Bees stay small: three to five quilters, so everybody's project fits on the table. Distance is measured in bus routes and parking, not crow flies. Skill is mixed on purpose, because the fastest way to learn binding is to sit next to someone who likes binding.</p><p>Every bee keeps one open seat for a newcomer, and hosts rotate by season so nobody becomes the venue permanently. When a bee outgrows the table, it hatches: half move two blocks over and a new bee is born with the network's blessing and a spare iron.</p>",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal"
+          }
         },
         {
           "type": "faq",
           "id": "how-faq",
           "heading": "Questions from the form",
           "items": [
-            { "q": "I am a total beginner.", "a": "Good. Bees mixed by skill work better, and the network will place you where someone has time to teach the first seam." },
-            { "q": "I do not own a machine.", "a": "Say so on the form. Hand piecers are welcome everywhere, and several bees keep a loaner in rotation." },
-            { "q": "Can my bee be daytime?", "a": "Yes. The network runs morning, afternoon, and evening bees, plus one Saturday-a-month bee for shift workers." },
-            { "q": "What if the match is wrong?", "a": "Say so at the quarterly check-in and the matchkeepers will move you. No fault, no fuss; the point is quilting, not chemistry." }
+            {
+              "q": "I am a total beginner.",
+              "a": "Good. Bees mixed by skill work better, and the network will place you where someone has time to teach the first seam."
+            },
+            {
+              "q": "I do not own a machine.",
+              "a": "Say so on the form. Hand piecers are welcome everywhere, and several bees keep a loaner in rotation."
+            },
+            {
+              "q": "Can my bee be daytime?",
+              "a": "Yes. The network runs morning, afternoon, and evening bees, plus one Saturday-a-month bee for shift workers."
+            },
+            {
+              "q": "What if the match is wrong?",
+              "a": "Say so at the quarterly check-in and the matchkeepers will move you. No fault, no fuss; the point is quilting, not chemistry."
+            }
           ],
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -140,7 +239,12 @@
           "variant": "minimal",
           "title": "Join the network",
           "subtitle": "Sample text — replace me: Ten dollars a year, one form, and a sewing night that no longer depends on finding friends who already sew.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "rich_text",
@@ -148,14 +252,20 @@
           "variant": "prose",
           "heading": "What membership gives you",
           "html": "<p>The match, the quarterly check-in, open hive nights, the retreat lottery, and the machine-loaner list. Dues pay the meeting room coffee and the postage for the swap round. <a href=\"/membership\">Open the membership form</a> and the matchkeepers take it from there.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         },
         {
           "type": "membership_levels",
           "id": "join-levels",
           "variant": "compact",
           "heading": "Levels",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal"
+          }
         },
         {
           "type": "cta",
@@ -163,7 +273,11 @@
           "label": "Start the matching form",
           "href": "/membership",
           "kind": "primary",
-          "style": { "bg": "none", "width": "normal", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "normal",
+            "align": "center"
+          }
         }
       ]
     },
@@ -178,23 +292,68 @@
           "variant": "minimal",
           "title": "About the network",
           "subtitle": "Sample text — replace me: Founded when a guild's waiting list became longer than its meeting and somebody said, loudly, why not both.",
-          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "rich_text",
           "id": "about-body",
           "variant": "two_column",
           "html": "<p>The network began in 2018 when the city's largest guild had ninety people on a waitlist and only forty folding chairs. Instead of a bigger hall, the board tried smaller living rooms: match the waitlist into neighborhood bees and keep the monthly meeting as the reunion. The waitlist emptied in a season and the bees outgrew the guild that planted them.</p><p>Today the network is its own nonprofit with eleven volunteer matchkeepers, a map covered in pins, and a strict policy of staying small at the table and big at the reunion.</p>",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal"
+          }
         },
         {
           "type": "testimonials",
           "id": "about-quote",
           "variant": "single",
           "items": [
-            { "quote": "The network found me a bee with two retired teachers and a night-shift nurse. We have nothing in common but the seam allowance, and it is enough.", "author": "A member, South Minneapolis" }
+            {
+              "quote": "The network found me a bee with two retired teachers and a night-shift nurse. We have nothing in common but the seam allowance, and it is enough.",
+              "author": "A member, South Minneapolis"
+            }
           ],
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
+        },
+        {
+          "type": "officers",
+          "id": "officers",
+          "heading": "Your board",
+          "items": [
+            {
+              "name": "Ada Patterson",
+              "role": "President — replace with your own",
+              "email": "president@example.com"
+            },
+            {
+              "name": "Ruth Delaney",
+              "role": "Vice President"
+            },
+            {
+              "name": "Miriam Okonkwo",
+              "role": "Secretary"
+            },
+            {
+              "name": "Joan Whitfield",
+              "role": "Treasurer"
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "spacing": "normal",
+            "align": "left",
+            "media": "right"
+          }
         }
       ]
     },
@@ -209,14 +368,21 @@
           "variant": "minimal",
           "title": "Contact the hive",
           "subtitle": "Sample text — replace me: Matching questions, hosting offers, and guilds that would like to plant a network in their own city.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "contact",
           "id": "contact-form",
           "heading": "Send a message",
           "showDetails": true,
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         },
         {
           "type": "rich_text",
@@ -224,7 +390,10 @@
           "variant": "prose",
           "heading": "Starting a network elsewhere",
           "html": "<p>The matchkeeper playbook is free for the asking: the form, the matching rules, the check-in postcards, and every mistake we made in year one, footnoted. Write and we will send the folder and a phone call.</p>",
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
         }
       ]
     }

@@ -351,6 +351,44 @@
           }
         },
         {
+          "type": "benefits",
+          "id": "benefits",
+          "heading": "What membership includes",
+          "items": [
+            {
+              "title": "Monthly programs",
+              "body": "Sample text — replace me: Speakers, trunk shows and demonstrations at every meeting."
+            },
+            {
+              "title": "Workshops at member rates",
+              "body": "Hands-on classes with visiting teachers, booked before they open to the public."
+            },
+            {
+              "title": "The newsletter",
+              "body": "Meeting reminders, block patterns and what the bees are working on."
+            },
+            {
+              "title": "The library",
+              "body": "Books, patterns and templates to borrow at any meeting."
+            },
+            {
+              "title": "Show entry",
+              "body": "Enter the annual show, and help hang it."
+            },
+            {
+              "title": "The people",
+              "body": "Quilters in Round Rock, Texas who will answer the question you are stuck on."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "spacing": "normal",
+            "align": "left",
+            "media": "right"
+          }
+        },
+        {
           "type": "join_band",
           "title": "Ready to join",
           "body": "Pick a membership level and you will be on the roster in minutes. You will receive a welcome email with the newsletter and the members-only calendar.",

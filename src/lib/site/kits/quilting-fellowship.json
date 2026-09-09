@@ -275,6 +275,44 @@
             "bg": "none",
             "width": "narrow"
           }
+        },
+        {
+          "type": "benefits",
+          "id": "benefits",
+          "heading": "What membership includes",
+          "items": [
+            {
+              "title": "Monthly programs",
+              "body": "Sample text — replace me: Speakers, trunk shows and demonstrations at every meeting."
+            },
+            {
+              "title": "Workshops at member rates",
+              "body": "Hands-on classes with visiting teachers, booked before they open to the public."
+            },
+            {
+              "title": "The newsletter",
+              "body": "Meeting reminders, block patterns and what the bees are working on."
+            },
+            {
+              "title": "The library",
+              "body": "Books, patterns and templates to borrow at any meeting."
+            },
+            {
+              "title": "Show entry",
+              "body": "Enter the annual show, and help hang it."
+            },
+            {
+              "title": "The people",
+              "body": "Quilters in New Ulm, Minnesota who will answer the question you are stuck on."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "spacing": "normal",
+            "align": "left",
+            "media": "right"
+          }
         }
       ]
     },
@@ -320,6 +358,37 @@
           "style": {
             "bg": "none",
             "width": "normal"
+          }
+        },
+        {
+          "type": "officers",
+          "id": "officers",
+          "heading": "Your board",
+          "items": [
+            {
+              "name": "Ada Patterson",
+              "role": "President — replace with your own",
+              "email": "president@example.com"
+            },
+            {
+              "name": "Ruth Delaney",
+              "role": "Vice President"
+            },
+            {
+              "name": "Miriam Okonkwo",
+              "role": "Secretary"
+            },
+            {
+              "name": "Joan Whitfield",
+              "role": "Treasurer"
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "spacing": "normal",
+            "align": "left",
+            "media": "right"
           }
         }
       ]

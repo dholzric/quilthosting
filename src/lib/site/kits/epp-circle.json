@@ -7,139 +7,423 @@
     "palette": "soft-lavender",
     "typePair": "lora-karla",
     "scale": "comfortable",
-    "shape": { "radius": "round", "shadow": "subtle" },
-    "rhythm": { "spacing": "airy", "container": "normal" },
-    "header": { "variant": "centered", "sticky": true, "cta": "join", "overlayHero": false },
-    "footer": { "variant": "meeting" },
-    "pattern": { "id": "nine-patch", "opacity": 0.1 }
+    "shape": {
+      "radius": "round",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "centered",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "meeting"
+    },
+    "pattern": {
+      "id": "nine-patch",
+      "opacity": 0.1
+    }
   },
-  "imagery": [{ "id": "hero-art", "kind": "pattern", "alt": "" }],
-  "previewSeed": { "guildName": "Hex & Honey Guild", "city": "Ann Arbor, Michigan" },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Hex & Honey Guild",
+    "city": "Ann Arbor, Michigan"
+  },
   "pages": [
     {
-      "slug": "home", "title": "Home", "nav": false,
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
       "sections": [
         {
-          "type": "hero", "id": "welcome", "variant": "split",
+          "type": "hero",
+          "id": "welcome",
+          "variant": "split",
           "eyebrow": "English paper piecing in {{city}}",
           "title": "{{guild_name}}",
           "subtitle": "Sample text — replace me: We glue-baste, whipstitch, and fussy-cut. Meetings are {{meeting_info}}.",
-          "ctaLabel": "Join the circle", "ctaHref": "/membership",
-          "secondaryLabel": "This month's papers", "secondaryHref": "/papers",
-          "style": { "bg": "pattern", "width": "wide", "spacing": "airy", "media": "left", "imageId": "hero-art" }
+          "ctaLabel": "Join the circle",
+          "ctaHref": "/membership",
+          "secondaryLabel": "This month's papers",
+          "secondaryHref": "/papers",
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "spacing": "airy",
+            "media": "left",
+            "imageId": "hero-art"
+          }
         },
-        { "type": "meeting_info", "id": "when", "heading": "Sew night", "when": "{{meeting_info}}", "where": "{{city}}", "note": "Bring a tin of papers, a glue pen, and whatever you are stitching. Needles and thread are on the table.", "style": { "bg": "none" } },
-        { "type": "events", "id": "upcoming", "variant": "cards", "heading": "Coming up", "limit": 3, "style": { "bg": "tint", "width": "wide" } },
         {
-          "type": "feature_grid", "id": "life", "variant": "cards",
-          "items": [
-            { "title": "Paper packs", "body": "A new shape each month: hexie, jewel, clamshell, or tumbling block. PDFs in the newsletter.", "href": "/papers" },
-            { "title": "Fussy-cut bee", "body": "Saturday mornings for people who want to match a print across a seam.", "href": "/bees" },
-            { "title": "Finish night", "body": "Once a quarter we pull papers and bind. No new starts that evening." }
-          ],
-          "style": { "bg": "none", "width": "wide" }
+          "type": "meeting_info",
+          "id": "when",
+          "heading": "Sew night",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "note": "Bring a tin of papers, a glue pen, and whatever you are stitching. Needles and thread are on the table.",
+          "style": {
+            "bg": "none"
+          }
         },
-        { "type": "join_band", "id": "join", "title": "Your first tin is on us", "body": "New members leave with a hexie pack and the current glue-baste notes.", "ctaLabel": "See dues", "style": { "bg": "brand", "align": "center" } }
+        {
+          "type": "events",
+          "id": "upcoming",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "life",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Paper packs",
+              "body": "A new shape each month: hexie, jewel, clamshell, or tumbling block. PDFs in the newsletter.",
+              "href": "/papers"
+            },
+            {
+              "title": "Fussy-cut bee",
+              "body": "Saturday mornings for people who want to match a print across a seam.",
+              "href": "/bees"
+            },
+            {
+              "title": "Finish night",
+              "body": "Once a quarter we pull papers and bind. No new starts that evening."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "join_band",
+          "id": "join",
+          "title": "Your first tin is on us",
+          "body": "New members leave with a hexie pack and the current glue-baste notes.",
+          "ctaLabel": "See dues",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
+        }
       ]
     },
     {
-      "slug": "about", "title": "About", "nav": true,
+      "slug": "about",
+      "title": "About",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "a-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
           "title": "A hand-piecing guild",
           "subtitle": "Sample text — replace me: Machines stay at home. This room is for paper, thread, and the conversation that happens between stitches.",
-          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
-          "type": "rich_text", "id": "a-body", "variant": "two_column",
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "two_column",
           "html": "<p>{{guild_name}} started as four people around a kitchen table with a bag of 1-inch hexies. We still meet {{meeting_info}} in {{city}}. The business meeting is ten minutes. The rest is stitching.</p><p>We are not a modern guild and not a Baltimore guild. If you like English paper piecing, you already know how to sit with us.</p>",
-          "style": { "bg": "tint" }
+          "style": {
+            "bg": "tint"
+          }
         },
         {
-          "type": "testimonials", "id": "a-quotes", "variant": "grid",
+          "type": "testimonials",
+          "id": "a-quotes",
+          "variant": "grid",
           "items": [
-            { "quote": "I had a drawer of papers I never pulled. Two sew nights later the drawer is empty and the quilt has a center.", "author": "Diane K." },
-            { "quote": "Nobody minds if you talk more than you stitch. The hexies still get done.", "author": "Priya S." }
+            {
+              "quote": "I had a drawer of papers I never pulled. Two sew nights later the drawer is empty and the quilt has a center.",
+              "author": "Diane K."
+            },
+            {
+              "quote": "Nobody minds if you talk more than you stitch. The hexies still get done.",
+              "author": "Priya S."
+            }
           ],
-          "style": { "bg": "none" }
+          "style": {
+            "bg": "none"
+          }
+        },
+        {
+          "type": "officers",
+          "id": "officers",
+          "heading": "Your board",
+          "items": [
+            {
+              "name": "Ada Patterson",
+              "role": "President — replace with your own",
+              "email": "president@example.com"
+            },
+            {
+              "name": "Ruth Delaney",
+              "role": "Vice President"
+            },
+            {
+              "name": "Miriam Okonkwo",
+              "role": "Secretary"
+            },
+            {
+              "name": "Joan Whitfield",
+              "role": "Treasurer"
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "spacing": "normal",
+            "align": "left",
+            "media": "right"
+          }
         }
       ]
     },
     {
-      "slug": "papers", "title": "Papers", "nav": true,
+      "slug": "papers",
+      "title": "Papers",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "p-hero", "variant": "pattern",
+          "type": "hero",
+          "id": "p-hero",
+          "variant": "pattern",
           "title": "This year's papers",
           "subtitle": "Sample text — replace me: One shape a month, sized for a 60-inch throw if you keep up, or a cushion if you do not.",
-          "style": { "bg": "pattern", "align": "center", "imageId": "hero-art" }
+          "style": {
+            "bg": "pattern",
+            "align": "center",
+            "imageId": "hero-art"
+          }
         },
         {
-          "type": "feature_grid", "id": "p-year", "variant": "numbered",
+          "type": "feature_grid",
+          "id": "p-year",
+          "variant": "numbered",
           "items": [
-            { "title": "January to April", "body": "1-inch hexies, then jewels, then a clamshell row. Glue-baste notes in the newsletter." },
-            { "title": "May to August", "body": "Tumbling blocks and a fussy-cut floral round. Optional English-paper diamond border." },
-            { "title": "September to December", "body": "Pull papers, join sections, and bind at the December finish night." }
+            {
+              "title": "January to April",
+              "body": "1-inch hexies, then jewels, then a clamshell row. Glue-baste notes in the newsletter."
+            },
+            {
+              "title": "May to August",
+              "body": "Tumbling blocks and a fussy-cut floral round. Optional English-paper diamond border."
+            },
+            {
+              "title": "September to December",
+              "body": "Pull papers, join sections, and bind at the December finish night."
+            }
           ],
-          "style": { "bg": "none", "width": "wide" }
-        },
-        { "type": "blog_teaser", "id": "p-news", "heading": "From the newsletter", "limit": 3, "style": { "bg": "tint" } }
-      ]
-    },
-    {
-      "slug": "bees", "title": "Bees", "nav": true,
-      "sections": [
-        {
-          "type": "hero", "id": "b-hero", "variant": "minimal",
-          "title": "Bees",
-          "subtitle": "Sample text — replace me: Small groups, a shared tin, and a standing night.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
         },
         {
-          "type": "feature_grid", "id": "b-list", "variant": "cards",
-          "items": [
-            { "title": "Tuesday tin", "body": "Four to six people, 7 to 9, rotating dining rooms." },
-            { "title": "Library bee", "body": "Thursday mornings at the public library. Quiet stitching, no machines." },
-            { "title": "Mail bee", "body": "For members who cannot drive at night. A round-robin of papers and leftover prints." }
-          ],
-          "style": { "bg": "tint", "width": "wide" }
-        },
-        { "type": "join_band", "id": "b-join", "title": "Ask after your second meeting", "ctaLabel": "Join first", "style": { "bg": "dark", "align": "center" } }
-      ]
-    },
-    {
-      "slug": "why-join", "title": "Join", "nav": true, "navLabel": "Join",
-      "sections": [
-        {
-          "type": "hero", "id": "j-hero", "variant": "minimal",
-          "title": "Membership",
-          "subtitle": "Sample text — replace me: One level. Dues cover the hall, the paper packs, and the newsletter.",
-          "ctaLabel": "Pay dues", "ctaHref": "/membership",
-          "style": { "bg": "brand", "align": "center" }
-        },
-        { "type": "membership_levels", "id": "levels", "variant": "compact", "style": { "bg": "none", "width": "narrow" } },
-        {
-          "type": "faq", "id": "j-faq",
-          "items": [
-            { "q": "Do I need to know English paper piecing already?", "a": "No. The first meeting is a glue-baste demo. Bring fabric scraps if you have them; we have papers." },
-            { "q": "Are machines allowed?", "a": "Not at the monthly meeting. Some bees use a machine to join finished sections. Handwork is the default." }
-          ],
-          "style": { "bg": "tint", "width": "narrow" }
+          "type": "blog_teaser",
+          "id": "p-news",
+          "heading": "From the newsletter",
+          "limit": 3,
+          "style": {
+            "bg": "tint"
+          }
         }
       ]
     },
     {
-      "slug": "contact", "title": "Contact", "nav": true,
+      "slug": "bees",
+      "title": "Bees",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "c-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "b-hero",
+          "variant": "minimal",
+          "title": "Bees",
+          "subtitle": "Sample text — replace me: Small groups, a shared tin, and a standing night.",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        },
+        {
+          "type": "feature_grid",
+          "id": "b-list",
+          "variant": "cards",
+          "items": [
+            {
+              "title": "Tuesday tin",
+              "body": "Four to six people, 7 to 9, rotating dining rooms."
+            },
+            {
+              "title": "Library bee",
+              "body": "Thursday mornings at the public library. Quiet stitching, no machines."
+            },
+            {
+              "title": "Mail bee",
+              "body": "For members who cannot drive at night. A round-robin of papers and leftover prints."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "join_band",
+          "id": "b-join",
+          "title": "Ask after your second meeting",
+          "ctaLabel": "Join first",
+          "style": {
+            "bg": "dark",
+            "align": "center"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "why-join",
+      "title": "Join",
+      "nav": true,
+      "navLabel": "Join",
+      "sections": [
+        {
+          "type": "hero",
+          "id": "j-hero",
+          "variant": "minimal",
+          "title": "Membership",
+          "subtitle": "Sample text — replace me: One level. Dues cover the hall, the paper packs, and the newsletter.",
+          "ctaLabel": "Pay dues",
+          "ctaHref": "/membership",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
+        },
+        {
+          "type": "membership_levels",
+          "id": "levels",
+          "variant": "compact",
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "faq",
+          "id": "j-faq",
+          "items": [
+            {
+              "q": "Do I need to know English paper piecing already?",
+              "a": "No. The first meeting is a glue-baste demo. Bring fabric scraps if you have them; we have papers."
+            },
+            {
+              "q": "Are machines allowed?",
+              "a": "Not at the monthly meeting. Some bees use a machine to join finished sections. Handwork is the default."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "benefits",
+          "id": "benefits",
+          "heading": "What membership includes",
+          "items": [
+            {
+              "title": "Monthly programs",
+              "body": "Sample text — replace me: Speakers, trunk shows and demonstrations at every meeting."
+            },
+            {
+              "title": "Workshops at member rates",
+              "body": "Hands-on classes with visiting teachers, booked before they open to the public."
+            },
+            {
+              "title": "The newsletter",
+              "body": "Meeting reminders, block patterns and what the bees are working on."
+            },
+            {
+              "title": "The library",
+              "body": "Books, patterns and templates to borrow at any meeting."
+            },
+            {
+              "title": "Show entry",
+              "body": "Enter the annual show, and help hang it."
+            },
+            {
+              "title": "The people",
+              "body": "Quilters in Ann Arbor, Michigan who will answer the question you are stuck on."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "normal",
+            "spacing": "normal",
+            "align": "left",
+            "media": "right"
+          }
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
           "title": "Write to {{guild_name}}",
           "subtitle": "Sample text — replace me: New-member questions, leftover print donations, and bee seats.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
-        { "type": "contact", "id": "form", "showDetails": true, "style": { "bg": "tint" } },
-        { "type": "meeting_info", "id": "c-when", "when": "{{meeting_info}}", "where": "{{city}}", "style": { "bg": "brand" } }
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-when",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "style": {
+            "bg": "brand"
+          }
+        }
       ]
     }
   ]

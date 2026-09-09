@@ -7,22 +7,60 @@
     "palette": "soft-butter",
     "typePair": "fraunces-inter",
     "scale": "comfortable",
-    "shape": { "radius": "round", "shadow": "subtle" },
-    "rhythm": { "spacing": "airy", "container": "normal" },
-    "header": { "variant": "centered", "sticky": true, "cta": "quote", "overlayHero": false },
-    "footer": { "variant": "simple" },
-    "pattern": { "id": "nine-patch", "opacity": 0.1 }
+    "shape": {
+      "radius": "round",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "centered",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "nine-patch",
+      "opacity": 0.1
+    }
   },
   "imagery": [
-    { "id": "hero-art", "kind": "pattern", "alt": "" }
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
   ],
-  "previewSeed": { "guildName": "Sunday Sheets Studio", "city": "Eugene, Oregon" },
+  "previewSeed": {
+    "guildName": "Sunday Sheets Studio",
+    "city": "Eugene, Oregon"
+  },
   "menu": [
-    { "label": "Shop", "href": "/shop" },
-    { "label": "Journal", "href": "/journal" },
-    { "label": "About", "href": "/about" },
-    { "label": "Contact", "href": "/contact" },
-    { "label": "Custom quilts", "href": "/request-a-quote" }
+    {
+      "label": "Shop",
+      "href": "/shop"
+    },
+    {
+      "label": "Journal",
+      "href": "/journal"
+    },
+    {
+      "label": "About",
+      "href": "/about"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    },
+    {
+      "label": "Custom quilts",
+      "href": "/request-a-quote"
+    }
   ],
   "pages": [
     {
@@ -41,7 +79,12 @@
           "ctaHref": "/shop",
           "secondaryLabel": "Custom from your linens",
           "secondaryHref": "/request-a-quote",
-          "style": { "bg": "pattern", "width": "wide", "spacing": "airy", "imageId": "hero-art" }
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "spacing": "airy",
+            "imageId": "hero-art"
+          }
         },
         {
           "type": "feature_grid",
@@ -49,12 +92,35 @@
           "variant": "cards",
           "heading": "The line",
           "items": [
-            { "title": "Whole-sheet quilts", "body": "One glorious sheet, kept whole, bound in a coordinating pillowcase.", "price": "from $180", "href": "/shop" },
-            { "title": "Patchwork from pairs", "body": "Two or three sheets that agree with each other, cut into honest squares.", "price": "from $220", "href": "/shop" },
-            { "title": "Baby quilts", "body": "The softest pieces in the haul, sized for cribs and grandmothers' laps.", "price": "from $140", "href": "/shop" },
-            { "title": "Custom from your linens", "body": "Your grandmother's sheets, quilted before the moths win.", "price": "quoted", "href": "/request-a-quote" }
+            {
+              "title": "Whole-sheet quilts",
+              "body": "One glorious sheet, kept whole, bound in a coordinating pillowcase.",
+              "price": "from $180",
+              "href": "/shop"
+            },
+            {
+              "title": "Patchwork from pairs",
+              "body": "Two or three sheets that agree with each other, cut into honest squares.",
+              "price": "from $220",
+              "href": "/shop"
+            },
+            {
+              "title": "Baby quilts",
+              "body": "The softest pieces in the haul, sized for cribs and grandmothers' laps.",
+              "price": "from $140",
+              "href": "/shop"
+            },
+            {
+              "title": "Custom from your linens",
+              "body": "Your grandmother's sheets, quilted before the moths win.",
+              "price": "quoted",
+              "href": "/request-a-quote"
+            }
           ],
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
         },
         {
           "type": "rich_text",
@@ -62,7 +128,10 @@
           "variant": "two_column",
           "heading": "Where the sheets come from",
           "html": "<p>Estate sales first, church rummage sales second, and the thrift stores on their restock mornings. A good vintage sheet is pre-shrunk by decades, prints all over, and costs less than a fat quarter of new cotton. The washing happens twice before any cutting, once to clean and once to be sure.</p>",
-          "style": { "bg": "dark", "width": "normal" }
+          "style": {
+            "bg": "dark",
+            "width": "normal"
+          }
         },
         {
           "type": "gallery",
@@ -71,7 +140,10 @@
           "source": "gallery",
           "gallerySlug": "hauls",
           "heading": "Finished and photographed in real light",
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
         },
         {
           "type": "quote_cta",
@@ -79,7 +151,11 @@
           "projectType": "custom",
           "heading": "Send your linen closet",
           "submitLabel": "Ask about a custom quilt",
-          "style": { "bg": "tint", "width": "normal", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "align": "center"
+          }
         }
       ]
     },
@@ -94,14 +170,21 @@
           "variant": "minimal",
           "title": "Ready to ship",
           "subtitle": "Sample text — replace me: Every quilt here is finished, washed, and photographed on an actual bed, not a wall.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "store_teaser",
           "id": "shop-list",
           "heading": "In stock",
           "limit": 8,
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
         },
         {
           "type": "rich_text",
@@ -109,7 +192,10 @@
           "variant": "prose",
           "heading": "Care, honestly",
           "html": "<p>Machine wash, gentle, and dry on low or on the line. The fabrics have already survived forty years of Sunday mornings; they can survive your laundry, but they have earned the gentle cycle.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -124,14 +210,22 @@
           "variant": "minimal",
           "title": "From the hauling route",
           "subtitle": "Sample text — replace me: Estate sale maps, sheet identification, and the occasional quilt that got away.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "blog_teaser",
           "id": "journal-list",
           "heading": "Recent entries",
           "limit": 3,
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
         },
         {
           "type": "cta",
@@ -139,7 +233,11 @@
           "label": "Commission a quilt from your linens",
           "href": "/request-a-quote",
           "kind": "secondary",
-          "style": { "bg": "tint", "width": "normal", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "align": "center"
+          }
         }
       ]
     },
@@ -154,23 +252,37 @@
           "variant": "minimal",
           "title": "About the studio",
           "subtitle": "Sample text — replace me: Started with one Hawaiian-print sheet set from a garage sale and a sewing machine that needed the table cleared first.",
-          "style": { "bg": "none", "width": "narrow", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
           "type": "rich_text",
           "id": "about-body",
           "variant": "two_column",
           "html": "<p>The first quilt was an accident of arithmetic: one king sheet plus one flat sheet equaled exactly one queen quilt top, and the house only had so many beds. Friends started leaving sheets on the porch. The porch filled. The studio followed.</p><p>The rule has not changed: nothing new is bought that a thrift store can supply, and every quilt keeps a tag listing the origin of its cloth, down to the church that donated the pillowcases.</p>",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal"
+          }
         },
         {
           "type": "testimonials",
           "id": "about-quote",
           "variant": "single",
           "items": [
-            { "quote": "She found sheets like the ones on my childhood bed and made me a quilt from them before I finished crying about it.", "author": "A repeat customer" }
+            {
+              "quote": "She found sheets like the ones on my childhood bed and made me a quilt from them before I finished crying about it.",
+              "author": "A repeat customer"
+            }
           ],
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         }
       ]
     },
@@ -186,7 +298,11 @@
           "variant": "minimal",
           "title": "Custom from your linens",
           "subtitle": "Sample text — replace me: Send the sheets your family actually slept under. Stains and mends stay where they are; they are the story.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "quote_cta",
@@ -194,7 +310,10 @@
           "projectType": "custom",
           "heading": "Describe the linens",
           "submitLabel": "Send the details",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal"
+          }
         },
         {
           "type": "rich_text",
@@ -202,7 +321,10 @@
           "variant": "prose",
           "heading": "How a custom runs",
           "html": "<p>You send photographs and rough measurements first; the quote comes back with a design direction and the honest news about which pieces are too worn for the top and will ride in the back instead. Washed linens arrive, the quilt is cut within the month, and the offcuts return as pillow covers.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow"
+          }
         }
       ]
     },
@@ -217,14 +339,21 @@
           "variant": "minimal",
           "title": "Contact the studio",
           "subtitle": "Sample text — replace me: Sheet donations, custom quotes, and the everlasting question of whether that stained sheet is worth saving. It is.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "contact",
           "id": "contact-form",
           "heading": "Send a message",
           "showDetails": true,
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal"
+          }
         },
         {
           "type": "rich_text",
@@ -232,7 +361,44 @@
           "variant": "prose",
           "heading": "Sheet donations",
           "html": "<p>The studio accepts clean vintage sheets and pillowcases by the bag, and every donation is acknowledged with a photograph of whatever it becomes. Flat sheets, fitted sheets, and the mysterious third pillowcase are all welcome.</p>",
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
+        },
+        {
+          "type": "hours_location",
+          "id": "hours",
+          "heading": "Hours and where to find us",
+          "hours": [
+            {
+              "day": "Monday – Thursday",
+              "open": "10:00 – 5:00"
+            },
+            {
+              "day": "Friday",
+              "open": "10:00 – 4:00"
+            },
+            {
+              "day": "Saturday",
+              "open": "By appointment"
+            },
+            {
+              "day": "Sunday",
+              "open": "Closed"
+            }
+          ],
+          "address": "118 Mill Street, Eugene, Oregon",
+          "phone": "555-0100",
+          "email": "hello@example.com",
+          "note": "Sample text — replace me: Drop-off and pick-up any time during opening hours; call first if you are bringing a full-size top.",
+          "style": {
+            "bg": "none",
+            "width": "normal",
+            "spacing": "normal",
+            "align": "left",
+            "media": "right"
+          }
         }
       ]
     }

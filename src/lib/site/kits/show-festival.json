@@ -7,163 +7,468 @@
     "palette": "seasonal-harvest",
     "typePair": "playfair-lato",
     "scale": "comfortable",
-    "shape": { "radius": "soft", "shadow": "lifted" },
-    "rhythm": { "spacing": "normal", "container": "wide" },
-    "header": { "variant": "centered", "sticky": true, "cta": "join", "overlayHero": true },
-    "footer": { "variant": "columns" },
-    "pattern": { "id": "churn-dash", "opacity": 0.1 }
+    "shape": {
+      "radius": "soft",
+      "shadow": "lifted"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "centered",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": true
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "churn-dash",
+      "opacity": 0.1
+    }
   },
-  "imagery": [{ "id": "hero-art", "kind": "pattern", "alt": "" }],
-  "previewSeed": { "guildName": "Riverbend Quilt Guild", "city": "Des Moines, Iowa" },
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
+  ],
+  "previewSeed": {
+    "guildName": "Riverbend Quilt Guild",
+    "city": "Des Moines, Iowa"
+  },
   "pages": [
     {
-      "slug": "home", "title": "Home", "nav": false,
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
       "sections": [
         {
-          "type": "hero", "id": "welcome", "variant": "stats",
+          "type": "hero",
+          "id": "welcome",
+          "variant": "stats",
           "eyebrow": "The 2026 show · October 16–18",
           "title": "The {{guild_name}} Show",
           "subtitle": "Sample text — replace me: Three days of judged quilts, vendors, and a judged youth category, held in {{city}}.",
-          "ctaLabel": "Show details", "ctaHref": "/the-show",
-          "secondaryLabel": "Join the guild", "secondaryHref": "/membership",
+          "ctaLabel": "Show details",
+          "ctaHref": "/the-show",
+          "secondaryLabel": "Join the guild",
+          "secondaryHref": "/membership",
           "stats": [
-            { "value": "400+", "label": "quilts on the floor" },
-            { "value": "40", "label": "vendors" },
-            { "value": "3", "label": "days" }
+            {
+              "value": "400+",
+              "label": "quilts on the floor"
+            },
+            {
+              "value": "40",
+              "label": "vendors"
+            },
+            {
+              "value": "3",
+              "label": "days"
+            }
           ],
-          "style": { "bg": "dark", "width": "full", "align": "center", "spacing": "airy" }
+          "style": {
+            "bg": "dark",
+            "width": "full",
+            "align": "center",
+            "spacing": "airy"
+          }
         },
         {
-          "type": "feature_grid", "id": "home-paths", "variant": "cards",
+          "type": "feature_grid",
+          "id": "home-paths",
+          "variant": "cards",
           "items": [
-            { "title": "Enter a quilt", "body": "Online entry opens June 1. Categories include pieced, applique, art, and youth.", "href": "/the-show" },
-            { "title": "Volunteer", "body": "White-glove, intake, and cafe shifts. Members sign up first.", "href": "/the-show" },
-            { "title": "Sponsor a ribbon", "body": "Best of Show, Viewer's Choice, and category ribbons are funded by local shops.", "href": "/sponsors" }
+            {
+              "title": "Enter a quilt",
+              "body": "Online entry opens June 1. Categories include pieced, applique, art, and youth.",
+              "href": "/the-show"
+            },
+            {
+              "title": "Volunteer",
+              "body": "White-glove, intake, and cafe shifts. Members sign up first.",
+              "href": "/the-show"
+            },
+            {
+              "title": "Sponsor a ribbon",
+              "body": "Best of Show, Viewer's Choice, and category ribbons are funded by local shops.",
+              "href": "/sponsors"
+            }
           ],
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
         },
-        { "type": "events", "id": "spotlight", "variant": "next_up", "heading": "Next on the calendar", "limit": 1, "style": { "bg": "none" } },
-        { "type": "join_band", "id": "join", "title": "The show is a guild project", "body": "Membership includes entry discounts and first pick of volunteer shifts.", "ctaLabel": "Join", "style": { "bg": "brand", "align": "center" } },
-        { "type": "gallery", "id": "last-show", "variant": "grid", "source": "gallery", "gallerySlug": "2025-show", "style": { "bg": "none", "width": "wide" } }
+        {
+          "type": "events",
+          "id": "spotlight",
+          "variant": "next_up",
+          "heading": "Next on the calendar",
+          "limit": 1,
+          "style": {
+            "bg": "none"
+          }
+        },
+        {
+          "type": "join_band",
+          "id": "join",
+          "title": "The show is a guild project",
+          "body": "Membership includes entry discounts and first pick of volunteer shifts.",
+          "ctaLabel": "Join",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
+        },
+        {
+          "type": "gallery",
+          "id": "last-show",
+          "variant": "grid",
+          "source": "gallery",
+          "gallerySlug": "2025-show",
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
       ]
     },
     {
-      "slug": "the-show", "title": "The Show", "nav": true,
+      "slug": "the-show",
+      "title": "The Show",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "show-hero", "variant": "split",
+          "type": "hero",
+          "id": "show-hero",
+          "variant": "split",
           "title": "The 2026 show",
           "subtitle": "Sample text — replace me: October 16–18 at the county events center. Judging on Thursday, open to the public Friday through Sunday.",
-          "ctaLabel": "Register for intake", "ctaHref": "/events",
-          "style": { "bg": "pattern", "width": "wide", "media": "right", "imageId": "hero-art" }
+          "ctaLabel": "Register for intake",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "media": "right",
+            "imageId": "hero-art"
+          }
         },
         {
-          "type": "rich_text", "id": "show-body", "variant": "two_column",
+          "type": "rich_text",
+          "id": "show-body",
+          "variant": "two_column",
           "heading": "How entry works",
           "html": "<p>Members may enter three quilts; non-members may enter one. A quilt must have three layers and be finished. Labels go on the back, lower left as you look at the quilt from behind.</p><p>Intake is Thursday 9 to 3. Pickup is Sunday after 5. The catalog lists every quilt with the maker, the quilter, and the year finished.</p>",
-          "style": { "bg": "none" }
+          "style": {
+            "bg": "none"
+          }
         },
         {
-          "type": "faq", "id": "show-faq",
+          "type": "faq",
+          "id": "show-faq",
           "items": [
-            { "q": "Can I enter a quilt I did not quilt?", "a": "Yes. Credit the longarmer or the person who hand quilted it on the entry form. Both names go in the catalog." },
-            { "q": "Is there a size limit?", "a": "Miniatures under 24 inches on a side have their own category. Bed quilts may not exceed 120 inches on the long side, because of the pipe-and-drape." }
+            {
+              "q": "Can I enter a quilt I did not quilt?",
+              "a": "Yes. Credit the longarmer or the person who hand quilted it on the entry form. Both names go in the catalog."
+            },
+            {
+              "q": "Is there a size limit?",
+              "a": "Miniatures under 24 inches on a side have their own category. Bed quilts may not exceed 120 inches on the long side, because of the pipe-and-drape."
+            }
           ],
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
         },
-        { "type": "events", "id": "show-events", "variant": "list", "heading": "Show week", "limit": 6, "style": { "bg": "none", "width": "wide" } }
+        {
+          "type": "events",
+          "id": "show-events",
+          "variant": "list",
+          "heading": "Show week",
+          "limit": 6,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
       ]
     },
     {
-      "slug": "about", "title": "About", "nav": true,
+      "slug": "about",
+      "title": "About",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "a-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "a-hero",
+          "variant": "minimal",
           "title": "The guild behind the show",
           "subtitle": "Sample text — replace me: {{guild_name}} has produced a judged show since 1998. Monthly meetings continue all year.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
         {
-          "type": "rich_text", "id": "a-body", "variant": "prose",
+          "type": "rich_text",
+          "id": "a-body",
+          "variant": "prose",
           "html": "<p>We meet {{meeting_info}} in {{city}}. Show planning starts in January. The rest of the year looks like any guild: programs, bees, and charity quilts for the children's hospital.</p>",
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow"
+          }
         },
-        { "type": "cta", "id": "a-join", "label": "Membership", "href": "/why-join", "kind": "primary", "style": { "bg": "none", "align": "center" } }
+        {
+          "type": "cta",
+          "id": "a-join",
+          "label": "Membership",
+          "href": "/why-join",
+          "kind": "primary",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
+        }
       ]
     },
     {
-      "slug": "why-join", "title": "Membership", "nav": true, "navLabel": "Join",
+      "slug": "why-join",
+      "title": "Membership",
+      "nav": true,
+      "navLabel": "Join",
       "sections": [
         {
-          "type": "hero", "id": "j-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "j-hero",
+          "variant": "minimal",
           "title": "Join the guild that runs the show",
           "subtitle": "Sample text — replace me: Members enter extra quilts, sit the white-glove shifts, and vote on the next venue.",
-          "ctaLabel": "Levels", "ctaHref": "/membership",
-          "style": { "bg": "brand", "align": "center" }
+          "ctaLabel": "Levels",
+          "ctaHref": "/membership",
+          "style": {
+            "bg": "brand",
+            "align": "center"
+          }
         },
-        { "type": "membership_levels", "id": "levels", "variant": "cards", "style": { "bg": "none", "width": "wide" } },
-        { "type": "join_band", "id": "j-band", "title": "Dues are collected once a year", "ctaLabel": "Join", "style": { "bg": "dark", "align": "center" } }
+        {
+          "type": "membership_levels",
+          "id": "levels",
+          "variant": "cards",
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        },
+        {
+          "type": "benefits",
+          "id": "benefits",
+          "heading": "What membership includes",
+          "items": [
+            {
+              "title": "Monthly programs",
+              "body": "Sample text — replace me: Speakers, trunk shows and demonstrations at every meeting."
+            },
+            {
+              "title": "Workshops at member rates",
+              "body": "Hands-on classes with visiting teachers, booked before they open to the public."
+            },
+            {
+              "title": "The newsletter",
+              "body": "Meeting reminders, block patterns and what the bees are working on."
+            },
+            {
+              "title": "The library",
+              "body": "Books, patterns and templates to borrow at any meeting."
+            },
+            {
+              "title": "Show entry",
+              "body": "Enter the annual show, and help hang it."
+            },
+            {
+              "title": "The people",
+              "body": "Quilters in Des Moines, Iowa who will answer the question you are stuck on."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "spacing": "normal",
+            "align": "left",
+            "media": "right"
+          }
+        },
+        {
+          "type": "join_band",
+          "id": "j-band",
+          "title": "Dues are collected once a year",
+          "ctaLabel": "Join",
+          "style": {
+            "bg": "dark",
+            "align": "center"
+          }
+        }
       ]
     },
     {
-      "slug": "meetings", "title": "Events", "nav": true,
+      "slug": "meetings",
+      "title": "Events",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "e-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "e-hero",
+          "variant": "minimal",
           "title": "Meetings, workshops, and show week",
           "subtitle": "Sample text — replace me: Monthly meetings plus the October show.",
-          "ctaLabel": "Calendar", "ctaHref": "/calendar",
-          "style": { "bg": "none", "align": "center" }
+          "ctaLabel": "Calendar",
+          "ctaHref": "/calendar",
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
-        { "type": "meeting_info", "id": "e-when", "when": "{{meeting_info}}", "where": "{{city}}", "style": { "bg": "tint" } },
-        { "type": "events", "id": "e-list", "variant": "cards", "limit": 8, "style": { "bg": "none", "width": "wide" } }
+        {
+          "type": "meeting_info",
+          "id": "e-when",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "events",
+          "id": "e-list",
+          "variant": "cards",
+          "limit": 8,
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
       ]
     },
     {
-      "slug": "gallery", "title": "Gallery", "nav": true,
+      "slug": "gallery",
+      "title": "Gallery",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "g-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "g-hero",
+          "variant": "minimal",
           "title": "Quilts from past shows",
           "subtitle": "Sample text — replace me: Best of Show, Viewer's Choice, and a few that did not place and still deserved a photograph.",
-          "ctaLabel": "All galleries", "ctaHref": "/galleries",
-          "style": { "bg": "dark", "align": "center" }
+          "ctaLabel": "All galleries",
+          "ctaHref": "/galleries",
+          "style": {
+            "bg": "dark",
+            "align": "center"
+          }
         },
-        { "type": "gallery", "id": "g-grid", "variant": "masonry", "source": "gallery", "gallerySlug": "2025-show", "style": { "bg": "none", "width": "wide" } }
+        {
+          "type": "gallery",
+          "id": "g-grid",
+          "variant": "masonry",
+          "source": "gallery",
+          "gallerySlug": "2025-show",
+          "style": {
+            "bg": "none",
+            "width": "wide"
+          }
+        }
       ]
     },
     {
-      "slug": "sponsors", "title": "Sponsors", "nav": true,
+      "slug": "sponsors",
+      "title": "Sponsors",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "s-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "s-hero",
+          "variant": "minimal",
           "title": "Show sponsors",
           "subtitle": "Sample text — replace me: Local shops, longarm studios, and a few farms that donate the cafe pies.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
         {
-          "type": "feature_grid", "id": "s-list", "variant": "icons",
+          "type": "feature_grid",
+          "id": "s-list",
+          "variant": "icons",
           "items": [
-            { "title": "Ribbon sponsors", "body": "A named ribbon in a category. Your shop listed in the catalog and on the pipe-and-drape." },
-            { "title": "Vendor booths", "body": "Ten-foot booths, electricity extra. Applications open in March." },
-            { "title": "Cafe and raffle", "body": "Pie by the slice, coffee, and the opportunity quilt drawing on Sunday at 3." }
+            {
+              "title": "Ribbon sponsors",
+              "body": "A named ribbon in a category. Your shop listed in the catalog and on the pipe-and-drape."
+            },
+            {
+              "title": "Vendor booths",
+              "body": "Ten-foot booths, electricity extra. Applications open in March."
+            },
+            {
+              "title": "Cafe and raffle",
+              "body": "Pie by the slice, coffee, and the opportunity quilt drawing on Sunday at 3."
+            }
           ],
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide"
+          }
         },
-        { "type": "contact", "id": "s-form", "heading": "Ask about a booth or a ribbon", "showDetails": true, "style": { "bg": "none" } }
+        {
+          "type": "contact",
+          "id": "s-form",
+          "heading": "Ask about a booth or a ribbon",
+          "showDetails": true,
+          "style": {
+            "bg": "none"
+          }
+        }
       ]
     },
     {
-      "slug": "contact", "title": "Contact", "nav": true,
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
       "sections": [
         {
-          "type": "hero", "id": "c-hero", "variant": "minimal",
+          "type": "hero",
+          "id": "c-hero",
+          "variant": "minimal",
           "title": "Contact {{guild_name}}",
           "subtitle": "Sample text — replace me: Show questions go to the show chair. Membership questions go here.",
-          "style": { "bg": "none", "align": "center" }
+          "style": {
+            "bg": "none",
+            "align": "center"
+          }
         },
-        { "type": "contact", "id": "form", "showDetails": true, "style": { "bg": "tint" } },
-        { "type": "meeting_info", "id": "c-when", "when": "{{meeting_info}}", "where": "{{city}}", "style": { "bg": "brand" } }
+        {
+          "type": "contact",
+          "id": "form",
+          "showDetails": true,
+          "style": {
+            "bg": "tint"
+          }
+        },
+        {
+          "type": "meeting_info",
+          "id": "c-when",
+          "when": "{{meeting_info}}",
+          "where": "{{city}}",
+          "style": {
+            "bg": "brand"
+          }
+        }
       ]
     }
   ]
