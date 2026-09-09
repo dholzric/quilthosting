@@ -12,7 +12,9 @@ import {
   normalizeDomainStatus,
   type OnboardingTenant,
 } from "../lib/onboarding";
+import { nextActions } from "../lib/nextActions";
 import { featuresSchema, uiSchema } from "../lib/features";
+import { firstRunState } from "../lib/firstRun";
 import { DEFAULT_DESIGN, PATTERN_IDS, deriveRoles, designFontsHref, siteDesignSchema } from "../lib/site/design/tokens";
 import { PALETTES, PALETTE_FAMILIES, PALETTE_FAMILY_LABELS } from "../lib/site/design/palettes";
 import { TYPE_PAIRS } from "../lib/site/design/typePairs";
@@ -44,6 +46,8 @@ tenantRoutes.use("*", requireAuth);
 
 const CITY_MAX = 120;
 const MEETING_INFO_MAX = 300;
+/** Same shape files.ts issues and public.ts serves images by. */
+const FILE_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
 
 /**
  * Where the public site can be reached RIGHT NOW. The /g/:slug platform path
@@ -168,6 +172,10 @@ tenantRoutes.post("/", async (c) => {
     city?: string;
     meeting_info?: string;
     kit?: string;
+    /** A palette id from the library, or four brand colours. */
+    palette?: string | Record<string, unknown>;
+    /** An already-uploaded logo (first-run screen 3 creates the guild first). */
+    logo_file_id?: string;
 }>();
   if (!body.name || !body.slug) {
     return c.json({ error: "name and slug are required" }, 400);
@@ -210,6 +218,46 @@ tenantRoutes.post("/", async (c) => {
   if (!kit || kit.audience === "business") {
     return c.json({ error: "Unknown design kit", issues: [{ path: "kit", message: `"${kitId}" is not a guild kit` }] }, 400);
   }
+  // The first-run wizard (public/admin.html) can hand the whole design in at
+  // once: the kit above, a palette that overrides the kit's, and a logo the
+  // owner uploaded from an earlier screen. Both are folded into the SAME
+  // settings blob the batch below writes, so the guild is never created in a
+  // state where its site and its design disagree.
+  const settings = JSON.parse(kitSettingsJson(kit)) as Record<string, unknown>;
+
+  const rawPalette = body.palette;
+  if (rawPalette !== undefined && rawPalette !== null && rawPalette !== "") {
+    const palette =
+      typeof rawPalette === "string" ? { id: rawPalette } : { input: rawPalette };
+    const parsed = siteDesignSchema.safeParse({ ...(settings.design as object), palette });
+    if (!parsed.success) {
+      return c.json(
+        {
+          error: "Invalid palette",
+          issues: parsed.error.issues.map((i) => ({ path: i.path.join(".") || "palette", message: i.message })),
+        },
+        400
+      );
+    }
+    settings.design = parsed.data;
+  }
+
+  const logoFileId =
+    body.logo_file_id === undefined || body.logo_file_id === null ? "" : String(body.logo_file_id).trim();
+  if (logoFileId) {
+    if (!FILE_ID_RE.test(logoFileId)) {
+      return c.json(
+        { error: "Invalid logo_file_id", issues: [{ path: "logo_file_id", message: "Not a file id" }] },
+        400
+      );
+    }
+    // Written to BOTH keys on purpose: the guild settings screen and
+    // onboarding.ts read settings.profile.logo_file_id, the site renderer and
+    // the site builder read settings.assets.logo_file_id.
+    settings.profile = { ...(isRecord(settings.profile) ? settings.profile : {}), logo_file_id: logoFileId };
+    settings.assets = { ...(isRecord(settings.assets) ? settings.assets : {}), logo_file_id: logoFileId };
+  }
+
   const pageStmts = kitPageRows(kit, { id, name, city, meetingInfo }, now).map((row) =>
     c.env.DB.prepare(
       `INSERT INTO pages
@@ -240,7 +288,7 @@ tenantRoutes.post("/", async (c) => {
       `INSERT INTO tenants (id, name, slug, plan, status, settings_json, trial_ends_at,
                             domain_status, domain_error, created_at, updated_at)
        VALUES (?, ?, ?, 'free', 'active', ?, ?, 'pending', NULL, ?, ?)`
-    ).bind(id, name, slug, kitSettingsJson(kit), trialIso, now, now),
+    ).bind(id, name, slug, JSON.stringify(settings), trialIso, now, now),
     c.env.DB.prepare(
       `INSERT INTO tenant_users (tenant_id, user_id, role, created_at)
        VALUES (?, ?, 'owner', ?)`
@@ -268,8 +316,14 @@ tenantRoutes.post("/", async (c) => {
   return c.json(withPublicFields(c.env, tenant), 201);
 });
 
-// GET /api/tenants/:id/onboarding — computed setup checklist (members of the
-// guild, or platform admins; same access rule as GET /:id).
+// GET /api/tenants/:id/onboarding — computed setup checklist plus the
+// next-best-action cards (members of the guild, or platform admins; same
+// access rule as GET /:id).
+//
+// next_actions rides along here rather than on its own endpoint: the
+// dashboard already fetches this once, both answers are derived from the
+// same tenant row, and a second endpoint would mean a second access check
+// and a second round trip for one screen.
 tenantRoutes.get("/:id/onboarding", async (c) => {
   const user = c.get("user");
   const id = c.req.param("id");
@@ -279,15 +333,37 @@ tenantRoutes.get("/:id/onboarding", async (c) => {
     c.env.DB.prepare("SELECT * FROM tenants WHERE id = ?").bind(id)
   );
   if (!tenant) return c.json({ error: "Not found" }, 404);
-  const state = await computeOnboarding(c.env.DB, tenant);
+  const [state, actions] = await Promise.all([
+    computeOnboarding(c.env.DB, tenant),
+    // Advice must never break the checklist it rides along with.
+    nextActions(c.env.DB, tenant).catch(() => []),
+  ]);
   const pub = withPublicFields(c.env, tenant);
   return c.json({
     ...state,
+    next_actions: actions,
     public_url: pub.public_url,
     subdomain_url: pub.subdomain_url,
     custom_domain: tenant.custom_domain || null,
     role,
   });
+});
+
+// GET /api/tenants/:id/first-run — where the first-run wizard should resume
+// (src/lib/firstRun.ts). Same access rule as GET /:id/onboarding. The step is
+// derived from the tenant's own settings every time it is asked, so there is
+// no cursor to go stale, and the wizard survives a reload or a change of
+// device.
+tenantRoutes.get("/:id/first-run", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const role = await tenantAccessRole(c.env.DB, id, user.id);
+  if (!role) return c.json({ error: "Forbidden" }, 403);
+  const tenant = await first<OnboardingTenant>(
+    c.env.DB.prepare("SELECT * FROM tenants WHERE id = ?").bind(id)
+  );
+  if (!tenant) return c.json({ error: "Not found" }, 404);
+  return c.json(firstRunState(tenant, publicUrlFor(c.env, tenant)));
 });
 
 // POST /api/tenants/:id/onboarding/dismiss — hide the checklist (any member

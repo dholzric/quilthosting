@@ -387,6 +387,53 @@ describe("GET /api/tenants/:id/onboarding + dismiss", () => {
     expect(denied.status).toBe(403);
   });
 
+  // next_actions rides on this endpoint rather than a second one (see the
+  // route comment): the dashboard fetches it once and gets both answers.
+  it("carries at most three ranked next_action cards derived from the same rows", async () => {
+    const headers = await authHeader();
+    const { db } = fakeCreateDb({
+      membershipRole: "owner",
+      counts: { pages: 5, sample: 5, team: 1 },
+    });
+    const res = await tenantRoutes.request(`/${TENANT_ID}/onboarding`, { headers }, {
+      DB: db, JWT_SECRET, APP_URL,
+    } as unknown as Env);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      next_actions: {
+        id: string;
+        title: string;
+        body: string;
+        cta: { label: string; href: string };
+        severity: string;
+      }[];
+    };
+    expect(Array.isArray(body.next_actions)).toBe(true);
+    expect(body.next_actions.length).toBeLessThanOrEqual(3);
+    // A brand-new guild: no level, sample copy everywhere, empty calendar.
+    expect(body.next_actions.map((a) => a.id)).toEqual([
+      "add_level",
+      "sample_copy",
+      "add_event",
+    ]);
+    for (const a of body.next_actions) {
+      expect(a.title.length).toBeGreaterThan(0);
+      expect(a.body.length).toBeGreaterThan(0);
+      expect(a.cta.href).toMatch(/^#[a-z-]+$/);
+      expect(["do", "consider", "celebrate"]).toContain(a.severity);
+    }
+  });
+
+  it("a stranger gets no next_actions either", async () => {
+    const headers = await authHeader();
+    const stranger = fakeCreateDb({ membershipRole: null });
+    const res = await tenantRoutes.request(`/${TENANT_ID}/onboarding`, { headers }, {
+      DB: stranger.db, JWT_SECRET, APP_URL,
+    } as unknown as Env);
+    expect(res.status).toBe(403);
+    expect(await res.text()).not.toContain("next_actions");
+  });
+
   it("platform admins can read it too", async () => {
     const headers = await authHeader();
     const admin = fakeCreateDb({ membershipRole: null, platformAdmin: true });
@@ -1063,5 +1110,157 @@ describe("POST /api/tenants/:id/site/downgrade", () => {
     const events = fakeSiteDb({ role: "events", settings: UPGRADED_SETTINGS });
     expect((await siteRequest(events.db, "/site/downgrade", { method: "POST" })).status).toBe(403);
     expect(events.batches).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// First-run wizard (phase 3, Task C).
+//
+// Screen 1 creates the guild, so POST / has to be able to take everything the
+// later screens collect in one shot too: a kit, a logo and a palette. Screen
+// 2..4 resume off GET /:id/first-run, which derives the step from the tenant's
+// own settings (src/lib/firstRun.ts) rather than any stored cursor.
+// ---------------------------------------------------------------------------
+
+import { kitSettingsJson, kitById } from "../lib/site/kits";
+
+const LOGO_ID = "Fi1e_Id-9";
+
+async function createRequest(db: unknown, body: Record<string, unknown>) {
+  const env = { DB: db, JWT_SECRET, APP_URL } as unknown as Env;
+  const headers = { ...(await authHeader()), "Content-Type": "application/json" };
+  return tenantRoutes.request("/", { method: "POST", headers, body: JSON.stringify(body) }, env);
+}
+
+describe("POST /api/tenants — logo, palette and kit applied at creation", () => {
+  it("persists a chosen kit, a library palette and the logo under BOTH settings keys", async () => {
+    const { db, batches } = fakeCreateDb();
+    const res = await createRequest(db, {
+      name: "Prairie Star",
+      slug: "prairie-star",
+      kit: "minimal",
+      palette: "jewel-emerald",
+      logo_file_id: LOGO_ID,
+    });
+    expect(res.status).toBe(201);
+    expect(batches).toHaveLength(1);
+    const settings = JSON.parse(String(batches[0][0].binds[3]));
+    expect(settings.site.kit).toBe("minimal");
+    expect(settings.site.renderer).toBe("sections");
+    expect(settings.design.palette.id).toBe("jewel-emerald");
+    expect(settings.design.palette.input.brand).toBe("#1c6b4a");
+    // The kit's own non-palette design survives the palette override.
+    const minimal = kitById("minimal");
+    expect(settings.design.typePair).toBe(JSON.parse(kitSettingsJson(minimal!)).design.typePair);
+    // onboarding.ts hasLogo() reads either key; the site renderer reads assets.
+    expect(settings.profile.logo_file_id).toBe(LOGO_ID);
+    expect(settings.assets.logo_file_id).toBe(LOGO_ID);
+    // Minimal seeds four pages, so: tenant + owner + 4.
+    expect(batches[0]).toHaveLength(6);
+  });
+
+  it("accepts four custom colours instead of a palette id", async () => {
+    const { db, batches } = fakeCreateDb();
+    const res = await createRequest(db, {
+      name: "Prairie Star",
+      slug: "prairie-star",
+      palette: { brand: "#123456", brandAlt: "#223344", accent: "#ffcc00", neutral: "#111111" },
+    });
+    expect(res.status).toBe(201);
+    const settings = JSON.parse(String(batches[0][0].binds[3]));
+    expect(settings.design.palette.input).toEqual({
+      brand: "#123456",
+      brandAlt: "#223344",
+      accent: "#ffcc00",
+      neutral: "#111111",
+    });
+    expect(settings.design.palette.id).toBeUndefined();
+  });
+
+  it("rejects an unknown palette id and a bad colour before writing anything", async () => {
+    const unknown = fakeCreateDb();
+    const res = await createRequest(unknown.db, { name: "G", slug: "gg", palette: "not-a-palette" });
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as any).issues[0].path).toContain("palette");
+    expect(unknown.batches).toHaveLength(0);
+
+    const bad = fakeCreateDb();
+    const res2 = await createRequest(bad.db, {
+      name: "G",
+      slug: "gg",
+      palette: { brand: "puce", brandAlt: "#223344", accent: "#ffcc00", neutral: "#111111" },
+    });
+    expect(res2.status).toBe(400);
+    expect(bad.batches).toHaveLength(0);
+  });
+
+  it("rejects a logo_file_id that is not a file id", async () => {
+    const { db, batches } = fakeCreateDb();
+    const res = await createRequest(db, { name: "G", slug: "gg", logo_file_id: "../../etc/passwd" });
+    expect(res.status).toBe(400);
+    expect(batches).toHaveLength(0);
+  });
+
+  it("seeds no logo or palette keys when neither is sent (unchanged behaviour)", async () => {
+    const { db, batches } = fakeCreateDb();
+    expect((await createRequest(db, { name: "G", slug: "gg" })).status).toBe(201);
+    const settings = JSON.parse(String(batches[0][0].binds[3]));
+    expect(settings.profile).toBeUndefined();
+    expect(settings.assets).toBeUndefined();
+    expect(settings.design.palette.id).toBe(JSON.parse(kitSettingsJson(kitById("heritage")!)).design.palette.id);
+  });
+});
+
+describe("GET /api/tenants/:id/first-run", () => {
+  const guildRow = (settings_json: string) => ({
+    id: TENANT_ID,
+    name: "Prairie Star",
+    slug: "prairie-star",
+    custom_domain: null,
+    tenant_type: "guild",
+    settings_json,
+    domain_status: "pending",
+    domain_error: null,
+  });
+
+  async function firstRun(db: unknown) {
+    const env = { DB: db, JWT_SECRET, APP_URL } as unknown as Env;
+    return tenantRoutes.request(`/${TENANT_ID}/first-run`, { headers: await authHeader() }, env);
+  }
+
+  it("resumes on 'pick a design' for a freshly created guild", async () => {
+    const { db } = fakeCreateDb({
+      membershipRole: "owner",
+      tenantRow: guildRow(kitSettingsJson(kitById("heritage")!)),
+    });
+    const res = await firstRun(db);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      done: false,
+      step: 2,
+      guild: {
+        slug: "prairie-star",
+        public_url: "https://quilthosting.com/g/prairie-star",
+        kit: "heritage",
+        has_logo: false,
+        has_palette: false,
+      },
+    });
+  });
+
+  it("is done once the guild has a logo", async () => {
+    const settings = JSON.parse(kitSettingsJson(kitById("prairie")!));
+    settings.profile = { logo_file_id: LOGO_ID };
+    const { db } = fakeCreateDb({ membershipRole: "membership", tenantRow: guildRow(JSON.stringify(settings)) });
+    const body = (await (await firstRun(db)).json()) as any;
+    expect(body).toMatchObject({ done: true, step: 4 });
+    expect(body.guild).toMatchObject({ kit: "prairie", has_logo: true });
+  });
+
+  it("is 403 for a non-member and 404 for a missing guild", async () => {
+    const outsider = fakeCreateDb({ membershipRole: null });
+    expect((await firstRun(outsider.db)).status).toBe(403);
+    const missing = fakeCreateDb({ membershipRole: "owner", tenantRow: null });
+    expect((await firstRun(missing.db)).status).toBe(404);
   });
 });

@@ -85,6 +85,20 @@
     .qh-line-row button { margin: 0; padding: 0.45rem 0.6rem; }
     .qh-line-row:not(:first-child) label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     @media (max-width: 640px) { .qh-line-row { grid-template-columns: 1fr; } .qh-line-row:not(:first-child) label { position: static; width: auto; height: auto; clip: auto; } }
+    /* Next-best-action cards (renderDashboard) */
+    .qh-next { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 0.75rem; margin: 0 0 1.25rem; }
+    .qh-next-card { display: flex; flex-direction: column; padding: 0.9rem 1rem; border: 1px solid var(--border); border-left: 4px solid var(--border-strong); border-radius: var(--r-sm); background: var(--surface); }
+    .qh-next-card[data-severity="do"] { border-left-color: var(--brand); background: var(--brand-soft); }
+    .qh-next-card[data-severity="celebrate"] { border-left-color: var(--ok); background: var(--ok-soft); }
+    .qh-next-card h3 { margin: 0 0 0.3rem; font-size: 1rem; line-height: 1.3; }
+    .qh-next-card p { margin: 0 0 0.85rem; font-size: 0.88rem; line-height: 1.5; color: var(--ink-2); }
+    .qh-next-card button { margin: auto 0 0; align-self: flex-start; }
+    /* Teaching empty states: one sentence, one button, never a bare table */
+    .qh-empty { max-width: 36rem; padding: 1.5rem 0.25rem 1rem; }
+    .qh-empty h3 { margin: 0 0 0.4rem; font-size: 1.05rem; }
+    .qh-empty p { margin: 0 0 0.9rem; font-size: 0.95rem; line-height: 1.55; color: var(--ink-2); }
+    .qh-empty button { margin: 0; }
+    .qh-empty .qh-empty-skip { margin: 0.75rem 0 0; font-size: 0.85rem; color: var(--ink-3); }
   </style>
 </head>
 <body class="has-fleet-footer">
@@ -122,24 +136,66 @@
       <p style="margin:0.75rem 0;color:var(--muted);font-size:0.9rem" id="guild-create-intro">
         Create a guild to get started.
       </p>
-      <label>Guild name</label>
-      <input type="text" id="guild-name" placeholder="Prairie Star Quilt Guild" />
-      <label>Web address</label>
-      <input type="text" id="guild-slug" placeholder="prairie-star" />
-      <p style="font-size:0.8rem;color:var(--muted);margin-top:0.25rem">
-        Lowercase letters, numbers and dashes. Used in your public links.
+      <p style="font-size:0.85rem;color:var(--muted);margin:0 0 0.75rem">
+        Four short screens — your details, a design, your logo and colors — and your website is live.
       </p>
-      <label>City / State <span style="color:var(--muted);font-weight:normal">(optional)</span></label>
-      <input type="text" id="guild-city" placeholder="Lincoln, NE" maxlength="120" autocomplete="address-level2" />
-      <label>Meeting schedule <span style="color:var(--muted);font-weight:normal">(optional)</span></label>
-      <input type="text" id="guild-meeting" placeholder="2nd Tuesday of the month, 6:30 pm, at the library" maxlength="300" />
-      <p style="font-size:0.8rem;color:var(--muted);margin-top:0.25rem">
-        We use these to fill in your starter website — you can change everything later.
-      </p>
-      <button onclick="createGuild()" style="width:100%;margin-top:0.75rem">Create Guild</button>
+      <button onclick="startFirstRun()" style="width:100%;margin-top:0.25rem">Create a guild</button>
     </div>
     <p style="text-align:center;margin-top:1rem">
       <a href="#" onclick="logout();return false" style="font-size:0.85rem;color:var(--muted)">Log out</a>
+    </p>
+  </div>
+
+  <!-- First-run wizard (phase 3, Task C): 1 Your guild → 2 Pick a design →
+       3 Make it yours → 4 You're live. Everything inside #fr-body is built by
+       renderFirstRun() with DOM APIs; the styles are scoped here so the shared
+       admin stylesheet above stays untouched. -->
+  <div id="firstrun-view" class="hidden">
+    <style>
+      #firstrun-view { max-width: 980px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+      #firstrun-view h2 { margin: 0 0 0.25rem; }
+      .fr-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+      .fr-head h1 { font-size: 1.35rem; margin: 0; }
+      .fr-head .thread { color: var(--brand); }
+      .fr-steps { list-style: none; display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0; padding: 0; }
+      .fr-steps li { font-size: 0.78rem; color: var(--ink-3); border: 1px solid var(--border); border-radius: 999px; padding: 0.15rem 0.7rem; background: var(--surface); }
+      .fr-steps li.done { color: var(--ok); border-color: var(--ok); }
+      .fr-steps li.now { color: var(--brand-ink); border-color: var(--brand); background: var(--brand-soft); font-weight: 600; }
+      .fr-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 1.25rem; box-shadow: var(--shadow-sm); }
+      .fr-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-top: 1rem; }
+      .fr-hint { font-size: 0.8rem; color: var(--ink-3); margin: 0.2rem 0 0.75rem; }
+      .fr-ok { color: var(--ok); font-size: 0.82rem; }
+      .fr-bad { color: var(--danger); font-size: 0.82rem; }
+      .fr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 0.75rem; margin-top: 0.75rem; }
+      .fr-kit { text-align: left; padding: 0; border: 2px solid var(--border); border-radius: var(--r-md); background: var(--surface); overflow: hidden; cursor: pointer; box-shadow: none; color: inherit; }
+      .fr-kit[aria-pressed="true"] { border-color: var(--brand); box-shadow: var(--shadow-md); }
+      .fr-kit-art { height: 74px; display: flex; align-items: center; justify-content: center; gap: 0.35rem; }
+      .fr-kit-art span { width: 22px; height: 22px; border-radius: 4px; border: 1px solid rgba(0, 0, 0, 0.08); }
+      .fr-kit-body { padding: 0.55rem 0.7rem 0.7rem; }
+      .fr-kit-name { font-weight: 600; font-size: 0.95rem; }
+      .fr-kit-char { font-size: 0.78rem; color: var(--ink-3); }
+      .fr-pal { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.5rem; margin: 0.35rem 0 0.75rem; }
+      .fr-pal button { display: block; width: 100%; text-align: left; padding: 0.4rem; border: 2px solid var(--border); border-radius: var(--r-sm); background: var(--surface); color: inherit; box-shadow: none; cursor: pointer; }
+      .fr-pal button[aria-pressed="true"] { border-color: var(--brand); }
+      .fr-sw { display: flex; gap: 3px; margin-bottom: 0.25rem; }
+      .fr-sw span { flex: 1; height: 18px; border-radius: 3px; border: 1px solid rgba(0, 0, 0, 0.08); }
+      .fr-pal-name { font-size: 0.8rem; }
+      .fr-logo-preview { max-height: 72px; max-width: 220px; display: block; margin: 0.5rem 0; }
+      .fr-frame { width: 100%; height: 460px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); }
+      .fr-next { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0.75rem; margin-top: 1rem; }
+      .fr-next button { display: block; width: 100%; text-align: left; background: var(--surface); color: inherit; border: 1px solid var(--border); border-radius: var(--r-md); padding: 0.7rem 0.85rem; box-shadow: none; cursor: pointer; }
+      .fr-next strong { display: block; font-size: 0.95rem; }
+      .fr-next span { font-size: 0.8rem; color: var(--ink-3); }
+      @media (max-width: 640px) { .fr-frame { height: 320px; } }
+    </style>
+    <div class="fr-head">
+      <h1><span class="thread">✦</span> QuiltHosting</h1>
+      <ol class="fr-steps" id="fr-steps"></ol>
+    </div>
+    <div id="fr-error" class="error hidden"></div>
+    <div id="fr-body" class="fr-card"></div>
+    <p style="text-align:center;margin-top:1rem">
+      <a href="#" onclick="frExit();return false" style="font-size:0.85rem;color:var(--muted)">Save and finish later</a>
     </p>
   </div>
 
@@ -604,6 +660,9 @@
         logout();
         return;
       }
+      // A first-run wizard left open (on any device) wins over the dashboard:
+      // the guild exists, but its owner has not finished designing it yet.
+      if (!forcePicker && (await resumeFirstRun(guilds))) return;
       // Platform admins with multiple guilds always get the picker (unless resuming a session)
       if (guilds.length === 1 && !forcePicker) {
         selectGuild(guilds[0]);
@@ -659,36 +718,640 @@
       show(document.getElementById("guild-view"));
     }
 
+    /* ——— FIRST-RUN WIZARD (phase 3, Task C) — begin ———————————————————
+       Four screens, each of which PERSISTS before the next one opens:
+
+         1 Your guild     POST /api/tenants — the guild, its owner and a whole
+                          kit website exist from here on, so a reload resumes
+                          instead of starting over.
+         2 Pick a design  PATCH /api/tenants/:id { settings } writing
+                          settings.design (the kit's palette, type, shape,
+                          header and footer) and settings.site.kit. One column,
+                          one statement: there is no moment where the site is
+                          half-built. The pages seeded at screen 1 are left
+                          exactly as they are — a re-seed would throw away
+                          anything the owner had already edited, and only the
+                          create route can seed kit pages today.
+         3 Make it yours  the phase-2 upload pipeline (wbUploadImage) stores the
+                          logo, then one PATCH writes both
+                          settings.profile.logo_file_id and
+                          settings.assets.logo_file_id (onboarding.ts reads the
+                          first, the site renderer the second) and, when colours
+                          are picked, settings.design.palette.
+         4 You're live    nothing left to save: the real site in an iframe and
+                          the three things worth doing next.
+
+       WHICH screen to resume on comes from GET /api/tenants/:id/first-run,
+       derived server-side from those same settings (src/lib/firstRun.ts) — this
+       page never stores a step. The only local state is FR_MARKER: the id of
+       the guild whose wizard is still open. */
+    const FR_CURATED_KITS = ["heritage", "modern-guild", "prairie", "show-festival", "community-threads", "minimal"];
+    const FR_MARKER = "gb_firstrun";
+    const FR_STEP_LABELS = ["Your guild", "Pick a design", "Make it yours", "You're live"];
+    // { step, tenant, settings, options } — null whenever the wizard is closed.
+    let fr = null;
+
+    function frMk(tag, cls, text) {
+      const n = document.createElement(tag);
+      if (cls) n.className = cls;
+      if (text != null) n.textContent = text;
+      return n;
+    }
+    function frParseSettings(json) {
+      try {
+        const s = JSON.parse(json || "{}");
+        return s && typeof s === "object" && !Array.isArray(s) ? s : {};
+      } catch {
+        return {};
+      }
+    }
+    function frError(message) {
+      const el = document.getElementById("fr-error");
+      el.textContent = message;
+      show(el);
+    }
+    // The wizard runs OUTSIDE the app shell, but wbUploadImage() and
+    // qhPaletteFromLogo() both read the `tenantId` global, so the new guild
+    // becomes the current one the moment it exists.
+    function frAdoptTenant(t) {
+      tenantId = t.id;
+      tenantSlug = t.slug;
+      tenantName = t.name;
+      tenantRole = t.role || "owner";
+      localStorage.setItem("gb_tenant_id", t.id);
+      localStorage.setItem("gb_tenant_slug", t.slug);
+      localStorage.setItem("gb_tenant_name", t.name);
+      localStorage.setItem("gb_tenant_role", tenantRole);
+    }
+
+    function startFirstRun() {
+      fr = { step: 1, tenant: null, settings: {}, options: null };
+      hide(document.getElementById("login-view"));
+      hide(document.getElementById("guild-view"));
+      hide(document.getElementById("app-view"));
+      show(document.getElementById("firstrun-view"));
+      renderFirstRun();
+    }
+
+    // Called by enterApp() before it picks a guild: an open wizard wins over
+    // the dashboard. The step comes from the server, never from this device.
+    async function resumeFirstRun(guilds) {
+      const id = localStorage.getItem(FR_MARKER);
+      if (!id) return false;
+      const t = (guilds || []).find((g) => g.id === id);
+      if (!t) {
+        localStorage.removeItem(FR_MARKER);
+        return false;
+      }
+      let state;
+      try {
+        state = await api(`/api/tenants/${id}/first-run`);
+      } catch {
+        localStorage.removeItem(FR_MARKER);
+        return false;
+      }
+      frAdoptTenant({ ...t, role: t.role || "owner" });
+      fr = {
+        step: Number(state.step) || 2,
+        tenant: { ...t, role: t.role || "owner", public_url: (state.guild && state.guild.public_url) || `/g/${t.slug}` },
+        settings: frParseSettings(t.settings_json),
+        options: null,
+      };
+      justCreatedGuild = { id: t.id, public_url: fr.tenant.public_url };
+      hide(document.getElementById("login-view"));
+      hide(document.getElementById("guild-view"));
+      hide(document.getElementById("app-view"));
+      show(document.getElementById("firstrun-view"));
+      renderFirstRun();
+      return true;
+    }
+
+    function renderFirstRun() {
+      if (!fr) return;
+      const steps = document.getElementById("fr-steps");
+      steps.replaceChildren();
+      FR_STEP_LABELS.forEach((label, i) => {
+        const li = frMk("li", i + 1 < fr.step ? "done" : i + 1 === fr.step ? "now" : "", `${i + 1}. ${label}`);
+        if (i + 1 === fr.step) li.setAttribute("aria-current", "step");
+        steps.appendChild(li);
+      });
+      hide(document.getElementById("fr-error"));
+      const body = document.getElementById("fr-body");
+      body.replaceChildren();
+      if (fr.step <= 1) frStep1(body);
+      else if (fr.step === 2) frStep2(body);
+      else if (fr.step === 3) frStep3(body);
+      else frStep4(body);
+    }
+
+    /* ---------- 1. Your guild ---------- */
+
+    function frSlugify(s) {
+      return String(s)
+        .toLowerCase()
+        .replace(/['’]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 40);
+    }
+
+    function frField(root, id, labelText, placeholder, opts) {
+      const o = opts || {};
+      const label = frMk("label", "", labelText);
+      label.setAttribute("for", id);
+      if (o.optional) {
+        const hint = frMk("span", "", " (optional)");
+        hint.style.cssText = "color:var(--muted);font-weight:normal";
+        label.appendChild(hint);
+      }
+      const input = document.createElement("input");
+      input.type = "text";
+      input.id = id;
+      input.placeholder = placeholder;
+      if (o.maxlength) input.maxLength = o.maxlength;
+      if (o.autocomplete) input.autocomplete = o.autocomplete;
+      root.appendChild(label);
+      root.appendChild(input);
+      return input;
+    }
+
+    function frStep1(root) {
+      root.appendChild(frMk("h2", "", "Tell us about your guild"));
+      root.appendChild(frMk("p", "fr-hint", "We use these four answers to write your starter website. Every word can be changed later."));
+      const name = frField(root, "guild-name", "Guild name", "Prairie Star Quilt Guild", { maxlength: 120 });
+      const slug = frField(root, "guild-slug", "Web address", "prairie-star", { maxlength: 40 });
+      const slugMsg = frMk("p", "fr-hint", "Lowercase letters, numbers and dashes. This is the link you give members.");
+      slugMsg.setAttribute("aria-live", "polite");
+      root.appendChild(slugMsg);
+      const city = frField(root, "guild-city", "City / State", "Lincoln, NE", { maxlength: 120, optional: true, autocomplete: "address-level2" });
+      const meeting = frField(root, "guild-meeting", "Meeting schedule", "2nd Tuesday of the month, 6:30 pm, at the library", { maxlength: 300, optional: true });
+      root.appendChild(frMk("p", "fr-hint", "These fill in the “When we meet” lines on your new site."));
+
+      let slugTouched = false;
+      let checkTimer = null;
+      const queueCheck = () => {
+        clearTimeout(checkTimer);
+        checkTimer = setTimeout(() => frCheckSlug(slug.value.trim().toLowerCase(), slugMsg), 350);
+      };
+      name.addEventListener("input", () => {
+        if (slugTouched) return;
+        slug.value = frSlugify(name.value);
+        queueCheck();
+      });
+      slug.addEventListener("input", () => {
+        slugTouched = true;
+        slug.value = slug.value.toLowerCase().replace(/[^a-z0-9-]/g, "");
+        queueCheck();
+      });
+
+      const actions = frMk("div", "fr-actions");
+      const go = frMk("button", "", "Continue");
+      go.id = "fr-create";
+      go.addEventListener("click", createGuild);
+      actions.appendChild(go);
+      root.appendChild(actions);
+      name.focus();
+    }
+
+    // Live availability without a new endpoint: GET /public/:slug/info is 404
+    // for a free address and 200 for one already in use. POST /api/tenants is
+    // still the authority (it 409s), this only saves the round trip.
+    async function frCheckSlug(slug, out) {
+      if (!/^[a-z0-9-]{2,}$/.test(slug)) {
+        out.className = "fr-hint";
+        out.textContent = "Lowercase letters, numbers and dashes, at least two characters.";
+        return;
+      }
+      out.className = "fr-hint";
+      out.textContent = "Checking that address…";
+      try {
+        const res = await fetch(`${API}/public/${encodeURIComponent(slug)}/info`, { headers: { Accept: "application/json" } });
+        if (res.status === 404) {
+          out.className = "fr-ok";
+          out.textContent = `“${slug}” is available.`;
+        } else if (res.ok) {
+          out.className = "fr-bad";
+          out.textContent = `“${slug}” is already taken — try another address.`;
+        } else {
+          out.className = "fr-hint";
+          out.textContent = "We will confirm this address when your guild is created.";
+        }
+      } catch {
+        out.className = "fr-hint";
+        out.textContent = "We will confirm this address when your guild is created.";
+      }
+    }
+
+    // Screen 1's submit: creates the guild (and its whole starter website) and
+    // moves to screen 2. From here a reload resumes instead of starting over.
     async function createGuild() {
-      const errEl = document.getElementById("guild-error");
-      hide(errEl);
+      if (!fr) startFirstRun();
+      hide(document.getElementById("fr-error"));
       const name = document.getElementById("guild-name").value.trim();
       const slug = document.getElementById("guild-slug").value.trim();
       const city = (document.getElementById("guild-city")?.value || "").trim();
       const meeting_info = (document.getElementById("guild-meeting")?.value || "").trim();
       if (!name || !slug) {
-        errEl.textContent = "Name and web address are required.";
-        show(errEl);
+        frError("Name and web address are required.");
         return;
       }
       if (city.length > 120 || meeting_info.length > 300) {
-        errEl.textContent = "City is limited to 120 characters and the meeting schedule to 300.";
-        show(errEl);
+        frError("City is limited to 120 characters and the meeting schedule to 300.");
         return;
+      }
+      const btn = document.getElementById("fr-create");
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Building your website…";
       }
       try {
         const t = await api("/api/tenants", {
           method: "POST",
           body: JSON.stringify({ name, slug, city, meeting_info }),
         });
+        localStorage.setItem(FR_MARKER, t.id);
+        frAdoptTenant({ ...t, role: "owner" });
         // Dashboard shows the welcome + "Preview your site" from this.
         justCreatedGuild = { id: t.id, public_url: t.public_url || `/g/${t.slug}` };
-        selectGuild({ ...t, role: "owner" }, true);
+        fr.tenant = { ...t, role: "owner" };
+        fr.settings = frParseSettings(t.settings_json);
+        fr.step = 2;
+        renderFirstRun();
       } catch (e) {
-        errEl.textContent = e.message;
-        show(errEl);
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = "Continue";
+        }
+        frError(e.message);
       }
     }
+
+    /* ---------- shared: one PATCH per choice ---------- */
+
+    async function frSaveSettings(settings, status, okMessage) {
+      if (status) {
+        status.className = "fr-hint";
+        status.textContent = "Saving…";
+      }
+      try {
+        const t = await api(`/api/tenants/${fr.tenant.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ settings }),
+        });
+        fr.settings = frParseSettings(t.settings_json);
+        if (status) {
+          status.className = "fr-ok";
+          status.textContent = okMessage;
+        }
+        return true;
+      } catch (e) {
+        if (status) {
+          status.className = "fr-bad";
+          status.textContent = e.message;
+        }
+        return false;
+      }
+    }
+
+    async function frLoadOptions() {
+      if (!fr.options) fr.options = await api(`/api/tenants/${fr.tenant.id}/design-options`);
+      return fr.options;
+    }
+
+    function frRoles(design, options) {
+      const id = design && design.palette && design.palette.id;
+      const lib = id && (options.palettes || []).find((p) => p.id === id);
+      if (lib) return lib.roles;
+      const input = (design && design.palette && design.palette.input) || options.defaults.palette.input;
+      return qhDesignColor.deriveRoles(input, false, options.defaults.palette.input);
+    }
+
+    /* ---------- 2. Pick a design ---------- */
+
+    function frStep2(root) {
+      root.appendChild(frMk("h2", "", "Pick a design"));
+      root.appendChild(frMk("p", "fr-hint", "Colors, type and layout for your whole site. Your pages and words are not touched, and you can switch designs any time under Website → Design."));
+      const grid = frMk("div", "fr-grid");
+      root.appendChild(grid);
+      const more = document.createElement("details");
+      more.appendChild(frMk("summary", "", "More designs"));
+      const moreGrid = frMk("div", "fr-grid");
+      more.appendChild(moreGrid);
+      root.appendChild(more);
+
+      const actions = frMk("div", "fr-actions");
+      const next = frMk("button", "", "Continue");
+      next.addEventListener("click", () => {
+        fr.step = 3;
+        renderFirstRun();
+      });
+      const status = frMk("span", "fr-hint", "Loading designs…");
+      status.setAttribute("aria-live", "polite");
+      actions.appendChild(next);
+      actions.appendChild(status);
+      root.appendChild(actions);
+
+      frLoadOptions()
+        .then((options) => {
+          const type = (fr.tenant && fr.tenant.tenant_type) === "business" ? "business" : "guild";
+          const usable = (options.kits || []).filter((k) => k.audience === "both" || k.audience === type);
+          const curated = type === "guild"
+            ? FR_CURATED_KITS.map((id) => usable.find((k) => k.id === id)).filter(Boolean)
+            : [];
+          const picked = new Set(curated.map((k) => k.id));
+          const rest = usable.filter((k) => !picked.has(k.id));
+          const cards = [];
+          const paint = () => {
+            const current = (fr.settings.site || {}).kit || "";
+            cards.forEach(({ kit, node }) => node.setAttribute("aria-pressed", kit.id === current ? "true" : "false"));
+          };
+          const add = (into, kit) => {
+            const node = frKitCard(kit, options, async () => {
+              const settings = {
+                ...fr.settings,
+                design: kit.design,
+                site: { ...(fr.settings.site || {}), renderer: "sections", kit: kit.id },
+              };
+              await frSaveSettings(settings, status, `“${kit.name}” is now your design.`);
+              paint();
+            });
+            cards.push({ kit, node });
+            into.appendChild(node);
+          };
+          curated.forEach((k) => add(grid, k));
+          rest.forEach((k) => add(moreGrid, k));
+          if (!rest.length) more.remove();
+          paint();
+          status.className = "fr-hint";
+          status.textContent = "Pick one — you can change it later.";
+        })
+        .catch((e) => {
+          status.className = "fr-bad";
+          status.textContent = e.message;
+        });
+    }
+
+    function frKitCard(kit, options, onPick) {
+      const roles = frRoles(kit.design, options);
+      const btn = frMk("button", "fr-kit");
+      btn.type = "button";
+      btn.setAttribute("aria-pressed", "false");
+      const art = frMk("div", "fr-kit-art");
+      art.style.background = roles.bg;
+      [roles.primary, roles.accent, roles.dark].forEach((c) => {
+        const s = frMk("span");
+        s.style.background = c;
+        art.appendChild(s);
+      });
+      const body = frMk("div", "fr-kit-body");
+      body.appendChild(frMk("div", "fr-kit-name", kit.name));
+      body.appendChild(frMk("div", "fr-kit-char", kit.character || ""));
+      btn.appendChild(art);
+      btn.appendChild(body);
+      btn.addEventListener("click", onPick);
+      return btn;
+    }
+
+    /* ---------- 3. Make it yours ---------- */
+
+    function frStep3(root) {
+      root.appendChild(frMk("h2", "", "Make it yours"));
+      root.appendChild(frMk("p", "fr-hint", "Add your logo, then pick colors — we can read them straight off the logo. Both are optional; your design already looks finished without them."));
+
+      // --- logo, through the same pipeline the website builder uses ---
+      root.appendChild(frMk("h3", "", "Your logo"));
+      const preview = document.createElement("img");
+      preview.className = "fr-logo-preview hidden";
+      preview.alt = "Your logo";
+      root.appendChild(preview);
+      const file = document.createElement("input");
+      file.type = "file";
+      file.accept = "image/png,image/jpeg,image/gif,image/webp";
+      root.appendChild(file);
+      const logoMsg = frMk("p", "fr-hint", "PNG, JPEG or WebP, up to 10 MB. It appears in your site header and on emails.");
+      logoMsg.setAttribute("aria-live", "polite");
+      root.appendChild(logoMsg);
+
+      // --- colours ---
+      root.appendChild(frMk("h3", "", "Your colors"));
+      const suggestRow = frMk("div", "fr-actions");
+      const suggest = frMk("button", "secondary", "Suggest colors from my logo");
+      suggest.type = "button";
+      const palMsg = frMk("span", "fr-hint");
+      palMsg.setAttribute("aria-live", "polite");
+      suggestRow.appendChild(suggest);
+      suggestRow.appendChild(palMsg);
+      root.appendChild(suggestRow);
+      const suggestions = frMk("div", "fr-pal");
+      root.appendChild(suggestions);
+      const library = frMk("div");
+      root.appendChild(library);
+
+      const hasLogo = !!((fr.settings.profile || {}).logo_file_id || (fr.settings.assets || {}).logo_file_id);
+      suggest.disabled = !hasLogo;
+      if (hasLogo) logoMsg.textContent = "Logo saved. Choose a different file to replace it.";
+
+      file.addEventListener("change", async () => {
+        const f = file.files && file.files[0];
+        if (!f) return;
+        logoMsg.className = "fr-hint";
+        logoMsg.textContent = "Uploading your logo…";
+        try {
+          const id = await wbUploadImage(f, (p) => {
+            if (p.stage === "resize" && p.total) logoMsg.textContent = `Preparing your logo (${p.done} of ${p.total})…`;
+            else if (p.stage === "warn") logoMsg.textContent = p.message;
+          });
+          const settings = {
+            ...fr.settings,
+            profile: { ...(fr.settings.profile || {}), logo_file_id: id },
+            assets: { ...(fr.settings.assets || {}), logo_file_id: id },
+          };
+          if (await frSaveSettings(settings, logoMsg, "Logo saved.")) {
+            preview.src = URL.createObjectURL(f);
+            show(preview);
+            suggest.disabled = false;
+          }
+        } catch (e) {
+          logoMsg.className = "fr-bad";
+          logoMsg.textContent = e.message;
+        }
+      });
+
+      suggest.addEventListener("click", async () => {
+        suggestions.replaceChildren();
+        palMsg.className = "fr-hint";
+        palMsg.textContent = "Reading your logo…";
+        try {
+          const candidates = await qhPaletteFromLogo(fr.settings);
+          const options = await frLoadOptions();
+          candidates.forEach((cand) => {
+            const roles = qhDesignColor.deriveRoles(cand.input, false, options.defaults.palette.input);
+            suggestions.appendChild(
+              frPaletteTile(cand.name, cand.hint, roles, async (tile) => {
+                const settings = { ...fr.settings, design: { ...(fr.settings.design || options.current), palette: { input: cand.input } } };
+                await frSaveSettings(settings, palMsg, `Your ${cand.name.toLowerCase()} colors are saved.`);
+                frPaintPalettes(root);
+                tile.setAttribute("aria-pressed", "true");
+              })
+            );
+          });
+          palMsg.textContent = "Pick one, or choose from the library below.";
+        } catch (e) {
+          palMsg.className = "fr-bad";
+          palMsg.textContent = e.message;
+        }
+      });
+
+      frLoadOptions()
+        .then((options) => {
+          (options.families || []).forEach((fam) => {
+            const pals = (options.palettes || []).filter((p) => p.family === fam.id);
+            if (!pals.length) return;
+            library.appendChild(frMk("div", "qh-design-family", fam.label));
+            const row = frMk("div", "fr-pal");
+            pals.forEach((p) => {
+              row.appendChild(
+                frPaletteTile(p.name, "", p.roles, async (tile) => {
+                  const settings = { ...fr.settings, design: { ...(fr.settings.design || options.current), palette: { id: p.id } } };
+                  await frSaveSettings(settings, palMsg, `“${p.name}” is now your palette.`);
+                  frPaintPalettes(root);
+                  tile.setAttribute("aria-pressed", "true");
+                }, p.id)
+              );
+            });
+            library.appendChild(row);
+          });
+          frPaintPalettes(root);
+        })
+        .catch((e) => {
+          palMsg.className = "fr-bad";
+          palMsg.textContent = e.message;
+        });
+
+      const actions = frMk("div", "fr-actions");
+      const next = frMk("button", "", "Continue");
+      next.addEventListener("click", () => {
+        fr.step = 4;
+        renderFirstRun();
+      });
+      const back = frMk("button", "secondary", "Back to designs");
+      back.addEventListener("click", () => {
+        fr.step = 2;
+        renderFirstRun();
+      });
+      actions.appendChild(next);
+      actions.appendChild(back);
+      root.appendChild(actions);
+    }
+
+    function frPaletteTile(name, hint, roles, onPick, paletteId) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.setAttribute("aria-pressed", "false");
+      if (paletteId) btn.dataset.palette = paletteId;
+      btn.setAttribute("aria-label", `Use the ${name} colors`);
+      const sw = frMk("div", "fr-sw");
+      [roles.bg, roles.primary, roles.accent, roles.ink].forEach((c) => {
+        const s = frMk("span");
+        s.style.background = c;
+        sw.appendChild(s);
+      });
+      btn.appendChild(sw);
+      btn.appendChild(frMk("div", "fr-pal-name", name));
+      if (hint) btn.appendChild(frMk("div", "fr-kit-char", hint));
+      btn.addEventListener("click", () => onPick(btn));
+      return btn;
+    }
+
+    function frPaintPalettes(root) {
+      const current = ((fr.settings.design || {}).palette || {}).id || "";
+      root.querySelectorAll(".fr-pal button").forEach((b) => {
+        b.setAttribute("aria-pressed", b.dataset.palette && b.dataset.palette === current ? "true" : "false");
+      });
+    }
+
+    /* ---------- 4. You're live ---------- */
+
+    function frStep4(root) {
+      root.appendChild(frMk("h2", "", "You're live"));
+      const url = (fr.tenant && fr.tenant.public_url) || `${API}/g/${fr.tenant.slug}`;
+      const p = frMk("p", "fr-hint");
+      p.appendChild(document.createTextNode("Your website is published at "));
+      const a = document.createElement("a");
+      a.href = url;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.textContent = url;
+      p.appendChild(a);
+      p.appendChild(document.createTextNode(" — this is the real page, not a mock-up."));
+      root.appendChild(p);
+
+      // Framed through the same-origin /g/ path: a launched guild's own
+      // subdomain is a different origin and the security headers
+      // (frame-ancestors 'self') would refuse it.
+      const frame = document.createElement("iframe");
+      frame.className = "fr-frame";
+      frame.title = "Preview of your public website";
+      frame.loading = "lazy";
+      frame.src = `/g/${encodeURIComponent(fr.tenant.slug)}?fr=${Date.now()}`;
+      root.appendChild(frame);
+
+      root.appendChild(frMk("h3", "", "Three things worth doing next"));
+      const next = frMk("div", "fr-next");
+      [
+        ["levels", "Add a membership level", "Members cannot join until there is at least one level to join at."],
+        ["events", "Add your first event", "Your next meeting or workshop, with sign-ups and a calendar link."],
+        ["team", "Invite an officer", "Give your treasurer or membership chair their own login."],
+      ].forEach(([page, title, body]) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.appendChild(frMk("strong", "", title));
+        b.appendChild(frMk("span", "", body));
+        b.addEventListener("click", () => frFinish(page));
+        next.appendChild(b);
+      });
+      root.appendChild(next);
+
+      const actions = frMk("div", "fr-actions");
+      const done = frMk("button", "", "Open my dashboard");
+      done.addEventListener("click", () => frFinish("dashboard"));
+      const back = frMk("button", "secondary", "Back to logo and colors");
+      back.addEventListener("click", () => {
+        fr.step = 3;
+        renderFirstRun();
+      });
+      actions.appendChild(done);
+      actions.appendChild(back);
+      root.appendChild(actions);
+    }
+
+    /* ---------- leaving the wizard ---------- */
+
+    function frFinish(page) {
+      localStorage.removeItem(FR_MARKER);
+      hide(document.getElementById("firstrun-view"));
+      const t = fr && fr.tenant;
+      fr = null;
+      if (!t) {
+        enterApp(true);
+        return;
+      }
+      selectGuild({ ...t, role: t.role || "owner" }, true);
+      if (page && page !== "dashboard") setTimeout(() => navigate(page), 0);
+    }
+
+    // "Save and finish later": everything answered so far is already stored, so
+    // this only decides where to land.
+    function frExit() {
+      if (!fr || !fr.tenant) {
+        hide(document.getElementById("firstrun-view"));
+        fr = null;
+        enterApp(true);
+        return;
+      }
+      frFinish("dashboard");
+    }
+    /* ——— FIRST-RUN WIZARD — end ——————————————————————————————————— */
 
     // Fetches the full tenant record and toggles nav links marked
     // business-only / guild-only accordingly. There is no pre-existing
@@ -1021,6 +1684,44 @@
         </div>`;
     }
 
+    /**
+     * The next-best-action cards (GET /onboarding -> next_actions). Built with
+     * DOM APIs, not a template string: every word of a card comes from guild
+     * data (page counts, an officer-written email subject) and must never be
+     * parsed as markup.
+     */
+    function renderNextActions(host, actions) {
+      if (!host) return;
+      host.textContent = "";
+      if (!Array.isArray(actions) || actions.length === 0) return;
+      const grid = document.createElement("div");
+      grid.className = "qh-next";
+      for (const a of actions) {
+        if (!a || !a.title) continue;
+        const card = document.createElement("section");
+        card.className = "qh-next-card";
+        card.dataset.severity =
+          ["do", "consider", "celebrate"].indexOf(a.severity) >= 0 ? a.severity : "consider";
+        if (a.id) card.dataset.action = String(a.id);
+        const h = document.createElement("h3");
+        h.textContent = a.title;
+        card.appendChild(h);
+        const p = document.createElement("p");
+        p.textContent = a.body || "";
+        card.appendChild(p);
+        const cta = a.cta || {};
+        if (cta.label && cta.href) {
+          const btn = document.createElement("button");
+          if (card.dataset.severity !== "do") btn.className = "secondary";
+          btn.textContent = cta.label;
+          btn.addEventListener("click", () => onboardingGo(cta.href));
+          card.appendChild(btn);
+        }
+        grid.appendChild(card);
+      }
+      if (grid.childElementCount) host.appendChild(grid);
+    }
+
     async function renderDashboard(el) {
       const [stats, events, onboarding] = await Promise.all([
         api(`/api/tenants/${tenantId}/stats`),
@@ -1033,6 +1734,7 @@
       if (justCreatedGuild && justCreatedGuild.id === tenantId) justCreatedGuild = null;
       el.innerHTML = `
         <h2>Dashboard</h2>
+        <div id="next-actions"></div>
         ${onboardingHtml}
         <div class="stats">
           <div class="stat"><div class="label">Active Members</div><div class="value">${m.active}</div></div>
@@ -1077,6 +1779,49 @@
           `}
         </div>
       `;
+      // Primary content: what to do next, above the setup checklist.
+      renderNextActions(
+        el.querySelector("#next-actions"),
+        (onboarding && onboarding.next_actions) || []
+      );
+    }
+
+    /**
+     * A teaching empty state: one sentence on why the screen matters, one
+     * primary button, and an honest "you can skip this for now" where the
+     * screen really is optional. Returns an element — never a bare table head.
+     */
+    function qhEmptyState(opts) {
+      const box = document.createElement("div");
+      box.className = "qh-empty";
+      if (opts.title) {
+        const h = document.createElement("h3");
+        h.textContent = opts.title;
+        box.appendChild(h);
+      }
+      const p = document.createElement("p");
+      p.textContent = opts.body || "";
+      box.appendChild(p);
+      if (opts.action && opts.action.label) {
+        const btn = document.createElement("button");
+        btn.textContent = opts.action.label;
+        btn.addEventListener("click", opts.action.onClick);
+        box.appendChild(btn);
+      }
+      if (opts.skip) {
+        const s = document.createElement("p");
+        s.className = "qh-empty-skip";
+        s.textContent = typeof opts.skip === "string" ? opts.skip : "You can skip this for now.";
+        box.appendChild(s);
+      }
+      return box;
+    }
+    /** Swap a rendered card/table for an empty state, by container id. */
+    function qhShowEmpty(hostId, opts) {
+      const host = document.getElementById(hostId);
+      if (!host) return;
+      host.textContent = "";
+      host.appendChild(qhEmptyState(opts));
     }
 
     /** Normalize list API responses: array, or { payments|members|…: array }. */
@@ -1299,7 +2044,7 @@
           <button class="secondary" onclick="hide(document.getElementById('edit-member-form'))">Close</button>
           <button class="secondary" style="color:var(--danger);float:right" onclick="cancelMember()">Cancel membership</button>
         </div>
-        <div class="card">
+        <div class="card" id="members-list-card">
           <table>
             <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Joined</th><th></th></tr></thead>
             <tbody id="members-tbody">
@@ -1326,6 +2071,21 @@
         </div>
       `;
       applyMembersLabel();
+      // Nothing on the roster AND no filter applied: teach the screen rather
+      // than showing an empty table. A search that matches nothing keeps the
+      // table, so it is obvious the filter is what hid everyone.
+      if (members.length === 0 && !q && !status) {
+        qhShowEmpty("members-list-card", {
+          title: isBusinessTenant ? "Your customer list lives here" : "Your roster lives here",
+          body: isBusinessTenant
+            ? "Invoices, projects and email all hang off this list, so it is worth getting in early. Bring across the spreadsheet you already keep, or add the first few people by hand."
+            : "Dues, renewals, event sign-ups and newsletters all hang off this list, so it is worth getting in early. Bring across the spreadsheet you already keep, or add the first few people by hand.",
+          action: {
+            label: "Import a spreadsheet",
+            onClick: () => document.getElementById("import-input")?.click(),
+          },
+        });
+      }
       window._members = members;
       const searchEl = document.getElementById("member-search");
       if (searchEl) {
@@ -2034,7 +2794,7 @@
           <button onclick="saveLevel()">Save</button>
           <button class="secondary" onclick="hide(document.getElementById('edit-level-form'))">Close</button>
         </div>
-        <div class="card">
+        <div class="card" id="levels-list-card">
           <table>
             <thead><tr><th>Name</th><th>Price</th><th>Duration</th><th>Renewal</th><th></th></tr></thead>
             <tbody>
@@ -2054,6 +2814,16 @@
           </table>
         </div>
       `;
+      if (levels.length === 0) {
+        qhShowEmpty("levels-list-card", {
+          title: "Nobody can join until there is something to join",
+          body:
+            "A level is what a member signs up for: a name, a price, and how long it lasts — " +
+            "Individual at $35 a year, say. Most guilds have two or three. You can change the " +
+            "price later without disturbing anyone who has already paid.",
+          action: { label: "Add your first level", onClick: showAddLevel },
+        });
+      }
       window._levels = levels;
     }
     // Level prices are entered in dollars and stored as integer cents.
@@ -2184,7 +2954,7 @@
           <button class="secondary" onclick="hide(document.getElementById('add-event-form'))">Cancel</button>
         </div>
         <div id="a-ev-list">
-        <div class="card">
+        <div class="card" id="events-list-card">
           <table>
             <thead><tr><th>Title</th><th>Date</th><th>Location</th><th>Member $</th><th>Public $</th><th></th></tr></thead>
             <tbody>
@@ -2211,6 +2981,17 @@
         <div id="regs-panel"></div>
         <div id="vol-admin"></div>
       `;
+      if (events.length === 0) {
+        qhShowEmpty("events-list-card", {
+          title: "Your calendar is empty",
+          body:
+            "Put up your next meeting and it appears on your website straight away, with a " +
+            "sign-up sheet if you want one and an add-to-calendar link for members. An empty " +
+            "calendar is usually the first thing a visitor notices.",
+          action: { label: "Add your first event", onClick: showAddEvent },
+          skip: "You can skip this for now — your website works fine without one.",
+        });
+      }
     }
     let aCalCursor = null;
     function adminEventsMode(mode) {
@@ -2528,11 +3309,11 @@
           </div>
           <button onclick="addProduct()">Save product</button>
         </div>
-        <div class="card">
+        <div class="card" id="store-list-card">
           <table>
             <thead><tr><th>Name</th><th>Price</th><th>Stock</th><th>Status</th><th></th></tr></thead>
             <tbody>
-              ${products.length === 0 ? "<tr><td colspan='5' class='muted'>No products yet</td></tr>" : products.map((p) => `
+              ${products.map((p) => `
                 <tr>
                   <td><strong>${esc(p.name)}</strong>${p.description ? `<br><span class="muted" style="font-size:0.85rem">${esc(p.description)}</span>` : ""}</td>
                   <td>$${(p.price_cents / 100).toFixed(2)}</td>
@@ -2555,6 +3336,20 @@
           </code>
         </div>
       `;
+      if (products.length === 0) {
+        qhShowEmpty("store-list-card", {
+          title: "Sell patterns, kits or raffle tickets",
+          body:
+            "Anything you add here shows up on your public shop page with a cart, and the money " +
+            "goes straight to your own bank account. Guilds mostly use it for block-of-the-month " +
+            "kits, retreat deposits and show merchandise.",
+          action: {
+            label: "Add your first product",
+            onClick: () => document.getElementById("p-name")?.focus(),
+          },
+          skip: "You can skip this for now — plenty of guilds never sell anything online.",
+        });
+      }
     }
     async function saveTaxSettings() {
       // The box is a percentage; the wire format and the database stay bps.
@@ -7639,7 +8434,7 @@
         <p class="muted" style="margin-bottom:1rem">Emails that send themselves when something happens. Merge fields: {{first_name}}, {{last_name}}, {{guild_name}}, {{email}}.</p>
 
         ${recipes.enabled ? `
-        <div class="card">
+        <div class="card" id="auto-recipes-card">
           <h3 style="margin-bottom:0.25rem">Ready-made automations</h3>
           <p class="muted" style="font-size:0.85rem;margin-bottom:0.75rem">Install one in a click, then edit the wording, the timing or the steps however you like. Installing never emails people who joined or lapsed in the past.</p>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:0.75rem">${recipeCards}</div>
@@ -7667,12 +8462,12 @@
           <p class="muted" style="margin:0">Want to build your own, step by step? Turn on <strong>Automation builder</strong> in Settings → Advanced.</p>
         </div>`}
 
-        <div class="card">
+        <div class="card" id="automations-list-card">
           <h3 style="margin-bottom:0.75rem">Your automations</h3>
           <table>
             <thead><tr><th>Name</th><th>When</th><th>Active</th><th></th></tr></thead>
             <tbody>
-              ${rows.length === 0 ? `<tr><td colspan='4' class='muted'>Nothing yet. ${recipes.enabled ? "Install a ready-made one above to get started — you can rewrite every word afterwards." : "Turn on Automation builder in Settings → Advanced to make one."}</td></tr>` : rows.map((r) => {
+              ${rows.map((r) => {
                 const steps = autoStepsOf(r);
                 return `<tr>
                   <td><strong>${esc(r.name)}</strong><br><span class="muted" style="font-size:0.8rem">${steps.length} email${steps.length === 1 ? "" : "s"}</span></td>
@@ -7691,6 +8486,24 @@
         <div class="card">
           <p class="muted" style="font-size:0.85rem">Automation emails are marketing mail: anyone who unsubscribed is skipped automatically, links are click-tracked, and a step that fails is retried before it gives up. The daily job sends whatever is due.</p>
         </div>`;
+
+      if (rows.length === 0) {
+        qhShowEmpty("automations-list-card", {
+          title: "Let the welcome email send itself",
+          body:
+            "An automation is a short run of emails that go out on their own — a hello the day " +
+            "somebody joins, a how-to-get-started a few days later. You write it once and it keeps " +
+            "working while you get on with running the guild.",
+          action: recipes.enabled
+            ? {
+                label: "See the ready-made ones",
+                onClick: () =>
+                  document.getElementById("auto-recipes-card")?.scrollIntoView({ block: "center" }),
+              }
+            : { label: "Turn on the builder in Settings", onClick: () => navigate("settings") },
+          skip: "You can skip this for now — nothing stops working without one.",
+        });
+      }
 
       if (autoV2) {
         const name = document.getElementById("auto-name");
@@ -7850,11 +8663,11 @@
           <button onclick="saveForm()" style="margin-top:0.5rem">Create form</button>
           <span id="fm-msg" class="muted" style="margin-left:0.5rem"></span>
         </div>
-        <div class="card">
+        <div class="card" id="forms-list-card">
           <table>
             <thead><tr><th>Name</th><th>Slug</th><th>Type</th><th></th></tr></thead>
             <tbody>
-              ${rows.length===0?"<tr><td colspan='4' class='muted'>No forms yet</td></tr>":rows.map((f)=>`
+              ${rows.map((f)=>`
                 <tr>
                   <td><strong>${esc(f.name)}</strong></td>
                   <td><code>${esc(f.slug)}</code></td>
@@ -7868,6 +8681,20 @@
           </table>
           <div id="fm-responses" style="margin-top:1rem"></div>
         </div>`;
+      if (rows.length === 0) {
+        qhShowEmpty("forms-list-card", {
+          title: "Ask your members a question",
+          body:
+            "A form is a page people fill in — a show-and-tell survey, a workshop application, a " +
+            "volunteer sign-up sheet. Answers collect here and you can download the lot as a " +
+            "spreadsheet whenever you need it.",
+          action: {
+            label: "Create your first form",
+            onClick: () => document.getElementById("fm-name")?.focus(),
+          },
+          skip: "You can skip this for now — a form is only worth making when you have something to ask.",
+        });
+      }
     }
     async function saveForm() {
       let fields;
@@ -8027,18 +8854,30 @@
           <button onclick="sendSms()" style="margin-top:0.5rem">Send</button>
           <span id="sms-msg" class="muted" style="margin-left:0.5rem"></span>
         </div>
-        <div class="card">
+        <div class="card" id="sms-list-card">
           <h3 style="margin-bottom:0.5rem">Recent SMS</h3>
           <table>
             <thead><tr><th>When</th><th>To</th><th>Status</th><th>Body</th></tr></thead>
             <tbody>
-              ${logs.length===0?"<tr><td colspan='4' class='muted'>No messages yet</td></tr>":logs.map(l=>`
+              ${logs.map(l=>`
                 <tr><td>${new Date(l.created_at).toLocaleString()}</td>
                 <td>${esc(l.phone)}</td><td>${esc(l.status)}</td>
                 <td style="font-size:0.85rem">${esc((l.body||"").slice(0,80))}</td></tr>`).join("")}
             </tbody>
           </table>
         </div>`;
+      if (logs.length === 0) {
+        qhShowEmpty("sms-list-card", {
+          title: "No text messages sent yet",
+          body: cfg.configured
+            ? "Texts are for the things email is too slow for — a cancelled meeting, a change of room, a reminder the morning of a retreat. Everything you send is listed here with whether it arrived."
+            : "Texts are for the things email is too slow for — a cancelled meeting, a change of room. To send any, add your Twilio account details above; QuiltHosting does not charge for texts, Twilio does.",
+          action: cfg.configured
+            ? { label: "Send a message", onClick: () => document.getElementById("sms-body")?.focus() }
+            : { label: "Add your Twilio details", onClick: () => document.getElementById("tw-sid")?.focus() },
+          skip: "You can skip this for now — most guilds run entirely on email.",
+        });
+      }
       async function fillSmsMembers(q) {
         const sel = document.getElementById("sms-member");
         if (!sel) return;
@@ -8279,11 +9118,11 @@
           </div>
           <div id="ak-once" style="margin-top:0.75rem"></div>
         </div>
-        <div class="card">
+        <div class="card" id="api-list-card">
           <table>
             <thead><tr><th>Name</th><th>Prefix</th><th>Created</th><th>Last used</th><th></th></tr></thead>
             <tbody>
-              ${keys.length===0?"<tr><td colspan='5' class='muted'>No keys yet</td></tr>":keys.map(k=>`
+              ${keys.map(k=>`
                 <tr>
                   <td>${esc(k.name)}${k.revoked_at?" <span class='badge cancelled'>revoked</span>":""}</td>
                   <td><code>${esc(k.key_prefix)}…</code></td>
@@ -8308,6 +9147,20 @@
           </ul>
           <p class="muted" style="font-size:0.85rem">Zapier: Webhooks by Zapier + Code by Zapier, or custom integration using these endpoints.</p>
         </div>`;
+      if (keys.length === 0) {
+        qhShowEmpty("api-list-card", {
+          title: "Connect QuiltHosting to your other tools",
+          body:
+            "A key lets something outside QuiltHosting — Zapier, a spreadsheet, whoever looks " +
+            "after your website — read your members and events without knowing your password. " +
+            "You can revoke a key at any time and it stops working immediately.",
+          action: {
+            label: "Create your first key",
+            onClick: () => document.getElementById("ak-name")?.focus(),
+          },
+          skip: "You can skip this for now — nothing here is needed to run your guild day to day.",
+        });
+      }
     }
     async function createApiKey() {
       const scopes = ["read"];
