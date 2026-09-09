@@ -256,15 +256,26 @@ export function renewalReminderEmail(opts: {
   daysLeft: number;
   renewUrl: string;
   amountFormatted: string;
+  /**
+   * The date the membership actually runs out, spelled out ("December 31,
+   * 2026"). Optional and additive: without it the email reads exactly as it
+   * did before phase 4. With it — every guild on a calendar or fixed-date
+   * year, where "in 30 days" is a worse answer than the date the whole
+   * guild already knows — the sentence names the day.
+   */
+  renewDate?: string;
 }): { subject: string; html: string } {
   const name = opts.firstName || "there";
+  const when = opts.renewDate
+    ? `renews on <strong>${opts.renewDate}</strong>, in <strong>${opts.daysLeft} days</strong>`
+    : `renews in <strong>${opts.daysLeft} days</strong>`;
   return {
     subject: `Your ${opts.guildName} membership renews in ${opts.daysLeft} days`,
     html: `
       <div style="font-family: system-ui, sans-serif; max-width: 560px; margin: 0 auto;">
         <h1 style="color: #1a1a1a;">Membership renewal coming up</h1>
         <p>Hi ${name},</p>
-        <p>Your membership with <strong>${opts.guildName}</strong> renews in <strong>${opts.daysLeft} days</strong>.</p>
+        <p>Your membership with <strong>${opts.guildName}</strong> ${when}.</p>
         <p>Amount due: <strong>${opts.amountFormatted}</strong></p>
         <p style="margin: 24px 0;">
           <a href="${opts.renewUrl}"

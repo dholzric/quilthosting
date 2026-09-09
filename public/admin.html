@@ -77,6 +77,13 @@
     .qh-kit button { align-self: flex-start; margin-top: 0.25rem; padding: 0.3rem 0.7rem; font-size: 0.8rem; }
     /* Money fields: a field error under the input, and the invoice line editor */
     .qh-field-err { color: var(--danger); font-size: 0.8rem; margin: 0.25rem 0 0; }
+    /* Levels -> membership year (the dues policy editor) */
+    .qh-dues { border: 1px solid var(--border); border-radius: var(--r-sm); padding: 0.75rem 0.9rem; margin: 0.75rem 0; }
+    .qh-dues legend { font-size: 0.8rem; font-weight: 600; padding: 0 0.35rem; }
+    .qh-dues-choice { display: block; font-weight: 400; margin: 0.25rem 0; cursor: pointer; }
+    .qh-dues-choice input { width: auto; margin-right: 0.4rem; }
+    .qh-dues-note { font-size: 0.85rem; margin: 0.6rem 0 0; }
+    .qh-dues-warn { color: var(--warn); font-size: 0.85rem; margin: 0.45rem 0 0; }
     input.qh-invalid { border-color: var(--danger); }
     .qh-line-row { display: grid; grid-template-columns: 1fr 5.5rem 8rem 2.5rem; gap: 0.5rem; align-items: end; margin: 0 0 0.5rem; }
     .qh-line-row > div { margin: 0; }
@@ -276,6 +283,122 @@
       return String(Math.round(n) / 100);
     }
     /* ——— MONEY — end ——— */
+
+    /* ——— DUES POLICY (client mirror of src/lib/dues.ts) — begin ——— */
+    /* The Levels editor shows the membership year in words as the officer
+       clicks, so describePolicy has to exist on this page too. Keep this in
+       step with the server copy — src/lib/dues.test.ts extracts this block,
+       evaluates it, and runs one table of policies through both.
+       Standalone on purpose: no admin globals, no DOM. */
+    const QH_TERM_MODES = ["anniversary", "calendar", "fixed_date"];
+    const QH_PRORATIONS = ["none", "half_year", "monthly"];
+    const QH_MAX_GRACE_DAYS = 365;
+    const QH_MAX_DURATION_MONTHS = 120;
+    const QH_MONTH_NAMES = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December",
+    ];
+    /* A non-leap reference year for the WORDS: February 29 is a legal anchor
+       (clamped to the 28th three years in four), and the sentence has to name
+       one date. */
+    const QH_LABEL_YEAR = 2027;
+    const QH_ANCHOR_RE = /^(\d{2})-(\d{2})$/;
+    function qhDaysInMonth(year, monthIndex) {
+      return new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
+    }
+    function qhParseAnchor(anchor) {
+      if (typeof anchor !== "string") return null;
+      const m = QH_ANCHOR_RE.exec(anchor.trim());
+      if (!m) return null;
+      const month = Number(m[1]);
+      const day = Number(m[2]);
+      if (month < 1 || month > 12) return null;
+      const maxDay = month === 2 ? 29 : qhDaysInMonth(2027, month - 1);
+      if (day < 1 || day > maxDay) return null;
+      return { month, day };
+    }
+    function qhAnchorInYear(year, month, day) {
+      return Date.UTC(year, month - 1, Math.min(day, qhDaysInMonth(year, month - 1)));
+    }
+    function qhAddMonthsClamped(utcMs, months) {
+      const d = new Date(utcMs);
+      const monthIndex = d.getUTCMonth() + months;
+      const day = d.getUTCDate();
+      const targetYear = d.getUTCFullYear() + Math.floor(monthIndex / 12);
+      const targetMonth = ((monthIndex % 12) + 12) % 12;
+      return Date.UTC(targetYear, targetMonth, Math.min(day, qhDaysInMonth(targetYear, targetMonth)));
+    }
+    function qhToInt(value) {
+      const n = typeof value === "number" ? value : Number(value);
+      return Number.isInteger(n) ? n : null;
+    }
+    function qhReadDuesPolicy(level) {
+      let termMode = QH_TERM_MODES.indexOf(level.term_mode) >= 0 ? level.term_mode : "anniversary";
+      let termAnchor = null;
+      if (termMode === "fixed_date") {
+        const parsed = qhParseAnchor(level.term_anchor);
+        if (parsed) {
+          termAnchor =
+            String(parsed.month).padStart(2, "0") + "-" + String(parsed.day).padStart(2, "0");
+        } else termMode = "calendar";
+      }
+      const months = qhToInt(level.duration_months);
+      const durationMonths =
+        months !== null && months >= 1 && months <= QH_MAX_DURATION_MONTHS ? months : 12;
+      let proration = QH_PRORATIONS.indexOf(level.proration) >= 0 ? level.proration : "none";
+      if (termMode === "anniversary") proration = "none";
+      const grace = qhToInt(level.grace_days);
+      const graceDays = grace !== null && grace >= 0 && grace <= QH_MAX_GRACE_DAYS ? grace : 0;
+      return { termMode, termAnchor, durationMonths, proration, graceDays };
+    }
+    function qhPolicyAnchor(policy) {
+      if (policy.termMode === "fixed_date") {
+        const parsed = qhParseAnchor(policy.termAnchor);
+        if (parsed) return parsed;
+      }
+      return { month: 1, day: 1 };
+    }
+    function qhLabelForUtc(utcMs) {
+      const t = new Date(utcMs);
+      return QH_MONTH_NAMES[t.getUTCMonth()] + " " + t.getUTCDate();
+    }
+    function qhDescribePolicy(policy) {
+      const parts = [];
+      if (policy.termMode === "anniversary") {
+        const n = policy.durationMonths;
+        parts.push(
+          "The membership year starts the day someone joins and runs " +
+            n + " " + (n === 1 ? "month" : "months") + "."
+        );
+      } else {
+        const anchor = qhPolicyAnchor(policy);
+        const anchorUtc = qhAnchorInYear(QH_LABEL_YEAR, anchor.month, anchor.day);
+        parts.push(
+          "The membership year runs " + qhLabelForUtc(anchorUtc) + " to " +
+            qhLabelForUtc(anchorUtc - 24 * 60 * 60 * 1000) + "."
+        );
+        if (policy.proration === "half_year") {
+          const midpoint = qhLabelForUtc(
+            qhAddMonthsClamped(anchorUtc, Math.floor(policy.durationMonths / 2))
+          );
+          parts.push("Someone who joins on or after " + midpoint + " pays half for their first year.");
+          parts.push("Renewals always cost the full price.");
+        } else if (policy.proration === "monthly") {
+          parts.push("A new member pays only for the months left in the year.");
+          parts.push("Renewals always cost the full price.");
+        } else {
+          parts.push("Everyone pays the full price, whenever they join.");
+        }
+      }
+      if (policy.graceDays > 0) {
+        parts.push(
+          "Memberships stay active for " + policy.graceDays + " " +
+            (policy.graceDays === 1 ? "day" : "days") + " after they end."
+        );
+      }
+      return parts.join(" ");
+    }
+    /* ——— DUES POLICY — end ——— */
 
     /* A null from the converters is a field error, never a silent 0: show it
        under the input and block the submit. Cleared on the next successful
@@ -2766,15 +2889,16 @@
         <div class="toolbar"><button onclick="showAddLevel()">Add Level</button></div>
         <div id="add-level-form" class="card hidden">
           <div class="form-row">
-            <div><label>Name</label><input id="l-name" placeholder="Individual" /></div>
-            <div><label>Price ($)</label><input id="l-price" type="number" step="0.01" min="0" value="35.00" /></div>
+            <div><label for="l-name">Name</label><input id="l-name" placeholder="Individual" /></div>
+            <div><label for="l-price">Price ($)</label><input id="l-price" type="number" step="0.01" min="0" value="35.00" /></div>
           </div>
           <div class="form-row">
-            <div><label>Duration (months)</label><input id="l-duration" type="number" min="1" max="120" value="12" /></div>
-            <div><label>Renewal</label>
+            <div><label for="l-duration">Duration (months)</label><input id="l-duration" type="number" min="1" max="120" value="12" onchange="levelPolicyChanged('l')" /></div>
+            <div><label for="l-renewal">Renewal</label>
               <select id="l-renewal"><option value="manual">Manual</option><option value="auto">Auto</option></select>
             </div>
           </div>
+          ${levelPolicyFields("l")}
           <button onclick="addLevel()">Save</button>
           <button class="secondary" onclick="hide(document.getElementById('add-level-form'))">Cancel</button>
         </div>
@@ -2782,27 +2906,28 @@
           <h3 style="margin-bottom:0.75rem">Edit Level</h3>
           <input type="hidden" id="el-id" />
           <div class="form-row">
-            <div><label>Name</label><input id="el-name" /></div>
-            <div><label>Price ($)</label><input id="el-price" type="number" step="0.01" min="0" /></div>
+            <div><label for="el-name">Name</label><input id="el-name" /></div>
+            <div><label for="el-price">Price ($)</label><input id="el-price" type="number" step="0.01" min="0" /></div>
           </div>
           <div class="form-row">
-            <div><label>Duration (months)</label><input id="el-duration" type="number" min="1" max="120" /></div>
-            <div><label>Renewal</label>
+            <div><label for="el-duration">Duration (months)</label><input id="el-duration" type="number" min="1" max="120" onchange="levelPolicyChanged('el')" /></div>
+            <div><label for="el-renewal">Renewal</label>
               <select id="el-renewal"><option value="manual">Manual</option><option value="auto">Auto</option></select>
             </div>
           </div>
+          ${levelPolicyFields("el")}
           <button onclick="saveLevel()">Save</button>
           <button class="secondary" onclick="hide(document.getElementById('edit-level-form'))">Close</button>
         </div>
         <div class="card" id="levels-list-card">
           <table>
-            <thead><tr><th>Name</th><th>Price</th><th>Duration</th><th>Renewal</th><th></th></tr></thead>
+            <thead><tr><th>Name</th><th>Price</th><th>Membership year</th><th>Renewal</th><th></th></tr></thead>
             <tbody>
               ${levels.map((l) => `
                 <tr>
                   <td>${esc(l.name)}</td>
-                  <td>$${(l.price_cents / 100).toFixed(2)}</td>
-                  <td>${l.duration_months} mo</td>
+                  <td>$${centsToDollars(l.price_cents)}</td>
+                  <td>${esc(levelYearLabel(l))}</td>
                   <td>${l.renewal_type}</td>
                   <td>
                     <button class="secondary" onclick='editLevel(${JSON.stringify(l.id)})'>Edit</button>
@@ -2825,31 +2950,177 @@
         });
       }
       window._levels = levels;
+      levelPolicyInit("l");
+      levelPolicyInit("el");
     }
-    // Level prices are entered in dollars and stored as integer cents.
-    function levelDollarsToCents(value) {
-      const n = Number(String(value ?? "").replace(/[$,\s]/g, ""));
-      return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) : 0;
+
+    /* ——— Membership year (the dues policy; engine is src/lib/dues.ts) ———
+     *
+     * Three plain choices, a month-and-day picker for the third, a
+     * proration choice that only exists once there IS a shared year, a
+     * grace-days box, and the whole thing said back in words underneath by
+     * qhDescribePolicy (the mirror of the server's describePolicy).
+     *
+     * `p` is the id prefix: "l" on the Add form, "el" on the Edit form.
+     */
+    function levelPolicyFields(p) {
+      const months = QH_MONTH_NAMES.map((name, i) => `<option value="${i + 1}">${name}</option>`).join("");
+      return `
+        <fieldset class="qh-dues" id="${p}-policy">
+          <legend>Membership year</legend>
+          <label class="qh-dues-choice"><input type="radio" name="${p}-term" value="anniversary" checked onchange="levelPolicyChanged('${p}')" /> Runs from when they join</label>
+          <label class="qh-dues-choice"><input type="radio" name="${p}-term" value="calendar" onchange="levelPolicyChanged('${p}')" /> Runs January to December</label>
+          <label class="qh-dues-choice"><input type="radio" name="${p}-term" value="fixed_date" onchange="levelPolicyChanged('${p}')" /> Runs from a date I pick</label>
+          <div id="${p}-anchor-row" class="form-row hidden">
+            <div><label for="${p}-anchor-month">Starting month</label>
+              <select id="${p}-anchor-month" onchange="levelAnchorMonthChanged('${p}')">${months}</select></div>
+            <div><label for="${p}-anchor-day">Day</label>
+              <select id="${p}-anchor-day" onchange="levelPolicyChanged('${p}')"></select></div>
+          </div>
+          <div id="${p}-prorate-row" class="hidden">
+            <label for="${p}-proration">Someone who joins partway through the year</label>
+            <select id="${p}-proration" onchange="levelPolicyChanged('${p}')">
+              <option value="none">Pays the full price</option>
+              <option value="half_year">Pays half, from the middle of the year on</option>
+              <option value="monthly">Pays for the months that are left</option>
+            </select>
+          </div>
+          <label for="${p}-grace">Grace period (days a lapsed member keeps their membership)</label>
+          <input id="${p}-grace" type="number" min="0" max="365" step="1" value="0" oninput="levelPolicyChanged('${p}')" />
+          <p class="muted qh-dues-note" id="${p}-policy-note"></p>
+          <p class="qh-dues-warn hidden" id="${p}-policy-warn"></p>
+        </fieldset>`;
     }
+    /** Which radio is on, defaulting to today's behavior. */
+    function levelTermMode(p) {
+      const on = document.querySelector(`input[name="${p}-term"]:checked`);
+      return on ? on.value : "anniversary";
+    }
+    /** The form as a level-shaped row, ready for qhReadDuesPolicy or the API. */
+    function levelPolicyFromForm(p) {
+      const mode = levelTermMode(p);
+      const monthEl = document.getElementById(p + "-anchor-month");
+      const dayEl = document.getElementById(p + "-anchor-day");
+      const graceEl = document.getElementById(p + "-grace");
+      const durEl = document.getElementById(p + "-duration");
+      const month = Number((monthEl && monthEl.value) || 1);
+      const day = Number((dayEl && dayEl.value) || 1);
+      const prorationEl = document.getElementById(p + "-proration");
+      const graceRaw = graceEl ? String(graceEl.value).trim() : "";
+      return {
+        term_mode: mode,
+        term_anchor:
+          mode === "fixed_date"
+            ? String(month).padStart(2, "0") + "-" + String(day).padStart(2, "0")
+            : null,
+        proration: (prorationEl && prorationEl.value) || "none",
+        grace_days: graceRaw === "" ? 0 : Number(graceRaw),
+        duration_months: Number((durEl && durEl.value) || 12),
+      };
+    }
+    /** Day list for the chosen month; February stops at 28 on purpose. */
+    function levelAnchorMonthChanged(p) {
+      const monthEl = document.getElementById(p + "-anchor-month");
+      const dayEl = document.getElementById(p + "-anchor-day");
+      if (!monthEl || !dayEl) return;
+      const month = Number(monthEl.value) || 1;
+      const wanted = Number(dayEl.value) || 1;
+      const max = month === 2 ? 28 : qhDaysInMonth(QH_LABEL_YEAR, month - 1);
+      let out = "";
+      for (let d = 1; d <= max; d++) out += `<option value="${d}">${d}</option>`;
+      dayEl.innerHTML = out;
+      dayEl.value = String(Math.min(wanted, max));
+      levelPolicyChanged(p);
+    }
+    /**
+     * Show or hide the dependent controls, say the policy in words, and —
+     * on the Edit form only — warn that a changed membership year does not
+     * move anyone who has already paid. Inline, next to the control that
+     * caused it: an officer comparing two choices should not have to
+     * dismiss a dialog to see the sentence change.
+     */
+    function levelPolicyChanged(p) {
+      const mode = levelTermMode(p);
+      const anchorRow = document.getElementById(p + "-anchor-row");
+      const prorateRow = document.getElementById(p + "-prorate-row");
+      if (anchorRow) anchorRow.classList.toggle("hidden", mode !== "fixed_date");
+      if (prorateRow) prorateRow.classList.toggle("hidden", mode === "anniversary");
+      const note = document.getElementById(p + "-policy-note");
+      if (note) note.textContent = qhDescribePolicy(qhReadDuesPolicy(levelPolicyFromForm(p)));
+      const warn = document.getElementById(p + "-policy-warn");
+      if (warn) {
+        const changed = p === "el" && !!window._editingLevelTermMode && mode !== window._editingLevelTermMode;
+        warn.textContent = changed
+          ? "Members who have already paid keep the dates they have — nobody's term or renewal date moves. This applies to people who join or renew from now on."
+          : "";
+        warn.classList.toggle("hidden", !changed);
+      }
+    }
+    /** Populate the day list and the sentence once the form markup exists. */
+    function levelPolicyInit(p) {
+      if (!document.getElementById(p + "-policy")) return;
+      levelAnchorMonthChanged(p);
+    }
+    /** Put a stored policy back on the form (Edit). */
+    function levelPolicyToForm(p, level) {
+      const policy = qhReadDuesPolicy(level || {});
+      const radio = document.querySelector(`input[name="${p}-term"][value="${policy.termMode}"]`);
+      if (radio) radio.checked = true;
+      const anchor = qhPolicyAnchor(policy);
+      const monthEl = document.getElementById(p + "-anchor-month");
+      const dayEl = document.getElementById(p + "-anchor-day");
+      if (monthEl) monthEl.value = String(anchor.month);
+      levelAnchorMonthChanged(p);
+      if (dayEl) dayEl.value = String(anchor.day);
+      const prorationEl = document.getElementById(p + "-proration");
+      // The stored proration survives a trip through anniversary, where it
+      // has no meaning; show what the row actually holds.
+      if (prorationEl) prorationEl.value = (level && level.proration) || policy.proration;
+      const graceEl = document.getElementById(p + "-grace");
+      if (graceEl) graceEl.value = String(policy.graceDays);
+      levelPolicyChanged(p);
+    }
+    /** Short "Membership year" column label for the levels table. */
+    function levelYearLabel(level) {
+      const policy = qhReadDuesPolicy(level);
+      if (policy.termMode === "anniversary") {
+        return policy.durationMonths + (policy.durationMonths === 1 ? " month" : " months") + " from joining";
+      }
+      const anchor = qhPolicyAnchor(policy);
+      const utc = qhAnchorInYear(QH_LABEL_YEAR, anchor.month, anchor.day);
+      return qhLabelForUtc(utc) + " – " + qhLabelForUtc(utc - 24 * 60 * 60 * 1000);
+    }
+
     function editLevel(id) {
       const l = (window._levels || []).find((x) => x.id === id);
       if (!l) return;
       document.getElementById("el-id").value = l.id;
       document.getElementById("el-name").value = l.name;
-      document.getElementById("el-price").value = ((l.price_cents || 0) / 100).toFixed(2);
+      document.getElementById("el-price").value = centsToDollars(l.price_cents || 0);
       document.getElementById("el-duration").value = l.duration_months;
       document.getElementById("el-renewal").value = l.renewal_type;
+      // Remembered so levelPolicyChanged can tell a real change from a
+      // re-render and only warn when the officer actually moved the year.
+      window._editingLevelTermMode = qhReadDuesPolicy(l).termMode;
+      levelPolicyToForm("el", l);
       show(document.getElementById("edit-level-form"));
     }
     async function saveLevel() {
       const id = document.getElementById("el-id").value;
+      const price = qhReadMoney("el-price", "Price");
+      if (price === null) return;
+      const policy = levelPolicyFromForm("el");
       await api(`/api/tenants/${tenantId}/levels/${id}`, {
         method: "PATCH",
         body: JSON.stringify({
           name: document.getElementById("el-name").value,
-          price_cents: levelDollarsToCents(document.getElementById("el-price").value),
+          price_cents: price,
           duration_months: Number(document.getElementById("el-duration").value),
           renewal_type: document.getElementById("el-renewal").value,
+          term_mode: policy.term_mode,
+          term_anchor: policy.term_anchor,
+          proration: policy.proration,
+          grace_days: policy.grace_days,
         }),
       });
       navigate("levels");
@@ -2861,13 +3132,20 @@
       navigate("levels");
     }
     async function addLevel() {
+      const price = qhReadMoney("l-price", "Price");
+      if (price === null) return;
+      const policy = levelPolicyFromForm("l");
       await api(`/api/tenants/${tenantId}/levels`, {
         method: "POST",
         body: JSON.stringify({
           name: document.getElementById("l-name").value,
-          price_cents: levelDollarsToCents(document.getElementById("l-price").value),
+          price_cents: price,
           duration_months: Number(document.getElementById("l-duration").value),
           renewal_type: document.getElementById("l-renewal").value,
+          term_mode: policy.term_mode,
+          term_anchor: policy.term_anchor,
+          proration: policy.proration,
+          grace_days: policy.grace_days,
         }),
       });
       navigate("levels");

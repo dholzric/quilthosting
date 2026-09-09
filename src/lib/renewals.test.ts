@@ -50,6 +50,8 @@ function membership(over: Row): Row {
 
 function fakeDb(memberships: Row[]) {
   const logs: { template: string; member_id: string; status: string }[] = [];
+  /** membership ids the job flipped to expired. */
+  const lapsed: string[] = [];
   const db = {
     prepare(sql: string) {
       return {
@@ -71,12 +73,28 @@ function fakeDb(memberships: Row[]) {
                   ),
                 };
               }
+              // The lapse pass: every ACTIVE membership whose end date has
+              // already passed, with its level's policy columns joined on.
+              // Which of those actually lapse today is renewals.ts's call,
+              // via lapseDate() — that decision is what the grace tests
+              // below are about, so this fake must not pre-filter it.
+              if (sql.includes("FROM memberships m") && sql.includes("date(m.end_date) < date(?)")) {
+                const target = (binds[0] as string).slice(0, 10);
+                return {
+                  results: memberships.filter(
+                    (m) => m.status === "active" && String(m.end_date).slice(0, 10) < target
+                  ),
+                };
+              }
               return { results: [] };
             },
             async run() {
               if (sql.includes("INSERT INTO email_logs")) {
                 const [, , memberId, , template, , status] = binds as string[];
                 logs.push({ template, member_id: memberId, status });
+              }
+              if (sql.includes("UPDATE memberships SET status = 'expired'")) {
+                lapsed.push(binds[binds.length - 1] as string);
               }
               return { success: true, meta: { changes: 1 } };
             },
@@ -85,7 +103,7 @@ function fakeDb(memberships: Row[]) {
       };
     },
   };
-  return { db: db as unknown as D1Database, logs };
+  return { db: db as unknown as D1Database, logs, lapsed };
 }
 
 function env(db: D1Database): Env {
@@ -173,5 +191,83 @@ describe("runRenewalJob reminders", () => {
     await runRenewalJob(env(db));
     expect(logs.length).toBe(1);
     expect(email.sendEmail).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ——— Phase 4, Task A: grace periods and the dated reminder ———
+//
+// A level may now grant grace days (migration 0030). The nightly job keeps
+// selecting every membership whose end date has passed — a grace period can
+// only delay a lapse, never cause one — and decides which of them actually
+// lapse with lapseDate() from src/lib/dues.ts, so the rule lives in one
+// place instead of being restated in SQLite date arithmetic.
+
+describe("runRenewalJob lapse pass", () => {
+  it("lapses an expired membership when the level grants no grace (unchanged)", async () => {
+    const { db, lapsed } = fakeDb([
+      membership({ id: "ms-old", end_date: endDateIn(-1), grace_days: 0 }),
+    ]);
+    const result = await runRenewalJob(env(db));
+    expect(lapsed).toEqual(["ms-old"]);
+    expect(result.expired).toBe(1);
+  });
+
+  it("lapses a membership whose level row is missing entirely", async () => {
+    // LEFT JOIN: the policy columns arrive as nulls and readDuesPolicy
+    // reads them as the anniversary default, so the row lapses as before.
+    const { db, lapsed } = fakeDb([
+      membership({
+        id: "ms-orphan",
+        end_date: endDateIn(-3),
+        grace_days: null,
+        term_mode: null,
+        duration_months: null,
+      }),
+    ]);
+    await runRenewalJob(env(db));
+    expect(lapsed).toEqual(["ms-orphan"]);
+  });
+
+  it("keeps a member active inside the level's grace period", async () => {
+    const { db, lapsed } = fakeDb([
+      membership({ id: "ms-grace", end_date: endDateIn(-5), grace_days: 30 }),
+    ]);
+    const result = await runRenewalJob(env(db));
+    expect(lapsed).toEqual([]);
+    expect(result.expired).toBe(0);
+  });
+
+  it("lapses once the grace period itself has run out", async () => {
+    const { db, lapsed } = fakeDb([
+      membership({ id: "ms-past-grace", end_date: endDateIn(-31), grace_days: 30 }),
+    ]);
+    await runRenewalJob(env(db));
+    expect(lapsed).toEqual(["ms-past-grace"]);
+  });
+
+  it("keeps a member active on the last day of the grace period", async () => {
+    // 30 days of grace on a membership that ended 30 days ago lapses
+    // TOMORROW, not today: the member still has the day the guild promised.
+    const { db, lapsed } = fakeDb([
+      membership({ id: "ms-edge", end_date: endDateIn(-30), grace_days: 30 }),
+    ]);
+    await runRenewalJob(env(db));
+    expect(lapsed).toEqual([]);
+  });
+});
+
+describe("renewal reminders name the renewal date", () => {
+  it("puts the end date in the manual reminder", async () => {
+    const { db } = fakeDb([membership({ end_date: endDateIn(30) })]);
+    await runRenewalJob(env(db));
+    const params = email.sendEmail.mock.calls[0][1] as Row;
+    const expected = new Date(endDateIn(30)).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      timeZone: "UTC",
+    });
+    expect(params.html).toContain(expected);
+    expect(params.html).toContain("Renew Now");
   });
 });

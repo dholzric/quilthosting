@@ -1664,3 +1664,216 @@ describe("POST /public/:slug/newsletter", () => {
     expect(runs).toHaveLength(0);
   });
 });
+
+// ——— Phase 4, Task A: the join price on a fixed-year level ———
+//
+// A guild that runs a January-to-December year and charges half after July 1
+// has to actually charge half. These pin what POST /public/:slug/join sends
+// to Stripe (and activates for free), against a fake D1 and a frozen clock.
+//
+// The rules: proration is a FIRST-term concession, it never applies to an
+// anniversary level, and it never applies to an auto-renew level (a Stripe
+// subscription would repeat the prorated amount forever).
+import { afterEach } from "vitest";
+import { readDuesPolicy, computeTermEnd } from "../lib/dues";
+
+const JOIN_TENANT = {
+  id: "tenant-join",
+  slug: "prairiestar",
+  name: "Prairie Star",
+  tenant_type: "guild",
+  status: "active",
+  plan: "starter", // Guild plan: no member-cap queries in the way
+  trial_ends_at: null,
+  stripe_subscription_id: "sub_guild",
+  stripe_account_id: null,
+  settings_json: "{}",
+};
+
+function joinHarness(
+  levelOverrides: Record<string, unknown> = {},
+  opts: { priorMembership?: boolean } = {}
+) {
+  const level = {
+    id: "lvl-1",
+    tenant_id: JOIN_TENANT.id,
+    name: "Individual",
+    description: null,
+    price_cents: 3500,
+    duration_months: 12,
+    renewal_type: "manual",
+    benefits_json: "[]",
+    is_public: 1,
+    sort_order: 0,
+    status: "active",
+    term_mode: "anniversary",
+    term_anchor: null,
+    proration: "none",
+    grace_days: 0,
+    ...levelOverrides,
+  };
+  const writes: { sql: string; binds: unknown[] }[] = [];
+  const members: Record<string, unknown>[] = [];
+  const db = {
+    prepare(sql: string) {
+      return {
+        bind(...binds: unknown[]) {
+          return {
+            __sql: sql,
+            async first() {
+              if (sql.includes("FROM tenants")) return JOIN_TENANT;
+              if (sql.includes("FROM membership_levels")) return level;
+              if (sql.includes("SELECT id FROM memberships")) {
+                return opts.priorMembership ? { id: "ms-old" } : null;
+              }
+              if (sql.includes("FROM members WHERE id = ?")) {
+                return members.find((m) => m.id === binds[0]) ?? null;
+              }
+              if (sql.includes("FROM members WHERE tenant_id = ? AND email = ?")) {
+                return members.find((m) => m.email === binds[1]) ?? null;
+              }
+              return null;
+            },
+            async all() {
+              return { results: [] };
+            },
+            async run() {
+              if (sql.includes("INSERT INTO members")) {
+                members.push({
+                  id: binds[0],
+                  tenant_id: binds[1],
+                  email: binds[2],
+                  first_name: binds[3],
+                  last_name: binds[4],
+                  custom_fields_json: binds[5],
+                  status: "pending",
+                });
+              }
+              writes.push({ sql, binds });
+              return { success: true, meta: { changes: 1 } };
+            },
+          };
+        },
+      };
+    },
+    async batch(stmts: { run: () => Promise<unknown> }[]) {
+      const out = [];
+      for (const s of stmts) out.push(await s.run());
+      return out;
+    },
+  };
+  const app = new Hono<{ Bindings: Env }>();
+  app.route("/", publicRoutes);
+  const env = {
+    DB: db,
+    APP_URL: "https://quilthosting.com",
+    STRIPE_SECRET_KEY: "sk_test_x",
+  } as unknown as Env;
+  const ctx = { waitUntil() {}, passThroughOnException() {} } as unknown as ExecutionContext;
+  const join = (body: unknown) =>
+    app.request(
+      "/prairiestar/join",
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
+      env,
+      ctx
+    );
+  const membershipInsert = () => writes.find((w) => w.sql.includes("INSERT INTO memberships"));
+  return { join, writes, level, membershipInsert };
+}
+
+const CALENDAR_HALF = { term_mode: "calendar", proration: "half_year" };
+
+describe("POST /public/:slug/join — dues policy pricing", () => {
+  beforeEach(() => {
+    vi.mocked(createCheckoutSession).mockClear();
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const amountCharged = () =>
+    (vi.mocked(createCheckoutSession).mock.calls[0][1] as unknown as { amountCents: number })
+      .amountCents;
+
+  it("charges the full price on an anniversary level, as it always has", async () => {
+    vi.setSystemTime(new Date("2026-08-01T12:00:00.000Z"));
+    const h = joinHarness();
+    const res = await h.join({ level_id: "lvl-1", email: "jo@example.test" });
+    expect(res.status).toBe(200);
+    expect(amountCharged()).toBe(3500);
+  });
+
+  it("charges half after the midpoint of a calendar year", async () => {
+    vi.setSystemTime(new Date("2026-08-01T12:00:00.000Z"));
+    const h = joinHarness(CALENDAR_HALF);
+    const res = await h.join({ level_id: "lvl-1", email: "jo@example.test" });
+    expect(res.status).toBe(200);
+    expect(amountCharged()).toBe(1750);
+  });
+
+  it("charges the full price before the midpoint", async () => {
+    vi.setSystemTime(new Date("2026-02-01T12:00:00.000Z"));
+    const h = joinHarness(CALENDAR_HALF);
+    await h.join({ level_id: "lvl-1", email: "jo@example.test" });
+    expect(amountCharged()).toBe(3500);
+  });
+
+  it("charges by the month when the level prorates monthly", async () => {
+    vi.setSystemTime(new Date("2026-10-15T12:00:00.000Z"));
+    const h = joinHarness({ term_mode: "calendar", proration: "monthly" });
+    await h.join({ level_id: "lvl-1", email: "jo@example.test" });
+    expect(amountCharged()).toBe(875); // October, November, December
+  });
+
+  it("charges a returning member the full price (proration is a first-term concession)", async () => {
+    vi.setSystemTime(new Date("2026-08-01T12:00:00.000Z"));
+    const h = joinHarness(CALENDAR_HALF, { priorMembership: true });
+    await h.join({ level_id: "lvl-1", email: "jo@example.test" });
+    expect(amountCharged()).toBe(3500);
+  });
+
+  it("never prorates an auto-renew level (Stripe would repeat the discount)", async () => {
+    vi.setSystemTime(new Date("2026-08-01T12:00:00.000Z"));
+    const h = joinHarness({ ...CALENDAR_HALF, renewal_type: "auto" });
+    await h.join({ level_id: "lvl-1", email: "jo@example.test" });
+    expect(amountCharged()).toBe(3500);
+    expect(
+      (vi.mocked(createCheckoutSession).mock.calls[0][1] as unknown as { mode: string }).mode
+    ).toBe("subscription");
+  });
+
+  it("says on the Stripe line item that a prorated charge covers the rest of the year", async () => {
+    vi.setSystemTime(new Date("2026-08-01T12:00:00.000Z"));
+    const h = joinHarness(CALENDAR_HALF);
+    await h.join({ level_id: "lvl-1", email: "jo@example.test" });
+    const args = vi.mocked(createCheckoutSession).mock
+      .calls[0][1] as unknown as { description: string };
+    expect(args.description).toMatch(/rest of the membership year/);
+  });
+
+  it("gives a free calendar-year membership the shared December 31 end date", async () => {
+    vi.setSystemTime(new Date("2026-10-15T12:00:00.000Z"));
+    const h = joinHarness({ price_cents: 0, term_mode: "calendar" });
+    const res = await h.join({ level_id: "lvl-1", email: "jo@example.test" });
+    expect(res.status).toBe(200);
+    expect((await res.json<{ status: string }>()).status).toBe("active");
+    expect(createCheckoutSession).not.toHaveBeenCalled();
+    // binds: id, tenant, member, level, start, end, ...
+    expect(h.membershipInsert()!.binds[5]).toBe("2026-12-31T23:59:59.999Z");
+    expect(h.membershipInsert()!.binds[5]).toBe(
+      computeTermEnd(
+        readDuesPolicy({ term_mode: "calendar", duration_months: 12 }),
+        "2026-10-15T12:00:00.000Z",
+        "2026-10-15T12:00:00.000Z"
+      )
+    );
+  });
+
+  it("still gives a free anniversary membership its twelve months", async () => {
+    vi.setSystemTime(new Date("2026-10-15T12:00:00.000Z"));
+    const h = joinHarness({ price_cents: 0 });
+    await h.join({ level_id: "lvl-1", email: "jo@example.test" });
+    expect(h.membershipInsert()!.binds[5]).toBe("2027-10-15T12:00:00.000Z");
+  });
+});

@@ -4,6 +4,14 @@ import { z } from "zod";
 import type { Env, MembershipLevel, TenantVariables } from "../types";
 import { generateId } from "../lib/utils/id";
 import { all, first } from "../lib/db";
+import {
+  TERM_MODES,
+  PRORATIONS,
+  MAX_GRACE_DAYS,
+  isValidTermAnchor,
+  type TermMode,
+  type Proration,
+} from "../lib/dues";
 
 export const levelRoutes = new Hono<{
   Bindings: Env;
@@ -26,6 +34,28 @@ const nameSchema = z.string().trim().min(1, "name is required").max(120);
 const descriptionSchema = z.string().max(2000).nullable();
 const renewalSchema = z.enum(["manual", "auto"]);
 
+
+/* ——— Dues policy (migration 0030; the engine is src/lib/dues.ts) ———
+ *
+ * The shape is validated here; the MEANING lives in one module so the join
+ * page, the renewal cron and the admin's plain-language sentence cannot
+ * disagree. A level that never sends these fields keeps the anniversary
+ * term it has always had.
+ */
+const termModeSchema = z.enum(TERM_MODES as unknown as [TermMode, ...TermMode[]]);
+const prorationSchema = z.enum(PRORATIONS as unknown as [Proration, ...Proration[]]);
+// 'MM-DD'. February 29 is a real date in leap years (dues.ts clamps it to
+// the 28th in the others); February 30 and April 31 are not dates at all.
+const termAnchorSchema = z
+  .string()
+  .refine((v) => isValidTermAnchor(v), "term_anchor must be a real month and day, as MM-DD")
+  .nullable();
+const graceDaysSchema = z
+  .number({ invalid_type_error: "grace_days must be a whole number of days" })
+  .int("grace_days must be a whole number of days")
+  .min(0, "grace_days cannot be negative")
+  .max(MAX_GRACE_DAYS, `grace_days cannot be more than ${MAX_GRACE_DAYS}`);
+
 const createLevelSchema = z.object({
   name: nameSchema,
   description: descriptionSchema.optional(),
@@ -33,8 +63,57 @@ const createLevelSchema = z.object({
   duration_months: durationSchema.optional(),
   renewal_type: renewalSchema.optional(),
   is_public: z.boolean().optional(),
+  term_mode: termModeSchema.optional(),
+  term_anchor: termAnchorSchema.optional(),
+  proration: prorationSchema.optional(),
+  grace_days: graceDaysSchema.optional(),
 });
 const patchLevelSchema = createLevelSchema.partial();
+
+/** What the level row stores for its dues policy, after the route resolves it. */
+type PolicyColumns = {
+  term_mode: TermMode;
+  term_anchor: string | null;
+  proration: Proration;
+  grace_days: number;
+};
+
+/**
+ * Merge the submitted policy fields over what the level already stores and
+ * enforce the two cross-field rules zod cannot see on a PATCH:
+ *
+ *   - fixed_date needs an anchor (there is nothing to compute a year from
+ *     without one), and
+ *   - anniversary and calendar must NOT keep a stale anchor: switching a
+ *     July-year level to the calendar year has to clear '07-01', which is
+ *     why these columns are bound directly instead of through coalesce().
+ *
+ * Proration is left as sent even for anniversary; dues.ts normalizes it
+ * away when it reads the row, so a level toggled anniversary -> calendar
+ * and back keeps the officer's choice rather than silently losing it.
+ */
+function resolvePolicy(
+  body: Partial<PolicyColumns> & { term_anchor?: string | null },
+  existing: Partial<PolicyColumns>
+): { policy: PolicyColumns } | { error: string } {
+  const term_mode = (body.term_mode ?? existing.term_mode ?? "anniversary") as TermMode;
+  const anchorGiven = body.term_anchor !== undefined;
+  let term_anchor = anchorGiven ? body.term_anchor ?? null : existing.term_anchor ?? null;
+  const proration = (body.proration ?? existing.proration ?? "none") as Proration;
+  const grace_days = body.grace_days ?? existing.grace_days ?? 0;
+
+  if (term_mode === "fixed_date") {
+    if (!isValidTermAnchor(term_anchor)) {
+      return {
+        error:
+          "term_anchor: a month and day (MM-DD) is required when term_mode is fixed_date",
+      };
+    }
+  } else {
+    term_anchor = null;
+  }
+  return { policy: { term_mode, term_anchor, proration, grace_days } };
+}
 
 function validationError(c: Context, error: z.ZodError) {
   const first = error.issues[0];
@@ -70,12 +149,15 @@ levelRoutes.post("/", async (c) => {
   const parsed = createLevelSchema.safeParse(await readJson(c));
   if (!parsed.success) return validationError(c, parsed.error);
   const body = parsed.data;
+  const resolved = resolvePolicy(body, {});
+  if ("error" in resolved) return c.json({ error: resolved.error }, 400);
   const id = generateId();
   const now = new Date().toISOString();
   await c.env.DB.prepare(
     `INSERT INTO membership_levels
-     (id, tenant_id, name, description, price_cents, duration_months, renewal_type, is_public, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+     (id, tenant_id, name, description, price_cents, duration_months, renewal_type, is_public,
+      term_mode, term_anchor, proration, grace_days, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   )
     .bind(
       id,
@@ -86,6 +168,10 @@ levelRoutes.post("/", async (c) => {
       body.duration_months ?? 12,
       body.renewal_type ?? "manual",
       body.is_public === false ? 0 : 1,
+      resolved.policy.term_mode,
+      resolved.policy.term_anchor,
+      resolved.policy.proration,
+      resolved.policy.grace_days,
       now,
       now
     )
@@ -120,6 +206,11 @@ levelRoutes.patch("/:levelId", async (c) => {
     ).bind(levelId, tenant.id)
   );
   if (!existing) return c.json({ error: "Not found" }, 404);
+  // The policy columns are bound directly rather than through coalesce()
+  // because switching a fixed-date level to the calendar year has to CLEAR
+  // term_anchor, and coalesce(?, term_anchor) can never write a NULL.
+  const resolved = resolvePolicy(body, existing as unknown as Partial<PolicyColumns>);
+  if ("error" in resolved) return c.json({ error: resolved.error }, 400);
   const now = new Date().toISOString();
   await c.env.DB.prepare(
     `UPDATE membership_levels SET
@@ -129,6 +220,10 @@ levelRoutes.patch("/:levelId", async (c) => {
        duration_months = coalesce(?, duration_months),
        renewal_type = coalesce(?, renewal_type),
        is_public = coalesce(?, is_public),
+       term_mode = ?,
+       term_anchor = ?,
+       proration = ?,
+       grace_days = ?,
        updated_at = ?
      WHERE id = ? AND tenant_id = ?`
   )
@@ -139,6 +234,10 @@ levelRoutes.patch("/:levelId", async (c) => {
       body.duration_months ?? null,
       body.renewal_type ?? null,
       body.is_public !== undefined ? (body.is_public ? 1 : 0) : null,
+      resolved.policy.term_mode,
+      resolved.policy.term_anchor,
+      resolved.policy.proration,
+      resolved.policy.grace_days,
       now,
       levelId,
       tenant.id

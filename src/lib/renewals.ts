@@ -8,6 +8,7 @@ import {
   autoRenewNoticeEmail,
 } from "./email";
 import { portalUrl } from "./memberships";
+import { readDuesPolicy, lapseDate } from "./dues";
 import { formatMoney } from "./utils/money";
 import { enqueueTrigger } from "./automations/triggers";
 
@@ -107,16 +108,20 @@ export async function runRenewalJob(env: Env): Promise<{
         if (already) continue;
 
         const renewUrl = `${env.APP_URL.replace(/\/$/, "")}/portal?slug=${encodeURIComponent(row.tenant_slug)}&renew=1`;
+        // Name the day, not just the countdown: on a calendar-year level
+        // every member's dues are due the same date, and that date is the
+        // one the guild already prints on its newsletter.
+        const renewDate = new Date(row.end_date).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          timeZone: "UTC",
+        });
         const { subject, html } = autoRenewing
           ? autoRenewNoticeEmail({
               guildName: row.tenant_name,
               firstName: row.first_name ?? undefined,
-              renewDate: new Date(row.end_date).toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-                timeZone: "UTC",
-              }),
+              renewDate,
               amountFormatted: formatMoney(row.price_cents),
               portalUrl: portalUrl(env.APP_URL, row.tenant_slug),
             })
@@ -126,6 +131,7 @@ export async function runRenewalJob(env: Env): Promise<{
               daysLeft: days,
               renewUrl,
               amountFormatted: formatMoney(row.price_cents),
+              renewDate,
             });
 
         const sendResult = await sendEmail(env, {
@@ -167,17 +173,52 @@ export async function runRenewalJob(env: Env): Promise<{
   }
 
   try {
-    const expired = await all<{ id: string; member_id: string; tenant_id: string }>(
+    // The SQL still selects every membership whose end date has passed —
+    // that is the SUPERSET of what may lapse, because a grace period can
+    // only ever delay a lapse, never cause one. Which of those actually
+    // lapse today is decided in one place, by lapseDate() in src/lib/dues.ts,
+    // rather than by a second copy of the rule written in SQLite date
+    // arithmetic. LEFT JOIN so a membership whose level row went missing
+    // still lapses exactly as it did before (readDuesPolicy turns the nulls
+    // into the anniversary policy with no grace).
+    const expired = await all<{
+      id: string;
+      member_id: string;
+      tenant_id: string;
+      end_date: string | null;
+      term_mode: string | null;
+      term_anchor: string | null;
+      duration_months: number | null;
+      proration: string | null;
+      grace_days: number | null;
+    }>(
       env.DB.prepare(
-        `SELECT m.id, m.member_id, m.tenant_id
+        `SELECT m.id, m.member_id, m.tenant_id, m.end_date,
+                l.term_mode, l.term_anchor, l.duration_months, l.proration, l.grace_days
          FROM memberships m
          JOIN tenants t ON t.id = m.tenant_id
+         LEFT JOIN membership_levels l ON l.id = m.level_id
          WHERE m.status = 'active' AND date(m.end_date) < date(?)
            AND coalesce(t.tenant_type, 'guild') = 'guild'`
       ).bind(today)
     );
 
     for (const row of expired) {
+      // Still inside the grace period this level grants: leave the member
+      // active and look again tomorrow. grace_days = 0 (every level that
+      // predates migration 0030) makes this identical to the old query.
+      if (row.end_date) {
+        let lapsesOn: string | null = null;
+        try {
+          lapsesOn = lapseDate(readDuesPolicy(row), row.end_date);
+        } catch {
+          // An unreadable end date already got past date(m.end_date) in
+          // SQLite; fall through and lapse it as before rather than
+          // leaving a broken row active forever.
+        }
+        if (lapsesOn && lapsesOn.slice(0, 10) >= today) continue;
+      }
+
       await env.DB.prepare(
         `UPDATE memberships SET status = 'expired', updated_at = ? WHERE id = ?`
       )

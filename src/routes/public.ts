@@ -23,6 +23,7 @@ import type { Context } from "hono";
 import { sendEmail, welcomeEmail, eventConfirmationEmail } from "../lib/email";
 import { formatMoney } from "../lib/utils/money";
 import { activateMembership, portalUrl } from "../lib/memberships";
+import { readDuesPolicy, prorateCents, describePolicy } from "../lib/dues";
 import { assertCanActivateMember } from "../lib/plans";
 import { rateLimit } from "../middleware/rateLimit";
 import {
@@ -555,7 +556,8 @@ function tenantSummary(tenant: Tenant) {
 export function levelsStatement(db: D1Database, tenantId: string): D1PreparedStatement {
   return db
     .prepare(
-      `SELECT id, name, description, price_cents, duration_months, benefits_json, sort_order
+      `SELECT id, name, description, price_cents, duration_months, benefits_json, sort_order,
+              term_mode, term_anchor, proration, grace_days
        FROM membership_levels
        WHERE tenant_id = ? AND status = 'active' AND is_public = 1
        ORDER BY sort_order, name`
@@ -563,8 +565,26 @@ export function levelsStatement(db: D1Database, tenantId: string): D1PreparedSta
     .bind(tenantId);
 }
 
+/**
+ * Each public level, plus what a NEW member would pay today and the policy
+ * in words. `price_now_cents` is what someone who has never held this level
+ * pays right now — on a January-to-December level with half-year proration
+ * that is half the price from July 1 on. It is a display figure: the join
+ * route recomputes it server-side and additionally checks whether THIS
+ * person has held the level before (proration is a first-term concession,
+ * so a returning member pays full price).
+ */
 async function levelsPayload(env: Env, tenant: Tenant) {
-  const levels = await all<MembershipLevel>(levelsStatement(env.DB, tenant.id));
+  const rows = await all<MembershipLevel>(levelsStatement(env.DB, tenant.id));
+  const now = new Date().toISOString();
+  const levels = rows.map((level) => {
+    const policy = readDuesPolicy(level);
+    return {
+      ...level,
+      price_now_cents: prorateCents(policy, level.price_cents, now),
+      dues_note: describePolicy(policy),
+    };
+  });
   return { tenant: tenantSummary(tenant), levels };
 }
 
@@ -792,8 +812,37 @@ publicRoutes.post("/:slug/join", async (c) => {
     return c.json({ error: "Failed to create member" }, 500);
   }
 
-  // Free membership — activate immediately
-  if (level.price_cents === 0) {
+  /* ——— What this person pays today (src/lib/dues.ts) ———
+   *
+   * On an anniversary level (every level nobody has edited) this is the
+   * level price, unchanged. On a fixed-year level with proration it is the
+   * share of the year they are actually buying — but ONLY the first time
+   * they hold this level: proration is a joining concession, not a
+   * permanent discount, so anyone with any prior membership at this level
+   * (active, expired or cancelled) pays full price.
+   *
+   * Auto-renew levels are excluded on purpose. Stripe repeats a
+   * subscription's amount every cycle, so charging a prorated first year
+   * through `mode: "subscription"` would quietly make the discount
+   * permanent. Those levels charge full price until there is a real
+   * two-phase subscription schedule to hang the first term on.
+   */
+  const policy = readDuesPolicy(level);
+  let chargeCents = level.price_cents;
+  if (policy.proration !== "none" && level.renewal_type !== "auto" && level.price_cents > 0) {
+    const prior = await first<{ id: string }>(
+      c.env.DB.prepare(
+        `SELECT id FROM memberships
+         WHERE tenant_id = ? AND member_id = ? AND level_id = ? LIMIT 1`
+      ).bind(tenant.id, member.id, level.id)
+    );
+    if (!prior) chargeCents = prorateCents(policy, level.price_cents, now);
+  }
+
+  // Free membership — activate immediately. Keyed on what they OWE, so a
+  // level whose proration works out to nothing this year does not open a
+  // Stripe Checkout for $0.00.
+  if (chargeCents === 0) {
     try {
       await assertCanActivateMember(c.env.DB, tenant, member.id);
     } catch (e: any) {
@@ -808,6 +857,7 @@ publicRoutes.post("/:slug/join", async (c) => {
       level,
       amountPaidCents: 0,
       now,
+      policy,
     });
 
     const { subject, html } = welcomeEmail({
@@ -904,8 +954,11 @@ publicRoutes.post("/:slug/join", async (c) => {
     email,
     name:
       [body.first_name, body.last_name].filter(Boolean).join(" ") || undefined,
-    amountCents: level.price_cents,
-    description: `${tenant.name} – ${level.name} Membership`,
+    amountCents: chargeCents,
+    description:
+      chargeCents !== level.price_cents
+        ? `${tenant.name} – ${level.name} Membership (rest of the membership year)`
+        : `${tenant.name} – ${level.name} Membership`,
     type: "dues",
     relatedId: level.id,
     successUrl: `${baseUrl}/g/${tenant.slug}?joined=1`,

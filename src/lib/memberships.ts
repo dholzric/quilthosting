@@ -1,6 +1,7 @@
 import type { MembershipLevel } from "../types";
 import { generateId } from "./utils/id";
 import { first } from "./db";
+import { anniversaryTermEnd, computeTermEnd, type DuesPolicy } from "./dues";
 
 /**
  * Expire every active membership for a member (optionally keeping one id).
@@ -42,6 +43,13 @@ export type ActivateMembershipParams = {
   endDate?: string | null;
   stripeSubscriptionId?: string | null;
   autoRenew?: boolean;
+  /**
+   * The level's dues policy (src/lib/dues.ts). Optional on purpose: every
+   * caller that does not pass one gets exactly the term it got before phase
+   * 4 — same computeMembershipEnd call, same end date, same everything.
+   * Pass `readDuesPolicy(level)` to honor a calendar or fixed-date year.
+   */
+  policy?: DuesPolicy;
 };
 
 /**
@@ -69,27 +77,21 @@ export type ActivateMembershipParams = {
  * carries the date the caller gave it; only the TERM is measured from
  * today. `members.joined_at` is likewise untouched -- see activateMembership
  * below, which only ever coalesces it.
+ *
+ * PHASE 4: the body moved verbatim to `anniversaryTermEnd` in
+ * src/lib/dues.ts so the policy engine's "anniversary" branch and this
+ * function are literally the same code and cannot drift apart. The failure
+ * mode is unchanged: an unreadable start date still throws a RangeError
+ * reading `start date "..." is not a valid date`, which the import route's
+ * per-row catch reports as membership_failed. Inventing a term for a row
+ * whose start date cannot be read would hide a real data problem.
  */
 export function computeMembershipEnd(
   startDate: string,
   durationMonths: number | null | undefined,
   now: string
 ): string {
-  const start = new Date(startDate);
-  if (Number.isNaN(start.getTime())) {
-    // Unchanged failure mode, clearer message: the old code reached
-    // `new Date(startDate).toISOString()` and threw "Invalid time value",
-    // which the import route's per-row catch reports as membership_failed.
-    // Keep failing loudly -- inventing a term for a row whose start date is
-    // unreadable would hide a real data problem (and would write that
-    // unreadable string into memberships.start_date anyway).
-    throw new RangeError(`start date "${startDate}" is not a valid date`);
-  }
-  const nowDate = new Date(now);
-  const base = start.getTime() > nowDate.getTime() ? start : nowDate;
-  const end = new Date(base.getTime());
-  end.setMonth(end.getMonth() + (durationMonths || 12));
-  return end.toISOString();
+  return anniversaryTermEnd(startDate, durationMonths, now);
 }
 
 /**
@@ -105,11 +107,10 @@ export async function activateMembership(
 
   let endDate = params.endDate;
   if (endDate === undefined) {
-    endDate = computeMembershipEnd(
-      startDate,
-      params.level.duration_months,
-      now
-    );
+    // No policy passed -> the pre-phase-4 call, byte for byte.
+    endDate = params.policy
+      ? computeTermEnd(params.policy, startDate, now)
+      : computeMembershipEnd(startDate, params.level.duration_months, now);
   }
 
   const autoRenew =
@@ -159,23 +160,41 @@ export async function activateMembership(
 /**
  * Extend an active (or the latest) membership's end date by the level duration.
  * Used for Stripe subscription renewals (invoice.paid / subscription_cycle).
+ *
+ * `policy` is optional and additive: without it this is the pre-phase-4
+ * function, unchanged. With a fixed-year policy the new term runs to the
+ * NEXT anchor — note the term start is the millisecond after the old end
+ * date, not the end date itself, because a term that ends 23:59:59.999 on
+ * December 31 is still inside the year that ends December 31; asking for
+ * "the next anchor after December 31" from that instant would hand back the
+ * same December 31 the member already has.
  */
 export async function extendMembership(
   db: D1Database,
   membershipId: string,
   durationMonths: number,
-  now: string
+  now: string,
+  policy?: DuesPolicy
 ): Promise<string | null> {
   const row = await first<{ end_date: string | null }>(
     db.prepare("SELECT end_date FROM memberships WHERE id = ?").bind(membershipId)
   );
   if (!row) return null;
 
-  const base = row.end_date && new Date(row.end_date) > new Date(now)
-    ? new Date(row.end_date)
-    : new Date(now);
-  base.setMonth(base.getMonth() + (durationMonths || 12));
-  const newEnd = base.toISOString();
+  let newEnd: string;
+  if (policy && policy.termMode !== "anniversary") {
+    const end = row.end_date ? new Date(row.end_date) : null;
+    const stillRunning =
+      !!end && !Number.isNaN(end.getTime()) && end.getTime() > new Date(now).getTime();
+    const nextTermStart = stillRunning ? new Date(end!.getTime() + 1) : new Date(now);
+    newEnd = computeTermEnd(policy, nextTermStart.toISOString(), now);
+  } else {
+    const base = row.end_date && new Date(row.end_date) > new Date(now)
+      ? new Date(row.end_date)
+      : new Date(now);
+    base.setMonth(base.getMonth() + (durationMonths || 12));
+    newEnd = base.toISOString();
+  }
 
   await db
     .prepare(
