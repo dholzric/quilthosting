@@ -158,6 +158,31 @@
     if (f.required) input.required = true;
     return input;
   }
+  // ---- Who is signed in ----------------------------------------------------
+  // The member portal lives on this origin and keeps its session token here, so
+  // a signed-in member is knowable. Asking someone who just signed in to type
+  // their own name and email again is the kind of thing that makes software
+  // feel like it is not paying attention.
+  //
+  // Looked up lazily — only when a form would otherwise ask — so a visitor who
+  // never opens one costs nothing. A dead or foreign token just means "not
+  // signed in"; nothing here is allowed to stop a registration.
+  var identity;
+  function whoAmI() {
+    if (identity) return identity;
+    var token = null;
+    try { token = localStorage.getItem("gb_token"); } catch (e) { token = null; }
+    if (!token) return (identity = Promise.resolve(null));
+    identity = fetch(qhBase + "/api/portal/" + encodeURIComponent(qhSlug) + "/me", {
+      headers: { Authorization: "Bearer " + token },
+    }).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        var m = d && d.member;
+        return m && m.email ? { first: m.first_name || "", last: m.last_name || "", email: m.email } : null;
+      })
+      .catch(function () { return null; });
+    return identity;
+  }
   // ---- Signup dialog (join + register share it, as in guild.html) ----------
   var signup = null;
   function ensureSignup() {
@@ -168,10 +193,13 @@
     var note = el("p", "qh-form__note");
     var submit = el("button", "qh-btn qh-btn--primary", "Continue");
     submit.type = "submit";
-    form.append(note, labelled("First name", first), labelled("Last name", last), labelled("Email", email), custom, submit);
+    var rows = [labelled("First name", first), labelled("Last name", last), labelled("Email", email)];
+    var asYou = el("p", "qh-form__note qh-form__as-you");
+    form.append(note, asYou, rows[0], rows[1], rows[2], custom, submit);
     form.addEventListener("submit", submitSignup);
     dlg.body.appendChild(form);
-    signup = { dlg: dlg, first: first, last: last, email: email, custom: custom, submit: submit, note: note, action: null };
+    signup = { dlg: dlg, first: first, last: last, email: email, custom: custom, submit: submit,
+      note: note, rows: rows, asYou: asYou, action: null };
     return signup;
   }
   function openSignup(title, action, opener) {
@@ -185,7 +213,24 @@
     (action.fields || []).forEach(function (f) {
       s.custom.appendChild(labelled(f.label + (f.required ? " *" : ""), customFieldInput(f)));
     });
+    showFields(s, true);
     s.dlg.open(opener);
+    whoAmI().then(function (me) {
+      if (!me || s.action !== action) return; // a different dialog opened meanwhile
+      s.first.value = me.first; s.last.value = me.last; s.email.value = me.email;
+      var name = [me.first, me.last].filter(Boolean).join(" ") || me.email;
+      s.asYou.replaceChildren(document.createTextNode("Registering as " + name + " (" + me.email + "). "));
+      var change = button("qh-btn qh-btn--ghost qh-form__change", "Use different details");
+      change.addEventListener("click", function () { showFields(s, true); change.remove(); });
+      s.asYou.appendChild(change);
+      showFields(s, false);
+    });
+  }
+  /** Show or hide the name/email rows; hidden means "we already know you". */
+  function showFields(s, on) {
+    s.rows.forEach(function (r) { r.hidden = !on; });
+    s.asYou.hidden = on;
+    if (on) s.asYou.replaceChildren();
   }
   function submitSignup(e) {
     e.preventDefault();

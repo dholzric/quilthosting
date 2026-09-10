@@ -31,13 +31,15 @@ describe("public/qh-site.js — shape", () => {
     expect(site).toContain('"use strict"');
   });
 
-  it("stays under the ~790 line budget (700 + phase-2 islands + price disclosure)", () => {
+  it("stays under the ~830 line budget (700 + phase-2 islands, price disclosure, known-visitor prefill)", () => {
     // The cap keeps the bundle every visitor downloads small; it is not meant
     // to freeze it. The last rise bought stating what a paid registration
     // costs before the form asks for a name — a guild officer registered for a
     // $55 class and reported that it never asked her to pay, because the
     // dialog said nothing about money until Stripe.
-    expect(site.split("\n").length).toBeLessThan(790);
+    // The latest rise buys not asking a signed-in member to type their own
+    // name and email again — a guild officer asked why it was doing that.
+    expect(site.split("\n").length).toBeLessThan(830);
   });
 
   it.each(MODULES)("defines module %s as a named function", (name) => {
