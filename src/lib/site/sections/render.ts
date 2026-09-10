@@ -23,6 +23,7 @@
  */
 
 import { escapeHtml } from "../../blocks";
+import { kitAssetUrl, KIT_ASSET_ALT } from "../kitAssets";
 import { sanitizeHtml, sanitizeUrl } from "../../sanitize";
 import { formatMoney } from "../../utils/money";
 import { deriveRoles, designGround, isDarkDesign } from "../design/tokens";
@@ -178,7 +179,7 @@ function uploadedImg(
       : {};
   // A stock photo carries its own alt text, written for a screen reader; a
   // caller's alt still wins when it has one.
-  const tag = img(imageSrc(fileId, ctx, baseW), alt || stockPhoto(fileId)?.alt || "", { ...opts, ...size });
+  const tag = img(imageSrc(fileId, ctx, baseW), alt || stockPhoto(fileId)?.alt || KIT_ASSET_ALT[fileId] || "", { ...opts, ...size });
   return attrs.length ? tag.slice(0, -1) + attrs.join("") + ">" : tag;
 }
 
@@ -204,7 +205,7 @@ function stockUrl(imageId: string, w: number): string | null {
 
 /** The URL for an image reference at a width: stock photo, else tenant file. */
 function imageSrc(imageId: string, ctx: RenderContext, w: number): string {
-  return stockUrl(imageId, w) ?? ctx.imgUrl(imageId, w);
+  return kitAssetUrl(imageId, w) ?? stockUrl(imageId, w) ?? ctx.imgUrl(imageId, w);
 }
 function patternRefUri(imageId: string, ctx: RenderContext): string {
   const raw = imageId.slice("pattern:".length);
@@ -586,6 +587,26 @@ function eventArticle(ev: SiteEvent, ctx: RenderContext, layout: "cards" | "list
   return `<article class="qh-event">${date}<div class="qh-event__body">${body}${actions}</div></article>`;
 }
 
+/**
+ * List / Calendar, as a pair of links above the events.
+ *
+ * The calendar used to be a button at the very bottom of the events page —
+ * past every event, which on a phone is a long way down — and the calendar
+ * page had no way back at all. Both views are now one tap from the other, at
+ * the top, with the current one marked.
+ */
+function viewSwitch(current: "list" | "calendar", ctx: RenderContext): string {
+  const opt = (label: string, href: string, on: boolean) =>
+    `<a class="qh-viewswitch__opt${on ? " is-on" : ""}" href="${internal(href, ctx)}"` +
+    `${on ? ' aria-current="page"' : ""}>${esc(label)}</a>`;
+  return (
+    `<div class="qh-viewswitch" role="group" aria-label="How to show events">` +
+    opt("List", "/events", current === "list") +
+    opt("Calendar", "/calendar", current === "calendar") +
+    `</div>`
+  );
+}
+
 function renderEvents(s: Sec<"events">, ctx: RenderContext): string {
   const all = ctx.data.events ?? [];
   const limit = Math.max(1, s.limit || 6);
@@ -596,7 +617,10 @@ function renderEvents(s: Sec<"events">, ctx: RenderContext): string {
   if (s.variant === "calendar") {
     // The calendar island replaces this fallback list with a month grid; it
     // reads `data-month` (YYYY-MM of the first listed event, "" = current month).
-    const inner = heading(s.heading) + (list.length ? `<div class="qh-events__list">${list.map((ev) => eventArticle(ev, ctx, "list")).join("")}</div>` : none);
+    const inner =
+      heading(s.heading) +
+      (s.viewSwitch ? viewSwitch("calendar", ctx) : "") +
+      (list.length ? `<div class="qh-events__list">${list.map((ev) => eventArticle(ev, ctx, "list")).join("")}</div>` : none);
     // data-timezone: the grid must show the guild's clock, not the visitor's.
     // Without it a member in Denver saw a Texas meeting an hour early.
     const tzAttr = ctx.timeZone ? ` data-timezone="${esc(ctx.timeZone)}"` : "";
@@ -607,7 +631,8 @@ function renderEvents(s: Sec<"events">, ctx: RenderContext): string {
   else if (s.variant === "cards") body = `<div class="qh-grid">${list.map((ev) => eventArticle(ev, ctx, "cards")).join("")}</div>`;
   else if (s.variant === "list") body = `<div class="qh-events__list">${list.map((ev) => eventArticle(ev, ctx, "list")).join("")}</div>`;
   else body = eventArticle(list[0], ctx, "next_up");
-  return wrap(s, heading(s.heading) + body, { extraClass: cls, ctx });
+  const switcher = s.viewSwitch ? viewSwitch("list", ctx) : "";
+  return wrap(s, heading(s.heading) + switcher + body, { extraClass: cls, ctx });
 }
 
 function levelTerm(l: SiteLevel): string {

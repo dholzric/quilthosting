@@ -422,6 +422,18 @@ html{scroll-padding-top:calc(var(--_header-h) + 1rem)}
 .qh-event__date{font-weight:600;color:var(--_primary);font-size:.95rem}
 .qh-event__title{font-size:var(--_fs5);margin:.25rem 0}
 .qh-event__meta{color:var(--_muted);font-size:.95rem;margin:0}
+/* List / Calendar, above the events. A segmented pair rather than two loose
+   links, so it reads as one control and the current view is obvious. */
+.qh-viewswitch{display:inline-flex;margin:0 0 1.25rem;border:1px solid var(--_border);
+  border-radius:999px;overflow:hidden;background:var(--_surface)}
+.qh-viewswitch__opt{padding:.5rem 1.1rem;min-height:44px;display:inline-flex;align-items:center;
+  font-weight:600;font-size:.95rem;text-decoration:none;color:inherit}
+.qh-viewswitch__opt + .qh-viewswitch__opt{border-left:1px solid var(--_border)}
+.qh-viewswitch__opt.is-on{background:var(--_primary);color:var(--_on-primary)}
+.qh-viewswitch__opt:not(.is-on):hover{background:var(--_tint)}
+/* A tight section keeps its own top padding: the extra a minimal hero adds is
+   what made a list page spend its first screen on its own title. */
+.qh-hero--minimal.qh-s--sp-tight{padding-top:calc(var(--_section-y)*.5)}
 /* One line of the description on a card, so a member can tell what the evening is without opening it. */
 .qh-event__blurb{margin:.15rem 0 .35rem;font-size:.95rem;line-height:1.45}
 .qh-event__actions{margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap}

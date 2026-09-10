@@ -1,0 +1,479 @@
+{
+  "id": "linen-journal",
+  "name": "Linen Journal",
+  "audience": "guild",
+  "character": "An editorial quilt journal in oatmeal and ink: literary headlines, quiet rules, generous margins, and a tactile heirloom star quilt.",
+  "defaults": {
+    "palette": "signature-oat-ink",
+    "typePair": "newsreader-ibmplexsans",
+    "scale": "editorial",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "centered",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "meeting"
+    },
+    "pattern": {
+      "id": "none",
+      "opacity": 0
+    }
+  },
+  "previewSeed": {
+    "guildName": "The Common Thread",
+    "city": "Hudson, New York"
+  },
+  "menu": [
+    {
+      "label": "Our circle",
+      "href": "/our-circle"
+    },
+    {
+      "label": "Gatherings",
+      "href": "/gatherings"
+    },
+    {
+      "label": "The work",
+      "href": "/the-work"
+    },
+    {
+      "label": "Journal",
+      "href": "/journal"
+    },
+    {
+      "label": "Visit us",
+      "href": "/contact"
+    }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "split",
+          "title": "Good things take stitches.",
+          "subtitle": "A quilt guild for the work of our hands and the people beside us. Pull up a chair in {{city}}.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy",
+            "imageId": "hero-art",
+            "layout": "asym_reverse",
+            "imageFocal": [
+              0.48,
+              0.5
+            ]
+          },
+          "eyebrow": "Quilts · Conversation · Common ground",
+          "ctaLabel": "Come to a gathering",
+          "ctaHref": "/gatherings",
+          "secondaryLabel": "Meet our circle",
+          "secondaryHref": "/our-circle",
+          "id": "home-1"
+        },
+        {
+          "type": "meeting_info",
+          "heading": "There is a place for you here.",
+          "when": "We meet {{meeting_info}}.",
+          "where": "Our shared table in {{city}}",
+          "note": "Bring a work in progress, a finished quilt, or simply your curiosity. Your first visit can be just a visit.",
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "normal",
+            "divider": "rule"
+          },
+          "id": "home-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "A practice. A community. A reason to gather.",
+          "items": [
+            {
+              "title": "Make something yours",
+              "body": "Hand quilting, machine piecing, and the occasional seam we all help unpick. There is room for every kind of maker.",
+              "href": "/the-work"
+            },
+            {
+              "title": "Learn across the table",
+              "body": "A good binding trick travels faster when someone can show you. Small gatherings leave time for questions.",
+              "href": "/gatherings"
+            },
+            {
+              "title": "Leave a little warmth",
+              "body": "Our shared projects turn spare blocks and steady hands into quilts for neighbors.",
+              "href": "/our-circle"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-3"
+        },
+        {
+          "type": "rich_text",
+          "heading": "The quilt is only part of what we make.",
+          "html": "<p>We come for the cloth. We stay for the person who remembers our project, the borrowed spool that is exactly right, and a room where making slowly is time well spent. <a href=\"/our-circle\">Read about our circle →</a></p>",
+          "style": {
+            "bg": "dark",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "home-4"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Tell visitors your meeting place, guest policy, and current community project. The quilt image is an original illustrative study; replace it with a photograph of your guild’s work.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "home-5"
+        },
+        {
+          "type": "newsletter_signup",
+          "heading": "A letter from the sewing table.",
+          "body": "Gathering dates, works in progress, and a reason to pick up your needle.",
+          "buttonLabel": "Keep me in the loop",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-6"
+        }
+      ]
+    },
+    {
+      "slug": "our-circle",
+      "title": "Our circle",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Many hands. One common thread.",
+          "subtitle": "{{guild_name}} brings quilters together in {{city}}. Skill is shared freely; every first quilt belongs here.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "About the guild",
+          "id": "our-circle-1"
+        },
+        {
+          "type": "rich_text",
+          "heading": "A circle, with room to grow.",
+          "html": "<p><em>Sample text — replace me:</em> We began around a borrowed table with a handful of quilts. Tell your own founding story here: who gathered, why the guild formed, and what has kept the circle going.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "our-circle-2"
+        },
+        {
+          "type": "benefits",
+          "heading": "What you will find at our table",
+          "items": [
+            {
+              "title": "A welcome without a skill test",
+              "body": "New quilters and lifelong makers work alongside one another."
+            },
+            {
+              "title": "Knowledge passed hand to hand",
+              "body": "Ask about fabric grain, a scant quarter inch, or a binding corner."
+            },
+            {
+              "title": "A purpose beyond the sewing room",
+              "body": "Members choose community projects together and contribute in the ways they can."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "our-circle-3"
+        },
+        {
+          "type": "cta",
+          "label": "Find your first gathering",
+          "href": "/gatherings",
+          "kind": "primary",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "our-circle-4"
+        }
+      ]
+    },
+    {
+      "slug": "gatherings",
+      "title": "Gatherings",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Leave a little room for making.",
+          "subtitle": "Program nights, open sewing tables, and the pleasure of seeing a quilt unfold.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "Gather with us",
+          "id": "gatherings-1"
+        },
+        {
+          "type": "events",
+          "variant": "list",
+          "heading": "Next at the table",
+          "limit": 6,
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "gatherings-2"
+        },
+        {
+          "type": "faq",
+          "heading": "A few things you might be wondering",
+          "items": [
+            {
+              "q": "May I visit before joining?",
+              "a": "Come and meet us before deciding. Contact the guild to confirm the next meeting location and any guest fee."
+            },
+            {
+              "q": "What should I bring?",
+              "a": "A project you can work on comfortably, your usual tools, and a quilt for show and tell if you would like. Check each event for machine and supply requirements."
+            },
+            {
+              "q": "Can I come without a project?",
+              "a": "Yes. Watching, asking questions, and getting to know people are good reasons to come."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "gatherings-3"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Confirm your guest policy and meeting accessibility. Add actual gatherings through Events so the dates above stay current.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "gatherings-4"
+        },
+        {
+          "type": "cta",
+          "label": "Ask about visiting",
+          "href": "/contact",
+          "kind": "primary",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "gatherings-5"
+        }
+      ]
+    },
+    {
+      "slug": "the-work",
+      "title": "The work",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Every quilt has a life beyond the last stitch.",
+          "subtitle": "A place for member work, experiments, and the projects we make together.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "From our sewing tables",
+          "id": "the-work-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Illustrative heirloom star quilt in oatmeal, ink, and ochre. Replace with your own guild photography.",
+              "caption": "Illustrative heirloom star quilt in oatmeal, ink, and ochre. Replace with your own guild photography."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "the-work-2"
+        },
+        {
+          "type": "rich_text",
+          "heading": "The story belongs beside the quilt.",
+          "html": "<p><em>Sample text — replace me:</em> Introduce your latest show and tell or community project. Credit the maker, the pattern designer, and the quilter. Ask permission before publishing a member’s photograph.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "the-work-3"
+        },
+        {
+          "type": "cta",
+          "label": "Explore member galleries",
+          "href": "/galleries",
+          "kind": "primary",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "the-work-4"
+        }
+      ]
+    },
+    {
+      "slug": "journal",
+      "title": "Journal",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Notes from the sewing table.",
+          "subtitle": "What we are making, what we are learning, and what is coming next.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "The guild journal",
+          "id": "journal-1"
+        },
+        {
+          "type": "blog_teaser",
+          "heading": "Recent letters",
+          "limit": 4,
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "journal-2"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Publish your first guild update through the blog. Keep meeting recaps useful: include the next date, project instructions, and photo credits.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "journal-3"
+        },
+        {
+          "type": "newsletter_signup",
+          "heading": "Keep a thread between gatherings.",
+          "body": "Receive new guild updates by email.",
+          "buttonLabel": "Keep me in the loop",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "journal-4"
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Visit us",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Start with hello.",
+          "subtitle": "Coming on your own, bringing a friend, or wondering where to park? We would like to help.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "Your first visit",
+          "id": "contact-1"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Before you set out",
+          "html": "<p><em>Sample text — replace me:</em> Add the exact venue, step-free entrance, parking, and a contact who can greet a first-time visitor. We meet {{meeting_info}} in {{city}}.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "contact-2"
+        },
+        {
+          "type": "contact",
+          "heading": "A note to the guild",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "contact-3"
+        }
+      ]
+    }
+  ],
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "photo",
+      "src": "public/kit-assets/linen-journal/hero.webp",
+      "alt": "An oatmeal, ink and ochre star quilt on an oak worktable"
+    }
+  ]
+}

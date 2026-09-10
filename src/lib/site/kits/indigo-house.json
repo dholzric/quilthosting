@@ -1,0 +1,504 @@
+{
+  "id": "indigo-house",
+  "name": "Indigo House",
+  "audience": "business",
+  "character": "A quiet luxury quilting atelier: midnight blue, ivory typography, immersive stitch photography, and a considered commission journey.",
+  "defaults": {
+    "palette": "signature-midnight",
+    "typePair": "cormorantgaramond-sourcesans",
+    "scale": "editorial",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "split",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "none",
+      "opacity": 0
+    }
+  },
+  "previewSeed": {
+    "guildName": "Indigo House",
+    "city": "Asheville, North Carolina"
+  },
+  "menu": [
+    {
+      "label": "The atelier",
+      "href": "/atelier"
+    },
+    {
+      "label": "Selected work",
+      "href": "/selected-work"
+    },
+    {
+      "label": "Commissions",
+      "href": "/commissions"
+    },
+    {
+      "label": "The details",
+      "href": "/details"
+    },
+    {
+      "label": "Enquire",
+      "href": "/request-a-quote"
+    }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "split",
+          "title": "Cloth, considered. Stitch by stitch.",
+          "subtitle": "Thoughtful quilting for pieces you intend to keep. A small independent atelier in {{city}}.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy",
+            "imageId": "hero-art",
+            "media": "left",
+            "layout": "asym_reverse",
+            "imageFocal": [
+              0.52,
+              0.5
+            ]
+          },
+          "eyebrow": "Quilting · Finishing · Commissioned work",
+          "ctaLabel": "Begin a conversation",
+          "ctaHref": "/request-a-quote",
+          "secondaryLabel": "Explore commissions",
+          "secondaryHref": "/commissions",
+          "id": "home-1"
+        },
+        {
+          "type": "rich_text",
+          "heading": "The last layer changes everything.",
+          "html": "<p>A line of stitching can quiet a busy patchwork, draw out its geometry, or give a plain field of cloth a life of its own. We begin by looking at what your quilt is asking for.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "home-2"
+        },
+        {
+          "type": "services",
+          "variant": "table",
+          "heading": "Ways to work together",
+          "items": [
+            {
+              "title": "Everyday finishing",
+              "body": "An edge-to-edge rhythm chosen to suit the scale, use, and character of your quilt.",
+              "price": "Quoted by size"
+            },
+            {
+              "title": "Custom quilting",
+              "body": "Individual attention to blocks, borders, and the spaces between.",
+              "price": "Quoted by design"
+            },
+            {
+              "title": "A quilt from the beginning",
+              "body": "A commissioned piece, with fabric and composition developed around your brief.",
+              "price": "Quoted by project"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-3"
+        },
+        {
+          "type": "process",
+          "heading": "A considered process",
+          "items": [
+            {
+              "title": "A conversation",
+              "body": "Tell us about the quilt, its dimensions, and the life you imagine for it."
+            },
+            {
+              "title": "A written proposal",
+              "body": "We agree the design, materials, price, and timing before any work begins."
+            },
+            {
+              "title": "The finishing",
+              "body": "Your piece is quilted, checked, and prepared for collection or agreed shipping."
+            }
+          ],
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "airy",
+            "divider": "rule"
+          },
+          "id": "home-4"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Describe only services your studio offers and confirm your current lead time. Imagery is an original illustrative textile study; replace it with photographs of work you have made.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "home-5"
+        },
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Let us make something worth keeping.",
+          "subtitle": "A finished top. An idea for a new quilt. A piece of cloth with a story. Start there.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "normal"
+          },
+          "ctaLabel": "Enquire about a project",
+          "ctaHref": "/request-a-quote",
+          "id": "home-6"
+        }
+      ]
+    },
+    {
+      "slug": "atelier",
+      "title": "The atelier",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "A small studio. A close attention to cloth.",
+          "subtitle": "{{guild_name}} is an independent quilting atelier in {{city}}.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "Behind the work",
+          "id": "atelier-1"
+        },
+        {
+          "type": "rich_text",
+          "heading": "The hands behind the stitching.",
+          "html": "<p><em>Sample text — replace me:</em> Introduce the maker in your own voice. Explain the kinds of quilts you love working on, the techniques you actually use, and what a client can expect when you take on their piece.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "atelier-2"
+        },
+        {
+          "type": "benefits",
+          "heading": "What matters in the studio",
+          "items": [
+            {
+              "title": "Clarity before cutting",
+              "body": "Scope, materials, and estimates agreed in writing."
+            },
+            {
+              "title": "Care for the work already done",
+              "body": "Your piecing and fabric choices guide the finishing."
+            },
+            {
+              "title": "A useful life beyond the studio",
+              "body": "Quilting density, thread, and care guidance suited to how the quilt will be used."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "atelier-3"
+        },
+        {
+          "type": "cta",
+          "label": "Tell us about your quilt",
+          "href": "/request-a-quote",
+          "kind": "primary",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "atelier-4"
+        }
+      ]
+    },
+    {
+      "slug": "selected-work",
+      "title": "Selected work",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "The detail is the whole point.",
+          "subtitle": "A study in texture, quiet color, and the movement of a stitched line.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "A closer look",
+          "id": "selected-work-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Illustrative indigo textile study with white running stitches. Replace with your studio portfolio.",
+              "caption": "Illustrative indigo textile study with white running stitches. Replace with your studio portfolio."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "selected-work-2"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Give each piece its own story.",
+          "html": "<p><em>Sample text — replace me:</em> Replace this study with your own finished work. Include dimensions, fabric, batting, the quilting approach, and credits for the piecer and pattern designer. Obtain client permission before sharing.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "selected-work-3"
+        },
+        {
+          "type": "cta",
+          "label": "Discuss a similar direction",
+          "href": "/request-a-quote",
+          "kind": "primary",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "selected-work-4"
+        }
+      ]
+    },
+    {
+      "slug": "commissions",
+      "title": "Commissions",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "First, tell us what you have in mind.",
+          "subtitle": "A clear brief makes room for thoughtful work. We agree the details before your quilt enters the studio.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "Working together",
+          "id": "commissions-1"
+        },
+        {
+          "type": "services",
+          "variant": "table",
+          "heading": "A starting point for your project",
+          "items": [
+            {
+              "title": "Edge-to-edge quilting",
+              "body": "Share the width and length of the top, desired density, and whether batting and backing are supplied.",
+              "price": "Written estimate"
+            },
+            {
+              "title": "Custom quilting",
+              "body": "Share a full photograph and close details of the piecing. Design planning is included in your proposal.",
+              "price": "Written estimate"
+            },
+            {
+              "title": "Commissioned quilt",
+              "body": "Tell us the intended size, use, palette, and any meaningful fabrics you would like to include.",
+              "price": "Written estimate"
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "commissions-2"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Publish your actual rate structure, minimum charge, booking deposit, and lead times. Never promise an event deadline until you have checked studio capacity.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "commissions-3"
+        },
+        {
+          "type": "cta",
+          "label": "Request a project estimate",
+          "href": "/request-a-quote",
+          "kind": "primary",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "commissions-4"
+        }
+      ]
+    },
+    {
+      "slug": "details",
+      "title": "The details",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "A little preparation. A better finish.",
+          "subtitle": "The practical details of sending a quilt to the studio.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "Before we begin",
+          "id": "details-1"
+        },
+        {
+          "type": "faq",
+          "heading": "A few things you might be wondering",
+          "items": [
+            {
+              "q": "What do you need for an estimate?",
+              "a": "The top’s width and length, photographs, your preferred finish, any deadline, and whether backing and batting are supplied."
+            },
+            {
+              "q": "Should I baste the layers?",
+              "a": "Contact the studio first. Longarm work generally needs the top, batting, and backing as separate layers; the required extra backing depends on the setup."
+            },
+            {
+              "q": "Can you guarantee a date?",
+              "a": "A date is confirmed only in your accepted proposal. Let us know about weddings, gifts, or show deadlines before booking."
+            },
+            {
+              "q": "How do I send a quilt?",
+              "a": "Agree the delivery address and packing instructions with the studio before shipping. Include your name and project reference inside the package."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "details-2"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace these answers with your actual preparation requirements, backing allowance, shipping process, cancellation policy, and care advice.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "details-3"
+        },
+        {
+          "type": "cta",
+          "label": "Ask about your project",
+          "href": "/request-a-quote",
+          "kind": "primary",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "details-4"
+        }
+      ]
+    },
+    {
+      "slug": "request-a-quote",
+      "title": "Enquire",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Every good piece begins with a conversation.",
+          "subtitle": "Tell us what you are making, what you need, and when you hope to have it.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "Project enquiries",
+          "id": "request-a-quote-1"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Set your contact details and expected response time. An enquiry requests a conversation; a price or studio slot is confirmed separately in writing.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "request-a-quote-2"
+        },
+        {
+          "type": "quote_cta",
+          "projectType": "longarm",
+          "heading": "Tell us about your quilt",
+          "submitLabel": "Send my project enquiry",
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "request-a-quote-3"
+        }
+      ]
+    }
+  ],
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "photo",
+      "src": "public/kit-assets/indigo-house/hero.webp",
+      "alt": "Indigo patchwork with fine ivory stitching on a dark workbench"
+    }
+  ]
+}

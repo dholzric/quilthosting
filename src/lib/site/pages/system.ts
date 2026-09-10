@@ -248,6 +248,25 @@ function hero(id: string, title: string, subtitle?: string): Section {
   return { type: "hero", variant: "minimal", title, subtitle: subtitle || undefined, style: style(), id };
 }
 
+/**
+ * The header for a page whose job is to show a list.
+ *
+ * A full hero puts a large centred title and a subtitle above the fold, and on
+ * a phone that is most of the first screen spent on the word "Events" before a
+ * single event appears. These pages are read, not landed on, so the header is
+ * compact and the content starts near the top.
+ */
+function listHeader(id: string, title: string, subtitle?: string): Section {
+  return {
+    type: "hero",
+    variant: "minimal",
+    title,
+    subtitle: subtitle || undefined,
+    style: style({ spacing: "tight" }),
+    id,
+  };
+}
+
 function prose(id: string, html: string): Section {
   return { type: "rich_text", variant: "prose", html, style: style({ width: "narrow" }), id };
 }
@@ -286,9 +305,8 @@ function eventsPage(ctx: SystemPageContext): SystemPage {
   return {
     title: "Events",
     sections: [
-      hero("events-hero", "Events", `Upcoming meetings, workshops, and shows from ${ctx.tenant.name}.`),
-      { type: "events", variant: "list", limit: 50, style: style(), id: "events-list" },
-      cta("events-calendar-link", "View calendar", "/calendar", "secondary"),
+      listHeader("events-hero", "Events", `Upcoming meetings, workshops, and shows from ${ctx.tenant.name}.`),
+      { type: "events", variant: "list", limit: 50, viewSwitch: true, style: style({ spacing: "tight" }), id: "events-list" },
     ],
   };
 }
@@ -296,7 +314,17 @@ function eventsPage(ctx: SystemPageContext): SystemPage {
 function calendarPage(): SystemPage {
   return {
     title: "Calendar",
-    sections: [{ type: "events", variant: "calendar", heading: "Calendar", limit: 50, style: style({ width: "wide" }), id: "calendar" }],
+    sections: [
+      listHeader("calendar-hero", "Calendar"),
+      {
+        type: "events",
+        variant: "calendar",
+        limit: 50,
+        viewSwitch: true,
+        style: style({ width: "wide", spacing: "tight" }),
+        id: "calendar",
+      },
+    ],
   };
 }
 

@@ -1,0 +1,522 @@
+{
+  "id": "weekend-house",
+  "name": "Weekend House",
+  "audience": "business",
+  "character": "A farmhouse quilt retreat with warm terracotta, generous photographic spaces, scalloped edges, and an unhurried invitation to sew and stay.",
+  "defaults": {
+    "palette": "signature-terracotta",
+    "typePair": "dmserif-dmsans",
+    "scale": "editorial",
+    "shape": {
+      "radius": "soft",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": true
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "none",
+      "opacity": 0
+    }
+  },
+  "previewSeed": {
+    "guildName": "The Weekend House",
+    "city": "Fredericksburg, Texas"
+  },
+  "menu": [
+    {
+      "label": "The house",
+      "href": "/the-house"
+    },
+    {
+      "label": "Your weekend",
+      "href": "/your-weekend"
+    },
+    {
+      "label": "Gatherings",
+      "href": "/gatherings"
+    },
+    {
+      "label": "Good to know",
+      "href": "/good-to-know"
+    },
+    {
+      "label": "Plan a stay",
+      "href": "/request-a-quote"
+    }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "image",
+          "title": "A whole weekend. A little more quilt.",
+          "subtitle": "Bring your unfinished projects and your favorite people. We will make room for both.",
+          "style": {
+            "bg": "image",
+            "width": "wide",
+            "spacing": "airy",
+            "imageId": "hero-art",
+            "imageFocal": [
+              0.5,
+              0.56
+            ]
+          },
+          "eyebrow": "A quilting retreat in {{city}}",
+          "ctaLabel": "Plan your stay",
+          "ctaHref": "/request-a-quote",
+          "secondaryLabel": "Step inside",
+          "secondaryHref": "/the-house",
+          "id": "home-1"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Unpack. Settle in. Sew a little longer.",
+          "items": [
+            {
+              "title": "A table to spread out on",
+              "body": "Leave the cutting mat out. Keep the blocks in order. Pick up exactly where you left off.",
+              "href": "/the-house"
+            },
+            {
+              "title": "A slower sort of weekend",
+              "body": "A walk, another cup of tea, then one more row. The schedule can leave space for you.",
+              "href": "/your-weekend"
+            },
+            {
+              "title": "Your people, under one roof",
+              "body": "A bee, a guild, or a few friends who have been saying “we should” for far too long.",
+              "href": "/request-a-quote"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-2"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Some projects need a change of scenery.",
+          "html": "<p>Away from the laundry and the interrupted afternoons, a quilt starts to move again. A retreat gives you a place to spread it out, people to think alongside, and time that belongs to making. <a href=\"/your-weekend\">Imagine your weekend →</a></p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy",
+            "divider": "scallop"
+          },
+          "id": "home-3"
+        },
+        {
+          "type": "process",
+          "heading": "A few easy steps to getting away",
+          "items": [
+            {
+              "title": "Gather your people",
+              "body": "Tell us your group size, preferred dates, and what you want from the weekend."
+            },
+            {
+              "title": "Make a plan",
+              "body": "We confirm availability, room arrangements, access needs, and the full cost."
+            },
+            {
+              "title": "Bring the unfinished things",
+              "body": "Pack your projects and usual tools. We send the house guide before you arrive."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-4"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Set real capacity, sleeping arrangements, amenities, rates, and access information before taking enquiries. The sewing room is an illustrative concept image; replace it with photographs of your property.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "home-5"
+        },
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "You have been meaning to get away.",
+          "subtitle": "Make it a weekend with a quilt in it.",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "normal",
+            "divider": "scallop"
+          },
+          "ctaLabel": "Ask about dates",
+          "ctaHref": "/request-a-quote",
+          "id": "home-6"
+        }
+      ]
+    },
+    {
+      "slug": "the-house",
+      "title": "The house",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "A place to make yourself at home.",
+          "subtitle": "Space for the quilt. A chair for the pause between rows. A place to put the kettle on.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "Inside {{guild_name}}",
+          "id": "the-house-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Illustrative farmhouse sewing room. Replace with photographs of your actual retreat property.",
+              "caption": "Illustrative farmhouse sewing room. Replace with photographs of your actual retreat property."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "the-house-2"
+        },
+        {
+          "type": "rich_text",
+          "heading": "A house guide, without the guesswork.",
+          "html": "<p><em>Sample text — replace me:</em> Describe the real sewing room, number of workstations, lighting, cutting and pressing areas, bedrooms, bathrooms, and shared spaces. Include room dimensions and clear access information.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "the-house-3"
+        },
+        {
+          "type": "faq",
+          "heading": "A few things you might be wondering",
+          "items": [
+            {
+              "q": "Are bedrooms shared?",
+              "a": "Ask for the current room plan. Sleeping arrangements and any single-room supplements are confirmed before booking."
+            },
+            {
+              "q": "Is the house accessible?",
+              "a": "Please tell us your access needs. We will provide specific information about entrances, thresholds, bathrooms, and sewing-table arrangements before you decide."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "the-house-4"
+        },
+        {
+          "type": "cta",
+          "label": "Ask about the house",
+          "href": "/request-a-quote",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "the-house-5"
+        }
+      ]
+    },
+    {
+      "slug": "your-weekend",
+      "title": "Your weekend",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "An itinerary with room in the margins.",
+          "subtitle": "A little structure, a lot of sewing, and permission to stop whenever the light outside looks good.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "Sew. Rest. Repeat.",
+          "id": "your-weekend-1"
+        },
+        {
+          "type": "process",
+          "heading": "A weekend might look like this",
+          "items": [
+            {
+              "title": "Friday · Arrive and unfold",
+              "body": "Set up your space, get to know the house, and make a gentle start after supper."
+            },
+            {
+              "title": "Saturday · Find your rhythm",
+              "body": "A long sewing session, a proper break, and an evening of showing each other what changed."
+            },
+            {
+              "title": "Sunday · One more seam",
+              "body": "A last quiet session, a photograph of the work, and time to pack without rushing."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "your-weekend-2"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Bring what makes sewing feel like yours.",
+          "html": "<p><em>Sample text — replace me:</em> Confirm your check-in and check-out times, meal arrangements, supplied tools, machine policy, and what guests should pack. The itinerary above is an example, not a booked package.</p>",
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "your-weekend-3"
+        },
+        {
+          "type": "cta",
+          "label": "Plan a weekend for your group",
+          "href": "/request-a-quote",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "your-weekend-4"
+        }
+      ]
+    },
+    {
+      "slug": "gatherings",
+      "title": "Gatherings",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Come with your circle. Or find one here.",
+          "subtitle": "Private group stays and hosted sewing weekends, each with room for good company.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "Time together",
+          "id": "gatherings-1"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Choose your kind of gathering",
+          "items": [
+            {
+              "title": "Your own bee",
+              "body": "Bring an established group and make the weekend yours. Ask about available dates and minimum group size.",
+              "href": "/request-a-quote"
+            },
+            {
+              "title": "A hosted weekend",
+              "body": "Browse listed events for any open sewing retreats. Each listing sets out the schedule, inclusions, and registration terms.",
+              "href": "/events"
+            },
+            {
+              "title": "A workshop stay",
+              "body": "Ask about combining a group stay with a teacher-led session. Tutor availability and fees are confirmed separately.",
+              "href": "/request-a-quote"
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "gatherings-2"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> List only retreat formats you actually host. Add bookable events through Events, with precise inclusions, capacity, prices, and cancellation terms.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "gatherings-3"
+        },
+        {
+          "type": "cta",
+          "label": "Browse scheduled gatherings",
+          "href": "/events",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "gatherings-4"
+        }
+      ]
+    },
+    {
+      "slug": "good-to-know",
+      "title": "Good to know",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "The details that make settling in easier.",
+          "subtitle": "Ask the practical questions now. Save your weekend for sewing.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "Before you pack",
+          "id": "good-to-know-1"
+        },
+        {
+          "type": "faq",
+          "heading": "A few things you might be wondering",
+          "items": [
+            {
+              "q": "Do I bring my own machine?",
+              "a": "Confirm the equipment list before travelling. Bring your machine, power lead, foot control, and preferred tools unless your booking says otherwise."
+            },
+            {
+              "q": "Are meals included?",
+              "a": "Meal arrangements depend on the stay. Your written proposal lists catered meals, self-catering facilities, and any dietary arrangements."
+            },
+            {
+              "q": "Can I book the whole house?",
+              "a": "Tell us your group size and preferred dates. We will confirm whether an exclusive group booking is available."
+            },
+            {
+              "q": "When is my stay confirmed?",
+              "a": "After availability, pricing, the booking agreement, and the required payment have been confirmed. Sending an enquiry does not reserve a date."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "good-to-know-2"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add the actual cancellation terms, deposit schedule, parking, directions, quiet hours, pet policy, and emergency contact details.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "good-to-know-3"
+        },
+        {
+          "type": "cta",
+          "label": "Ask us something else",
+          "href": "/request-a-quote",
+          "kind": "primary",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "good-to-know-4"
+        }
+      ]
+    },
+    {
+      "slug": "request-a-quote",
+      "title": "Plan a stay",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Let us put a weekend on the calendar.",
+          "subtitle": "Share your preferred dates, group size, and what would make this a good stay for you.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "Make an enquiry",
+          "id": "request-a-quote-1"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Tell us a little about your group.",
+          "html": "<p>Include alternative dates if you can, room preferences, and any access or dietary needs. We reply with availability and a written proposal. <em>Sample text — replace me:</em> Add your current response time and booking contact here.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "request-a-quote-2"
+        },
+        {
+          "type": "contact",
+          "heading": "Ask about a stay",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "request-a-quote-3"
+        }
+      ]
+    }
+  ],
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "photo",
+      "src": "public/kit-assets/weekend-house/hero.webp",
+      "alt": "A farmhouse sewing room with a communal table and warm patchwork quilt"
+    }
+  ]
+}

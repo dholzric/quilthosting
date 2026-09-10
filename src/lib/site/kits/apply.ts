@@ -142,8 +142,9 @@ export function resolveKitImagery(sections: Section[], kit: Kit): Section[] {
   // other is then a single line in the kit, not an edit to every section.
   const photoRefs = new Map(
     kit.imagery
-      .filter((im) => im.kind === "photo" && typeof im.src === "string" && im.src.startsWith("photo:"))
-      .map((im) => [im.id, im.src as string])
+      .filter((im) => im.kind === "photo" && typeof im.src === "string" &&
+        (im.src.startsWith("photo:") || (im.src.startsWith(`public/kit-assets/${kit.id}/`) && !im.src.includes(".."))))
+      .map((im) => [im.id, im.src!.startsWith("photo:") ? im.src! : `kit-asset:${im.src!.slice("public/kit-assets/".length)}`])
   );
   if (!patternIds.size && !photoRefs.size) return sections;
   const pid = kit.defaults.pattern?.id && kit.defaults.pattern.id !== "none" ? kit.defaults.pattern.id : "log-cabin";

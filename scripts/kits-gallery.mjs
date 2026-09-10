@@ -13,7 +13,7 @@
  */
 
 import { createServer } from "node:http";
-import { mkdirSync, writeFileSync, copyFileSync, rmSync, existsSync, statSync, readFileSync } from "node:fs";
+import { mkdirSync, writeFileSync, copyFileSync, cpSync, rmSync, existsSync, statSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
@@ -363,6 +363,7 @@ function serve(root, port) {
     ".js": "text/javascript; charset=utf-8",
     ".png": "image/png",
     ".jpg": "image/jpeg",
+    ".webp": "image/webp",
     ".svg": "image/svg+xml",
     ".woff2": "font/woff2",
   };
@@ -395,6 +396,9 @@ async function main() {
     copyFileSync(path.join(ROOT, "public", "qh-site.js"), path.join(ASSETS, "qh-site.js"));
     if (existsSync(SITES)) rmSync(SITES, { recursive: true, force: true });
     mkdirSync(SITES, { recursive: true });
+    if (existsSync(path.join(ROOT, "public", "kit-assets"))) {
+      cpSync(path.join(ROOT, "public", "kit-assets"), path.join(GALLERY, "kit-assets"), { recursive: true });
+    }
 
     const cards = [];
     for (const kit of mod.KITS) {

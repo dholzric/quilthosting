@@ -99,6 +99,11 @@ import healingStitches from "./healing-stitches.json";
 import guysWhoQuilt from "./guys-who-quilt.json";
 import quiltingFellowship from "./quilting-fellowship.json";
 
+import linenJournal from "./linen-journal.json";
+import colorAssembly from "./color-assembly.json";
+import indigoHouse from "./indigo-house.json";
+import weekendHouse from "./weekend-house.json";
+
 export type { Kit, KitDefaults, KitImage, KitIssue, KitPage, SiteMenuItem } from "./schema";
 export { kitSchema, validateKit, KIT_SYSTEM_PATHS, SAMPLE_MARKER } from "./schema";
 export type { KitTenant, KitVars, PageInsert } from "./apply";
@@ -206,6 +211,10 @@ export const KITS: Kit[] = [
   healingStitches,
   guysWhoQuilt,
   quiltingFellowship,
+  linenJournal,
+  colorAssembly,
+  indigoHouse,
+  weekendHouse,
 ].map((raw) => kitSchema.parse(raw));
 
 const BY_ID = new Map(KITS.map((k) => [k.id, k]));

@@ -84,28 +84,38 @@ describe("systemPageSections: membership", () => {
 });
 
 describe("systemPageSections: events / calendar", () => {
-  it("events: hero + events list (limit 50) + calendar link", () => {
+  it("events: a compact header and the list, with the view switch on it", () => {
     const r = page("events");
     expect(r.title).toBe("Events");
-    expect(types(r)).toEqual(["hero", "events", "cta"]);
+    // The calendar used to be a `cta` button below every event — past fifty of
+    // them on a phone. It is a switch on the list itself now, so the section
+    // count drops by one and nothing sits under the fold.
+    expect(types(r)).toEqual(["hero", "events"]);
+    const header = r.sections[0];
+    if (header.type !== "hero") throw new Error("hero");
+    expect(header.style.spacing, "a list page should not spend a screen on its title").toBe("tight");
     const list = r.sections[1];
     if (list.type !== "events") throw new Error("events");
     expect(list.variant).toBe("list");
     expect(list.limit).toBe(50);
-    const cta = r.sections[2];
-    if (cta.type !== "cta") throw new Error("cta");
-    expect(cta.href).toBe("/calendar");
-    expect(cta.kind).toBe("secondary");
+    expect(list.viewSwitch).toBe(true);
   });
+
 
   it("calendar: a single events section in calendar variant", () => {
     const r = page("calendar");
     expect(r.title).toBe("Calendar");
-    expect(types(r)).toEqual(["events"]);
-    const cal = r.sections[0];
+    // A compact header, then the grid — and the switch, so the calendar is no
+    // longer a dead end with no way back to the list.
+    expect(types(r)).toEqual(["hero", "events"]);
+    const header = r.sections[0];
+    if (header.type !== "hero") throw new Error("hero");
+    expect(header.title).toBe("Calendar");
+    expect(header.style.spacing).toBe("tight");
+    const cal = r.sections[1];
     if (cal.type !== "events") throw new Error("events");
     expect(cal.variant).toBe("calendar");
-    expect(cal.heading).toBe("Calendar");
+    expect(cal.viewSwitch).toBe(true);
   });
 });
 

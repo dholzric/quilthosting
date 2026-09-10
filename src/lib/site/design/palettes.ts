@@ -96,6 +96,11 @@ function p(
 }
 
 export const PALETTES: PaletteDef[] = [
+  // Signature collection — palettes composed around original textile imagery.
+  p("signature-oat-ink", "Oat & Printer's Ink", "mono", "#292923", "#25251f", "#9a6435", "#40372b", "cream"),
+  p("signature-vermilion", "Vermilion & Cobalt", "modern", "#ba3526", "#253b83", "#e6bb4a", "#352d29", "paper"),
+  p("signature-midnight", "Indigo & Ivory", "dark", "#e9dcc4", "#122532", "#9cabb5", "#172735", "night"),
+  p("signature-terracotta", "Terracotta & Cream", "naturals", "#93412e", "#344737", "#b18035", "#41372c", "cream"),
   // Heritage — traditional quilt dyes: madder, indigo, wheat, walnut.
   p("heritage-madder", "Madder", "heritage", "#9b2c2c", "#2f3e5c", "#d9a441", "#2b2118", "cream"),
   p("heritage-indigo", "Indigo", "heritage", "#2c3e6b", "#8b3a3a", "#c98f2c", "#1f2430"),

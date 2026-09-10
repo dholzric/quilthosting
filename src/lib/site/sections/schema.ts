@@ -18,6 +18,7 @@ import { z } from "zod";
 import { parseBlocks } from "../../blocks";
 import { sanitizeHtml, sanitizeUrl } from "../../sanitize";
 import { blocksToSections, isLegacyBlockItem } from "./normalize";
+import { KIT_ASSET_PATH } from "../kitAssets";
 
 // ---------------------------------------------------------------------------
 // Style
@@ -95,6 +96,7 @@ const FILE_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
 const IMAGE_REF_RE = new RegExp(
   "^(?:pattern:(?:nine-patch|flying-geese|log-cabin|churn-dash|bear-paw)" +
     "|photo:[0-9]{10,14}-[A-Za-z0-9]{8,20}" +
+    "|kit-asset:" + KIT_ASSET_PATH +
     "|" + /^[A-Za-z0-9_-]{1,64}$/.source.replace(/^\^|\$$/g, "") + ")$"
 );
 
@@ -158,7 +160,20 @@ export type Section =
       style: SectionStyle;
       id: string;
     }
-  | { type: "events"; variant: "cards" | "list" | "calendar" | "next_up"; heading?: string; limit: number; style: SectionStyle; id: string }
+  | {
+      type: "events";
+      variant: "cards" | "list" | "calendar" | "next_up";
+      heading?: string;
+      limit: number;
+      /**
+       * Show the List / Calendar switch above the section. The two system
+       * pages set it; a page a guild built does not, so a calendar dropped
+       * into a home page does not sprout navigation of its own.
+       */
+      viewSwitch?: boolean;
+      style: SectionStyle;
+      id: string;
+    }
   | { type: "membership_levels"; variant: "cards" | "compact"; heading?: string; style: SectionStyle; id: string }
   | { type: "join_band"; title: string; body?: string; ctaLabel: string; style: SectionStyle; id: string }
   | {
@@ -423,6 +438,7 @@ const eventsSchema = z.object({
   variant: z.enum(["cards", "list", "calendar", "next_up"]).default("cards"),
   heading: optText(160),
   limit: z.number().int().min(1).max(50).default(6),
+  viewSwitch: z.boolean().optional(),
 });
 
 const membershipLevelsSchema = z.object({

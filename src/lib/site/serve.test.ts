@@ -407,10 +407,17 @@ describe("serveSite on a tenant host", () => {
     expect(events.res.status).toBe(200);
     expect(events.html).toContain("<title>Events");
     expect(events.html).toContain("Free-motion workshop");
+    // List / Calendar sits above the events, not as a button past the last of
+    // them: both views are one tap from the other, with the current one marked.
+    expect(events.html).toContain("qh-viewswitch");
     expect(events.html).toContain('href="https://riverbend.quilthosting.com/calendar"');
+    expect(events.html).toMatch(/qh-viewswitch__opt is-on"[^>]*href="[^"]*\/events"/);
     const cal = await get(app, env, `${HOST}/calendar`);
     expect(cal.html).toContain("qh-events--calendar");
     expect(cal.html).toContain('data-month="2099-10"');
+    // ...and back again, which the old bottom button never offered.
+    expect(cal.html).toContain('href="https://riverbend.quilthosting.com/events"');
+    expect(cal.html).toMatch(/qh-viewswitch__opt is-on"[^>]*href="[^"]*\/calendar"/);
   });
 
   it("/events/:id renders the event detail with the register CTA; a past (non-upcoming) event is still found by id", async () => {

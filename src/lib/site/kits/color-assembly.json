@@ -1,0 +1,450 @@
+{
+  "id": "color-assembly",
+  "name": "Color Assembly",
+  "audience": "guild",
+  "character": "A contemporary quilt collective with vermilion, cobalt, oversized geometric cloth, bold sans typography, and a manifesto-led home page.",
+  "defaults": {
+    "palette": "signature-vermilion",
+    "typePair": "spacegrotesk-worksans",
+    "scale": "editorial",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "none",
+      "opacity": 0
+    }
+  },
+  "previewSeed": {
+    "guildName": "Color Assembly",
+    "city": "Portland, Oregon"
+  },
+  "menu": [
+    {
+      "label": "The collective",
+      "href": "/collective"
+    },
+    {
+      "label": "Make with us",
+      "href": "/make-with-us"
+    },
+    {
+      "label": "On the wall",
+      "href": "/on-the-wall"
+    },
+    {
+      "label": "What’s on",
+      "href": "/events"
+    },
+    {
+      "label": "Say hello",
+      "href": "/contact"
+    }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Make a little noise. In fabric.",
+          "subtitle": "A modern quilt collective in {{city}}. Big color, curious minds, and room for your next idea.",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "normal"
+          },
+          "eyebrow": "Independent minds. Common threads.",
+          "ctaLabel": "Find your people",
+          "ctaHref": "/membership",
+          "secondaryLabel": "See what we make",
+          "secondaryHref": "/on-the-wall",
+          "id": "home-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "An original textile study in color, curves, and unexpected company. Add your collective’s own quilt here.",
+              "caption": "An original textile study in color, curves, and unexpected company. Add your collective’s own quilt here."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "home-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "icons",
+          "heading": "Different ways in. One very good room.",
+          "items": [
+            {
+              "icon": "↗",
+              "title": "The open table",
+              "body": "Bring the quilt that will not behave. We have spare pins and opinions, if you want them.",
+              "href": "/make-with-us"
+            },
+            {
+              "icon": "◒",
+              "title": "The color experiment",
+              "body": "Try a palette you would normally put back. A small block is a good place to take a chance.",
+              "href": "/make-with-us"
+            },
+            {
+              "icon": "⊞",
+              "title": "The wall",
+              "body": "Finished is worth sharing. So is the interesting thing that happened on the way there.",
+              "href": "/on-the-wall"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-3"
+        },
+        {
+          "type": "meeting_info",
+          "heading": "Less scrolling. More sewing.",
+          "when": "We meet {{meeting_info}}.",
+          "where": "{{city}}",
+          "note": "A first quilt, a fifth attempt, a sketch on a napkin. Bring what you have.",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "normal",
+            "layout": "framed"
+          },
+          "id": "home-4"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add your real venue, meeting format, and current challenge. The quilt image is illustrative sample artwork, not a claim about a member’s finished work.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "home-5"
+        },
+        {
+          "type": "join_band",
+          "title": "Your kind of people. Your kind of making.",
+          "body": "Come for a meeting. Stay for the ideas that happen when we sew together.",
+          "ctaLabel": "Join the collective",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy",
+            "divider": "points"
+          },
+          "id": "home-6"
+        }
+      ]
+    },
+    {
+      "slug": "collective",
+      "title": "The collective",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "There is no house style. There is a shared table.",
+          "subtitle": "{{guild_name}} is a place to try things in cloth, ask generous questions, and make work that feels like your own.",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "Who we are",
+          "id": "collective-1"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Curiosity is the entry requirement.",
+          "html": "<p><em>Sample text — replace me:</em> Tell visitors how your collective started and who hosts it. Explain your approach to modern quilting without making newcomers feel they need a design vocabulary.</p>",
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "collective-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "The way we work",
+          "items": [
+            {
+              "title": "Credit the idea",
+              "body": "Name the pattern designer, teacher, maker, and quilter when you share work."
+            },
+            {
+              "title": "Ask before advising",
+              "body": "Sometimes a quilt wants critique. Sometimes its maker just wants to show you."
+            },
+            {
+              "title": "Make room",
+              "body": "Different budgets, bodies, schedules, and experience levels belong at the same table."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "collective-3"
+        },
+        {
+          "type": "cta",
+          "label": "Try a sew day",
+          "href": "/make-with-us",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "collective-4"
+        }
+      ]
+    },
+    {
+      "slug": "make-with-us",
+      "title": "Make with us",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Bring the idea you cannot leave alone.",
+          "subtitle": "Open sew days and small experiments that get you past the sketchbook.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "Get involved",
+          "id": "make-with-us-1"
+        },
+        {
+          "type": "process",
+          "heading": "Your first sew day",
+          "items": [
+            {
+              "title": "Choose a gathering",
+              "body": "Check the events calendar for times, venue details, and any guest registration."
+            },
+            {
+              "title": "Pack one project",
+              "body": "Bring your usual tools. Each event lists whether you need a machine or hand-sewing kit."
+            },
+            {
+              "title": "Find a seat",
+              "body": "Say hello to the host. There is no requirement to bring something finished."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "make-with-us-2"
+        },
+        {
+          "type": "faq",
+          "heading": "A few things you might be wondering",
+          "items": [
+            {
+              "q": "Do I need to make modern quilts?",
+              "a": "You need curiosity, not a portfolio. Traditional skills and unexpected fabrics both have a place here."
+            },
+            {
+              "q": "Can I join from outside the city?",
+              "a": "Check the calendar for the format of each gathering. Contact us about any remote sessions before joining."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "make-with-us-3"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Describe any loaner tools, room accessibility, guest fees, or materials provided. Publish the current challenge and its deadline here.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "make-with-us-4"
+        },
+        {
+          "type": "cta",
+          "label": "See upcoming gatherings",
+          "href": "/events",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "make-with-us-5"
+        }
+      ]
+    },
+    {
+      "slug": "on-the-wall",
+      "title": "On the wall",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Look what happened when we tried.",
+          "subtitle": "Finished quilts, small studies, and work that is still becoming itself.",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "The work",
+          "id": "on-the-wall-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Illustrative geometric quilt study. Replace with member work and maker credits.",
+              "caption": "Illustrative geometric quilt study. Replace with member work and maker credits."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "on-the-wall-2"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Good work deserves a proper credit.",
+          "html": "<p><em>Sample text — replace me:</em> Add photographs through Galleries. Include the maker, title, materials, dimensions, pattern source, and quilter. Publish only images you have permission to share.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "on-the-wall-3"
+        },
+        {
+          "type": "cta",
+          "label": "Open the galleries",
+          "href": "/galleries",
+          "kind": "primary",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "on-the-wall-4"
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Say hello",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Got a question? Pull up a chair.",
+          "subtitle": "Ask about your first meeting, propose a workshop, or tell us about an accessible venue.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "Contact the collective",
+          "id": "contact-1"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add your preferred contact details and a realistic response time. Tell visitors how to find the host when they arrive.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "contact-2"
+        },
+        {
+          "type": "contact",
+          "heading": "Send the collective a note",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "contact-3"
+        },
+        {
+          "type": "newsletter_signup",
+          "heading": "Good things in your inbox.",
+          "body": "Sew dates, fresh challenges, and news from the wall.",
+          "buttonLabel": "Keep me in the loop",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "contact-4"
+        }
+      ]
+    }
+  ],
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "photo",
+      "src": "public/kit-assets/color-assembly/hero.webp",
+      "alt": "A geometric red, cobalt, yellow and pink art quilt on a gallery wall"
+    }
+  ]
+}

@@ -56,6 +56,10 @@ export const PLATFORM_PATH_PREFIXES: readonly string[] = [
   "/docs",
   "/embed",
   "/sites",
+  // Photography a kit ships with, served to every tenant from one place;
+  // the kit schema requires a kit's own photos to live under
+  // public/kit-assets/<kit-id>/.
+  "/kit-assets",
   "/api/",
   "/t/",
   "/public/",
