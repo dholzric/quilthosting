@@ -38,6 +38,7 @@ Shared stylesheet: `public/docs/docs.css` (on top of `public/qh.css`). Pages wor
 | [admin-guide.md](./admin-guide.md) | Pointer index into the served admin docs |
 | [scaling.md](./scaling.md) | Pagination, queued blasts, 50k-member design (predates the minute cron — see operations.md) |
 | [auto-renew-e2e.md](./auto-renew-e2e.md) | Auto-renew E2E checklist & results (last run Aug 2026; re-run before relying on it) |
+| [signature-collection.md](./signature-collection.md) | The four kits that ship their own artwork: provenance and licence of the illustration, how `kit-asset:` refs resolve, and the two tests that keep the images from silently 404ing |
 | [native-apps.md](./native-apps.md) | Expo iOS/Android apps in `apps/mobile/` (not built by CI) |
 | [wildapricot-gap-analysis.md](./wildapricot-gap-analysis.md) | WA parity audit — evidence bar, most rows still unaudited |
 | [competition-wild-apricot-alternatives.md](./competition-wild-apricot-alternatives.md) | Competitive notes |
