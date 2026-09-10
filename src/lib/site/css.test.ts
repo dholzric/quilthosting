@@ -132,8 +132,11 @@ describe("qh-site.css design rules", () => {
     // 650 covered the 19-section library; the fourteen phase-2 sections added
     // ~100; the composition axes (six section shapes, five quilt-shaped edges)
     // add ~45. The cap keeps the one stylesheet every visitor downloads
-    // readable by a person — it is not meant to freeze the file.
-    expect(css.split("\n").length).toBeLessThanOrEqual(810);
+    // readable by a person — it is not meant to freeze the file. The phone-layout
+    // fixes (the collapsed hero/section padding pair, the month nav on one row,
+    // calendar chips confined to their day) took it to 809, leaving no room to
+    // fix the next thing a phone turns up.
+    expect(css.split("\n").length).toBeLessThanOrEqual(830);
   });
 
   it("phase 2: sponsors logos are grayscale until hover, process steps use counter(), services table scrolls in its wrapper", () => {

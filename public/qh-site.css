@@ -433,7 +433,8 @@ html{scroll-padding-top:calc(var(--_header-h) + 1rem)}
 .qh-viewswitch__opt:not(.is-on):hover{background:var(--_tint)}
 /* A tight section keeps its own top padding: the extra a minimal hero adds is
    what made a list page spend its first screen on its own title. */
-.qh-hero--minimal.qh-s--sp-tight{padding-top:calc(var(--_section-y)*.5)}
+.qh-hero--minimal.qh-s--sp-tight{padding-top:calc(var(--_section-y)*.5);padding-bottom:0}
+.qh-hero--minimal.qh-s--sp-tight + .qh-s{padding-top:calc(var(--_section-y)*.75)}
 /* One line of the description on a card, so a member can tell what the evening is without opening it. */
 .qh-event__blurb{margin:.15rem 0 .35rem;font-size:.95rem;line-height:1.45}
 .qh-event__actions{margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap}
@@ -450,13 +451,15 @@ html{scroll-padding-top:calc(var(--_header-h) + 1rem)}
 .qh-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--_border);border:1px solid var(--_border);
   border-radius:var(--_radius);overflow:hidden}
 .qh-events--calendar .qh-cal__head{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1rem}
+.qh-cal__title{margin:0}
+.qh-cal__nav{display:flex;gap:.5rem;flex:0 0 auto}
 .qh-cal__dow,.qh-cal__day{background:var(--_surface);padding:.5rem;min-width:0}
 .qh-cal__dow{font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--_muted);text-align:center}
 .qh-cal__day{min-height:6rem;font-size:.9rem}
 .qh-cal__day--other{background:var(--_surface-alt);color:var(--_muted)}
 .qh-cal__day--today .qh-cal__num{background:var(--_primary);color:var(--_on-primary);border-radius:999px;
   display:inline-grid;place-items:center;width:1.75rem;height:1.75rem}
-.qh-cal__event{display:block;margin-top:.25rem;padding:.15rem .4rem;border-radius:4px;background:var(--_tint);
+.qh-cal__event{display:block;width:100%;text-align:left;margin-top:.25rem;padding:.15rem .4rem;border-radius:4px;background:var(--_tint);
   color:var(--_primary);font-size:.8rem;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ---- Section: membership_levels (cards | compact) ----------------------- */
@@ -752,6 +755,7 @@ form.qh-form{display:flex;flex-direction:column;gap:.8rem;max-width:34rem}
   .qh-levels--compact .qh-level .qh-btn{grid-column:1 / -1;justify-self:start}
   .qh-cal__day{min-height:3.5rem;padding:.25rem;font-size:.8rem}
   .qh-cal__event{font-size:.7rem;padding:.1rem .25rem}
+  .qh-cal__title{font-size:var(--_fs4)}
   .qh-hero--image{min-height:min(60vh,32rem)}
 }
 @media (max-width:639.98px){
