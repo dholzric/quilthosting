@@ -1,0 +1,4 @@
+Original AI-generated illustrative artwork created for QuiltHosting using the built-in OpenAI image generation tool, 2026-09-10.
+No third-party photograph was used as an input. Use as starter-template illustration; do not represent it as a photograph of an actual property or client work.
+Source prompts and provenance: docs/signature-collection.md.
+Files hero.webp, hero-960.webp and hero-480.webp are optimized sizes of the same artwork.
