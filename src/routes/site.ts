@@ -25,6 +25,7 @@ import type { DataNeed, SiteData, SitePost, SiteProfile } from "../lib/site/data
 import { systemPageSections, type SystemPageKind } from "../lib/site/pages/system";
 import { buildOrganizationJsonLd, buildEventJsonLd } from "../lib/site/seo";
 import { sectionsFromPage } from "../lib/site/sections/normalize";
+import { KIT_ASSET_PATH } from "../lib/site/kitAssets";
 import type { ImgMeta } from "../lib/site/sections/render";
 import { DEFAULT_STYLE, type Section, type SectionStyle } from "../lib/site/sections/schema";
 import { isLaunched } from "../lib/tenantType";
@@ -264,13 +265,29 @@ export const RENDERER_ASSETS: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * Bundled starter imagery (`/kit-assets/<kit>/<file>`) is a directory rather
+ * than a fixed list, so it needs a prefix rather than a set entry. A site
+ * seeded from a kit that ships its own artwork renders <img> tags pointing
+ * here; without this the tenant host answered every one of them with the
+ * site's own 404 page, so the hero was broken on exactly the sites the
+ * artwork was made for. See kitAssetUrl in src/lib/site/kitAssets.ts.
+ */
+const KIT_ASSET_ROUTE = new RegExp(`^/kit-assets/${KIT_ASSET_PATH}$`);
+
+/** True for a renderer file the site router must hand to the asset binding. */
+export function isRendererAsset(path: string): boolean {
+  // KIT_ASSET_PATH is one kit id and one filename: never "..", never nested.
+  return RENDERER_ASSETS.has(path) || KIT_ASSET_ROUTE.test(path);
+}
+
+/**
  * The routing table, on the path AFTER the base path. `null` means "not a
  * site route" (the renderer's own assets), so the caller falls through to the
  * static asset binding. System routes win over a stored page with the same
  * slug; anything deeper than the shapes below is `not_found`.
  */
 export function resolveSiteRoute(path: string): SiteRoute | null {
-  if (RENDERER_ASSETS.has(path)) return null;
+  if (isRendererAsset(path)) return null;
   const rel = path.replace(/^\/+/, "").replace(/\/+$/, "");
   if (rel === "") return { kind: "home" };
   const parts = rel.split("/");
