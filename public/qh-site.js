@@ -220,7 +220,7 @@
       s.first.value = me.first; s.last.value = me.last; s.email.value = me.email;
       var name = [me.first, me.last].filter(Boolean).join(" ") || me.email;
       s.asYou.replaceChildren(document.createTextNode("Registering as " + name + " (" + me.email + "). "));
-      var change = button("qh-btn qh-btn--ghost qh-form__change", "Use different details");
+      var change = button("qh-form__change", "Use different details");
       change.addEventListener("click", function () { showFields(s, true); change.remove(); });
       s.asYou.appendChild(change);
       showFields(s, false);

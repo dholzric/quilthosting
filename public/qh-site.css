@@ -534,7 +534,8 @@ form.qh-form{display:flex;flex-direction:column;gap:.8rem;max-width:34rem}
 /* "Registering as you", shown in place of the name and email boxes when the
    visitor is already signed in to the portal on this origin. */
 .qh-form__as-you{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem}
-.qh-form__change{padding:0 .2rem;min-height:auto;font-size:.9rem}
+.qh-form__change{padding:0;min-height:auto;font:inherit;font-size:.9rem;background:none;border:0;
+  color:inherit;text-decoration:underline;text-underline-offset:.2em;cursor:pointer}
 .qh-form__error{color:var(--_primary);font-weight:600}
 /* Dialogs from the islands (join, register, donate, volunteer). */
 .qh-dialog{border:1px solid var(--_border);border-radius:var(--_radius);padding:1.5rem;max-width:min(92vw,32rem);
