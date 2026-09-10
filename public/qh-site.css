@@ -513,6 +513,10 @@ form.qh-form{display:flex;flex-direction:column;gap:.8rem;max-width:34rem}
   outline:2px solid var(--_focus,currentColor);outline-offset:1px}
 :is(.qh-form,.qh-contact,.qh-quote-cta,.qh-block-project-intake,.qh-block-contact-form) label{
   display:flex;flex-direction:column;align-items:flex-start;gap:.35rem;font-weight:500}
+/* `display:flex` on the label above outranks the browser's [hidden] rule, so
+   hiding a field by setting .hidden did nothing at all. Anything inside these
+   forms that hides itself needs this to mean what it says. */
+:is(.qh-form,.qh-contact,.qh-quote-cta,.qh-block-project-intake,.qh-block-contact-form) [hidden]{display:none}
 :is(.qh-form,.qh-contact,.qh-quote-cta,.qh-block-project-intake,.qh-block-contact-form) label:has(input[type="checkbox"]){
   flex-direction:row;align-items:center;gap:.6rem;min-height:44px}
 :is(.qh-form,.qh-contact,.qh-quote-cta,.qh-block-project-intake,.qh-block-contact-form) input[type="checkbox"]{
