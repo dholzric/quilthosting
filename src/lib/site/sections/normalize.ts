@@ -284,7 +284,10 @@ export function sectionsFromPage(row: {
   }
   const fromBlocks = parseJson(row.blocks_json);
   if (Array.isArray(fromBlocks)) {
-    const sections = blocksToSections(parseBlocks(fromBlocks));
+    // Despite the historical column name, new pages store native sections
+    // here. parseSections also accepts legacy blocks, so it preserves both
+    // formats without flattening a native section through parseBlocks.
+    const { sections } = parseSections(fromBlocks);
     if (sections.length) return sections;
   }
   const content = parseJson(row.content_json);

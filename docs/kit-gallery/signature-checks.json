@@ -1,654 +1,500 @@
 {
-  "checked": 54,
   "failures": [],
+  "checks": 46,
   "results": [
     {
       "id": "linen-journal",
-      "page": "contact",
-      "width": 1440,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 8,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "linen-journal",
-      "page": "contact",
-      "width": 390,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 8,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "linen-journal",
-      "page": "gatherings",
-      "width": 1440,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 9,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "linen-journal",
-      "page": "gatherings",
-      "width": 390,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 9,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "linen-journal",
       "page": "home",
       "width": 1440,
-      "status": 200,
       "overflow": false,
       "broken": [],
-      "noAlt": 0,
-      "headings": 11,
-      "imgs": 1,
-      "consoleErrs": []
-    },
-    {
-      "id": "linen-journal",
-      "page": "home",
-      "width": 390,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 11,
-      "imgs": 1,
-      "consoleErrs": []
-    },
-    {
-      "id": "linen-journal",
-      "page": "index",
-      "width": 1440,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
       "headings": 1,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "linen-journal",
-      "page": "index",
-      "width": 390,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 1,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "linen-journal",
-      "page": "journal",
-      "width": 1440,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 9,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "linen-journal",
-      "page": "journal",
-      "width": 390,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 9,
-      "imgs": 0,
-      "consoleErrs": []
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/linen-journal/hero-960.webp",
+          "alt": "An oatmeal, ink and ochre star quilt draped over an oak worktable in a sunlit studio"
+        }
+      ]
     },
     {
       "id": "linen-journal",
       "page": "our-circle",
       "width": 1440,
-      "status": 200,
       "overflow": false,
       "broken": [],
-      "noAlt": 0,
-      "headings": 8,
-      "imgs": 0,
-      "consoleErrs": []
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "linen-journal",
+      "page": "gatherings",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "linen-journal",
+      "page": "the-work",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/linen-journal/hero.webp",
+          "alt": "Illustrative heirloom star quilt in oatmeal, ink, and ochre. Replace with your own guild photography."
+        }
+      ]
+    },
+    {
+      "id": "linen-journal",
+      "page": "journal",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "linen-journal",
+      "page": "contact",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "linen-journal",
+      "page": "home",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/linen-journal/hero-480.webp",
+          "alt": "An oatmeal, ink and ochre star quilt draped over an oak worktable in a sunlit studio"
+        }
+      ]
     },
     {
       "id": "linen-journal",
       "page": "our-circle",
       "width": 390,
-      "status": 200,
       "overflow": false,
       "broken": [],
-      "noAlt": 0,
-      "headings": 8,
-      "imgs": 0,
-      "consoleErrs": []
+      "headings": 1,
+      "images": []
     },
     {
       "id": "linen-journal",
-      "page": "the-work",
-      "width": 1440,
-      "status": 200,
+      "page": "gatherings",
+      "width": 390,
       "overflow": false,
       "broken": [],
-      "noAlt": 0,
-      "headings": 7,
-      "imgs": 1,
-      "consoleErrs": []
+      "headings": 1,
+      "images": []
     },
     {
       "id": "linen-journal",
       "page": "the-work",
       "width": 390,
-      "status": 200,
       "overflow": false,
       "broken": [],
-      "noAlt": 0,
-      "headings": 7,
-      "imgs": 1,
-      "consoleErrs": []
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/linen-journal/hero-480.webp",
+          "alt": "Illustrative heirloom star quilt in oatmeal, ink, and ochre. Replace with your own guild photography."
+        }
+      ]
+    },
+    {
+      "id": "linen-journal",
+      "page": "journal",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "linen-journal",
+      "page": "contact",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "color-assembly",
+      "page": "home",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/color-assembly/hero.webp",
+          "alt": "An original textile study in color, curves, and unexpected company. Add your collective’s own quilt here."
+        }
+      ]
     },
     {
       "id": "color-assembly",
       "page": "collective",
       "width": 1440,
-      "status": 200,
       "overflow": false,
       "broken": [],
-      "noAlt": 0,
-      "headings": 3,
-      "imgs": 0,
-      "consoleErrs": []
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "color-assembly",
+      "page": "make-with-us",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "color-assembly",
+      "page": "on-the-wall",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/color-assembly/hero.webp",
+          "alt": "Illustrative geometric quilt study. Replace with member work and maker credits."
+        }
+      ]
+    },
+    {
+      "id": "color-assembly",
+      "page": "contact",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "color-assembly",
+      "page": "home",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/color-assembly/hero-480.webp",
+          "alt": "An original textile study in color, curves, and unexpected company. Add your collective’s own quilt here."
+        }
+      ]
     },
     {
       "id": "color-assembly",
       "page": "collective",
       "width": 390,
-      "status": 200,
       "overflow": false,
       "broken": [],
-      "noAlt": 0,
-      "headings": 3,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "color-assembly",
-      "page": "contact",
-      "width": 1440,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 4,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "color-assembly",
-      "page": "contact",
-      "width": 390,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 4,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "color-assembly",
-      "page": "home",
-      "width": 1440,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 5,
-      "imgs": 1,
-      "consoleErrs": []
-    },
-    {
-      "id": "color-assembly",
-      "page": "home",
-      "width": 390,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 5,
-      "imgs": 1,
-      "consoleErrs": []
-    },
-    {
-      "id": "color-assembly",
-      "page": "index",
-      "width": 1440,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
       "headings": 1,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "color-assembly",
-      "page": "index",
-      "width": 390,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 1,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "color-assembly",
-      "page": "make-with-us",
-      "width": 1440,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 4,
-      "imgs": 0,
-      "consoleErrs": []
+      "images": []
     },
     {
       "id": "color-assembly",
       "page": "make-with-us",
       "width": 390,
-      "status": 200,
       "overflow": false,
       "broken": [],
-      "noAlt": 0,
-      "headings": 4,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "color-assembly",
-      "page": "on-the-wall",
-      "width": 1440,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 2,
-      "imgs": 1,
-      "consoleErrs": []
+      "headings": 1,
+      "images": []
     },
     {
       "id": "color-assembly",
       "page": "on-the-wall",
       "width": 390,
-      "status": 200,
       "overflow": false,
       "broken": [],
-      "noAlt": 0,
-      "headings": 2,
-      "imgs": 1,
-      "consoleErrs": []
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/color-assembly/hero-480.webp",
+          "alt": "Illustrative geometric quilt study. Replace with member work and maker credits."
+        }
+      ]
+    },
+    {
+      "id": "color-assembly",
+      "page": "contact",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "indigo-house",
+      "page": "home",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/indigo-house/hero-960.webp",
+          "alt": "Indigo and ivory patchwork with fine white running stitches, folded on a dark wooden workbench"
+        }
+      ]
     },
     {
       "id": "indigo-house",
       "page": "atelier",
       "width": 1440,
-      "status": 200,
       "overflow": false,
       "broken": [],
-      "noAlt": 0,
-      "headings": 3,
-      "imgs": 0,
-      "consoleErrs": []
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "indigo-house",
+      "page": "selected-work",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/indigo-house/hero.webp",
+          "alt": "Illustrative indigo textile study with white running stitches. Replace with your studio portfolio."
+        }
+      ]
+    },
+    {
+      "id": "indigo-house",
+      "page": "commissions",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "indigo-house",
+      "page": "details",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "indigo-house",
+      "page": "request-a-quote",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "indigo-house",
+      "page": "home",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/indigo-house/hero-480.webp",
+          "alt": "Indigo and ivory patchwork with fine white running stitches, folded on a dark wooden workbench"
+        }
+      ]
     },
     {
       "id": "indigo-house",
       "page": "atelier",
       "width": 390,
-      "status": 200,
       "overflow": false,
       "broken": [],
-      "noAlt": 0,
-      "headings": 3,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "indigo-house",
-      "page": "commissions",
-      "width": 1440,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 3,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "indigo-house",
-      "page": "commissions",
-      "width": 390,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 3,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "indigo-house",
-      "page": "details",
-      "width": 1440,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 3,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "indigo-house",
-      "page": "details",
-      "width": 390,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 3,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "indigo-house",
-      "page": "home",
-      "width": 1440,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 6,
-      "imgs": 1,
-      "consoleErrs": []
-    },
-    {
-      "id": "indigo-house",
-      "page": "home",
-      "width": 390,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 6,
-      "imgs": 1,
-      "consoleErrs": []
-    },
-    {
-      "id": "indigo-house",
-      "page": "index",
-      "width": 1440,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
       "headings": 1,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "indigo-house",
-      "page": "index",
-      "width": 390,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 1,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "indigo-house",
-      "page": "request-a-quote",
-      "width": 1440,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 2,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "indigo-house",
-      "page": "request-a-quote",
-      "width": 390,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 2,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "indigo-house",
-      "page": "selected-work",
-      "width": 1440,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 2,
-      "imgs": 1,
-      "consoleErrs": []
+      "images": []
     },
     {
       "id": "indigo-house",
       "page": "selected-work",
       "width": 390,
-      "status": 200,
       "overflow": false,
       "broken": [],
-      "noAlt": 0,
-      "headings": 2,
-      "imgs": 1,
-      "consoleErrs": []
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/indigo-house/hero-480.webp",
+          "alt": "Illustrative indigo textile study with white running stitches. Replace with your studio portfolio."
+        }
+      ]
     },
     {
-      "id": "weekend-house",
-      "page": "gatherings",
-      "width": 1440,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 6,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "weekend-house",
-      "page": "gatherings",
+      "id": "indigo-house",
+      "page": "commissions",
       "width": 390,
-      "status": 200,
       "overflow": false,
       "broken": [],
-      "noAlt": 0,
-      "headings": 6,
-      "imgs": 0,
-      "consoleErrs": []
+      "headings": 1,
+      "images": []
     },
     {
-      "id": "weekend-house",
-      "page": "good-to-know",
-      "width": 1440,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 6,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "weekend-house",
-      "page": "good-to-know",
+      "id": "indigo-house",
+      "page": "details",
       "width": 390,
-      "status": 200,
       "overflow": false,
       "broken": [],
-      "noAlt": 0,
-      "headings": 6,
-      "imgs": 0,
-      "consoleErrs": []
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "indigo-house",
+      "page": "request-a-quote",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
     },
     {
       "id": "weekend-house",
       "page": "home",
       "width": 1440,
-      "status": 200,
       "overflow": false,
       "broken": [],
-      "noAlt": 0,
-      "headings": 9,
-      "imgs": 1,
-      "consoleErrs": []
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/weekend-house/hero.webp",
+          "alt": "A sunlit farmhouse sewing room with a communal oak table and terracotta and sage patchwork quilt"
+        }
+      ]
+    },
+    {
+      "id": "weekend-house",
+      "page": "the-house",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/weekend-house/hero.webp",
+          "alt": "Illustrative farmhouse sewing room. Replace with photographs of your actual retreat property."
+        }
+      ]
+    },
+    {
+      "id": "weekend-house",
+      "page": "your-weekend",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "weekend-house",
+      "page": "gatherings",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "weekend-house",
+      "page": "good-to-know",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "weekend-house",
+      "page": "request-a-quote",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
     },
     {
       "id": "weekend-house",
       "page": "home",
       "width": 390,
-      "status": 200,
       "overflow": false,
       "broken": [],
-      "noAlt": 0,
-      "headings": 9,
-      "imgs": 1,
-      "consoleErrs": []
-    },
-    {
-      "id": "weekend-house",
-      "page": "index",
-      "width": 1440,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
       "headings": 1,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "weekend-house",
-      "page": "index",
-      "width": 390,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 1,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "weekend-house",
-      "page": "request-a-quote",
-      "width": 1440,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 6,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "weekend-house",
-      "page": "request-a-quote",
-      "width": 390,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 6,
-      "imgs": 0,
-      "consoleErrs": []
-    },
-    {
-      "id": "weekend-house",
-      "page": "the-house",
-      "width": 1440,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 6,
-      "imgs": 1,
-      "consoleErrs": []
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/weekend-house/hero-480.webp",
+          "alt": "A sunlit farmhouse sewing room with a communal oak table and terracotta and sage patchwork quilt"
+        }
+      ]
     },
     {
       "id": "weekend-house",
       "page": "the-house",
       "width": 390,
-      "status": 200,
       "overflow": false,
       "broken": [],
-      "noAlt": 0,
-      "headings": 6,
-      "imgs": 1,
-      "consoleErrs": []
-    },
-    {
-      "id": "weekend-house",
-      "page": "your-weekend",
-      "width": 1440,
-      "status": 200,
-      "overflow": false,
-      "broken": [],
-      "noAlt": 0,
-      "headings": 6,
-      "imgs": 0,
-      "consoleErrs": []
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/weekend-house/hero-480.webp",
+          "alt": "Illustrative farmhouse sewing room. Replace with photographs of your actual retreat property."
+        }
+      ]
     },
     {
       "id": "weekend-house",
       "page": "your-weekend",
       "width": 390,
-      "status": 200,
       "overflow": false,
       "broken": [],
-      "noAlt": 0,
-      "headings": 6,
-      "imgs": 0,
-      "consoleErrs": []
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "weekend-house",
+      "page": "gatherings",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "weekend-house",
+      "page": "good-to-know",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "weekend-house",
+      "page": "request-a-quote",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
     }
   ]
 }

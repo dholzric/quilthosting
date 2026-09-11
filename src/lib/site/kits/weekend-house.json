@@ -159,18 +159,16 @@
           "id": "home-5"
         },
         {
-          "type": "hero",
-          "variant": "minimal",
-          "title": "You have been meaning to get away.",
-          "subtitle": "Make it a weekend with a quilt in it.",
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "You have been meaning to get away.",
+          "html": "<p>Make it a weekend with a quilt in it.</p><p><a href=\"/request-a-quote\">Ask about dates →</a></p>",
           "style": {
             "bg": "brand",
             "width": "wide",
             "spacing": "normal",
             "divider": "scallop"
           },
-          "ctaLabel": "Ask about dates",
-          "ctaHref": "/request-a-quote",
           "id": "home-6"
         }
       ]

@@ -161,17 +161,15 @@
           "id": "home-5"
         },
         {
-          "type": "hero",
-          "variant": "minimal",
-          "title": "Let us make something worth keeping.",
-          "subtitle": "A finished top. An idea for a new quilt. A piece of cloth with a story. Start there.",
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Let us make something worth keeping.",
+          "html": "<p>A finished top. An idea for a new quilt. A piece of cloth with a story. Start there.</p><p><a href=\"/request-a-quote\">Enquire about a project →</a></p>",
           "style": {
             "bg": "none",
             "width": "wide",
             "spacing": "normal"
           },
-          "ctaLabel": "Enquire about a project",
-          "ctaHref": "/request-a-quote",
           "id": "home-6"
         }
       ]

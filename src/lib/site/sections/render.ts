@@ -988,7 +988,9 @@ function renderHours(s: Sec<"hours_location">, ctx: RenderContext): string {
 
 function renderProcess(s: Sec<"process">, ctx: RenderContext): string {
   // Numbering comes from the stylesheet's counter(); the markup carries no digits.
-  const steps = (s.items ?? []).map((it) => `<li class="qh-process__step"><h3>${esc(it.title)}</h3>${it.body ? `<p>${esc(it.body)}</p>` : ""}</li>`);
+  const steps = (s.items ?? []).map((it) =>
+    `<li class="qh-process__step"><div class="qh-process__copy"><h3>${esc(it.title)}</h3>${it.body ? `<p>${esc(it.body)}</p>` : ""}</div></li>`
+  );
   const inner = heading(s.heading) + (steps.length ? `<ol class="qh-process__steps">${steps.join("")}</ol>` : empty("No steps have been added yet."));
   return wrap(s, inner, { extraClass: "qh-process", ctx });
 }

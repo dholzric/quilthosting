@@ -1250,7 +1250,7 @@ export function collectImageIds(sections: Section[]): string[] {
     }
     if (!v || typeof v !== "object") return;
     for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
-      if (k === "imageId" && typeof val === "string" && val && !val.startsWith("pattern:")) {
+      if (k === "imageId" && typeof val === "string" && val && !val.startsWith("pattern:") && !val.startsWith("photo:") && !val.startsWith("kit-asset:")) {
         out.add(val);
       } else {
         walk(val);

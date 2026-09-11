@@ -49,6 +49,14 @@ function section<T extends Section["type"]>(partial: Extract<Section, { type: T 
 
 const ctx = fixtureContext();
 
+describe("process", () => {
+  it("groups each step title and copy in the content column", () => {
+    const s = SECTION_FIXTURES.find((f) => f.section.type === "process")!.section;
+    const html = renderSection(s, ctx);
+    expect(html).toMatch(/qh-process__step"><div class="qh-process__copy"><h3>.*<\/h3><p>.*<\/p><\/div><\/li>/);
+  });
+});
+
 describe("fixtures", () => {
   it("cover every section type and every variant", () => {
     const seen = new Map<string, Set<string>>();

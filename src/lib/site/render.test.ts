@@ -198,6 +198,17 @@ describe("renderPageHtml", () => {
     });
     expect(html).toContain('<meta property="og:image" content="https://stitchstudioquilting.com/img/hero77">');
   });
+
+  it("uses the public asset URL for a bundled kit hero social image", () => {
+    const html = renderPageHtml({
+      ...args,
+      page: {
+        ...page,
+        blocks_json: JSON.stringify([{ type: "hero", variant: "image", title: "Welcome", style: { ...DEFAULT_STYLE, bg: "image", imageId: "kit-asset:linen-journal/hero.webp" } }]),
+      },
+    });
+    expect(html).toContain('<meta property="og:image" content="https://stitchstudioquilting.com/kit-assets/linen-journal/hero.webp">');
+  });
 });
 
 // ---------------------------------------------------------------------------

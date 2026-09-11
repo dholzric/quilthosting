@@ -38,6 +38,7 @@ import type { RenderContext } from "./sections/render";
 import { sectionsFromPage } from "./sections/normalize";
 import type { Section } from "./sections/schema";
 import { DEFAULT_STYLE } from "./sections/schema";
+import { kitAssetUrl } from "./kitAssets";
 import { readProfile } from "./data";
 import type { SiteData, SiteProfile } from "./data.types";
 
@@ -505,7 +506,8 @@ export function renderSitePage(args: SitePageArgs): string {
 
   const seoPage: SeoPage = { ...page, noindex: page.membersOnly ? 1 : page.noindex ?? null };
   const heroImageId = sections[0]?.type === "hero" ? sections[0].style?.imageId : undefined;
-  const ogImageUrl = args.ogImageUrl || (heroImageId ? args.imgUrl(heroImageId, 1200) : null);
+  const heroAsset = heroImageId ? kitAssetUrl(heroImageId, 1200) : null;
+  const ogImageUrl = args.ogImageUrl || (heroImageId ? (heroAsset ? `${originOf(baseUrl)}${heroAsset}` : args.imgUrl(heroImageId, 1200)) : null);
   const seoHead = buildSeoHead({ page: seoPage, siteName, baseUrl, bodyHtml, ogImageUrl });
   const localBusiness = tenant.tenant_type === "business" ? buildLocalBusinessJsonLd({ ...identity, name: siteName }, baseUrl) : "";
   const jsonLd = [localBusiness, ...(args.jsonLd ?? [])].filter(Boolean).join("\n");
