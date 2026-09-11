@@ -16,7 +16,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const SW = readFileSync(path.join(REPO_ROOT, "public/sw.js"), "utf8");
+// Normalised to LF: git checks sw.js out with CRLF on Windows, and the
+// patterns below anchor on a newline. Without this the suite passes in a
+// working copy whose sw.js happens to have LF and fails in a fresh clone —
+// which is exactly how it reached main red.
+const SW = readFileSync(path.join(REPO_ROOT, "public/sw.js"), "utf8").replace(/\r\n/g, "\n");
 
 /** The `const isHtml = …;` expression, evaluated against one request. */
 function isHtml(pathname: string, mode: string, accept: string): boolean {
