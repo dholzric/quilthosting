@@ -60,6 +60,14 @@ describe("admin.html editor phase 2 — functions and contracts", () => {
     for (const name of NEW_FUNCTIONS) expect(() => fnSource(name), name).not.toThrow();
   });
 
+  it("the design catalogue can reveal non-featured compatible designs", () => {
+    const panel = fnSource("qhDesignPanel");
+    expect(ADMIN).toContain(".qh-kit.qh-kit--catalog-hidden { display: none; }");
+    expect(panel).toContain('card.classList.add("qh-kit--catalog-hidden")');
+    expect(panel).toContain('card.classList.toggle("qh-kit--catalog-hidden", !show)');
+    expect(panel).toContain("compatible designs (${totalDesigns} total)");
+  });
+
   it("the image pipeline follows the Task B contract", () => {
     expect(ADMIN).toContain("const WB_VARIANT_WIDTHS = [240, 480, 960, 1600, 2400];");
     expect(ADMIN).toContain("const WB_VARIANT_QUALITY = 0.82;");

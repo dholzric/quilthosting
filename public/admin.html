@@ -102,6 +102,7 @@
     .qh-tone button { padding: 0.35rem 0.7rem; font-size: 0.82rem; border-radius: 999px; }
     .qh-tone button.on { border-color: var(--brand); }
     .qh-kit { display: flex; flex-direction: column; gap: 0.25rem; cursor: default; }
+    .qh-kit.qh-kit--catalog-hidden { display: none; }
     .qh-kit .qh-kit-character { margin: 0; font-size: 0.8rem; flex: 1; }
     .qh-kit button { align-self: flex-start; margin-top: 0.25rem; padding: 0.3rem 0.7rem; font-size: 0.8rem; }
     /* Money fields: a field error under the input, and the invoice line editor */
@@ -5566,13 +5567,15 @@
         };
       };
       if (kits.length) {
-        const kitSec = section("Browse designs", "A design sets the colors, fonts, shape and layout in one go. Your pages and every word on them are kept.");
+        const totalDesigns = (options.kits || []).length;
+        const siteKind = isGuild ? "guild" : "business";
+        const kitSec = section("Browse designs", `A design sets the colors, fonts, shape and layout in one go. Your pages and every word on them are kept. ${kits.length} designs work with this ${siteKind} site; ${totalDesigns} exist across guild and business sites.`);
         const strip = mk("div", "wb-presets");
         const hiddenKits = [];
         kits.forEach((k) => {
           const card = mk("div", "wb-preset qh-kit");
           if (!k.catalog || k.catalog.collection !== "featured") {
-            card.hidden = true;
+            card.classList.add("qh-kit--catalog-hidden");
             hiddenKits.push(card);
           }
           const applyKit = () => {
@@ -5609,15 +5612,16 @@
         });
         kitSec.appendChild(strip);
         if (hiddenKits.length) {
-          const all = mk("button", "secondary", `Show all ${kits.length} designs`);
+          const allLabel = `Show all ${kits.length} compatible designs (${totalDesigns} total)`;
+          const all = mk("button", "secondary", allLabel);
           all.type = "button";
           all.dataset.readonlyOk = "";
           all.setAttribute("aria-expanded", "false");
           all.addEventListener("click", () => {
             const show = all.getAttribute("aria-expanded") !== "true";
-            hiddenKits.forEach((card) => { card.hidden = !show; });
+            hiddenKits.forEach((card) => card.classList.toggle("qh-kit--catalog-hidden", !show));
             all.setAttribute("aria-expanded", String(show));
-            all.textContent = show ? "Show featured designs" : `Show all ${kits.length} designs`;
+            all.textContent = show ? "Show featured designs" : allLabel;
           });
           kitSec.appendChild(all);
         }
