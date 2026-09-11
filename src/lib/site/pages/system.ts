@@ -349,7 +349,18 @@ function eventPage(ctx: SystemPageContext, ev: SiteEvent, timeZone: string): Sys
   // through to read — most of a screen below the fold.
   const sections: Section[] = [listHeader("event-hero", ev.title, formatEventWhen(ev, timeZone))];
   const body = descriptionToHtml(ev.description);
-  if (body) sections.push(prose("event-description", body));
+  if (body) {
+    sections.push({
+      type: "rich_text",
+      variant: "prose",
+      html: body,
+      // Tight like the rest of this stack: the page is six or seven short
+      // sections, and at normal spacing each one's padding met the next one's,
+      // leaving a fifth of a phone screen blank between two paragraphs.
+      style: style({ width: "narrow", spacing: "tight" }),
+      id: "event-description",
+    });
+  }
   // What to bring, for a class or a workshop. Placed before the price and the
   // register button: someone deciding whether to sign up needs to know they
   // have to bring a machine BEFORE they pay, not after.
@@ -359,7 +370,7 @@ function eventPage(ctx: SystemPageContext, ev: SiteEvent, timeZone: string): Sys
       variant: "prose",
       heading: "What to bring",
       html: sanitizeHtml(`<ul>${ev.bring.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`),
-      style: style({ width: "narrow", bg: "tint" }),
+      style: style({ width: "narrow", bg: "tint", spacing: "tight" }),
       id: "event-bring",
     });
   }
@@ -372,7 +383,7 @@ function eventPage(ctx: SystemPageContext, ev: SiteEvent, timeZone: string): Sys
       { title: "Members", price: price(ev.member_price_cents) },
       { title: "Non-members", price: price(ev.non_member_price_cents) },
     ],
-    style: style({ width: "narrow" }),
+    style: style({ width: "narrow", spacing: "tight" }),
     id: "event-pricing",
   });
   // Spots, between the price and the button, for the same reason What to
@@ -393,7 +404,7 @@ function eventPage(ctx: SystemPageContext, ev: SiteEvent, timeZone: string): Sys
             `Contact the guild to ask about a waiting list.</p>`
           : `<p><strong>${spotsLeft} of ${ev.capacity} spots left.</strong></p>`
       ),
-      style: style({ width: "narrow", bg: spotsLeft === 0 ? "tint" : "none" }),
+      style: style({ width: "narrow", bg: spotsLeft === 0 ? "tint" : "none", spacing: "tight" }),
       id: "event-spots",
     });
   }
