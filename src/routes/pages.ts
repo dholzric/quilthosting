@@ -14,7 +14,7 @@ import {
 } from "../lib/blocks";
 import { PLATFORM_PATH_PREFIXES, PLATFORM_EXACT_PATHS } from "../lib/platformPaths";
 import { isBusiness } from "../lib/tenantType";
-import { renderPageHtml } from "../lib/site/render";
+import { renderPageHtml, buildMenu, withEventsLink } from "../lib/site/render";
 import { buildRenderArgs } from "./site";
 import {
   parseSections,
@@ -930,9 +930,40 @@ pageRoutes.get("/site/settings", async (c) => {
   try {
     settings = JSON.parse(tenant.settings_json || "{}");
   } catch {}
+  // `nav` is the owner's own arrangement and is usually empty: with no
+  // arrangement the site lists the pages flagged "Show in menu" in
+  // sort_order, then appends Events. The menu editor could only ever show
+  // and reorder `nav`, so an owner with the automatic menu opened an empty
+  // list with nothing to move — there was no way to change the order of the
+  // menu they could actually see.
+  //
+  // `nav_default` is that automatic menu, computed HERE by the same two
+  // functions the renderer uses, so the editor can offer it as a starting
+  // point instead of asking the owner to retype their own site.
+  const pages = await all<{ slug: string; title: string; nav_label: string | null; show_in_nav: number | null }>(
+    c.env.DB.prepare(
+      `SELECT slug, title, nav_label, show_in_nav FROM pages
+       WHERE tenant_id = ? AND published = 1 AND is_members_only = 0
+         AND deleted_at IS NULL
+         AND coalesce(show_in_nav, 1) = 1 AND coalesce(page_type, 'page') = 'page'
+       ORDER BY sort_order, title`
+    ).bind(tenant.id)
+  );
+  const upcoming = await first<{ n: number }>(
+    c.env.DB.prepare(
+      `SELECT COUNT(*) AS n FROM events
+       WHERE tenant_id = ? AND is_public = 1 AND start_at >= datetime('now')`
+    ).bind(tenant.id)
+  );
+  const navDefault = withEventsLink(buildMenu(pages, [], ""), "", {
+    hasEvents: (upcoming?.n ?? 0) > 0,
+    explicitMenu: false,
+  });
+
   return c.json({
     theme: settings.theme || {},
     nav: settings.nav || [],
+    nav_default: navDefault.map((m) => ({ label: m.label, href: m.href, external: !!m.external })),
   });
 });
 

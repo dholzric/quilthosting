@@ -4917,7 +4917,7 @@
       ]);
       WB.pages = asList(pagesRaw, "pages").filter((p) => (p.page_type || "page") !== "blog_post");
       WB.trash = asList(trashRaw, "pages").filter((p) => (p.page_type || "page") !== "blog_post");
-      WB.site = { theme: site.theme || {}, nav: site.nav || [] };
+      WB.site = { theme: site.theme || {}, nav: site.nav || [], navDefault: site.nav_default || [] };
       window._pages = WB.pages;
 
       el.innerHTML = `
@@ -6411,9 +6411,24 @@
     window.qhNavEditor = qhNavEditor;
 
     function wbRenderNavCard(card) {
+      // Two states. With no arranged menu the site lists pages in their own
+      // order and appends Events, and this editor used to open EMPTY — the
+      // up/down buttons had nothing to move, so the menu an owner could see
+      // was the one menu they could not reorder. Offer that list as the
+      // starting point instead of asking them to retype their own site.
+      const auto = (WB.site.navDefault || []).slice();
+      const arranged = (WB.site.nav || []).length > 0;
       card.innerHTML = `
         <h3 style="margin:0 0 0.5rem">Site menu</h3>
-        <p class="muted" style="font-size:0.85rem;margin:0 0 0.75rem">Home, Membership and Events are always shown, followed by pages marked “Show in menu”. Add extra pages or outside links here.</p>
+        <p class="muted" style="font-size:0.85rem;margin:0 0 0.5rem">${arranged
+          ? "Your menu, in the order visitors see it. Use ↑ and ↓ to rearrange, and “Save menu” when you are done."
+          : "Right now your menu lists pages in the order they were made. Start from it below to put them in your own order."}</p>
+        ${arranged ? "" : `<div id="wb-nav-start" style="margin:0 0 0.75rem">
+          <button type="button" class="secondary" data-write id="wb-nav-adopt">Start from my current menu</button>
+          <span class="muted" style="font-size:0.85rem;margin-left:0.5rem">${auto.length
+            ? `Adds ${auto.length} item${auto.length === 1 ? "" : "s"}: ${auto.map((i) => esc(i.label)).join(" · ")}`
+            : "No pages are marked “Show in menu” yet."}</span>
+        </div>`}
         <div id="wb-nav-editor"></div>
         <button type="button" data-write id="wb-nav-save" style="margin-top:0.75rem">Save menu</button>
         <span id="wb-nav-msg" class="muted" style="margin-left:0.5rem" aria-live="polite"></span>`;
@@ -6421,7 +6436,22 @@
         items: WB.site.nav,
         pages: WB.pages,
         linkFor: (p) => wbPagePath(p.slug),
+        emptyText: "Your menu is built automatically. Use the button above to take it over and set your own order.",
+        allowUnknownInternal: true,
       });
+      const adopt = document.getElementById("wb-nav-adopt");
+      if (adopt) {
+        adopt.disabled = !auto.length;
+        adopt.addEventListener("click", () => {
+          // Hand the automatic list to the editor as real, movable rows. It
+          // is not saved until "Save menu" — adopting is not a commitment.
+          WB.site.nav = auto.map((i) => ({ label: i.label, href: i.href, external: !!i.external }));
+          wbRenderNavCard(card);
+          applyReadOnlyState("pages", card);
+          const msg = document.getElementById("wb-nav-msg");
+          if (msg) msg.textContent = "Rearrange with ↑ and ↓, then Save menu.";
+        });
+      }
       document.getElementById("wb-nav-save").addEventListener("click", async () => {
         const msg = document.getElementById("wb-nav-msg");
         try {
@@ -6465,7 +6495,7 @@
         if (tenantRow) { try { tenantSettings = JSON.parse(tenantRow.settings_json || "{}"); } catch { tenantSettings = {}; } }
         if (tenantSettings && !wbIsGuild()) WB.settings = tenantSettings;
         if (catalog && Array.isArray(catalog.types)) WB.catalog = catalog;
-        if (siteSettings) WB.site = { theme: siteSettings.theme || {}, nav: siteSettings.nav || [] };
+        if (siteSettings) WB.site = { theme: siteSettings.theme || {}, nav: siteSettings.nav || [], navDefault: siteSettings.nav_default || [] };
         WB.pages = asList(pageRows, "pages").filter((p) => (p.page_type || "page") !== "blog_post");
         if (pageOrNull && pageOrNull.id) {
           const row = await api(`${wbBase()}/${pageOrNull.id}`);
