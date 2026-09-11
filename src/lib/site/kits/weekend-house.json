@@ -1,7 +1,7 @@
 {
   "id": "weekend-house",
   "name": "Weekend House",
-  "audience": "business",
+  "audience": "both",
   "character": "A farmhouse quilt retreat with warm terracotta, generous photographic spaces, scalloped edges, and an unhurried invitation to sew and stay.",
   "defaults": {
     "palette": "signature-terracotta",

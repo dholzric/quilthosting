@@ -14,8 +14,8 @@ Do not present these illustrations as photographs of a real place, quilt, or cli
 |---|---|---|---|
 | Linen Journal | Guild | Editorial oatmeal-and-ink journal with an heirloom star quilt | `signature-oat-ink` · `newsreader-ibmplexsans` |
 | Color Assembly | Guild | Vermilion manifesto, oversized geometry, and direct sans typography | `signature-vermilion` · `spacegrotesk-worksans` |
-| Indigo House | Business | Midnight luxury, tactile stitching, and a considered commission path | `signature-midnight` · `cormorantgaramond-sourcesans` |
-| Weekend House | Business | Warm farmhouse hospitality and an unhurried retreat enquiry path | `signature-terracotta` · `dmserif-dmsans` |
+| Indigo House | Guild or business | Midnight luxury, tactile stitching, and a considered commission path | `signature-midnight` · `cormorantgaramond-sourcesans` |
+| Weekend House | Guild or business | Warm farmhouse hospitality and an unhurried retreat enquiry path | `signature-terracotta` · `dmserif-dmsans` |
 
 Each artwork ships as responsive WebP files at 480, 960, and 1600 pixels. The kit JSON holds `public/kit-assets/<kit>/hero.webp`; `resolveKitImagery` rewrites it to a safe `kit-asset:<kit>/hero.webp` reference, and `kitAssetUrl` selects the appropriate public file for the rendered width.
 

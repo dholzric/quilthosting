@@ -1,7 +1,7 @@
 {
   "id": "indigo-house",
   "name": "Indigo House",
-  "audience": "business",
+  "audience": "both",
   "character": "A quiet luxury quilting atelier: midnight blue, ivory typography, immersive stitch photography, and a considered commission journey.",
   "defaults": {
     "palette": "signature-midnight",
@@ -477,10 +477,9 @@
           "id": "request-a-quote-2"
         },
         {
-          "type": "quote_cta",
-          "projectType": "longarm",
+          "type": "contact",
           "heading": "Tell us about your quilt",
-          "submitLabel": "Send my project enquiry",
+          "showDetails": true,
           "style": {
             "bg": "none",
             "width": "narrow",
