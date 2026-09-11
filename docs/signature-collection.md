@@ -1,10 +1,10 @@
 # The signature collection
 
-Twelve starter kits that ship their own artwork rather than drawing on the shared stock-photo pool. Each was composed around one original illustration, with its own audience, voice, navigation, page sequence, conversion path, palette, and typography.
+Twenty-two starter kits that ship their own artwork rather than drawing on the shared stock-photo pool. Each was composed around one original illustration, with its own audience, voice, navigation, page sequence, conversion path, palette, and typography.
 
 ## Provenance and licence
 
-The artwork is **original AI-generated illustration created for QuiltHosting** using the built-in OpenAI image generation tool on 2026-09-10. No third-party photograph or reference image was supplied. Each `public/kit-assets/<kit>/LICENSE.txt` carries the asset-level notice.
+The artwork is **original AI-generated illustration created for QuiltHosting** using the built-in OpenAI image generation tool on 2026-09-10 and 2026-09-11. No third-party photograph or reference image was supplied. Each `public/kit-assets/<kit>/LICENSE.txt` carries the asset-level notice.
 
 Do not present these illustrations as photographs of a real place, quilt, or client work. They are starting points, and each kit tells the owner to replace the artwork with photographs of their guild, work, or property before launch.
 
@@ -24,11 +24,21 @@ Do not present these illustrations as photographs of a real place, quilt, or cli
 | Quilt Show Edition | Guild or business | Exhibition-scale ultramarine, scarlet, and marigold for shows and entries | `signature-exhibition` · `spacegrotesk-worksans` |
 | Mending Circle | Guild or business | Humane service-guild design centered on useful work and many ways to help | `signature-mending` · `bitter-opensans` |
 | Pattern House | Guild or business | Exacting graphic studio balancing portfolio, workshops, and patterns | `signature-pattern-house` · `dmserif-dmsans` |
+| Night Bloom | Guild or business | Nocturnal floral appliqué society with gallery drama and patient handwork | `signature-night-bloom` · `cormorantgaramond-sourcesans` |
+| Lake Effect | Guild or business | Crisp Great Lakes guild shaped by weather, geometry, and practical community | `signature-lake-effect` · `newsreader-ibmplexsans` |
+| Citrus Press | Guild or business | Sun-bright modern collective with lively curves and printmaking energy | `signature-citrus-press` · `spacegrotesk-worksans` |
+| Quilt Camp | Guild or business | Capable woodland retreat with field-guide clarity and fireside character | `signature-quilt-camp` · `bitter-opensans` |
+| Modern Heirloom | Guild or business | Refined commission studio for milestone and memory quilts | `signature-modern-heirloom` · `librebaskerville-nunitosans` |
+| Selvage Club | Guild or business | Energetic urban scrap club with zine graphics and direct language | `signature-selvage-club` · `spacegrotesk-worksans` |
+| Needle & Pine | Guild or business | Pacific Northwest guild rooted in landscape, material, and giving work | `signature-needle-pine` · `newsreader-ibmplexsans` |
+| Studio Grid | Guild or business | Architectural modern studio with gallery white space and an electric blue axis | `signature-studio-grid` · `manrope` |
+| Story Cloth | Guild or business | Humane community textile archive joining oral history and rigorous records | `signature-story-cloth` · `bitter-opensans` |
+| Holiday House | Guild or business | Restrained winter society balancing heritage stars, market, and giving | `signature-holiday-house` · `dmserif-dmsans` |
 
 Each artwork ships as responsive WebP files at 480, 960, and 1600 pixels. The kit JSON holds `public/kit-assets/<kit>/hero.webp`; `resolveKitImagery` rewrites it to a safe `kit-asset:<kit>/hero.webp` reference, and `kitAssetUrl` selects the appropriate public file for the rendered width.
 
 ## Verification
 
-`docs/kit-gallery/signature-checks.json` records the render check for every page at 1440 and 390 pixels: HTTP 200, no horizontal overflow, no broken images, one page heading, and a clean browser console. Representative screenshots live in `docs/kit-gallery/<kit>/`.
+`docs/kit-gallery/signature-ten-checks.json` records the latest render check for all 50 new pages at 1440 and 390 pixels: HTTP 200, no horizontal overflow, no broken images, one page heading, and a clean browser console. Representative screenshots live in `docs/kit-gallery/<kit>/`.
 
 The image source files, licence notice, responsive variants, public routing, path safety, social image URL, and tenant-page rendering are covered by the site and kit test suites.

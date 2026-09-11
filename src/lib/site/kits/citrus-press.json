@@ -1,0 +1,430 @@
+{
+  "id": "citrus-press",
+  "name": "Citrus Press",
+  "audience": "both",
+  "character": "A sun-bright modern quilt collective with playful curves, printmaking energy, and welcoming workshops.",
+  "defaults": {
+    "palette": "signature-citrus-press",
+    "typePair": "spacegrotesk-worksans",
+    "scale": "editorial",
+    "shape": {
+      "radius": "soft",
+      "shadow": "subtle"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "split",
+      "sticky": true,
+      "cta": "none",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "churn-dash",
+      "opacity": 0.06
+    }
+  },
+  "previewSeed": {
+    "guildName": "Citrus Press",
+    "city": "St. Petersburg, Florida"
+  },
+  "menu": [
+    {
+      "label": "Our flavor",
+      "href": "/our-flavor"
+    },
+    {
+      "label": "Workshops",
+      "href": "/workshops"
+    },
+    {
+      "label": "Community",
+      "href": "/community"
+    },
+    {
+      "label": "Calendar",
+      "href": "/events"
+    },
+    {
+      "label": "Hello",
+      "href": "/contact"
+    }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "split",
+          "eyebrow": "Modern quilts · bright company",
+          "title": "Squeeze more color into the week.",
+          "subtitle": "Citrus Press is a sunny quilt collective for bold curves, fresh prints, and shared tables in {{city}}.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy",
+            "imageId": "hero-art",
+            "layout": "asym_reverse",
+            "media": "left"
+          },
+          "ctaLabel": "Take a workshop",
+          "ctaHref": "/workshops",
+          "secondaryLabel": "Meet the collective",
+          "secondaryHref": "/our-flavor",
+          "id": "home-1"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Fresh from the table",
+          "items": [
+            {
+              "title": "Curve school",
+              "body": "Friendly, precise sessions for pieced curves that actually lie flat.",
+              "href": "/workshops"
+            },
+            {
+              "title": "Print + cloth",
+              "body": "Small-batch surface design and repeat-building experiments.",
+              "href": "/workshops"
+            },
+            {
+              "title": "Community table",
+              "body": "Open sewing with help nearby and no pressure to perform.",
+              "href": "/community"
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-2"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Original Citrus Press textile study; replace with your collective’s own work.",
+              "caption": "Original Citrus Press textile study; replace with your collective’s own work."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "home-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Color is a decision, not a decoration.",
+          "html": "<p>We test combinations in cloth, learn where contrast earns its keep, and leave room for surprise.</p>",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-4"
+        },
+        {
+          "type": "events",
+          "variant": "cards",
+          "heading": "Pick something juicy",
+          "limit": 3,
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-5"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace programs, venue details, claims, and imagery with current information from your collective.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "home-6"
+        }
+      ]
+    },
+    {
+      "slug": "our-flavor",
+      "title": "Our flavor",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Our flavor",
+          "title": "Precise enough to work. Loose enough to feel alive.",
+          "subtitle": "Introduce the people, principles, and place behind the collective.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "flavor-1"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "The house recipe",
+          "items": [
+            {
+              "title": "Strong contrast",
+              "body": "Make the shape legible before adding complexity."
+            },
+            {
+              "title": "Curves with ease",
+              "body": "Teach repeatable technique and welcome imperfect hands."
+            },
+            {
+              "title": "Generous color",
+              "body": "Share swatches, sources, and the reasoning behind a palette."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "flavor-2"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Started around one bright table.",
+          "html": "<p>Tell the true founding story, name leadership, and explain how decisions are made.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "flavor-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add your real history, team, accessibility, code of conduct, and image credits.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "flavor-4"
+        }
+      ]
+    },
+    {
+      "slug": "workshops",
+      "title": "Workshops",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Workshops",
+          "title": "Leave with a skill you can repeat.",
+          "subtitle": "Present levels, duration, kit contents, equipment, and registration clearly.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "work-1"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Three ways into the work",
+          "items": [
+            {
+              "title": "Cut the curve",
+              "body": "A first curved-piecing class with templates and patient fitting."
+            },
+            {
+              "title": "Build the repeat",
+              "body": "Turn one block into a lively, balanced surface."
+            },
+            {
+              "title": "Print the cloth",
+              "body": "Explore simple marks, layered color, and safe studio practice."
+            }
+          ],
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "work-2"
+        },
+        {
+          "type": "faq",
+          "heading": "Before class",
+          "items": [
+            {
+              "q": "Are materials included?",
+              "a": "State exactly what the fee covers and what students must source."
+            },
+            {
+              "q": "Which machine should I bring?",
+              "a": "List machine, feet, extension cable, and maintenance expectations."
+            },
+            {
+              "q": "May I cancel?",
+              "a": "Publish transfer, cancellation, waitlist, and instructor-cancellation terms."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "work-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace sample classes with your scheduled offerings, prices, instructors, supplies, and refund policy.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "work-4"
+        }
+      ]
+    },
+    {
+      "slug": "community",
+      "title": "Community",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Community table",
+          "title": "Bring the half-finished thing.",
+          "subtitle": "Open sewing is for progress, questions, and the pleasure of making near other people.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "community-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Original bright quilt study; replace with permission-cleared community photography.",
+              "caption": "Original bright quilt study; replace with permission-cleared community photography."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "community-2"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "A room without a test.",
+          "html": "<p>Explain how newcomers are welcomed, what help is available, and what the venue can accommodate.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "community-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add dates, cost, capacity, tools, food rules, access information, and conduct expectations.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "community-4"
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Hello",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Say hello",
+          "title": "Ask the small question. Bring the large idea.",
+          "subtitle": "Contact Citrus Press about workshops, visits, access, or collaborations.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "contact-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add the monitored inbox, response time, studio address, transit, parking, and access contact.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "contact-2"
+        },
+        {
+          "type": "contact",
+          "heading": "Send something bright",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "contact-3"
+        }
+      ]
+    }
+  ],
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "photo",
+      "src": "public/kit-assets/citrus-press/hero.webp",
+      "alt": "Original illustrative textile artwork for Citrus Press"
+    }
+  ]
+}

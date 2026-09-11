@@ -1,0 +1,415 @@
+{
+  "id": "night-bloom",
+  "name": "Night Bloom",
+  "audience": "both",
+  "character": "A nocturnal floral appliqué society with gallery drama, poetic restraint, and a serious handwork program.",
+  "defaults": {
+    "palette": "signature-night-bloom",
+    "typePair": "cormorantgaramond-sourcesans",
+    "scale": "editorial",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "centered",
+      "sticky": true,
+      "cta": "none",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "bear-paw",
+      "opacity": 0.06
+    }
+  },
+  "previewSeed": {
+    "guildName": "Night Bloom",
+    "city": "Richmond, Virginia"
+  },
+  "menu": [
+    {
+      "label": "The circle",
+      "href": "/the-circle"
+    },
+    {
+      "label": "Handwork",
+      "href": "/handwork"
+    },
+    {
+      "label": "Exhibition",
+      "href": "/exhibition"
+    },
+    {
+      "label": "Dates",
+      "href": "/events"
+    },
+    {
+      "label": "Write to us",
+      "href": "/contact"
+    }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "split",
+          "eyebrow": "An appliqué and handwork circle",
+          "title": "Make something that only reveals itself slowly.",
+          "subtitle": "Night Bloom gathers patient hands, dark cloth, and botanical imagination in {{city}}.",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "airy",
+            "imageId": "hero-art",
+            "layout": "asym_reverse",
+            "media": "left"
+          },
+          "ctaLabel": "Enter the circle",
+          "ctaHref": "/the-circle",
+          "secondaryLabel": "See the exhibition",
+          "secondaryHref": "/exhibition",
+          "id": "home-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "After daylight, the work changes.",
+          "html": "<p>We meet in the evening to cut, turn, place, and stitch. The room gets quiet. The flowers get strange.</p>",
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "home-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "A circle built around attention",
+          "items": [
+            {
+              "title": "Monthly night sewing",
+              "body": "A long table, good light, and uninterrupted time for handwork.",
+              "href": "/events"
+            },
+            {
+              "title": "Appliqué studies",
+              "body": "Seasonal prompts that build skill without flattening personal style.",
+              "href": "/handwork"
+            },
+            {
+              "title": "One annual room",
+              "body": "A focused exhibition where every piece has space to breathe.",
+              "href": "/exhibition"
+            }
+          ],
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-3"
+        },
+        {
+          "type": "events",
+          "variant": "cards",
+          "heading": "The next evenings",
+          "limit": 3,
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-4"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace dates, access details, skill expectations, and imagery with the truth of your circle.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "home-5"
+        }
+      ]
+    },
+    {
+      "slug": "the-circle",
+      "title": "The circle",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "The circle",
+          "title": "A place for slow work and clear company.",
+          "subtitle": "Introduce who gathers, where, and what makes the evening useful.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "circle-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "The table is the center.",
+          "html": "<p>Bring a current piece, a question, or simply the wish to begin. The circle favors generosity over performance.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "circle-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "What members can count on",
+          "items": [
+            {
+              "title": "A prepared room",
+              "body": "Good task lighting, generous table space, and room to settle in."
+            },
+            {
+              "title": "Specific teaching",
+              "body": "Short demonstrations tied to the work members are doing."
+            },
+            {
+              "title": "A serious welcome",
+              "body": "Beginners receive context; experienced makers receive room."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "circle-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add your real meeting cadence, dues, guest policy, accessibility, and parking information.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "circle-4"
+        }
+      ]
+    },
+    {
+      "slug": "handwork",
+      "title": "Handwork",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Handwork studies",
+          "title": "Leaves, stems, shadows, and the line of a needle.",
+          "subtitle": "Show what members learn and how a study becomes an original quilt.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "hand-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Original Night Bloom textile study; replace with credited member work.",
+              "caption": "Original Night Bloom textile study; replace with credited member work."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "hand-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "The season’s studies",
+          "items": [
+            {
+              "title": "Turned-edge forms",
+              "body": "Control curves and points without losing the hand of the maker."
+            },
+            {
+              "title": "Layered shadow",
+              "body": "Use value and overlap to create depth with cloth."
+            },
+            {
+              "title": "Visible stitch",
+              "body": "Let the construction become part of the drawing."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "hand-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> List actual materials, prerequisites, instructors, credits, and permissions for displayed work.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "hand-4"
+        }
+      ]
+    },
+    {
+      "slug": "exhibition",
+      "title": "Exhibition",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "The annual room",
+          "title": "Dark cloth. Close looking. One luminous evening.",
+          "subtitle": "Present the next exhibition with dates, venue, juror, and entry rules.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "ctaLabel": "See calendar",
+          "ctaHref": "/events",
+          "id": "show-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Give every work enough room.",
+          "html": "<p>Explain the curatorial idea, who may submit, how work is selected, and how visitors can attend.</p>",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "show-2"
+        },
+        {
+          "type": "faq",
+          "heading": "Before submitting",
+          "items": [
+            {
+              "q": "Who may enter?",
+              "a": "State membership, geography, technique, and completion-date requirements."
+            },
+            {
+              "q": "How is work delivered?",
+              "a": "Publish dimensions, sleeves, labels, packing, intake, and collection times."
+            },
+            {
+              "q": "May work be sold?",
+              "a": "State commission, insurance, payment, and pickup terms clearly."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "show-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace every exhibition claim with confirmed dates, named contacts, and signed venue terms.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "show-4"
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Write to us",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Write to Night Bloom",
+          "title": "Begin with the practical question.",
+          "subtitle": "Ask about visiting, access, membership, or submitting work.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "contact-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add the monitored email, response time, venue address, and access contact.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "contact-2"
+        },
+        {
+          "type": "contact",
+          "heading": "Send a note",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "contact-3"
+        }
+      ]
+    }
+  ],
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "photo",
+      "src": "public/kit-assets/night-bloom/hero.webp",
+      "alt": "Original illustrative textile artwork for Night Bloom"
+    }
+  ]
+}

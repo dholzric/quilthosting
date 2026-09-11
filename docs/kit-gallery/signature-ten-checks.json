@@ -1,0 +1,1160 @@
+{
+  "failures": [],
+  "checks": 100,
+  "results": [
+    {
+      "id": "night-bloom",
+      "page": "home",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/night-bloom/hero-960.webp",
+          "alt": "A dramatic dark floral applique quilt illuminated against a plum-black studio wall"
+        }
+      ]
+    },
+    {
+      "id": "night-bloom",
+      "page": "the-circle",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "night-bloom",
+      "page": "handwork",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/night-bloom/hero.webp",
+          "alt": "Original Night Bloom textile study; replace with credited member work."
+        }
+      ]
+    },
+    {
+      "id": "night-bloom",
+      "page": "exhibition",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "night-bloom",
+      "page": "contact",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "night-bloom",
+      "page": "home",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/night-bloom/hero-480.webp",
+          "alt": "A dramatic dark floral applique quilt illuminated against a plum-black studio wall"
+        }
+      ]
+    },
+    {
+      "id": "night-bloom",
+      "page": "the-circle",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "night-bloom",
+      "page": "handwork",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/night-bloom/hero-480.webp",
+          "alt": "Original Night Bloom textile study; replace with credited member work."
+        }
+      ]
+    },
+    {
+      "id": "night-bloom",
+      "page": "exhibition",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "night-bloom",
+      "page": "contact",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "lake-effect",
+      "page": "home",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/lake-effect/hero-960.webp",
+          "alt": "A navy, fog-white and brick-red geometric quilt beside a Great Lake window"
+        }
+      ]
+    },
+    {
+      "id": "lake-effect",
+      "page": "about",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/lake-effect/hero.webp",
+          "alt": "Original Lake Effect textile study; replace with credited guild photography."
+        }
+      ]
+    },
+    {
+      "id": "lake-effect",
+      "page": "programs",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "lake-effect",
+      "page": "show-and-tell",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/lake-effect/hero.webp",
+          "alt": "Original lakeside quilt study; replace with member work and permission."
+        }
+      ]
+    },
+    {
+      "id": "lake-effect",
+      "page": "become-a-member",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "lake-effect",
+      "page": "home",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/lake-effect/hero-480.webp",
+          "alt": "A navy, fog-white and brick-red geometric quilt beside a Great Lake window"
+        }
+      ]
+    },
+    {
+      "id": "lake-effect",
+      "page": "about",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/lake-effect/hero-480.webp",
+          "alt": "Original Lake Effect textile study; replace with credited guild photography."
+        }
+      ]
+    },
+    {
+      "id": "lake-effect",
+      "page": "programs",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "lake-effect",
+      "page": "show-and-tell",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/lake-effect/hero-480.webp",
+          "alt": "Original lakeside quilt study; replace with member work and permission."
+        }
+      ]
+    },
+    {
+      "id": "lake-effect",
+      "page": "become-a-member",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "citrus-press",
+      "page": "home",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/citrus-press/hero-960.webp",
+          "alt": "A coral, lemon and leaf-green curved quilt on a sunlit garden worktable"
+        },
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/citrus-press/hero.webp",
+          "alt": "Original Citrus Press textile study; replace with your collective’s own work."
+        }
+      ]
+    },
+    {
+      "id": "citrus-press",
+      "page": "our-flavor",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "citrus-press",
+      "page": "workshops",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "citrus-press",
+      "page": "community",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/citrus-press/hero.webp",
+          "alt": "Original bright quilt study; replace with permission-cleared community photography."
+        }
+      ]
+    },
+    {
+      "id": "citrus-press",
+      "page": "contact",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "citrus-press",
+      "page": "home",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/citrus-press/hero-480.webp",
+          "alt": "A coral, lemon and leaf-green curved quilt on a sunlit garden worktable"
+        },
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/citrus-press/hero-480.webp",
+          "alt": "Original Citrus Press textile study; replace with your collective’s own work."
+        }
+      ]
+    },
+    {
+      "id": "citrus-press",
+      "page": "our-flavor",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "citrus-press",
+      "page": "workshops",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "citrus-press",
+      "page": "community",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/citrus-press/hero-480.webp",
+          "alt": "Original bright quilt study; replace with permission-cleared community photography."
+        }
+      ]
+    },
+    {
+      "id": "citrus-press",
+      "page": "contact",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "quilt-camp",
+      "page": "home",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/quilt-camp/hero-960.webp",
+          "alt": "A pine, canvas and rust patchwork quilt inside a woodland retreat cabin"
+        }
+      ]
+    },
+    {
+      "id": "quilt-camp",
+      "page": "the-camp",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/quilt-camp/hero.webp",
+          "alt": "Original Quilt Camp cabin study; replace with accurate property photography."
+        }
+      ]
+    },
+    {
+      "id": "quilt-camp",
+      "page": "retreats",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "quilt-camp",
+      "page": "what-to-pack",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "quilt-camp",
+      "page": "contact",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "quilt-camp",
+      "page": "home",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/quilt-camp/hero-480.webp",
+          "alt": "A pine, canvas and rust patchwork quilt inside a woodland retreat cabin"
+        }
+      ]
+    },
+    {
+      "id": "quilt-camp",
+      "page": "the-camp",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/quilt-camp/hero-480.webp",
+          "alt": "Original Quilt Camp cabin study; replace with accurate property photography."
+        }
+      ]
+    },
+    {
+      "id": "quilt-camp",
+      "page": "retreats",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "quilt-camp",
+      "page": "what-to-pack",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "quilt-camp",
+      "page": "contact",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "modern-heirloom",
+      "page": "home",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/modern-heirloom/hero-960.webp",
+          "alt": "A pearl and taupe heirloom quilt with an oxblood accent on a linen bed"
+        },
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/modern-heirloom/hero.webp",
+          "alt": "Original Modern Heirloom textile study; replace with commissioned work and client permission."
+        }
+      ]
+    },
+    {
+      "id": "modern-heirloom",
+      "page": "commission",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "modern-heirloom",
+      "page": "materials",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/modern-heirloom/hero.webp",
+          "alt": "Original pearl and oxblood quilt study; replace with your material and stitching details."
+        }
+      ]
+    },
+    {
+      "id": "modern-heirloom",
+      "page": "the-process",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "modern-heirloom",
+      "page": "contact",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "modern-heirloom",
+      "page": "home",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/modern-heirloom/hero-480.webp",
+          "alt": "A pearl and taupe heirloom quilt with an oxblood accent on a linen bed"
+        },
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/modern-heirloom/hero-480.webp",
+          "alt": "Original Modern Heirloom textile study; replace with commissioned work and client permission."
+        }
+      ]
+    },
+    {
+      "id": "modern-heirloom",
+      "page": "commission",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "modern-heirloom",
+      "page": "materials",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/modern-heirloom/hero-480.webp",
+          "alt": "Original pearl and oxblood quilt study; replace with your material and stitching details."
+        }
+      ]
+    },
+    {
+      "id": "modern-heirloom",
+      "page": "the-process",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "modern-heirloom",
+      "page": "contact",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "selvage-club",
+      "page": "home",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/selvage-club/hero-960.webp",
+          "alt": "A lively quilt of colorful selvage strips in a bright urban sewing studio"
+        }
+      ]
+    },
+    {
+      "id": "selvage-club",
+      "page": "club-rules",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "selvage-club",
+      "page": "scrap-lab",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/selvage-club/hero.webp",
+          "alt": "Original Selvage Club textile study; replace with permission-cleared club work."
+        }
+      ]
+    },
+    {
+      "id": "selvage-club",
+      "page": "wall-of-scraps",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/selvage-club/hero.webp",
+          "alt": "Original scrappy textile study; replace with credited member photography."
+        }
+      ]
+    },
+    {
+      "id": "selvage-club",
+      "page": "contact",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "selvage-club",
+      "page": "home",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/selvage-club/hero-480.webp",
+          "alt": "A lively quilt of colorful selvage strips in a bright urban sewing studio"
+        }
+      ]
+    },
+    {
+      "id": "selvage-club",
+      "page": "club-rules",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "selvage-club",
+      "page": "scrap-lab",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/selvage-club/hero-480.webp",
+          "alt": "Original Selvage Club textile study; replace with permission-cleared club work."
+        }
+      ]
+    },
+    {
+      "id": "selvage-club",
+      "page": "wall-of-scraps",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/selvage-club/hero-480.webp",
+          "alt": "Original scrappy textile study; replace with credited member photography."
+        }
+      ]
+    },
+    {
+      "id": "selvage-club",
+      "page": "contact",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "needle-and-pine",
+      "page": "home",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/needle-and-pine/hero-960.webp",
+          "alt": "A forest green and copper quilt on a cedar bench before misty evergreens"
+        }
+      ]
+    },
+    {
+      "id": "needle-and-pine",
+      "page": "our-ground",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/needle-and-pine/hero.webp",
+          "alt": "Original Needle & Pine landscape quilt study; replace with local, credited photography."
+        }
+      ]
+    },
+    {
+      "id": "needle-and-pine",
+      "page": "field-studies",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "needle-and-pine",
+      "page": "giving-work",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "needle-and-pine",
+      "page": "contact",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "needle-and-pine",
+      "page": "home",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/needle-and-pine/hero-480.webp",
+          "alt": "A forest green and copper quilt on a cedar bench before misty evergreens"
+        }
+      ]
+    },
+    {
+      "id": "needle-and-pine",
+      "page": "our-ground",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/needle-and-pine/hero-480.webp",
+          "alt": "Original Needle & Pine landscape quilt study; replace with local, credited photography."
+        }
+      ]
+    },
+    {
+      "id": "needle-and-pine",
+      "page": "field-studies",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "needle-and-pine",
+      "page": "giving-work",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "needle-and-pine",
+      "page": "contact",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "studio-grid",
+      "page": "home",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/studio-grid/hero-960.webp",
+          "alt": "A black, white and ultramarine grid quilt in a minimal architectural studio"
+        },
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/studio-grid/hero.webp",
+          "alt": "Original Studio Grid textile study; replace with commissioned work."
+        }
+      ]
+    },
+    {
+      "id": "studio-grid",
+      "page": "work",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/studio-grid/hero.webp",
+          "alt": "Original Studio Grid textile study; replace with documented studio work."
+        }
+      ]
+    },
+    {
+      "id": "studio-grid",
+      "page": "method",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "studio-grid",
+      "page": "editions",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "studio-grid",
+      "page": "contact",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "studio-grid",
+      "page": "home",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/studio-grid/hero-480.webp",
+          "alt": "A black, white and ultramarine grid quilt in a minimal architectural studio"
+        },
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/studio-grid/hero-480.webp",
+          "alt": "Original Studio Grid textile study; replace with commissioned work."
+        }
+      ]
+    },
+    {
+      "id": "studio-grid",
+      "page": "work",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/studio-grid/hero-480.webp",
+          "alt": "Original Studio Grid textile study; replace with documented studio work."
+        }
+      ]
+    },
+    {
+      "id": "studio-grid",
+      "page": "method",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "studio-grid",
+      "page": "editions",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "studio-grid",
+      "page": "contact",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "story-cloth",
+      "page": "home",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/story-cloth/hero-960.webp",
+          "alt": "An indigo, ochre and linen story quilt arranged on a community archive table"
+        }
+      ]
+    },
+    {
+      "id": "story-cloth",
+      "page": "the-archive",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/story-cloth/hero.webp",
+          "alt": "Original Story Cloth archive study; replace with consented object photography."
+        }
+      ]
+    },
+    {
+      "id": "story-cloth",
+      "page": "documentation-days",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "story-cloth",
+      "page": "story-quilts",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/story-cloth/hero.webp",
+          "alt": "Original Story Cloth study; replace with permission-cleared archive material."
+        }
+      ]
+    },
+    {
+      "id": "story-cloth",
+      "page": "contact",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "story-cloth",
+      "page": "home",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/story-cloth/hero-480.webp",
+          "alt": "An indigo, ochre and linen story quilt arranged on a community archive table"
+        }
+      ]
+    },
+    {
+      "id": "story-cloth",
+      "page": "the-archive",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/story-cloth/hero-480.webp",
+          "alt": "Original Story Cloth archive study; replace with consented object photography."
+        }
+      ]
+    },
+    {
+      "id": "story-cloth",
+      "page": "documentation-days",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "story-cloth",
+      "page": "story-quilts",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/story-cloth/hero-480.webp",
+          "alt": "Original Story Cloth study; replace with permission-cleared archive material."
+        }
+      ]
+    },
+    {
+      "id": "story-cloth",
+      "page": "contact",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "holiday-house",
+      "page": "home",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/holiday-house/hero-960.webp",
+          "alt": "An evergreen, cranberry and cream star quilt in a restrained winter room"
+        }
+      ]
+    },
+    {
+      "id": "holiday-house",
+      "page": "winter-gathering",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/holiday-house/hero.webp",
+          "alt": "Original Holiday House winter quilt study; replace with venue and exhibition photography."
+        }
+      ]
+    },
+    {
+      "id": "holiday-house",
+      "page": "giving-quilts",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "holiday-house",
+      "page": "market",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "holiday-house",
+      "page": "contact",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "holiday-house",
+      "page": "home",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/holiday-house/hero-480.webp",
+          "alt": "An evergreen, cranberry and cream star quilt in a restrained winter room"
+        }
+      ]
+    },
+    {
+      "id": "holiday-house",
+      "page": "winter-gathering",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/holiday-house/hero-480.webp",
+          "alt": "Original Holiday House winter quilt study; replace with venue and exhibition photography."
+        }
+      ]
+    },
+    {
+      "id": "holiday-house",
+      "page": "giving-quilts",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "holiday-house",
+      "page": "market",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "holiday-house",
+      "page": "contact",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    }
+  ]
+}

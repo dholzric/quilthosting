@@ -1,0 +1,431 @@
+{
+  "id": "modern-heirloom",
+  "name": "Modern Heirloom",
+  "audience": "both",
+  "character": "A refined commission studio for wedding, anniversary, and memory quilts with calm editorial confidence.",
+  "defaults": {
+    "palette": "signature-modern-heirloom",
+    "typePair": "librebaskerville-nunitosans",
+    "scale": "editorial",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "centered",
+      "sticky": true,
+      "cta": "none",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "none",
+      "opacity": 0
+    }
+  },
+  "previewSeed": {
+    "guildName": "Modern Heirloom",
+    "city": "Charleston, South Carolina"
+  },
+  "menu": [
+    {
+      "label": "Commission",
+      "href": "/commission"
+    },
+    {
+      "label": "Materials",
+      "href": "/materials"
+    },
+    {
+      "label": "The process",
+      "href": "/the-process"
+    },
+    {
+      "label": "Enquire",
+      "href": "/contact"
+    }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "split",
+          "eyebrow": "Quilts made to mark a life",
+          "title": "Keep what mattered. Make it useful.",
+          "subtitle": "Modern heirloom quilts for weddings, anniversaries, new homes, and family cloth worth carrying forward.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy",
+            "imageId": "hero-art",
+            "layout": "asym_reverse",
+            "media": "left"
+          },
+          "ctaLabel": "Begin a commission",
+          "ctaHref": "/contact",
+          "secondaryLabel": "Understand the process",
+          "secondaryHref": "/the-process",
+          "id": "home-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "An heirloom should belong to the room it enters.",
+          "html": "<p>The palette, scale, materials, and stitched line begin with the people who will live with the quilt.</p>",
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "home-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Made for real milestones",
+          "items": [
+            {
+              "title": "A wedding quilt",
+              "body": "A lasting object built around place, palette, and a shared beginning.",
+              "href": "/commission"
+            },
+            {
+              "title": "A memory quilt",
+              "body": "Meaningful garments edited with care and supported for daily use.",
+              "href": "/commission"
+            },
+            {
+              "title": "An anniversary piece",
+              "body": "A new composition that gathers dates, places, and quiet references."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-3"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Original Modern Heirloom textile study; replace with commissioned work and client permission.",
+              "caption": "Original Modern Heirloom textile study; replace with commissioned work and client permission."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "home-4"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace services, timelines, material claims, and imagery with the precise terms of your studio.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "home-5"
+        }
+      ]
+    },
+    {
+      "slug": "commission",
+      "title": "Commission",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Commission",
+          "title": "A quilt begins long before the first seam.",
+          "subtitle": "Describe the occasion, intended use, size, palette, and meaningful materials.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "comm-1"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Three starting points",
+          "items": [
+            {
+              "title": "A new heirloom",
+              "body": "Designed and made from new cloth for a specific person or place."
+            },
+            {
+              "title": "Clothing with a history",
+              "body": "Selected garments stabilized and composed with respect for their original character."
+            },
+            {
+              "title": "A shared family piece",
+              "body": "A design developed with several contributors and one clear decision-maker."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "comm-2"
+        },
+        {
+          "type": "faq",
+          "heading": "Before we agree",
+          "items": [
+            {
+              "q": "What will it cost?",
+              "a": "Publish a realistic range and the factors that change it."
+            },
+            {
+              "q": "How long will it take?",
+              "a": "State current lead time and when dates become binding."
+            },
+            {
+              "q": "Will every garment be used?",
+              "a": "Explain selection, stabilization, unsuitable fabrics, and return of unused material."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "comm-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add your actual scope, minimum, deposit, approvals, cancellations, shipping, and rights terms.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "comm-4"
+        }
+      ]
+    },
+    {
+      "slug": "materials",
+      "title": "Materials",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Materials",
+          "title": "Soft enough to live with. Strong enough to last.",
+          "subtitle": "Explain fabric, batting, thread, backing, and care choices in plain language.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "mat-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Original pearl and oxblood quilt study; replace with your material and stitching details.",
+              "caption": "Original pearl and oxblood quilt study; replace with your material and stitching details."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "mat-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Chosen with purpose",
+          "items": [
+            {
+              "title": "Cloth",
+              "body": "Fiber, weave, provenance, and how each fabric behaves in use."
+            },
+            {
+              "title": "The middle layer",
+              "body": "Loft, drape, warmth, and laundering guide the batting choice."
+            },
+            {
+              "title": "Stitched structure",
+              "body": "Thread and quilting density support both the design and its useful life."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "mat-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Make only material, sourcing, durability, and sustainability claims you can document.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "mat-4"
+        }
+      ]
+    },
+    {
+      "slug": "the-process",
+      "title": "The process",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "The process",
+          "title": "Clear decisions make room for beautiful work.",
+          "subtitle": "Set expectations from first conversation through delivery.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "process-1"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "numbered",
+          "heading": "From story to cloth",
+          "items": [
+            {
+              "title": "01 · Listen",
+              "body": "A written brief records people, place, use, dimensions, and deadline."
+            },
+            {
+              "title": "02 · Design",
+              "body": "Palette and composition are presented for a defined round of approval."
+            },
+            {
+              "title": "03 · Make",
+              "body": "Construction begins after sign-off; progress updates follow the agreement."
+            },
+            {
+              "title": "04 · Deliver",
+              "body": "The finished quilt arrives with care instructions and documentation."
+            }
+          ],
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "process-2"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace this with your actual approval rounds, revision limits, payment schedule, and delivery method.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "process-3"
+        },
+        {
+          "type": "cta",
+          "label": "Start the first conversation",
+          "href": "/contact",
+          "kind": "primary",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "process-4"
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Enquire",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Begin a commission",
+          "title": "Tell me who it is for and how it will be used.",
+          "subtitle": "Include dimensions, occasion, hoped-for date, location, and any meaningful cloth.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "contact-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add your response time and make clear that availability and price are confirmed in a written proposal.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "contact-2"
+        },
+        {
+          "type": "contact",
+          "heading": "Tell me about the piece",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "contact-3"
+        }
+      ]
+    }
+  ],
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "photo",
+      "src": "public/kit-assets/modern-heirloom/hero.webp",
+      "alt": "Original illustrative textile artwork for Modern Heirloom"
+    }
+  ]
+}

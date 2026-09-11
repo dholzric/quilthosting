@@ -1,0 +1,425 @@
+{
+  "id": "needle-and-pine",
+  "name": "Needle & Pine",
+  "audience": "both",
+  "character": "A Pacific Northwest maker guild with forest quiet, topographic stitching, and grounded environmental practice.",
+  "defaults": {
+    "palette": "signature-needle-pine",
+    "typePair": "newsreader-ibmplexsans",
+    "scale": "editorial",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "split",
+      "sticky": true,
+      "cta": "none",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "flying-geese",
+      "opacity": 0.06
+    }
+  },
+  "previewSeed": {
+    "guildName": "Needle & Pine",
+    "city": "Portland, Oregon"
+  },
+  "menu": [
+    {
+      "label": "Our ground",
+      "href": "/our-ground"
+    },
+    {
+      "label": "Field studies",
+      "href": "/field-studies"
+    },
+    {
+      "label": "Giving work",
+      "href": "/giving-work"
+    },
+    {
+      "label": "Calendar",
+      "href": "/events"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "split",
+          "eyebrow": "A textile guild of the Northwest",
+          "title": "Follow the line back to the landscape.",
+          "subtitle": "Needle & Pine gathers quilters interested in place, material, and patient observation.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy",
+            "imageId": "hero-art",
+            "layout": "asym_reverse",
+            "media": "left"
+          },
+          "ctaLabel": "See field studies",
+          "ctaHref": "/field-studies",
+          "secondaryLabel": "Our ground",
+          "secondaryHref": "/our-ground",
+          "id": "home-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Rain changes the value of every green.",
+          "html": "<p>Our programs begin outside the sewing room: bark, trail maps, water, utility cloth, and the colors weather leaves behind.</p>",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "A practice rooted here",
+          "items": [
+            {
+              "title": "Field studies",
+              "body": "Short walks and visual prompts translated into cloth.",
+              "href": "/field-studies"
+            },
+            {
+              "title": "Material knowledge",
+              "body": "Fiber, dyes, repair, reuse, and care examined without easy claims."
+            },
+            {
+              "title": "Giving work",
+              "body": "Useful projects shaped with partner organizations.",
+              "href": "/giving-work"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-3"
+        },
+        {
+          "type": "events",
+          "variant": "cards",
+          "heading": "Gatherings ahead",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-4"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace place, partner, and environmental claims with specific current evidence and credited work.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "home-5"
+        }
+      ]
+    },
+    {
+      "slug": "our-ground",
+      "title": "Our ground",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Our ground",
+          "title": "A guild is part of its watershed.",
+          "subtitle": "Tell the history of the organization and the place where it meets.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "ground-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Original Needle & Pine landscape quilt study; replace with local, credited photography.",
+              "caption": "Original Needle & Pine landscape quilt study; replace with local, credited photography."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "ground-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "What guides the work",
+          "items": [
+            {
+              "title": "Look closely",
+              "body": "Observation comes before abstraction."
+            },
+            {
+              "title": "Use honestly",
+              "body": "Record fiber, source, dye, and reuse without overstating impact."
+            },
+            {
+              "title": "Return value",
+              "body": "Choose service projects with named needs and accountable delivery."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "ground-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add leadership, history, land acknowledgment approved by relevant communities, and sourced material policies.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "ground-4"
+        }
+      ]
+    },
+    {
+      "slug": "field-studies",
+      "title": "Field studies",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Field studies",
+          "title": "Walk. Notice. Translate.",
+          "subtitle": "A seasonal series connecting landscape observation to textile decisions.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "field-1"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "This season",
+          "items": [
+            {
+              "title": "Contour",
+              "body": "Turn elevation and trail lines into stitched movement."
+            },
+            {
+              "title": "Canopy",
+              "body": "Study overlapping shape, filtered light, and changing value."
+            },
+            {
+              "title": "Waterline",
+              "body": "Work with reflection, interruption, and horizontal rhythm."
+            }
+          ],
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "field-2"
+        },
+        {
+          "type": "faq",
+          "heading": "Prepare for a study",
+          "items": [
+            {
+              "q": "Is the walk required?",
+              "a": "Offer an indoor or remote observation route when possible."
+            },
+            {
+              "q": "What should I bring?",
+              "a": "List weather gear, mobility demands, tools, and fabric separately."
+            },
+            {
+              "q": "Who owns the resulting design?",
+              "a": "State participant rights and photo permissions clearly."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "field-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace studies with confirmed locations, leaders, access notes, risk guidance, and materials.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "field-4"
+        }
+      ]
+    },
+    {
+      "slug": "giving-work",
+      "title": "Giving work",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Giving work",
+          "title": "Begin with the need, then make the quilt.",
+          "subtitle": "Describe accountable community partnerships and current requests.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "give-1"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "A useful chain",
+          "items": [
+            {
+              "title": "Partner asks",
+              "body": "Record sizes, quantities, materials, deadlines, and delivery method."
+            },
+            {
+              "title": "Guild organizes",
+              "body": "Provide patterns, kits, quality checks, and clear points of contact."
+            },
+            {
+              "title": "Recipient receives",
+              "body": "Confirm delivery while protecting privacy and dignity."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "give-2"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Count outcomes carefully.",
+          "html": "<p>Report completed and delivered pieces, not good intentions or work merely started.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "give-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Name active partners only with permission and publish verified needs, deadlines, and totals.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "give-4"
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Contact Needle & Pine",
+          "title": "Ask about a gathering, field study, or partnership.",
+          "subtitle": "Tell us the practical detail you need before deciding.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "contact-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add the right inbox, response time, meeting place, transit, mobility, scent, and access information.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "contact-2"
+        },
+        {
+          "type": "contact",
+          "heading": "Send a note",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "contact-3"
+        }
+      ]
+    }
+  ],
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "photo",
+      "src": "public/kit-assets/needle-and-pine/hero.webp",
+      "alt": "Original illustrative textile artwork for Needle & Pine"
+    }
+  ]
+}

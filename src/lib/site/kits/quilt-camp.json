@@ -1,0 +1,422 @@
+{
+  "id": "quilt-camp",
+  "name": "Quilt Camp",
+  "audience": "both",
+  "character": "A warm, capable woodland retreat brand with field-guide clarity and fireside character.",
+  "defaults": {
+    "palette": "signature-quilt-camp",
+    "typePair": "bitter-opensans",
+    "scale": "editorial",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "split",
+      "sticky": true,
+      "cta": "none",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "log-cabin",
+      "opacity": 0.06
+    }
+  },
+  "previewSeed": {
+    "guildName": "Quilt Camp",
+    "city": "Brevard, North Carolina"
+  },
+  "menu": [
+    {
+      "label": "The camp",
+      "href": "/the-camp"
+    },
+    {
+      "label": "Retreats",
+      "href": "/retreats"
+    },
+    {
+      "label": "What to pack",
+      "href": "/what-to-pack"
+    },
+    {
+      "label": "Dates",
+      "href": "/events"
+    },
+    {
+      "label": "Enquire",
+      "href": "/contact"
+    }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "split",
+          "eyebrow": "Quilt retreats in the pines",
+          "title": "Clear the table. Stay awhile.",
+          "subtitle": "Three unrushed days for sewing, woods, good meals, and the project you keep setting aside.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy",
+            "imageId": "hero-art",
+            "layout": "asym"
+          },
+          "ctaLabel": "Choose a retreat",
+          "ctaHref": "/retreats",
+          "secondaryLabel": "Tour the camp",
+          "secondaryHref": "/the-camp",
+          "id": "home-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "The luxury is uninterrupted time.",
+          "html": "<p>A sturdy table, a comfortable chair, generous light, and no need to pack everything away before dinner.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "home-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Camp, properly equipped",
+          "items": [
+            {
+              "title": "A place for every machine",
+              "body": "Dedicated power, task lights, cutting stations, and pressing space."
+            },
+            {
+              "title": "Meals handled",
+              "body": "Simple, generous food with dietary needs agreed before arrival."
+            },
+            {
+              "title": "Room to step outside",
+              "body": "Pine trails and porches when your eyes need a different distance."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-3"
+        },
+        {
+          "type": "events",
+          "variant": "cards",
+          "heading": "Next sessions",
+          "limit": 3,
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-4"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace availability, amenities, meal claims, access, pricing, and photography with confirmed details.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "home-5"
+        }
+      ]
+    },
+    {
+      "slug": "the-camp",
+      "title": "The camp",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "The camp",
+          "title": "Built around the worktable.",
+          "subtitle": "Show guests where they will sew, sleep, eat, and take a break.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "camp-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Original Quilt Camp cabin study; replace with accurate property photography.",
+              "caption": "Original Quilt Camp cabin study; replace with accurate property photography."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "camp-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Know before you arrive",
+          "items": [
+            {
+              "title": "The workroom",
+              "body": "Publish table dimensions, chair type, light, outlets, Wi-Fi, and shared tools."
+            },
+            {
+              "title": "The rooms",
+              "body": "Show actual bed layouts, bathrooms, linens, climate control, and quiet hours."
+            },
+            {
+              "title": "The grounds",
+              "body": "Explain paths, slopes, surfaces, parking, wildlife, and emergency access."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "camp-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Use current room photographs and list every material access limitation plainly.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "camp-4"
+        }
+      ]
+    },
+    {
+      "slug": "retreats",
+      "title": "Retreats",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Retreats",
+          "title": "Pick the pace that fits the project.",
+          "subtitle": "Present hosted, independent, and whole-group options with complete pricing.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "retreat-1"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Ways to stay",
+          "items": [
+            {
+              "title": "Open-sew weekend",
+              "body": "Bring any project; use the room on your own rhythm."
+            },
+            {
+              "title": "Guided intensive",
+              "body": "A small-group workshop with scheduled teaching and work time."
+            },
+            {
+              "title": "Whole-house booking",
+              "body": "Reserve the camp for an established bee, guild, or teaching group."
+            }
+          ],
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "retreat-2"
+        },
+        {
+          "type": "faq",
+          "heading": "Booking details",
+          "items": [
+            {
+              "q": "What does the price include?",
+              "a": "List nights, meals, teaching, tools, taxes, and any separate charges."
+            },
+            {
+              "q": "How much is due to hold a place?",
+              "a": "State deposits, payment dates, and cancellation terms."
+            },
+            {
+              "q": "Can dietary and mobility needs be met?",
+              "a": "Invite a conversation before booking and document confirmed arrangements."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "retreat-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add real rates, dates, occupancy, minimums, deposits, cancellations, and host terms.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "retreat-4"
+        }
+      ]
+    },
+    {
+      "slug": "what-to-pack",
+      "title": "What to pack",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "What to pack",
+          "title": "Bring the project. Leave the duplicate iron.",
+          "subtitle": "A calm packing guide makes arrival easier for everyone.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "pack-1"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Three useful lists",
+          "items": [
+            {
+              "title": "For the workroom",
+              "body": "Machine, pedal, cord, project supplies, personal tools, and a task light if required."
+            },
+            {
+              "title": "For the cabin",
+              "body": "Layers, indoor shoes, toiletries, medicines, and weather-ready clothing."
+            },
+            {
+              "title": "Leave at home",
+              "body": "Name duplicate shared equipment, unsafe appliances, pets, or restricted materials."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "pack-2"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Label what matters.",
+          "html": "<p>Suggest how to protect machines and blades in transit and how shared tools are identified.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "pack-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace this with the host-approved packing list, prohibited items, and current weather guidance.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "pack-4"
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Enquire",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Enquire about camp",
+          "title": "Tell us your dates, group size, and sewing needs.",
+          "subtitle": "A clear first note helps the host answer accurately.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "contact-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add booking response time, phone policy, property location, and emergency contact expectations.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "contact-2"
+        },
+        {
+          "type": "contact",
+          "heading": "Ask the camp host",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "contact-3"
+        }
+      ]
+    }
+  ],
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "photo",
+      "src": "public/kit-assets/quilt-camp/hero.webp",
+      "alt": "Original illustrative textile artwork for Quilt Camp"
+    }
+  ]
+}

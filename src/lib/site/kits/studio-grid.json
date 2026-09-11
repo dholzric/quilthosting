@@ -1,0 +1,434 @@
+{
+  "id": "studio-grid",
+  "name": "Studio Grid",
+  "audience": "both",
+  "character": "A rigorous modern quilt studio with architectural layouts, gallery white space, and one electric blue axis.",
+  "defaults": {
+    "palette": "signature-studio-grid",
+    "typePair": "manrope",
+    "scale": "editorial",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "none",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "nine-patch",
+      "opacity": 0.06
+    }
+  },
+  "previewSeed": {
+    "guildName": "Studio Grid",
+    "city": "Chicago, Illinois"
+  },
+  "menu": [
+    {
+      "label": "Work",
+      "href": "/work"
+    },
+    {
+      "label": "Method",
+      "href": "/method"
+    },
+    {
+      "label": "Editions",
+      "href": "/editions"
+    },
+    {
+      "label": "Talks",
+      "href": "/events"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "split",
+          "eyebrow": "STUDIO GRID · CHICAGO",
+          "title": "Cloth is a structure.",
+          "subtitle": "Geometric quilts, limited editions, and workshops by {{guild_name}}.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy",
+            "imageId": "hero-art",
+            "layout": "asym"
+          },
+          "ctaLabel": "View the work",
+          "ctaHref": "/work",
+          "secondaryLabel": "See the method",
+          "secondaryHref": "/method",
+          "id": "home-1"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Current lines",
+          "items": [
+            {
+              "title": "01 / Commissions",
+              "body": "Site-specific textile work for homes and public rooms.",
+              "href": "/work"
+            },
+            {
+              "title": "02 / Editions",
+              "body": "Small-run quilts built from a defined system.",
+              "href": "/editions"
+            },
+            {
+              "title": "03 / Talks",
+              "body": "Design process, composition, and material logic.",
+              "href": "/events"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-2"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Original Studio Grid textile study; replace with commissioned work.",
+              "caption": "Original Studio Grid textile study; replace with commissioned work."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "home-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "A grid is a way to make pressure visible.",
+          "html": "<p>Shift one axis, interrupt one repeat, change one value: the whole field responds.</p>",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-4"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace portfolio, edition, availability, material, and photography claims with studio records.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "home-5"
+        }
+      ]
+    },
+    {
+      "slug": "work",
+      "title": "Work",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Selected work",
+          "title": "Scale, interval, interruption.",
+          "subtitle": "Present projects with dimensions, year, material, client or venue permission, and full credits.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "work-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Original Studio Grid textile study; replace with documented studio work.",
+              "caption": "Original Studio Grid textile study; replace with documented studio work."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "work-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Organize the archive",
+          "items": [
+            {
+              "title": "Private commissions",
+              "body": "Residential pieces shown only with explicit client approval."
+            },
+            {
+              "title": "Public work",
+              "body": "Site context, commissioning body, installation, and collaborators."
+            },
+            {
+              "title": "Studies",
+              "body": "Smaller works that reveal the development of a system."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "work-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Use your own work, accurate dimensions, complete credits, and documented display rights.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "work-4"
+        }
+      ]
+    },
+    {
+      "slug": "method",
+      "title": "Method",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Method",
+          "title": "Constraint creates the field.",
+          "subtitle": "Explain how research, drawing, sampling, piecing, and quilting relate.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "method-1"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "numbered",
+          "heading": "Four operations",
+          "items": [
+            {
+              "title": "Set the unit",
+              "body": "Choose a shape with enough tension to repeat."
+            },
+            {
+              "title": "Establish the field",
+              "body": "Build rhythm through interval, value, and orientation."
+            },
+            {
+              "title": "Break the system",
+              "body": "Introduce an exception that changes the reading."
+            },
+            {
+              "title": "Stitch the structure",
+              "body": "Use quilting to reinforce or resist the pieced geometry."
+            }
+          ],
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "method-2"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Show the revision.",
+          "html": "<p>Process becomes credible when visitors can see what changed and why.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "method-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace this method with the studio’s real practice, tools, collaborators, and technical details.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "method-4"
+        }
+      ]
+    },
+    {
+      "slug": "editions",
+      "title": "Editions",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Editions",
+          "title": "A defined system. A finite number.",
+          "subtitle": "Explain edition size, variation, documentation, pricing, and availability.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "ed-1"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "What an edition record needs",
+          "items": [
+            {
+              "title": "Number",
+              "body": "State total edition size and the number of each piece."
+            },
+            {
+              "title": "Variation",
+              "body": "Explain which materials, colors, or dimensions may differ."
+            },
+            {
+              "title": "Documentation",
+              "body": "Include maker, year, materials, care, provenance, and signature."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "ed-2"
+        },
+        {
+          "type": "faq",
+          "heading": "Acquiring a piece",
+          "items": [
+            {
+              "q": "Is the pictured work available?",
+              "a": "Mark current status and update it promptly."
+            },
+            {
+              "q": "Are editions identical?",
+              "a": "Describe permitted variation and provide the actual piece image before purchase."
+            },
+            {
+              "q": "How is it installed?",
+              "a": "Publish sleeve, hanging, framing, hardware, and wall requirements."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "ed-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add actual inventory, prices, taxes, shipping, returns, installation, and edition records.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "ed-4"
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Contact the studio",
+          "title": "State the project, place, scale, and timing.",
+          "subtitle": "Commission, exhibition, teaching, and press enquiries are considered separately.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "contact-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add dedicated enquiry routes, response timing, representation, and studio-visit policy.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "contact-2"
+        },
+        {
+          "type": "contact",
+          "heading": "Send an enquiry",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "contact-3"
+        }
+      ]
+    }
+  ],
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "photo",
+      "src": "public/kit-assets/studio-grid/hero.webp",
+      "alt": "Original illustrative textile artwork for Studio Grid"
+    }
+  ]
+}

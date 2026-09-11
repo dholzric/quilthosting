@@ -1,0 +1,415 @@
+{
+  "id": "story-cloth",
+  "name": "Story Cloth",
+  "audience": "both",
+  "character": "A humane community textile archive joining oral history, family cloth, and rigorous documentation.",
+  "defaults": {
+    "palette": "signature-story-cloth",
+    "typePair": "bitter-opensans",
+    "scale": "editorial",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "centered",
+      "sticky": true,
+      "cta": "none",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "log-cabin",
+      "opacity": 0.06
+    }
+  },
+  "previewSeed": {
+    "guildName": "Story Cloth",
+    "city": "Birmingham, Alabama"
+  },
+  "menu": [
+    {
+      "label": "The archive",
+      "href": "/the-archive"
+    },
+    {
+      "label": "Documentation days",
+      "href": "/documentation-days"
+    },
+    {
+      "label": "Story quilts",
+      "href": "/story-quilts"
+    },
+    {
+      "label": "Calendar",
+      "href": "/events"
+    },
+    {
+      "label": "Contribute",
+      "href": "/contact"
+    }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "split",
+          "eyebrow": "A community textile archive",
+          "title": "Every quilt carries more than pattern.",
+          "subtitle": "Story Cloth records the makers, uses, migrations, repairs, and family language held in cloth.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy",
+            "imageId": "hero-art",
+            "layout": "asym_reverse",
+            "media": "left"
+          },
+          "ctaLabel": "Bring a quilt story",
+          "ctaHref": "/documentation-days",
+          "secondaryLabel": "Enter the archive",
+          "secondaryHref": "/the-archive",
+          "id": "home-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "The record begins with listening.",
+          "html": "<p>A date and pattern name are useful. A maker’s own words, uncertainty, corrections, and family context make the record whole.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "home-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Three parts of the archive",
+          "items": [
+            {
+              "title": "Object record",
+              "body": "Dimensions, materials, construction, condition, labels, and photographs."
+            },
+            {
+              "title": "Oral history",
+              "body": "A consented conversation in the speaker’s own language."
+            },
+            {
+              "title": "Connected lives",
+              "body": "Makers, recipients, places, occasions, and later caretakers."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-3"
+        },
+        {
+          "type": "events",
+          "variant": "cards",
+          "heading": "Documentation days",
+          "limit": 3,
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-4"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace sample claims with your collection policy, consent process, access rules, partners, and archive records.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "home-5"
+        }
+      ]
+    },
+    {
+      "slug": "the-archive",
+      "title": "The archive",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "The archive",
+          "title": "Preserve the record without taking the story away.",
+          "subtitle": "Explain stewardship, ownership, access, privacy, and how records are corrected.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "archive-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Original Story Cloth archive study; replace with consented object photography.",
+              "caption": "Original Story Cloth archive study; replace with consented object photography."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "archive-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "A trustworthy record",
+          "items": [
+            {
+              "title": "Consent",
+              "body": "Participants choose what is recorded, shared, restricted, or withdrawn."
+            },
+            {
+              "title": "Context",
+              "body": "Facts, memories, uncertainty, and differing accounts are labeled clearly."
+            },
+            {
+              "title": "Access",
+              "body": "Search, reuse, and reproduction terms are visible before contribution."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "archive-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Publish the actual deed of gift or license, privacy terms, retention policy, and correction process.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "archive-4"
+        }
+      ]
+    },
+    {
+      "slug": "documentation-days",
+      "title": "Documentation days",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Documentation days",
+          "title": "Bring one quilt. Leave with a better record.",
+          "subtitle": "Set appointments, preparation, handling, photography, and consent expectations.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "doc-1"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "numbered",
+          "heading": "What happens",
+          "items": [
+            {
+              "title": "Welcome + consent",
+              "body": "Review the process and choose a participation level."
+            },
+            {
+              "title": "Measure + photograph",
+              "body": "Create an object record with color target, scale, front, back, and details."
+            },
+            {
+              "title": "Listen + return",
+              "body": "Record the known story, note questions, and confirm next steps."
+            }
+          ],
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "doc-2"
+        },
+        {
+          "type": "faq",
+          "heading": "Before your appointment",
+          "items": [
+            {
+              "q": "Do you keep the quilt?",
+              "a": "State clearly whether this is documentation only or an acquisition program."
+            },
+            {
+              "q": "Who owns the photographs?",
+              "a": "Explain copyright, participant license, archive use, and download access."
+            },
+            {
+              "q": "May family details stay private?",
+              "a": "Offer defined restriction choices and explain their duration."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "doc-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace with counsel-reviewed consent, privacy, copyright, handling, and retention terms.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "doc-4"
+        }
+      ]
+    },
+    {
+      "slug": "story-quilts",
+      "title": "Story quilts",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Story quilts",
+          "title": "Read the cloth. Hear the maker.",
+          "subtitle": "Pair images with accessible transcripts, accurate metadata, and permission status.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "stories-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Original Story Cloth study; replace with permission-cleared archive material.",
+              "caption": "Original Story Cloth study; replace with permission-cleared archive material."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "stories-2"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Keep uncertainty visible.",
+          "html": "<p>Use “unknown,” “family attribution,” and “possibly” where evidence does not support a firmer claim.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "stories-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Publish only cleared records; provide corrections, takedown, transcript, and reuse contacts.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "stories-4"
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contribute",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Contribute a story",
+          "title": "Start with what you know.",
+          "subtitle": "Ask about documenting a quilt, correcting a record, research access, or partnership.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "contact-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add the archivist contact, response time, collection scope, geographic limits, and urgent privacy route.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "contact-2"
+        },
+        {
+          "type": "contact",
+          "heading": "Contact the archive",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "contact-3"
+        }
+      ]
+    }
+  ],
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "photo",
+      "src": "public/kit-assets/story-cloth/hero.webp",
+      "alt": "Original illustrative textile artwork for Story Cloth"
+    }
+  ]
+}

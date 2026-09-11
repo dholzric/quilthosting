@@ -1,0 +1,398 @@
+{
+  "id": "selvage-club",
+  "name": "Selvage Club",
+  "audience": "both",
+  "character": "An energetic urban scrap club with zine graphics, direct language, and zero preciousness.",
+  "defaults": {
+    "palette": "signature-selvage-club",
+    "typePair": "spacegrotesk-worksans",
+    "scale": "editorial",
+    "shape": {
+      "radius": "soft",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "none",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "nine-patch",
+      "opacity": 0.06
+    }
+  },
+  "previewSeed": {
+    "guildName": "Selvage Club",
+    "city": "Brooklyn, New York"
+  },
+  "menu": [
+    {
+      "label": "Club rules",
+      "href": "/club-rules"
+    },
+    {
+      "label": "Scrap lab",
+      "href": "/scrap-lab"
+    },
+    {
+      "label": "Wall of scraps",
+      "href": "/wall-of-scraps"
+    },
+    {
+      "label": "Dates",
+      "href": "/events"
+    },
+    {
+      "label": "Join in",
+      "href": "/contact"
+    }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "split",
+          "eyebrow": "Save the edge",
+          "title": "YOUR SCRAPS ARE THE GOOD FABRIC.",
+          "subtitle": "Selvage Club turns narrow strips, odd cuts, and almost-nothings into very definite quilts.",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy",
+            "imageId": "hero-art",
+            "layout": "asym"
+          },
+          "ctaLabel": "Come to scrap lab",
+          "ctaHref": "/scrap-lab",
+          "secondaryLabel": "Read the rules",
+          "secondaryHref": "/club-rules",
+          "id": "home-1"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Cut less. Notice more.",
+          "items": [
+            {
+              "title": "Sort by energy",
+              "body": "Color, value, scale, and attitude beat matching collections."
+            },
+            {
+              "title": "Build one loud unit",
+              "body": "Make a repeatable module before deciding what the quilt is."
+            },
+            {
+              "title": "Trade the piece you hoard",
+              "body": "Fresh scraps break habits and make better stories."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-2"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "The edge has information.",
+          "html": "<p>Dots, registration marks, color tests, and tiny words become rhythm when the strip stops being waste.</p>",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-3"
+        },
+        {
+          "type": "events",
+          "variant": "cards",
+          "heading": "Next mess",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-4"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace the attitude with your own voice, then add real venue, age, fee, access, and tool details.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "home-5"
+        }
+      ]
+    },
+    {
+      "slug": "club-rules",
+      "title": "Club rules",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Club rules",
+          "title": "Be generous. Label your rotary cutter.",
+          "subtitle": "A short, visible code keeps the room useful and safe.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "rules-1"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Five things",
+          "items": [
+            {
+              "title": "Bring usable scraps",
+              "body": "Clean cloth, clearly identified fiber when possible, and pieces large enough to sew."
+            },
+            {
+              "title": "Ask before cutting",
+              "body": "A shared table is not shared ownership."
+            },
+            {
+              "title": "Credit sources",
+              "body": "Name designers and makers when you know them."
+            },
+            {
+              "title": "Make room",
+              "body": "Share equipment, airtime, and physical space."
+            },
+            {
+              "title": "Leave it better",
+              "body": "Help reset tables, sweep threads, and sort leftovers."
+            }
+          ],
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "rules-2"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace with your board-approved conduct, safety, minors, photography, and accessibility policies.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "rules-3"
+        }
+      ]
+    },
+    {
+      "slug": "scrap-lab",
+      "title": "Scrap lab",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Scrap lab",
+          "title": "One table. Four bins. No master plan.",
+          "subtitle": "A structured open-sew session for testing combinations and building momentum.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "lab-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Original Selvage Club textile study; replace with permission-cleared club work.",
+              "caption": "Original Selvage Club textile study; replace with permission-cleared club work."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "lab-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "How the night runs",
+          "items": [
+            {
+              "title": "6:00 · Dump + sort",
+              "body": "Group cloth quickly by contrast and visual temperature."
+            },
+            {
+              "title": "6:30 · Tiny prompt",
+              "body": "One constraint starts the cutting without dictating the result."
+            },
+            {
+              "title": "8:30 · Wall edit",
+              "body": "Step back, share useful observations, and choose the next move."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "lab-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add actual timing, capacity, fee, equipment, food, safety, and registration requirements.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "lab-4"
+        }
+      ]
+    },
+    {
+      "slug": "wall-of-scraps",
+      "title": "Wall of scraps",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Wall of scraps",
+          "title": "Proof that small pieces hold big decisions.",
+          "subtitle": "Present member work with complete maker and pattern credits.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "wall-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Original scrappy textile study; replace with credited member photography.",
+              "caption": "Original scrappy textile study; replace with credited member photography."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "wall-2"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Show process beside polish.",
+          "html": "<p>Include one early layout, the key edit, and the finished quilt so visitors learn how the work changed.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "wall-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Get permission, write useful alt text, and credit every maker, designer, quilter, and photographer.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "wall-4"
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Join in",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Join in",
+          "title": "Bring a bag of scraps and one honest question.",
+          "subtitle": "Ask about the next lab, the swap shelf, or hosting a club session.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "contact-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add the monitored contact, response time, venue access, transit, age policy, and guest terms.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "contact-2"
+        },
+        {
+          "type": "contact",
+          "heading": "Send a note",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "contact-3"
+        }
+      ]
+    }
+  ],
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "photo",
+      "src": "public/kit-assets/selvage-club/hero.webp",
+      "alt": "Original illustrative textile artwork for Selvage Club"
+    }
+  ]
+}

@@ -1,0 +1,425 @@
+{
+  "id": "holiday-house",
+  "name": "Holiday House",
+  "audience": "both",
+  "character": "A polished winter quilt society with heritage stars, restrained seasonal warmth, and a strong charitable market.",
+  "defaults": {
+    "palette": "signature-holiday-house",
+    "typePair": "dmserif-dmsans",
+    "scale": "editorial",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "centered",
+      "sticky": true,
+      "cta": "none",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "bear-paw",
+      "opacity": 0.06
+    }
+  },
+  "previewSeed": {
+    "guildName": "Holiday House",
+    "city": "Lancaster, Pennsylvania"
+  },
+  "menu": [
+    {
+      "label": "Winter gathering",
+      "href": "/winter-gathering"
+    },
+    {
+      "label": "Giving quilts",
+      "href": "/giving-quilts"
+    },
+    {
+      "label": "Market",
+      "href": "/market"
+    },
+    {
+      "label": "Calendar",
+      "href": "/events"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "split",
+          "eyebrow": "A winter quilt society",
+          "title": "Make the house warm on purpose.",
+          "subtitle": "Holiday House gathers star quilts, generous tables, and useful giving through the coldest part of the year.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy",
+            "imageId": "hero-art",
+            "layout": "asym"
+          },
+          "ctaLabel": "Plan your visit",
+          "ctaHref": "/winter-gathering",
+          "secondaryLabel": "See the giving work",
+          "secondaryHref": "/giving-quilts",
+          "id": "home-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Tradition looks best when it is alive.",
+          "html": "<p>Old blocks, new scale, deep winter color, and quilts made to be used rather than handled carefully.</p>",
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "home-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "The winter season",
+          "items": [
+            {
+              "title": "The gathering",
+              "body": "A juried room, demonstrations, and close looking.",
+              "href": "/winter-gathering"
+            },
+            {
+              "title": "The market",
+              "body": "Member-made work with transparent maker terms.",
+              "href": "/market"
+            },
+            {
+              "title": "The giving table",
+              "body": "Requested sizes, reliable materials, accountable delivery.",
+              "href": "/giving-quilts"
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-3"
+        },
+        {
+          "type": "events",
+          "variant": "cards",
+          "heading": "This winter",
+          "limit": 3,
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-4"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace seasonal dates, venue, market, beneficiary, and imagery details with confirmed information.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "home-5"
+        }
+      ]
+    },
+    {
+      "slug": "winter-gathering",
+      "title": "Winter gathering",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Winter gathering",
+          "title": "Quilts, demonstrations, and a room worth lingering in.",
+          "subtitle": "Publish venue, opening times, admission, access, transit, and weather updates.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "gather-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Original Holiday House winter quilt study; replace with venue and exhibition photography.",
+              "caption": "Original Holiday House winter quilt study; replace with venue and exhibition photography."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "gather-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Inside the house",
+          "items": [
+            {
+              "title": "The quilt rooms",
+              "body": "Curated member work with labels and full maker credits."
+            },
+            {
+              "title": "The demonstration table",
+              "body": "Short, scheduled teaching with sight lines and seating."
+            },
+            {
+              "title": "The quiet room",
+              "body": "A lower-sensory place to rest during the gathering."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "gather-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add confirmed dates, ticket terms, capacity, access, weather, photography, and visitor policies.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "gather-4"
+        }
+      ]
+    },
+    {
+      "slug": "giving-quilts",
+      "title": "Giving quilts",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Giving quilts",
+          "title": "Warmth where a partner says it is needed.",
+          "subtitle": "Organize making around verified requests, not assumptions.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "give-1"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "This season’s brief",
+          "items": [
+            {
+              "title": "Required sizes",
+              "body": "Publish current dimensions and accepted tolerances."
+            },
+            {
+              "title": "Safe materials",
+              "body": "List fiber, batting, washing, scent, pet, pin, and embellishment rules."
+            },
+            {
+              "title": "Delivery record",
+              "body": "Count pieces after quality review and confirmed handoff."
+            }
+          ],
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "give-2"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Dignity belongs in the details.",
+          "html": "<p>Use colors and designs suitable for varied recipients; protect names, images, and personal circumstances.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "give-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Name partners with permission and replace every need, deadline, standard, and total with verified data.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "give-4"
+        }
+      ]
+    },
+    {
+      "slug": "market",
+      "title": "Market",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Winter market",
+          "title": "Made by members. Sold on clear terms.",
+          "subtitle": "Present vendors, goods, payment methods, opening times, and buyer policies.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "market-1"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "What shoppers should know",
+          "items": [
+            {
+              "title": "Who made it",
+              "body": "Label the maker and material for each piece."
+            },
+            {
+              "title": "Where the money goes",
+              "body": "State whether sales benefit the maker, society, or a named program."
+            },
+            {
+              "title": "How problems are handled",
+              "body": "Publish returns, exchanges, defects, pickup, and shipping terms."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "market-2"
+        },
+        {
+          "type": "faq",
+          "heading": "Market details",
+          "items": [
+            {
+              "q": "May I reserve an item?",
+              "a": "State whether holds are available and when they expire."
+            },
+            {
+              "q": "Are prices final?",
+              "a": "Explain taxes, payment methods, and any shipping charges."
+            },
+            {
+              "q": "Can I become a vendor?",
+              "a": "Publish eligibility, fee, commission, deadline, and selection process."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "market-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add real vendors, inventory status, fees, proceeds, tax treatment, and sales policies.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "market-4"
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Contact Holiday House",
+          "title": "Ask before making the trip.",
+          "subtitle": "Get current details about the gathering, market, giving quilts, or access.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "contact-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add monitored contact details, response time, venue directions, weather channel, and access contact.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "contact-2"
+        },
+        {
+          "type": "contact",
+          "heading": "Send a winter note",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "contact-3"
+        }
+      ]
+    }
+  ],
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "photo",
+      "src": "public/kit-assets/holiday-house/hero.webp",
+      "alt": "Original illustrative textile artwork for Holiday House"
+    }
+  ]
+}

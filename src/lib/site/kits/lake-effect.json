@@ -1,0 +1,444 @@
+{
+  "id": "lake-effect",
+  "name": "Lake Effect",
+  "audience": "both",
+  "character": "A crisp Great Lakes guild shaped by weather, strong geometry, and practical community.",
+  "defaults": {
+    "palette": "signature-lake-effect",
+    "typePair": "newsreader-ibmplexsans",
+    "scale": "editorial",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "split",
+      "sticky": true,
+      "cta": "none",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "flying-geese",
+      "opacity": 0.06
+    }
+  },
+  "previewSeed": {
+    "guildName": "Lake Effect",
+    "city": "Grand Rapids, Michigan"
+  },
+  "menu": [
+    {
+      "label": "About",
+      "href": "/about"
+    },
+    {
+      "label": "Programs",
+      "href": "/programs"
+    },
+    {
+      "label": "Show & tell",
+      "href": "/show-and-tell"
+    },
+    {
+      "label": "Calendar",
+      "href": "/events"
+    },
+    {
+      "label": "Join",
+      "href": "/become-a-member"
+    }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "split",
+          "eyebrow": "A Great Lakes quilt guild",
+          "title": "Weather makes the color. We make the quilts.",
+          "subtitle": "Modern and traditional quilters meeting beside the lake in {{city}}.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy",
+            "imageId": "hero-art",
+            "layout": "asym"
+          },
+          "ctaLabel": "Find the next meeting",
+          "ctaHref": "/events",
+          "secondaryLabel": "Meet the guild",
+          "secondaryHref": "/about",
+          "id": "home-1"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Come in from the weather",
+          "items": [
+            {
+              "title": "Monthly programs",
+              "body": "Useful speakers, demonstrations, and member-led skill tables.",
+              "href": "/programs"
+            },
+            {
+              "title": "Show & tell",
+              "body": "Finished work, honest process, generous applause.",
+              "href": "/show-and-tell"
+            },
+            {
+              "title": "Community quilts",
+              "body": "Warmth made locally and delivered through trusted partners.",
+              "href": "/about"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-2"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Blue is never only blue.",
+          "html": "<p>Lake light moves from slate to silver to deep ink. Our quilts carry that landscape into rooms all year.</p>",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-3"
+        },
+        {
+          "type": "events",
+          "variant": "cards",
+          "heading": "On the horizon",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-4"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add your confirmed venue, weather policy, dues, partner organizations, and member photography.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "home-5"
+        }
+      ]
+    },
+    {
+      "slug": "about",
+      "title": "About",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "About Lake Effect",
+          "title": "A practical guild with a wide view.",
+          "subtitle": "Tell prospective members who you serve and why the organization exists.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "about-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Original Lake Effect textile study; replace with credited guild photography.",
+              "caption": "Original Lake Effect textile study; replace with credited guild photography."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "about-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "What keeps us meeting",
+          "items": [
+            {
+              "title": "Many traditions",
+              "body": "Hand, machine, art, utility, and modern quilting share the room."
+            },
+            {
+              "title": "Local service",
+              "body": "Projects begin with partner needs, quantities, and delivery dates."
+            },
+            {
+              "title": "A learning habit",
+              "body": "Members teach what they know and name what they are still learning."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "about-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace this with the guild history, leadership, nonprofit status, service record, and photo credits.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "about-4"
+        }
+      ]
+    },
+    {
+      "slug": "programs",
+      "title": "Programs",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Programs",
+          "title": "A good meeting sends you home ready to try.",
+          "subtitle": "Describe lectures, workshops, supply needs, and guest registration.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "prog-1"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Built for useful evenings",
+          "items": [
+            {
+              "title": "The main program",
+              "body": "A focused talk or demonstration with time for questions."
+            },
+            {
+              "title": "Skill tables",
+              "body": "Short member-led sessions before the meeting begins."
+            },
+            {
+              "title": "Open studio days",
+              "body": "Longer work sessions for shared equipment and steady progress."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "prog-2"
+        },
+        {
+          "type": "faq",
+          "heading": "Plan your visit",
+          "items": [
+            {
+              "q": "May guests attend?",
+              "a": "Say which meetings are open and whether a guest fee or registration applies."
+            },
+            {
+              "q": "What should I bring?",
+              "a": "List the exact supplies for each session in its event entry."
+            },
+            {
+              "q": "What happens in severe weather?",
+              "a": "Publish the cancellation channel and decision time."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "prog-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add the actual season schedule, fees, teachers, refund rules, and weather procedure.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "prog-4"
+        }
+      ]
+    },
+    {
+      "slug": "show-and-tell",
+      "title": "Show & tell",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Show & tell",
+          "title": "The finish matters. So does the middle.",
+          "subtitle": "Celebrate work with maker, pattern, quilter, and photographer credits.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "tell-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Original lakeside quilt study; replace with member work and permission.",
+              "caption": "Original lakeside quilt study; replace with member work and permission."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "tell-2"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Tell the whole credit story.",
+          "html": "<p>Name the pattern designer, piecer, quilter, source of meaningful fabric, and photographer whenever applicable.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "tell-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace this illustration with accessible, permission-cleared member images and useful captions.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "tell-4"
+        }
+      ]
+    },
+    {
+      "slug": "become-a-member",
+      "title": "Join",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Join Lake Effect",
+          "title": "Pull up a chair before you decide.",
+          "subtitle": "Visit once, understand the rhythm, then choose membership.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "ctaLabel": "See the next meeting",
+          "ctaHref": "/events",
+          "id": "join-1"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Membership should be clear",
+          "items": [
+            {
+              "title": "What it costs",
+              "body": "Publish dues, renewal date, and any workshop discounts."
+            },
+            {
+              "title": "What it includes",
+              "body": "List voting rights, library access, programs, and communication channels."
+            },
+            {
+              "title": "What we ask",
+              "body": "Describe volunteering and conduct expectations without surprises."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "join-2"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace all membership language with board-approved dues, eligibility, renewal, privacy, and conduct terms.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "join-3"
+        },
+        {
+          "type": "contact",
+          "heading": "Ask the membership team",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "join-4"
+        }
+      ]
+    }
+  ],
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "photo",
+      "src": "public/kit-assets/lake-effect/hero.webp",
+      "alt": "Original illustrative textile artwork for Lake Effect"
+    }
+  ]
+}

@@ -112,6 +112,16 @@ import redworkArchive from "./redwork-archive.json";
 import quiltShowEdition from "./quilt-show-edition.json";
 import mendingCircle from "./mending-circle.json";
 import patternHouse from "./pattern-house.json";
+import nightBloom from "./night-bloom.json";
+import lakeEffect from "./lake-effect.json";
+import citrusPress from "./citrus-press.json";
+import quiltCamp from "./quilt-camp.json";
+import modernHeirloom from "./modern-heirloom.json";
+import selvageClub from "./selvage-club.json";
+import needleAndPine from "./needle-and-pine.json";
+import studioGrid from "./studio-grid.json";
+import storyCloth from "./story-cloth.json";
+import holidayHouse from "./holiday-house.json";
 
 export type { Kit, KitDefaults, KitImage, KitIssue, KitPage, SiteMenuItem } from "./schema";
 export { kitSchema, validateKit, KIT_SYSTEM_PATHS, SAMPLE_MARKER } from "./schema";
@@ -232,6 +242,16 @@ export const KITS: Kit[] = [
   quiltShowEdition,
   mendingCircle,
   patternHouse,
+  nightBloom,
+  lakeEffect,
+  citrusPress,
+  quiltCamp,
+  modernHeirloom,
+  selvageClub,
+  needleAndPine,
+  studioGrid,
+  storyCloth,
+  holidayHouse,
 ].map((raw) => kitSchema.parse(raw));
 
 const BY_ID = new Map(KITS.map((k) => [k.id, k]));
