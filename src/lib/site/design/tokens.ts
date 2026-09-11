@@ -60,6 +60,14 @@ export type SiteDesign = {
    * wide one repeat is drawn, in px; the generated blocks look right at 96.
    */
   pattern: { id: PatternId; opacity: number; fileId?: string; tile?: number };
+  /**
+   * The picture beside the home page's headline. A guild that has a photo of
+   * its own work wants it there; without one the hero shows the generated
+   * quilt block. Distinct from `pattern`, which is a texture repeated behind
+   * sections — a landscape photo tiled at 96px reads as wallpaper, which is
+   * what an owner got when they uploaded one under "Your own block".
+   */
+  heroPhoto?: { fileId?: string };
 };
 
 const DEFAULT_PALETTE_ID = "heritage-madder";
@@ -165,6 +173,12 @@ export const siteDesignSchema: z.ZodType<SiteDesign, z.ZodTypeDef, unknown> = z.
       tile: z.number().int().min(24).max(640).optional(),
     })
     .default({}),
+  heroPhoto: z
+    .object({
+      /** files.id of an uploaded photo. Absent means "use the quilt block". */
+      fileId: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/).optional(),
+    })
+    .optional(),
 });
 
 // ---------------------------------------------------------------------------

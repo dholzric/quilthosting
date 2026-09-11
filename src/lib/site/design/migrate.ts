@@ -37,6 +37,7 @@ function clone(design: SiteDesign): SiteDesign {
     header: { ...design.header },
     footer: { ...design.footer },
     pattern: { ...design.pattern },
+    heroPhoto: design.heroPhoto ? { ...design.heroPhoto } : undefined,
   };
 }
 

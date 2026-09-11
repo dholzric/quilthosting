@@ -5935,6 +5935,64 @@
       strengthRow.appendChild(labelled("Pattern strength", strength));
       patSec.appendChild(strengthRow);
 
+      // ---- Front page photo ----------------------------------------------
+      // Distinct from the block above. The block is a texture repeated behind
+      // sections; this is the single picture beside the home page headline.
+      // An owner who wanted their own photo there uploaded it as a "block",
+      // where a landscape photo tiles at 96px and reads as wallpaper.
+      const heroSec = section(
+        "Front page photo",
+        "The picture beside your home page headline. Without one, the hero shows the quilt block above."
+      );
+      const heroPreview = mk("div", "qh-hero-photo-preview");
+      heroPreview.style.cssText =
+        "width:240px;max-width:100%;aspect-ratio:4/3;border:1px solid var(--line,#ddd);border-radius:6px;" +
+        "background-size:cover;background-position:center;background-color:#f3f3f3;margin:0 0 0.6rem";
+      const heroFile = document.createElement("input");
+      heroFile.type = "file";
+      heroFile.accept = "image/png,image/jpeg,image/webp";
+      heroFile.className = "hidden";
+      heroFile.setAttribute("aria-hidden", "true");
+      heroFile.tabIndex = -1;
+      const heroRow = mk("div", "qh-design-row");
+      const heroUp = mk("button", "secondary", "Upload a photo");
+      heroUp.type = "button";
+      heroUp.setAttribute("data-write", "");
+      heroUp.addEventListener("click", () => heroFile.click());
+      const heroClear = mk("button", "secondary", "Remove photo");
+      heroClear.type = "button";
+      heroClear.setAttribute("data-write", "");
+      heroClear.addEventListener("click", () => { design.heroPhoto = {}; refresh(); });
+      const heroMsg = mk("span", "muted");
+      heroMsg.setAttribute("aria-live", "polite");
+      heroFile.addEventListener("change", async () => {
+        const f = heroFile.files && heroFile.files[0];
+        if (!f) return;
+        heroMsg.textContent = "Uploading…";
+        try {
+          const id = await wbUploadImage(f, (pr) => {
+            if (pr.stage === "warn") heroMsg.textContent = pr.message;
+          });
+          design.heroPhoto = { fileId: id };
+          heroMsg.textContent = "Photo uploaded. Save the design to use it.";
+          refresh();
+        } catch (e) {
+          heroMsg.textContent = e.message;
+        }
+        heroFile.value = "";
+      });
+      heroRow.appendChild(heroUp);
+      heroRow.appendChild(heroClear);
+      heroRow.appendChild(heroMsg);
+      heroSec.appendChild(heroPreview);
+      heroSec.appendChild(heroRow);
+      heroSec.appendChild(heroFile);
+      const heroHelp = mk("p", "muted");
+      heroHelp.style.cssText = "font-size:0.85rem;margin:0.15rem 0 0.6rem";
+      heroHelp.textContent =
+        "A landscape photo works best — it is cropped to fit. Use only photos you have the right to publish.";
+      heroSec.appendChild(heroHelp);
+
       // ---- Footer credit (business Appearance kept this option) ----
       let credit = null;
       if (opts.showCredit) {
@@ -6081,6 +6139,11 @@
           t.setAttribute("aria-pressed", String(on));
         });
         if (Number(strength.value) !== design.pattern.opacity) strength.value = String(design.pattern.opacity);
+        const heroId = (design.heroPhoto && design.heroPhoto.fileId) || "";
+        heroPreview.style.backgroundImage = heroId ? `url("${wbImageUrl(heroId)}?w=480")` : "none";
+        heroPreview.setAttribute("role", "img");
+        heroPreview.setAttribute("aria-label", heroId ? "Your front page photo" : "No front page photo yet");
+        heroClear.disabled = !heroId;
         refreshers.forEach((fn) => fn());
       }
       refresh();

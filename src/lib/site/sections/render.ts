@@ -431,15 +431,25 @@ function renderHero(s: Sec<"hero">, ctx: RenderContext, opts: Opts): string {
   }
 
   const parts: string[] = [];
-  if (s.variant === "image" && st.imageId && !isPatternRef(st.imageId)) {
-    parts.push(uploadedImg(st.imageId, "", ctx, "hero", 1600, { cls: "qh-hero__media", eager: opts.eagerHero }, st.imageFocal));
+  if (s.variant === "image") {
+    // Same rule as the split hero below: the section's own image wins, the
+    // guild's front page photo stands in where a block reference would have
+    // left this variant with nothing to show.
+    const own = st.imageId && !isPatternRef(st.imageId) ? st.imageId : "";
+    const id = own || ctx.design.heroPhoto?.fileId || "";
+    if (id) parts.push(uploadedImg(id, "", ctx, "hero", 1600, { cls: "qh-hero__media", eager: opts.eagerHero }, own ? st.imageFocal : undefined));
   }
   parts.push(`<div class="qh-hero__body">${body.join("")}</div>`);
   if (s.variant === "split" && st.imageId) {
+    // A guild that uploaded a photo of its own work gets it in the hero's
+    // picture slot, in place of the generated quilt block. Only where the
+    // block would have been: a section with its own uploaded image keeps it.
+    const heroPhoto = isPatternRef(st.imageId) ? ctx.design.heroPhoto?.fileId : undefined;
+    const photoId = heroPhoto || (isPatternRef(st.imageId) ? "" : st.imageId);
     parts.push(
-      isPatternRef(st.imageId)
-        ? patternMedia(st.imageId, ctx, " qh-hero__media")
-        : `<div class="qh-media qh-hero__media">${uploadedImg(st.imageId, "", ctx, "split", 1200, { eager: opts.eagerHero }, st.imageFocal)}</div>`
+      photoId
+        ? `<div class="qh-media qh-hero__media">${uploadedImg(photoId, "", ctx, "split", 1200, { eager: opts.eagerHero }, heroPhoto ? undefined : st.imageFocal)}</div>`
+        : patternMedia(st.imageId, ctx, " qh-hero__media")
     );
   }
   return wrap(s, parts.join(""), { extraClass: `qh-hero qh-hero--${s.variant}`, ctx });
