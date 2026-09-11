@@ -343,7 +343,11 @@ function calendarLinks(ctx: SystemPageContext, ev: SiteEvent): Section {
 }
 
 function eventPage(ctx: SystemPageContext, ev: SiteEvent, timeZone: string): SystemPage {
-  const sections: Section[] = [hero("event-hero", ev.title, formatEventWhen(ev, timeZone))];
+  // Compact, for the same reason the list pages are: an event page is read,
+  // not landed on. A full hero spent a phone's whole first screen on the
+  // title and the date, and pushed the description — the thing you clicked
+  // through to read — most of a screen below the fold.
+  const sections: Section[] = [listHeader("event-hero", ev.title, formatEventWhen(ev, timeZone))];
   const body = descriptionToHtml(ev.description);
   if (body) sections.push(prose("event-description", body));
   // What to bring, for a class or a workshop. Placed before the price and the
