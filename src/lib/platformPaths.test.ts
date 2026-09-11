@@ -17,7 +17,7 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..
 const PUBLIC_DIR = path.join(REPO_ROOT, "public");
 
 /** The launched tenant site's own assets — must stay reachable, never reserved. */
-const TENANT_SITE_ASSETS = new Set(["/qh-site.css", "/qh-site.js"]);
+const TENANT_SITE_ASSETS = new Set(["/qh-site.css", "/qh-site.js", "/qh-signature.css", "/qh-signature.js"]);
 
 describe("isPlatformOnlyPath vs. the real public/ directory", () => {
   const entries = readdirSync(PUBLIC_DIR);
@@ -44,6 +44,8 @@ describe("isPlatformOnlyPath — sanity checks independent of the directory scan
   it("does not reserve the tenant site's own assets", () => {
     expect(isPlatformOnlyPath("/qh-site.css")).toBe(false);
     expect(isPlatformOnlyPath("/qh-site.js")).toBe(false);
+    expect(isPlatformOnlyPath("/qh-signature.css")).toBe(false);
+    expect(isPlatformOnlyPath("/qh-signature.js")).toBe(false);
   });
 
   it("PLATFORM_EXACT_PATHS carries both the extensionless and .html legal-page paths", () => {

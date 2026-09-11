@@ -158,6 +158,8 @@ function fakeCreateDb(opts: {
   membershipRole?: string | null;
   platformAdmin?: boolean;
   tenantRow?: Record<string, unknown> | null;
+  pageRow?: Record<string, unknown> | null;
+  navRows?: Record<string, unknown>[];
   counts?: { pages?: number; sample?: number; levels?: number; paid?: number; members?: number; team?: number };
 } = {}) {
   const batches: { sql: string; binds: unknown[] }[][] = [];
@@ -191,6 +193,9 @@ function fakeCreateDb(opts: {
             }
           : opts.tenantRow) as T;
       }
+      if (sql.startsWith("SELECT * FROM pages WHERE id")) {
+        return (opts.pageRow ?? null) as T;
+      }
       if (sql.includes("FROM pages") && sql.includes("LIKE")) return { n: counts.sample ?? 0 } as T;
       if (sql.includes("FROM pages")) return { n: counts.pages ?? 0 } as T;
       if (sql.includes("FROM membership_levels")) return { n: counts.levels ?? 0, paid: counts.paid ?? 0 } as T;
@@ -199,6 +204,9 @@ function fakeCreateDb(opts: {
       return null as T;
     },
     async all() {
+      if (sql.includes("FROM pages") && sql.includes("show_in_nav")) {
+        return { results: opts.navRows ?? [] };
+      }
       return { results: [] };
     },
     async run() {
@@ -1024,5 +1032,71 @@ describe("POST /api/tenants — time zone", () => {
       await createRequest(db, { name: "G", slug: `g${Math.random().toString(36).slice(2, 8)}`, timezone });
       expect(settingsOf(batches).timezone, String(timezone)).toBeUndefined();
     }
+  });
+});
+
+describe("POST /api/tenants/:id/design-preview", () => {
+  const envFor = (db: unknown) => ({ DB: db, JWT_SECRET, APP_URL }) as unknown as Env;
+  const post = async (db: unknown, body: unknown) =>
+    tenantRoutes.request(`/${TENANT_ID}/design-preview`, {
+      method: "POST",
+      headers: { ...(await authHeader()), "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }, envFor(db));
+
+  const page = {
+    id: "page_home",
+    tenant_id: TENANT_ID,
+    slug: "home",
+    title: "Published title",
+    draft_title: "Draft title",
+    blocks_json: JSON.stringify([{ type: "heading", text: "Published copy", level: 2 }]),
+    draft_blocks_json: JSON.stringify([{ type: "heading", text: "Draft copy", level: 2 }]),
+    content_json: null,
+    published: 1,
+    is_members_only: 0,
+    sort_order: 0,
+    updated_at: "2026-09-11T00:00:00Z",
+  };
+
+  it("renders the selected page draft with an unsaved validated design and writes nothing", async () => {
+    const { db, runs, batches } = fakeCreateDb({ membershipRole: "owner", pageRow: page });
+    const res = await post(db, {
+      mode: "current",
+      pageId: page.id,
+      source: "draft",
+      design: { palette: { id: "modern-electric" }, typePair: "manrope" },
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("X-Preview-Source")).toBe("draft");
+    expect(res.headers.get("X-Design-Preview-Mode")).toBe("current");
+    const html = await res.text();
+    expect(html).toContain("Draft copy");
+    expect(html).not.toContain("Published copy");
+    expect(html).toContain('data-qh-preview="true"');
+    expect(runs).toHaveLength(0);
+    expect(batches.flat().filter((b) => !/^\s*SELECT/i.test(b.sql))).toHaveLength(0);
+  });
+
+  it("falls back to published content when draft is requested but absent", async () => {
+    const { db } = fakeCreateDb({ membershipRole: "owner", pageRow: { ...page, draft_blocks_json: null } });
+    const res = await post(db, { mode: "current", pageId: page.id, source: "draft", design: { palette: { id: "heritage-madder" } } });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("X-Preview-Source")).toBe("published");
+    expect(await res.text()).toContain("Published copy");
+  });
+
+  it("rejects malformed designs and pages outside the tenant", async () => {
+    const invalid = fakeCreateDb({ membershipRole: "owner", pageRow: page });
+    expect((await post(invalid.db, { mode: "current", pageId: page.id, source: "published", design: { palette: { id: "nope" } } })).status).toBe(400);
+    const missing = fakeCreateDb({ membershipRole: "owner", pageRow: null });
+    expect((await post(missing.db, { mode: "current", pageId: "elsewhere", source: "published", design: { palette: { id: "heritage-madder" } } })).status).toBe(404);
+  });
+
+  it("rejects strangers and incompatible example kits", async () => {
+    const stranger = fakeCreateDb({ membershipRole: null, platformAdmin: false, pageRow: page });
+    expect((await post(stranger.db, { mode: "current", pageId: page.id, source: "published", design: { palette: { id: "heritage-madder" } } })).status).toBe(403);
+    const guild = fakeCreateDb({ membershipRole: "owner" });
+    expect((await post(guild.db, { mode: "example", kitId: "longarm-studio", design: { palette: { id: "heritage-madder" } } })).status).toBe(400);
   });
 });

@@ -261,6 +261,8 @@ export type SiteRoute =
 export const RENDERER_ASSETS: ReadonlySet<string> = new Set([
   "/qh-site.css",
   "/qh-site.js",
+  "/qh-signature.css",
+  "/qh-signature.js",
   "/qh-cal.js",
 ]);
 

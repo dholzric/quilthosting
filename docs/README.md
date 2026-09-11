@@ -1,5 +1,7 @@
 # QuiltHosting documentation
 
+Current design work: [Template design remediation plan — Codex, September 11](superpowers/plans/2026-09-11-template-design-remediation.md). Includes the refreshed 114-kit inventory, preview/application correctness, six signature families, Tailwind evaluation, and release gates.
+
 ## Product docs (served site)
 
 Live under the site gate at **https://quilthosting.com/docs/** (same password as the rest of the private preview). Source HTML: `public/docs/*`, deployed with the Worker assets binding. Written for volunteer officers; every claim is checked against the code at v0.56.0-preview.

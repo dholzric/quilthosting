@@ -18,6 +18,7 @@
 import { blocksToHtml, escapeHtml, parseBlocks } from "../../blocks";
 import type { PageBlock } from "../../blocks";
 import { paletteById } from "../design/palettes";
+import { resolveComposition } from "../signature";
 import type { SiteDesign } from "../design/tokens";
 import type { Section } from "../sections/schema";
 import type { Kit } from "./schema";
@@ -86,6 +87,7 @@ export function kitDesign(kit: Kit): SiteDesign {
   if (!lib) throw new Error(`Kit "${kit.id}" uses unknown palette "${paletteId}"`);
   return {
     ...rest,
+    composition: resolveComposition(rest.composition, kit.id),
     shape: { ...rest.shape },
     rhythm: { ...rest.rhythm },
     header: { ...rest.header },

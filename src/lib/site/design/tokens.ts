@@ -68,6 +68,8 @@ export type SiteDesign = {
    * what an owner got when they uploaded one under "Your own block".
    */
   heroPhoto?: { fileId?: string };
+  /** Optional in stored settings so older signature kits retain their mapped composition. */
+  composition?: "classic" | "cinema" | "destination" | "poster" | "collage" | "journal" | "salon";
 };
 
 const DEFAULT_PALETTE_ID = "heritage-madder";
@@ -179,6 +181,7 @@ export const siteDesignSchema: z.ZodType<SiteDesign, z.ZodTypeDef, unknown> = z.
       fileId: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/).optional(),
     })
     .optional(),
+  composition: z.enum(["classic", "cinema", "destination", "poster", "collage", "journal", "salon"]).optional(),
 });
 
 // ---------------------------------------------------------------------------

@@ -8,7 +8,7 @@
 (function () {
   "use strict";
 
-  var qhSlug = "", qhBase = location.origin, qhType = "guild", reducedMotion = false;
+  var qhSlug = "", qhBase = location.origin, qhType = "guild", qhPreview = false, reducedMotion = false;
   var NETWORK_ERR = "We couldn't reach the server — check your connection and try again.";
 
   function readContext() {
@@ -16,9 +16,9 @@
     qhSlug = ds.qhSlug || document.documentElement.getAttribute("data-tenant-slug") || "";
     qhBase = ds.qhBase || location.origin;
     qhType = ds.qhType || "guild";
+    qhPreview = ds.qhPreview === "true";
     reducedMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   }
-  // ---- DOM + network helpers ---------------------------------------------
   function el(tag, cls, text) {
     var n = document.createElement(tag);
     if (cls) n.className = cls;
@@ -805,21 +805,22 @@
     });
     node.appendChild(form);
   }
-  // ---- Boot ------------------------------------------------------------------
   function boot() {
     readContext();
     initNav();
-    initJoin();
-    initRegister();
-    initCart();
-    initDonate();
     initCalendar();
     initLightbox();
-    initVolunteer();
-    initNewsletter();
     initDirectorySearch();
-    initReturnFlags();
-    initLegacyBlocks();
+    if (!qhPreview) {
+      initJoin();
+      initRegister();
+      initCart();
+      initDonate();
+      initVolunteer();
+      initNewsletter();
+      initReturnFlags();
+      initLegacyBlocks();
+    }
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();

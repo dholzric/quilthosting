@@ -815,4 +815,3 @@ form.qh-form{display:flex;flex-direction:column;gap:.8rem;max-width:34rem}
   box-shadow:var(--qh-shadow,none);border:6px solid var(--qh-surface,#fff)}
 .qh-feature h3 a,.qh-feature__title a{text-decoration:none;color:inherit}
 .qh-feature h3 a:hover,.qh-feature__title a:hover{text-decoration:underline;text-underline-offset:.15em}
-

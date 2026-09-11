@@ -30,10 +30,13 @@ import { patternDataUri } from "../lib/site/design/patterns";
 import { readSiteDesign } from "../lib/site/design/migrate";
 import { FONT_OPTIONS } from "../lib/site/fonts";
 import { KITS } from "../lib/site/kits/index";
+import { kitCatalogEntry } from "../lib/site/kits/catalog";
 import { kitDesign, kitSettingsJson, resolveKitImagery, substitutePlaceholders } from "../lib/site/kits/apply";
 import { isBusiness } from "../lib/tenantType";
 import { renderSitePage, buildMenu, readBranding, type SitePageArgs } from "../lib/site/render";
 import { loadSiteData, needsFor } from "../lib/site/data";
+import { sectionsFromPage } from "../lib/site/sections/normalize";
+import type { PageRecord } from "../lib/pageDrafts";
 
 export const tenantRoutes = new Hono<{
   Bindings: Env;
@@ -524,6 +527,7 @@ tenantRoutes.get("/:id/design-options", async (c) => {
       audience: k.audience,
       character: k.character,
       design: readSiteDesign(kitSettingsJson(k)),
+      catalog: kitCatalogEntry(k.id),
     })),
     defaults: DEFAULT_DESIGN,
     current,
@@ -630,7 +634,7 @@ tenantRoutes.get("/:id/design-preview", async (c) => {
 
   // The design being previewed has to be the one the shell reads, so it is
   // spliced into the settings the renderer is handed rather than saved.
-  const previewSettings = JSON.stringify({ ...settings, design });
+  const previewSettings = JSON.stringify({ ...settings, site: { ...(isRecord(settings.site) ? settings.site : {}), kit: kit.id }, design });
 
   const html = renderSitePage({
     tenant: { name: tenant.name, slug: tenant.slug, settings_json: previewSettings, tenant_type: business ? "business" : "guild" },
@@ -655,6 +659,128 @@ tenantRoutes.get("/:id/design-preview", async (c) => {
       "X-Design-Preview": `${kit.id}/${design.palette.id ?? "custom"}/${designGround(design)}`,
     },
   });
+});
+
+// Validated preview contract used by the design panel when it needs to show
+// the tenant's actual page with unsaved design choices. This route never
+// persists either the page or the design.
+tenantRoutes.post("/:id/design-preview", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const membership = await first<{ role: string }>(
+    c.env.DB.prepare("SELECT role FROM tenant_users WHERE tenant_id = ? AND user_id = ?").bind(id, user.id)
+  );
+  if (!membership) {
+    const adminRow = await first<{ is_platform_admin: number }>(
+      c.env.DB.prepare("SELECT is_platform_admin FROM users WHERE id = ?").bind(user.id)
+    );
+    if (!adminRow?.is_platform_admin) return c.json({ error: "Forbidden" }, 403);
+  }
+  const tenant = await first<Tenant>(c.env.DB.prepare("SELECT * FROM tenants WHERE id = ?").bind(id));
+  if (!tenant) return c.json({ error: "Not found" }, 404);
+
+  const body = await c.req.json<{
+    mode?: unknown;
+    kitId?: unknown;
+    pageId?: unknown;
+    source?: unknown;
+    design?: unknown;
+  }>().catch(() => null);
+  if (!body || (body.mode !== "current" && body.mode !== "example")) {
+    return c.json({ error: "Invalid request body", issues: [{ path: "mode", message: "Expected current or example" }] }, 400);
+  }
+  const parsedDesign = siteDesignSchema.safeParse(body.design);
+  if (!parsedDesign.success) {
+    return c.json({
+      error: "Invalid request body",
+      issues: parsedDesign.error.issues.map((issue) => ({ path: ["design", ...issue.path].join("."), message: issue.message })),
+    }, 400);
+  }
+
+  const settings = parseSettingsJson(tenant.settings_json);
+  const business = isBusiness(tenant);
+  let sections: SitePageArgs["page"]["sections"];
+  let pageTitle: string;
+  let pageSlug = "";
+  let actualSource = "example";
+  let kitId = typeof body.kitId === "string" ? body.kitId : "";
+
+  if (body.mode === "example") {
+    const kit = kitById(kitId);
+    const audience = business ? "business" : "guild";
+    if (!kit || (kit.audience !== "both" && kit.audience !== audience)) {
+      return c.json({ error: "Unknown or incompatible kit" }, 400);
+    }
+    const home = kit.pages.find((candidate) => candidate.slug === "home") ?? kit.pages[0];
+    if (!home) return c.json({ error: "No design to preview" }, 404);
+    const profile = (settings.profile || {}) as { city?: unknown; meeting_info?: unknown };
+    sections = resolveKitImagery(substitutePlaceholders(home.sections, {
+      guildName: tenant.name,
+      city: String(profile.city || ""),
+      meetingInfo: String(profile.meeting_info || ""),
+    }), kit);
+    pageTitle = home.title;
+  } else {
+    if (typeof body.pageId !== "string" || !body.pageId) {
+      return c.json({ error: "Invalid request body", issues: [{ path: "pageId", message: "Select a page to preview" }] }, 400);
+    }
+    if (body.source !== "draft" && body.source !== "published") {
+      return c.json({ error: "Invalid request body", issues: [{ path: "source", message: "Expected draft or published" }] }, 400);
+    }
+    const row = await first<PageRecord>(
+      c.env.DB.prepare("SELECT * FROM pages WHERE id = ? AND tenant_id = ? AND deleted_at IS NULL").bind(body.pageId, id)
+    );
+    if (!row) return c.json({ error: "Page not found" }, 404);
+    const useDraft = body.source === "draft" && row.draft_blocks_json != null;
+    sections = sectionsFromPage({
+      blocks_json: useDraft ? row.draft_blocks_json : row.blocks_json,
+      content_json: useDraft ? null : row.content_json,
+    });
+    pageTitle = useDraft ? row.draft_title || row.title : row.title;
+    pageSlug = row.slug === "home" ? "" : row.slug;
+    actualSource = useDraft ? "draft" : "published";
+    const currentKit = (settings.site as { kit?: unknown } | undefined)?.kit;
+    kitId = typeof currentKit === "string" ? currentKit : "";
+  }
+
+  const previewSettings = JSON.stringify({
+    ...settings,
+    site: { ...(isRecord(settings.site) ? settings.site : {}), ...(kitId ? { kit: kitId } : {}) },
+    design: parsedDesign.data,
+  });
+  const baseUrl = `/g/${encodeURIComponent(tenant.slug)}`;
+  const navRows = await all<{ slug: string; title: string; nav_label: string | null; show_in_nav: number }>(
+    c.env.DB.prepare(`SELECT slug, title, nav_label, coalesce(show_in_nav, 1) AS show_in_nav FROM pages
+      WHERE tenant_id = ? AND published = 1 AND is_members_only = 0 AND deleted_at IS NULL
+      AND coalesce(show_in_nav, 1) = 1 AND coalesce(page_type, 'page') = 'page' ORDER BY sort_order, title`).bind(id)
+  );
+  const menu = buildMenu(navRows, [], baseUrl);
+  const imgUrl: SitePageArgs["imgUrl"] = (fileId) => `/public/${encodeURIComponent(tenant.slug)}/img/${fileId}`;
+  const needs = needsFor(sections);
+  needs.add("profile");
+  const data = await loadSiteData(c.env, tenant, needs, { limit: 3 });
+  const logoFileId = String(((settings.assets || {}) as { logo_file_id?: unknown }).logo_file_id || "");
+  const html = renderSitePage({
+    tenant: { name: tenant.name, slug: tenant.slug, settings_json: previewSettings, tenant_type: business ? "business" : "guild" },
+    page: { title: pageTitle, slug: pageSlug, noindex: 1, sections },
+    menu,
+    baseUrl,
+    host: c.req.header("host") || "",
+    logoUrl: logoFileId ? imgUrl(logoFileId) : null,
+    showPlatformCredit: readBranding(previewSettings).showPlatformCredit,
+    design: parsedDesign.data,
+    data,
+    imgUrl,
+    preview: true,
+    extraHead: `<meta name="robots" content="noindex">`,
+  });
+  return new Response(html, { headers: {
+    "Content-Type": "text/html; charset=utf-8",
+    "Cache-Control": "no-store",
+    "X-Robots-Tag": "noindex",
+    "X-Preview-Source": actualSource,
+    "X-Design-Preview-Mode": body.mode,
+  } });
 });
 
 // GET /api/tenants/:id — members of the guild only (platform admins: any)
@@ -757,4 +883,3 @@ tenantRoutes.patch("/:id", async (c) => {
   );
   return c.json(tenant);
 });
-

@@ -39,6 +39,7 @@ import { sectionsFromPage } from "./sections/normalize";
 import type { Section } from "./sections/schema";
 import { DEFAULT_STYLE } from "./sections/schema";
 import { kitAssetUrl } from "./kitAssets";
+import { resolveComposition } from "./signature";
 import { readProfile } from "./data";
 import type { SiteData, SiteProfile } from "./data.types";
 
@@ -86,6 +87,8 @@ export type SitePageArgs = {
    * escaped every tenant string in it.
    */
   rawHtml?: string;
+  /** Marks an admin-only rendering so client-side transactional actions stay inert. */
+  preview?: boolean;
 };
 
 // Encodes & < > " ' -- every interpolation below is either a text node or a
@@ -478,6 +481,11 @@ function firstImageHero(sections: Section[]): boolean {
 export function renderSitePage(args: SitePageArgs): string {
   const { tenant, page, baseUrl, design } = args;
   const settings = tenant.settings_json;
+  const siteSettings = parseSettings(settings).site;
+  const composition = resolveComposition(
+    design.composition,
+    siteSettings && typeof siteSettings === "object" ? (siteSettings as { kit?: unknown }).kit : undefined
+  );
   const identity = readBusinessIdentity(settings);
   // The owner-entered business name (settings.business.name) is the
   // authority for what a business site displays; tenant.name is the fallback
@@ -534,11 +542,11 @@ export function renderSitePage(args: SitePageArgs): string {
 <meta name="theme-color" content="${esc(roles.primary)}">
 ${seoHead}
 ${args.extraHead ?? ""}
-${fontLinks}<link rel="stylesheet" href="/qh-site.css">
+${fontLinks}<link rel="stylesheet" href="/qh-site.css">${composition !== "classic" ? '\n<link rel="stylesheet" href="/qh-signature.css">' : ""}
 <style>:root{${rootVars}}.qh-skip{position:absolute;left:-999px;top:0;z-index:100;padding:.5rem .75rem;background:var(--qh-primary);color:var(--qh-on-primary)}.qh-skip:focus{left:.5rem;top:.5rem}</style>
 ${jsonLd}
 </head>
-<body class="qh-site" data-qh-slug="${esc(tenant.slug)}" data-qh-base="${esc(origin)}" data-qh-type="${esc(tenant.tenant_type)}">
+<body class="qh-site" data-qh-composition="${composition}" data-qh-slug="${esc(tenant.slug)}" data-qh-base="${esc(origin)}" data-qh-type="${esc(tenant.tenant_type)}"${args.preview ? ' data-qh-preview="true"' : ""}>
 <a class="qh-skip" href="#main">Skip to content</a>
 ${renderHeader(args, siteName, current, cta, overlay)}
 <main id="main" class="qh-main">
@@ -546,6 +554,7 @@ ${bodyHtml}${args.rawHtml ? `\n${args.rawHtml}` : ""}
 </main>
 ${renderFooter(args, siteName, identity, profile, portalUrl)}
 <script src="/qh-site.js" defer></script>
+${composition !== "classic" ? '<script src="/qh-signature.js" defer></script>' : ""}
 </body>
 </html>`;
 }

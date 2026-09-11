@@ -1,0 +1,78 @@
+/* Signature composition families. Loaded only for a signature site. */
+[data-qh-composition]:not([data-qh-composition="classic"]) .qh-main > .qh-hero:first-child .qh-hero__title{letter-spacing:-.045em;text-wrap:balance}
+[data-qh-composition]:not([data-qh-composition="classic"]) .qh-eyebrow{letter-spacing:.18em}
+[data-qh-composition]:not([data-qh-composition="classic"]) .qh-hero__actions .qh-btn{padding:.95rem 1.5rem}
+
+/* Cinema: full-viewport textile, bottom-set title, editorial rule. */
+[data-qh-composition="cinema"] .qh-main > .qh-hero--split:first-child{min-height:88svh;display:flex;align-items:flex-end;padding:clamp(2rem,6vw,7rem);isolation:isolate;overflow:hidden;background:var(--_dark);color:var(--_on-dark)}
+[data-qh-composition="cinema"] .qh-main > .qh-hero--split:first-child .qh-hero__media{position:absolute;inset:0;z-index:-2;width:100%;height:100%;order:0}
+[data-qh-composition="cinema"] .qh-main > .qh-hero--split:first-child img{height:100%;width:100%;aspect-ratio:auto;object-fit:cover;border-radius:0}
+[data-qh-composition="cinema"] .qh-main > .qh-hero--split:first-child::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgb(0 0 0/.82),rgb(0 0 0/.12)),linear-gradient(0deg,rgb(0 0 0/.6),transparent 80%);pointer-events:none}
+[data-qh-composition="cinema"] .qh-main > .qh-hero--split:first-child .qh-hero__body{max-width:58rem;border-top:1px solid color-mix(in oklab,var(--_on-dark) 46%,transparent);padding-top:2rem}
+[data-qh-composition="cinema"] .qh-main > .qh-hero--split:first-child .qh-hero__title{font-size:clamp(3rem,6.7vw,7.6rem);line-height:.98}
+[data-qh-composition="cinema"] .qh-main > .qh-hero:first-child .qh-eyebrow{color:var(--_on-dark)}
+[data-qh-composition="cinema"] .qh-main > .qh-hero:first-child .qh-btn--secondary{color:var(--_on-dark);border-color:color-mix(in oklab,var(--_on-dark) 56%,transparent);background:color-mix(in oklab,var(--_dark) 50%,transparent)}
+
+/* Destination: panoramic opening with an inset information panel. */
+[data-qh-composition="destination"] .qh-main > .qh-hero--split:first-child{min-height:85svh;display:flex;align-items:flex-end;padding:clamp(1.25rem,4vw,4rem);isolation:isolate}
+[data-qh-composition="destination"] .qh-main > .qh-hero--split:first-child .qh-hero__media{position:absolute;inset:0;z-index:-1;width:100%;height:100%}
+[data-qh-composition="destination"] .qh-main > .qh-hero--split:first-child img{width:100%;height:100%;aspect-ratio:auto;object-fit:cover;border-radius:0}
+[data-qh-composition="destination"] .qh-main > .qh-hero--split:first-child .qh-hero__body{background:var(--_surface);color:var(--_ink);padding:clamp(1.5rem,3.5vw,4rem);max-width:40rem;border-top:5px solid var(--_primary);box-shadow:0 18px 70px rgb(0 0 0/.2)}
+[data-qh-composition="destination"] .qh-main > .qh-hero--split:first-child .qh-hero__title{font-size:clamp(2.6rem,4.6vw,5.2rem)}
+
+/* Poster: oversized typography above a wide image. */
+[data-qh-composition="poster"] .qh-main > .qh-hero--split:first-child{display:flex;flex-direction:column;align-items:stretch;gap:3rem;padding-top:clamp(2rem,5vw,5rem)}
+[data-qh-composition="poster"] .qh-main > .qh-hero--split:first-child .qh-hero__body{max-width:none}
+[data-qh-composition="poster"] .qh-main > .qh-hero--split:first-child .qh-hero__title{max-width:16ch;font-size:clamp(3.2rem,8.5vw,9.8rem);line-height:.94;font-weight:800}
+[data-qh-composition="poster"] .qh-main > .qh-hero--split:first-child .qh-hero__media{order:1;width:100%}
+[data-qh-composition="poster"] .qh-main > .qh-hero--split:first-child img{aspect-ratio:2.5;max-height:36rem;border-radius:0}
+[data-qh-composition="poster"] .qh-features .qh-grid{gap:0;border-block:2px solid currentColor}
+[data-qh-composition="poster"] .qh-features .qh-feature{border:0;border-right:1px solid var(--_border);border-radius:0;background:transparent;padding:2rem}
+[data-qh-composition="poster"] .qh-feature h3{font-size:clamp(1.4rem,2.4vw,2.5rem)}
+
+/* Collage: offset paper, asymmetric image, colored numbered scraps. */
+[data-qh-composition="collage"] .qh-main > .qh-hero--split:first-child{gap:clamp(2rem,5vw,6rem);padding-block:clamp(3rem,8vw,8rem)}
+[data-qh-composition="collage"] .qh-main > .qh-hero--split:first-child .qh-hero__media{transform:rotate(-3deg);padding:.8rem;background:var(--_surface);box-shadow:12px 16px 0 var(--_primary),20px 25px 0 var(--_border)}
+[data-qh-composition="collage"] .qh-main > .qh-hero--split:first-child img{aspect-ratio:1;border-radius:0}
+[data-qh-composition="collage"] .qh-main > .qh-hero--split:first-child .qh-hero__title{font-size:clamp(2.8rem,5vw,6rem)}
+[data-qh-composition="collage"] .qh-feature:nth-child(2){transform:translateY(1.5rem)}
+[data-qh-composition="collage"] .qh-feature{border-radius:0;border-top:6px solid var(--_primary);padding:2rem}
+
+/* Journal: newspaper opening, portrait textile and ruled article rows. */
+[data-qh-composition="journal"] .qh-main > .qh-hero--split:first-child{grid-template-columns:1.4fr 1fr;gap:4rem;border-bottom:1px solid var(--_border)}
+[data-qh-composition="journal"] .qh-main > .qh-hero--split:first-child .qh-hero__media{order:1}
+[data-qh-composition="journal"] .qh-main > .qh-hero--split:first-child img{aspect-ratio:4/5;border-radius:50% 50% 0 0}
+[data-qh-composition="journal"] .qh-main > .qh-hero--split:first-child .qh-hero__title{font-size:clamp(2.8rem,5.3vw,6.4rem);line-height:1.03}
+[data-qh-composition="journal"] .qh-features .qh-grid{grid-template-columns:1fr}
+[data-qh-composition="journal"] .qh-feature{display:grid;grid-template-columns:1fr 2fr;gap:2rem;border:0;border-top:1px solid var(--_border);background:transparent;border-radius:0;padding:1.5rem 0}
+
+/* Salon: centered invitation above a framed textile. */
+[data-qh-composition="salon"] .qh-main > .qh-hero--split:first-child{display:flex;flex-direction:column;text-align:center;gap:3rem}
+[data-qh-composition="salon"] .qh-main > .qh-hero--split:first-child .qh-hero__body{max-width:58rem;margin:auto}
+[data-qh-composition="salon"] .qh-main > .qh-hero--split:first-child .qh-hero__title{font-size:clamp(2.8rem,5.7vw,6.8rem)}
+[data-qh-composition="salon"] .qh-main > .qh-hero--split:first-child .qh-hero__sub{margin-inline:auto}
+[data-qh-composition="salon"] .qh-main > .qh-hero--split:first-child .qh-hero__actions{justify-content:center}
+[data-qh-composition="salon"] .qh-main > .qh-hero--split:first-child .qh-hero__media{order:1;width:85%;padding:1rem;border:1px solid var(--_border)}
+[data-qh-composition="salon"] .qh-main > .qh-hero--split:first-child img{aspect-ratio:2.2;border-radius:0}
+
+[data-qh-composition]:not([data-qh-composition="classic"]) :is(.qh-event,.qh-feature){color:var(--_ink)}
+[data-qh-composition]:not([data-qh-composition="classic"]) .qh-features:is(.qh-s--bg-brand,.qh-s--bg-dark) .qh-feature{background:var(--_surface);padding:1.5rem}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){
+  [data-qh-composition]:not([data-qh-composition="classic"]) .qh-btn{transition:transform .25s ease,box-shadow .25s ease}
+  [data-qh-composition]:not([data-qh-composition="classic"]) .qh-btn:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgb(0 0 0/.13)}
+  [data-qh-composition]:not([data-qh-composition="classic"]) .qh-image figure{overflow:hidden}
+  [data-qh-composition]:not([data-qh-composition="classic"]) .qh-image img{transition:transform 1s cubic-bezier(.2,.7,.2,1)}
+  [data-qh-composition]:not([data-qh-composition="classic"]) .qh-image figure:hover img{transform:scale(1.025)}
+}
+@media(max-width:760px){
+  [data-qh-composition="journal"] .qh-main > .qh-hero--split:first-child{grid-template-columns:1fr;gap:2rem}
+  [data-qh-composition="journal"] .qh-main > .qh-hero--split:first-child img{aspect-ratio:4/3;border-radius:0}
+  [data-qh-composition="journal"] .qh-feature{grid-template-columns:1fr;gap:.5rem}
+  [data-qh-composition="collage"] .qh-feature:nth-child(2){transform:none}
+  [data-qh-composition="collage"] .qh-main > .qh-hero--split:first-child .qh-hero__media{margin-inline:1rem;box-shadow:6px 8px 0 var(--_primary)}
+  [data-qh-composition="poster"] .qh-main > .qh-hero--split:first-child img{aspect-ratio:4/3}
+  [data-qh-composition="salon"] .qh-main > .qh-hero--split:first-child .qh-hero__media{width:100%;padding:.5rem}
+  [data-qh-composition="salon"] .qh-main > .qh-hero--split:first-child img{aspect-ratio:4/3}
+  [data-qh-composition="destination"] .qh-main > .qh-hero--split:first-child{padding-top:16rem;min-height:0}
+  [data-qh-composition="cinema"] .qh-main > .qh-hero--split:first-child{min-height:80svh;padding:2rem 1.25rem}
+}

@@ -179,7 +179,7 @@ describe("renderPageHtml", () => {
     // Migrated 13-token theme → SiteDesign → --qh-* vars next to the legacy vars.
     expect(html).toContain("--qh-bg:#");
     expect(html).toContain("--qh-font-display:");
-    expect(html).toContain('<body class="qh-site" data-qh-slug="stitchstudio" data-qh-base="https://stitchstudioquilting.com" data-qh-type="business">');
+    expect(html).toContain('<body class="qh-site" data-qh-composition="classic" data-qh-slug="stitchstudio" data-qh-base="https://stitchstudioquilting.com" data-qh-type="business">');
     expect(html).toContain('<header class="qh-header qh-header--left qh-header--sticky">');
     expect(html).toContain('<main id="main"');
     expect(html).toContain('<section id="s_0" class="qh-s ');
@@ -400,9 +400,19 @@ describe("renderSitePage", () => {
     expect(html).toContain("<style>:root{--qh-bg:#");
     expect(html).toContain('<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>');
     expect(html).toContain('<a class="qh-skip" href="#main">Skip to content</a>');
-    expect(html).toContain('<body class="qh-site" data-qh-slug="hcqg" data-qh-base="" data-qh-type="guild">');
+    expect(html).toContain('<body class="qh-site" data-qh-composition="classic" data-qh-slug="hcqg" data-qh-base="" data-qh-type="guild">');
     expect(html).toContain('<script src="/qh-site.js" defer></script>');
     expect(html).toContain('<link rel="stylesheet" href="/qh-site.css">');
+    expect(html).not.toContain('/qh-signature.css');
+    expect(html).not.toContain('/qh-signature.js');
+  });
+
+  it("loads signature assets only when the saved kit resolves to a signature composition", () => {
+    const settings = JSON.stringify({ site: { kit: "indigo-house" } });
+    const html = renderSitePage(siteArgs({ tenant: { ...siteArgs().tenant, settings_json: settings } }));
+    expect(html).toContain('data-qh-composition="cinema"');
+    expect(html).toContain('<link rel="stylesheet" href="/qh-signature.css">');
+    expect(html).toContain('<script src="/qh-signature.js" defer></script>');
   });
 
   it("skips the fonts link for the system pair", () => {

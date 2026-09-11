@@ -1,0 +1,1258 @@
+{
+  "generatedAt": "2026-09-11T22:18:47.072Z",
+  "revision": "108df30b0ebc3eda2c4716d9889fcfa644675193",
+  "dirtyPaths": [
+    "M docs/README.md",
+    " M package.json",
+    " M public/admin.html",
+    " M public/qh-site.css",
+    " M public/qh-site.js",
+    " M public/sw.js",
+    " M src/lib/site/design/tokens.ts",
+    " M src/lib/site/render.test.ts",
+    " M src/lib/site/render.ts",
+    " M src/lib/site/rendererAssets.test.ts",
+    " M src/routes/site.ts",
+    " M src/routes/tenants.test.ts",
+    " M src/routes/tenants.ts",
+    "?? docs/design-review/",
+    "?? docs/superpowers/plans/2026-09-11-template-design-remediation.md",
+    "?? public/qh-signature.css",
+    "?? public/qh-signature.js",
+    "?? scripts/kits-audit.mjs",
+    "?? src/lib/site/signature.test.ts",
+    "?? src/lib/site/signature.ts"
+  ],
+  "packageVersion": "0.74.4-preview",
+  "inventory": {
+    "registeredKits": 114,
+    "diskKitFiles": 114,
+    "registryMatchesDisk": true,
+    "pages": 663,
+    "homePages": 114,
+    "secondaryPages": 549,
+    "imageryReferences": 127
+  },
+  "sectionTypes": {
+    "benefits": 43,
+    "blog_teaser": 13,
+    "contact": 116,
+    "cta": 91,
+    "divider": 1,
+    "events": 126,
+    "faq": 101,
+    "feature_grid": 233,
+    "gallery": 47,
+    "hero": 663,
+    "hours_location": 12,
+    "image": 37,
+    "join_band": 58,
+    "meeting_info": 157,
+    "membership_levels": 47,
+    "newsletter_signup": 3,
+    "officers": 43,
+    "process": 4,
+    "quote_cta": 83,
+    "rich_text": 387,
+    "services": 2,
+    "store_teaser": 21,
+    "testimonials": 101
+  },
+  "variants": {
+    "benefits:default": 43,
+    "blog_teaser:default": 13,
+    "contact:default": 116,
+    "cta:default": 91,
+    "divider:default": 1,
+    "events:calendar": 1,
+    "events:cards": 64,
+    "events:list": 49,
+    "events:next_up": 12,
+    "faq:default": 101,
+    "feature_grid:cards": 169,
+    "feature_grid:icons": 16,
+    "feature_grid:numbered": 48,
+    "gallery:grid": 37,
+    "gallery:masonry": 10,
+    "hero:image": 1,
+    "hero:minimal": 389,
+    "hero:pattern": 176,
+    "hero:split": 87,
+    "hero:stats": 10,
+    "hours_location:default": 12,
+    "image:full_bleed": 37,
+    "join_band:default": 58,
+    "meeting_info:default": 157,
+    "membership_levels:cards": 38,
+    "membership_levels:compact": 9,
+    "newsletter_signup:default": 3,
+    "officers:default": 43,
+    "process:default": 4,
+    "quote_cta:default": 83,
+    "rich_text:prose": 314,
+    "rich_text:two_column": 73,
+    "services:table": 2,
+    "store_teaser:default": 21,
+    "testimonials:grid": 23,
+    "testimonials:single": 78
+  },
+  "imagery": {
+    "hero-art": 113,
+    "hero-log-cabin": 1,
+    "hero-photo": 13
+  },
+  "repetition": {
+    "home": [
+      {
+        "sequence": "hero:split|feature_grid:cards|testimonials:single|quote_cta:default",
+        "count": 21
+      },
+      {
+        "sequence": "hero:split|meeting_info:default|events:cards|feature_grid:cards|join_band:default",
+        "count": 19
+      },
+      {
+        "sequence": "hero:split|image:full_bleed|feature_grid:cards|rich_text:prose|rich_text:prose|events:cards",
+        "count": 6
+      },
+      {
+        "sequence": "hero:split|rich_text:prose|feature_grid:cards|events:cards|rich_text:prose",
+        "count": 5
+      },
+      {
+        "sequence": "hero:pattern|meeting_info:default|events:cards|feature_grid:cards|join_band:default",
+        "count": 3
+      },
+      {
+        "sequence": "hero:minimal|image:full_bleed|feature_grid:cards|rich_text:prose|rich_text:prose|events:cards",
+        "count": 2
+      },
+      {
+        "sequence": "hero:pattern|feature_grid:cards|rich_text:two_column|testimonials:grid|quote_cta:default",
+        "count": 2
+      },
+      {
+        "sequence": "hero:split|feature_grid:cards|gallery:grid|testimonials:grid|quote_cta:default",
+        "count": 2
+      },
+      {
+        "sequence": "hero:split|feature_grid:cards|rich_text:prose|events:cards|rich_text:prose",
+        "count": 2
+      },
+      {
+        "sequence": "hero:split|meeting_info:default|events:cards|feature_grid:cards|blog_teaser:default|join_band:default",
+        "count": 2
+      }
+    ],
+    "secondary": [
+      {
+        "sequence": "hero:minimal|contact:default|meeting_info:default",
+        "count": 48
+      },
+      {
+        "sequence": "hero:pattern|contact:default|meeting_info:default",
+        "count": 24
+      },
+      {
+        "sequence": "hero:minimal|quote_cta:default|cta:default",
+        "count": 20
+      },
+      {
+        "sequence": "hero:minimal|rich_text:prose|contact:default",
+        "count": 20
+      },
+      {
+        "sequence": "hero:minimal|rich_text:prose|testimonials:single",
+        "count": 19
+      },
+      {
+        "sequence": "hero:pattern|meeting_info:default|events:list",
+        "count": 14
+      },
+      {
+        "sequence": "hero:pattern|membership_levels:cards|faq:default|benefits:default",
+        "count": 12
+      },
+      {
+        "sequence": "hero:minimal|feature_grid:cards",
+        "count": 11
+      },
+      {
+        "sequence": "hero:minimal|image:full_bleed|rich_text:prose|cta:default",
+        "count": 11
+      },
+      {
+        "sequence": "hero:minimal|meeting_info:default|events:list",
+        "count": 11
+      },
+      {
+        "sequence": "hero:minimal|membership_levels:cards|faq:default|benefits:default",
+        "count": 11
+      },
+      {
+        "sequence": "hero:minimal|rich_text:prose|feature_grid:numbered|officers:default",
+        "count": 11
+      },
+      {
+        "sequence": "hero:minimal|rich_text:two_column|testimonials:single",
+        "count": 10
+      },
+      {
+        "sequence": "hero:pattern|rich_text:prose|feature_grid:numbered|officers:default",
+        "count": 10
+      },
+      {
+        "sequence": "hero:minimal|image:full_bleed|feature_grid:cards|rich_text:prose",
+        "count": 9
+      },
+      {
+        "sequence": "hero:minimal|rich_text:prose|feature_grid:cards|cta:default",
+        "count": 9
+      },
+      {
+        "sequence": "hero:minimal|rich_text:two_column|testimonials:single|officers:default",
+        "count": 9
+      },
+      {
+        "sequence": "hero:minimal|store_teaser:default|rich_text:prose",
+        "count": 9
+      },
+      {
+        "sequence": "hero:minimal|rich_text:prose|faq:default|cta:default",
+        "count": 8
+      },
+      {
+        "sequence": "hero:minimal|feature_grid:cards|faq:default|rich_text:prose",
+        "count": 7
+      },
+      {
+        "sequence": "hero:minimal|meeting_info:default",
+        "count": 7
+      },
+      {
+        "sequence": "hero:minimal|quote_cta:default|rich_text:prose",
+        "count": 7
+      },
+      {
+        "sequence": "hero:minimal|contact:default|rich_text:prose|hours_location:default",
+        "count": 6
+      },
+      {
+        "sequence": "hero:minimal|feature_grid:cards|rich_text:prose",
+        "count": 6
+      },
+      {
+        "sequence": "hero:minimal|quote_cta:default|faq:default",
+        "count": 6
+      },
+      {
+        "sequence": "hero:pattern|rich_text:two_column|testimonials:single",
+        "count": 6
+      },
+      {
+        "sequence": "hero:pattern|events:list|rich_text:prose",
+        "count": 5
+      },
+      {
+        "sequence": "hero:pattern|feature_grid:cards|rich_text:prose",
+        "count": 5
+      },
+      {
+        "sequence": "hero:minimal|contact:default|rich_text:prose",
+        "count": 4
+      },
+      {
+        "sequence": "hero:minimal|events:list|rich_text:prose",
+        "count": 4
+      },
+      {
+        "sequence": "hero:minimal|feature_grid:cards|rich_text:prose|rich_text:prose",
+        "count": 4
+      },
+      {
+        "sequence": "hero:minimal|gallery:grid",
+        "count": 4
+      },
+      {
+        "sequence": "hero:minimal|gallery:grid|rich_text:prose",
+        "count": 4
+      },
+      {
+        "sequence": "hero:minimal|image:full_bleed|rich_text:prose|rich_text:prose",
+        "count": 4
+      },
+      {
+        "sequence": "hero:minimal|rich_text:prose|faq:default",
+        "count": 4
+      },
+      {
+        "sequence": "hero:minimal|rich_text:two_column|faq:default",
+        "count": 4
+      },
+      {
+        "sequence": "hero:minimal|rich_text:two_column|testimonials:grid|officers:default",
+        "count": 4
+      },
+      {
+        "sequence": "hero:pattern|rich_text:two_column|testimonials:single|officers:default",
+        "count": 4
+      },
+      {
+        "sequence": "hero:minimal|faq:default",
+        "count": 3
+      },
+      {
+        "sequence": "hero:minimal|feature_grid:cards|rich_text:two_column|faq:default",
+        "count": 3
+      },
+      {
+        "sequence": "hero:minimal|rich_text:prose",
+        "count": 3
+      },
+      {
+        "sequence": "hero:minimal|rich_text:prose|membership_levels:cards|faq:default|benefits:default",
+        "count": 3
+      },
+      {
+        "sequence": "hero:pattern|quote_cta:default|faq:default",
+        "count": 3
+      },
+      {
+        "sequence": "hero:pattern|quote_cta:default|rich_text:prose",
+        "count": 3
+      },
+      {
+        "sequence": "hero:pattern|rich_text:prose|faq:default",
+        "count": 3
+      },
+      {
+        "sequence": "hero:minimal|blog_teaser:default|cta:default",
+        "count": 2
+      },
+      {
+        "sequence": "hero:minimal|blog_teaser:default|rich_text:prose",
+        "count": 2
+      },
+      {
+        "sequence": "hero:minimal|contact:default|hours_location:default|cta:default",
+        "count": 2
+      },
+      {
+        "sequence": "hero:minimal|events:cards|rich_text:prose",
+        "count": 2
+      },
+      {
+        "sequence": "hero:minimal|events:list|faq:default",
+        "count": 2
+      },
+      {
+        "sequence": "hero:minimal|faq:default|rich_text:prose|cta:default",
+        "count": 2
+      },
+      {
+        "sequence": "hero:minimal|feature_grid:cards|rich_text:prose|cta:default",
+        "count": 2
+      },
+      {
+        "sequence": "hero:minimal|feature_grid:numbered",
+        "count": 2
+      },
+      {
+        "sequence": "hero:minimal|feature_grid:numbered|rich_text:prose",
+        "count": 2
+      },
+      {
+        "sequence": "hero:minimal|gallery:masonry",
+        "count": 2
+      },
+      {
+        "sequence": "hero:minimal|gallery:masonry|rich_text:prose",
+        "count": 2
+      },
+      {
+        "sequence": "hero:minimal|membership_levels:cards|rich_text:prose|join_band:default",
+        "count": 2
+      },
+      {
+        "sequence": "hero:minimal|membership_levels:compact|rich_text:prose|benefits:default",
+        "count": 2
+      },
+      {
+        "sequence": "hero:minimal|rich_text:prose|benefits:default|cta:default",
+        "count": 2
+      },
+      {
+        "sequence": "hero:minimal|rich_text:prose|meeting_info:default",
+        "count": 2
+      },
+      {
+        "sequence": "hero:minimal|rich_text:two_column|meeting_info:default",
+        "count": 2
+      },
+      {
+        "sequence": "hero:pattern|contact:default|hours_location:default|cta:default",
+        "count": 2
+      },
+      {
+        "sequence": "hero:pattern|contact:default|rich_text:prose|hours_location:default",
+        "count": 2
+      },
+      {
+        "sequence": "hero:pattern|events:cards|rich_text:prose",
+        "count": 2
+      },
+      {
+        "sequence": "hero:pattern|feature_grid:cards",
+        "count": 2
+      },
+      {
+        "sequence": "hero:pattern|feature_grid:cards|gallery:grid",
+        "count": 2
+      },
+      {
+        "sequence": "hero:pattern|feature_grid:cards|rich_text:prose|faq:default",
+        "count": 2
+      },
+      {
+        "sequence": "hero:pattern|feature_grid:cards|testimonials:single",
+        "count": 2
+      },
+      {
+        "sequence": "hero:pattern|gallery:grid",
+        "count": 2
+      },
+      {
+        "sequence": "hero:pattern|membership_levels:compact|faq:default|benefits:default",
+        "count": 2
+      },
+      {
+        "sequence": "hero:pattern|quote_cta:default|cta:default",
+        "count": 2
+      },
+      {
+        "sequence": "hero:pattern|rich_text:prose|meeting_info:default",
+        "count": 2
+      },
+      {
+        "sequence": "hero:pattern|rich_text:prose|membership_levels:cards|faq:default|benefits:default",
+        "count": 2
+      },
+      {
+        "sequence": "hero:pattern|rich_text:prose|testimonials:single",
+        "count": 2
+      },
+      {
+        "sequence": "hero:pattern|rich_text:two_column|gallery:grid",
+        "count": 2
+      },
+      {
+        "sequence": "hero:pattern|rich_text:two_column|testimonials:grid|officers:default",
+        "count": 2
+      },
+      {
+        "sequence": "hero:pattern|store_teaser:default|rich_text:prose",
+        "count": 2
+      }
+    ]
+  },
+  "kits": [
+    {
+      "id": "heritage",
+      "audience": "guild",
+      "order": 0,
+      "pages": 8,
+      "imagery": 1
+    },
+    {
+      "id": "modern-guild",
+      "audience": "guild",
+      "order": 1,
+      "pages": 7,
+      "imagery": 1
+    },
+    {
+      "id": "show-festival",
+      "audience": "guild",
+      "order": 2,
+      "pages": 8,
+      "imagery": 1
+    },
+    {
+      "id": "art-quilt",
+      "audience": "guild",
+      "order": 3,
+      "pages": 6,
+      "imagery": 2
+    },
+    {
+      "id": "community-threads",
+      "audience": "guild",
+      "order": 4,
+      "pages": 7,
+      "imagery": 1
+    },
+    {
+      "id": "applique-bloom",
+      "audience": "guild",
+      "order": 5,
+      "pages": 7,
+      "imagery": 1
+    },
+    {
+      "id": "prairie",
+      "audience": "guild",
+      "order": 6,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "minimal",
+      "audience": "guild",
+      "order": 7,
+      "pages": 4,
+      "imagery": 2
+    },
+    {
+      "id": "one-pager",
+      "audience": "guild",
+      "order": 8,
+      "pages": 1,
+      "imagery": 1
+    },
+    {
+      "id": "longarm-studio",
+      "audience": "business",
+      "order": 9,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "quilt-shop",
+      "audience": "business",
+      "order": 10,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "pattern-designer",
+      "audience": "business",
+      "order": 11,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "retreat-house",
+      "audience": "business",
+      "order": 12,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "virtual-guild",
+      "audience": "guild",
+      "order": 13,
+      "pages": 7,
+      "imagery": 1
+    },
+    {
+      "id": "quilt-museum",
+      "audience": "both",
+      "order": 14,
+      "pages": 7,
+      "imagery": 2
+    },
+    {
+      "id": "memory-quilts",
+      "audience": "business",
+      "order": 15,
+      "pages": 6,
+      "imagery": 2
+    },
+    {
+      "id": "barn-quilt-trail",
+      "audience": "both",
+      "order": 16,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "young-stitchers",
+      "audience": "guild",
+      "order": 17,
+      "pages": 7,
+      "imagery": 1
+    },
+    {
+      "id": "state-association",
+      "audience": "guild",
+      "order": 18,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "slow-stitch-studio",
+      "audience": "business",
+      "order": 19,
+      "pages": 6,
+      "imagery": 2
+    },
+    {
+      "id": "market-quilter",
+      "audience": "business",
+      "order": 20,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "quilt-appraiser",
+      "audience": "business",
+      "order": 21,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "epp-circle",
+      "audience": "guild",
+      "order": 22,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "snowbird-guild",
+      "audience": "guild",
+      "order": 23,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "scrap-circle",
+      "audience": "guild",
+      "order": 24,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "prayer-circle",
+      "audience": "guild",
+      "order": 25,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "foundation-piecers",
+      "audience": "guild",
+      "order": 26,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "tshirt-maker",
+      "audience": "business",
+      "order": 27,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "restoration-atelier",
+      "audience": "business",
+      "order": 28,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "sit-down-studio",
+      "audience": "business",
+      "order": 29,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "quilt-along",
+      "audience": "business",
+      "order": 30,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "binding-bar",
+      "audience": "business",
+      "order": 31,
+      "pages": 6,
+      "imagery": 2
+    },
+    {
+      "id": "ufo-club",
+      "audience": "guild",
+      "order": 32,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "hand-quilters",
+      "audience": "guild",
+      "order": 33,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "mens-circle",
+      "audience": "guild",
+      "order": 34,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "coastal-guild",
+      "audience": "guild",
+      "order": 35,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "mountain-guild",
+      "audience": "guild",
+      "order": 36,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "first-quilt",
+      "audience": "guild",
+      "order": 37,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "reproduction",
+      "audience": "guild",
+      "order": 38,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "wool-circle",
+      "audience": "guild",
+      "order": 39,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "fabric-swap",
+      "audience": "guild",
+      "order": 40,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "night-owls",
+      "audience": "guild",
+      "order": 41,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "dye-house",
+      "audience": "business",
+      "order": 42,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "class-bench",
+      "audience": "business",
+      "order": 43,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "jersey-quilts",
+      "audience": "business",
+      "order": 44,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "hired-piecer",
+      "audience": "business",
+      "order": 45,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "maker-hall",
+      "audience": "business",
+      "order": 46,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "vintage-yardage",
+      "audience": "business",
+      "order": 47,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "quilt-lens",
+      "audience": "business",
+      "order": 48,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "lecture-circuit",
+      "audience": "business",
+      "order": 49,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "crib-studio",
+      "audience": "business",
+      "order": 50,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "show-crew",
+      "audience": "business",
+      "order": 51,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "quilt-documentation-days",
+      "audience": "guild",
+      "order": 52,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "quilt-film",
+      "audience": "both",
+      "order": 53,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "template-workshop",
+      "audience": "business",
+      "order": 54,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "quilt-truck",
+      "audience": "business",
+      "order": 55,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "quilting-academy",
+      "audience": "both",
+      "order": 56,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "quilt-author",
+      "audience": "business",
+      "order": 57,
+      "pages": 6,
+      "imagery": 2
+    },
+    {
+      "id": "quilt-photographer",
+      "audience": "business",
+      "order": 58,
+      "pages": 6,
+      "imagery": 2
+    },
+    {
+      "id": "guestbook-quilts",
+      "audience": "business",
+      "order": 59,
+      "pages": 6,
+      "imagery": 2
+    },
+    {
+      "id": "farm-batting-company",
+      "audience": "business",
+      "order": 60,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "quilt-frame-maker",
+      "audience": "business",
+      "order": 61,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "longarm-pantographs",
+      "audience": "business",
+      "order": 62,
+      "pages": 6,
+      "imagery": 2
+    },
+    {
+      "id": "wool-applique-circle",
+      "audience": "guild",
+      "order": 63,
+      "pages": 5,
+      "imagery": 1
+    },
+    {
+      "id": "quilt-cruise",
+      "audience": "business",
+      "order": 64,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "sewing-machine-hospital",
+      "audience": "business",
+      "order": 65,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "silent-bee",
+      "audience": "guild",
+      "order": 66,
+      "pages": 6,
+      "imagery": 2
+    },
+    {
+      "id": "postage-stamp",
+      "audience": "guild",
+      "order": 67,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "curve-table",
+      "audience": "guild",
+      "order": 68,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "two-color",
+      "audience": "guild",
+      "order": 69,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "postcard-post",
+      "audience": "guild",
+      "order": 70,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "diner-booth",
+      "audience": "guild",
+      "order": 71,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "tessellate",
+      "audience": "guild",
+      "order": 72,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "coat-guild",
+      "audience": "guild",
+      "order": 73,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "mystery-clue",
+      "audience": "guild",
+      "order": 74,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "observatory",
+      "audience": "guild",
+      "order": 75,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "pixel-loft",
+      "audience": "business",
+      "order": 76,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "atlas-quilt",
+      "audience": "business",
+      "order": 77,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "thread-room",
+      "audience": "business",
+      "order": 78,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "die-lab",
+      "audience": "business",
+      "order": 79,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "label-loom",
+      "audience": "business",
+      "order": 80,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "kennel-quilt",
+      "audience": "business",
+      "order": 81,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "house-block",
+      "audience": "business",
+      "order": 82,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "climate-vault",
+      "audience": "business",
+      "order": 83,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "notions-bar",
+      "audience": "business",
+      "order": 84,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "crate-route",
+      "audience": "business",
+      "order": 85,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "vintage-linen-studio",
+      "audience": "business",
+      "order": 86,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "pattern-library",
+      "audience": "both",
+      "order": 87,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "neighborhood-bees",
+      "audience": "guild",
+      "order": 88,
+      "pages": 5,
+      "imagery": 2
+    },
+    {
+      "id": "healing-stitches",
+      "audience": "both",
+      "order": 89,
+      "pages": 5,
+      "imagery": 2
+    },
+    {
+      "id": "guys-who-quilt",
+      "audience": "guild",
+      "order": 90,
+      "pages": 5,
+      "imagery": 1
+    },
+    {
+      "id": "quilting-fellowship",
+      "audience": "guild",
+      "order": 91,
+      "pages": 5,
+      "imagery": 1
+    },
+    {
+      "id": "linen-journal",
+      "audience": "guild",
+      "order": 92,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "color-assembly",
+      "audience": "guild",
+      "order": 93,
+      "pages": 5,
+      "imagery": 1
+    },
+    {
+      "id": "indigo-house",
+      "audience": "both",
+      "order": 94,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "weekend-house",
+      "audience": "both",
+      "order": 95,
+      "pages": 6,
+      "imagery": 1
+    },
+    {
+      "id": "paper-pieces",
+      "audience": "both",
+      "order": 96,
+      "pages": 5,
+      "imagery": 1
+    },
+    {
+      "id": "blackbird-studio",
+      "audience": "both",
+      "order": 97,
+      "pages": 5,
+      "imagery": 1
+    },
+    {
+      "id": "blue-ridge-circle",
+      "audience": "both",
+      "order": 98,
+      "pages": 5,
+      "imagery": 1
+    },
+    {
+      "id": "sunroom-society",
+      "audience": "both",
+      "order": 99,
+      "pages": 5,
+      "imagery": 1
+    },
+    {
+      "id": "redwork-archive",
+      "audience": "both",
+      "order": 100,
+      "pages": 5,
+      "imagery": 1
+    },
+    {
+      "id": "quilt-show-edition",
+      "audience": "both",
+      "order": 101,
+      "pages": 5,
+      "imagery": 1
+    },
+    {
+      "id": "mending-circle",
+      "audience": "both",
+      "order": 102,
+      "pages": 5,
+      "imagery": 1
+    },
+    {
+      "id": "pattern-house",
+      "audience": "both",
+      "order": 103,
+      "pages": 5,
+      "imagery": 1
+    },
+    {
+      "id": "night-bloom",
+      "audience": "both",
+      "order": 104,
+      "pages": 5,
+      "imagery": 1
+    },
+    {
+      "id": "lake-effect",
+      "audience": "both",
+      "order": 105,
+      "pages": 5,
+      "imagery": 1
+    },
+    {
+      "id": "citrus-press",
+      "audience": "both",
+      "order": 106,
+      "pages": 5,
+      "imagery": 1
+    },
+    {
+      "id": "quilt-camp",
+      "audience": "both",
+      "order": 107,
+      "pages": 5,
+      "imagery": 1
+    },
+    {
+      "id": "modern-heirloom",
+      "audience": "both",
+      "order": 108,
+      "pages": 5,
+      "imagery": 1
+    },
+    {
+      "id": "selvage-club",
+      "audience": "both",
+      "order": 109,
+      "pages": 5,
+      "imagery": 1
+    },
+    {
+      "id": "needle-and-pine",
+      "audience": "both",
+      "order": 110,
+      "pages": 5,
+      "imagery": 1
+    },
+    {
+      "id": "studio-grid",
+      "audience": "both",
+      "order": 111,
+      "pages": 5,
+      "imagery": 1
+    },
+    {
+      "id": "story-cloth",
+      "audience": "both",
+      "order": 112,
+      "pages": 5,
+      "imagery": 1
+    },
+    {
+      "id": "holiday-house",
+      "audience": "both",
+      "order": 113,
+      "pages": 5,
+      "imagery": 1
+    }
+  ]
+}

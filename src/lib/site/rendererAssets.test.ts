@@ -37,6 +37,7 @@ function referencedAssets(src: string): string[] {
 describe("every file a rendered page fetches is served, not routed", () => {
   const sources: [string, string][] = [
     ["public/qh-site.js", read("public/qh-site.js")],
+    ["public/qh-signature.js", read("public/qh-signature.js")],
     ["public/qh-cal.js", read("public/qh-cal.js")],
     ["src/lib/site/render.ts", read("src/lib/site/render.ts")],
   ];

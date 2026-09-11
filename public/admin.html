@@ -5321,10 +5321,10 @@
     }
 
     /**
-     * The thumbnail as a button that opens the full-size preview. `params` is
-     * the query for GET /design-preview (kit / palette / ground / typePair).
+     * The thumbnail as a button that opens the full-size preview. `request`
+     * is either a preview body or a function that returns one at click time.
      */
-    function qhDesignThumbButton(roles, opts, params, onUse) {
+    function qhDesignThumbButton(roles, opts, request, onUse) {
       const wrap = document.createElement("span");
       wrap.className = "qh-thumb-wrap";
       const btn = document.createElement("button");
@@ -5335,7 +5335,7 @@
       btn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        qhDesignPreview(params, opts.label || "Preview", onUse);
+        qhDesignPreview(typeof request === "function" ? request() : request, opts.label || "Preview", onUse);
       });
       wrap.appendChild(btn);
       const zoom = document.createElement("span");
@@ -5353,7 +5353,7 @@
      * frame as srcdoc — same origin, so its /qh-site.css and /qh-site.js still
      * resolve.
      */
-    async function qhDesignPreview(params, label, onUse) {
+    async function qhDesignPreview(request, label, onUse) {
       let dlg = document.getElementById("qh-preview-dlg");
       if (!dlg) {
         dlg = document.createElement("dialog");
@@ -5404,13 +5404,12 @@
       dlg.showModal();
       close.focus();
 
-      const qs = Object.keys(params || {})
-        .filter((k) => params[k])
-        .map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
-        .join("&");
       try {
-        const res = await fetch(`${API}/api/tenants/${tenantId}/design-preview${qs ? "?" + qs : ""}`, {
-          headers: { Authorization: `Bearer ${token}` },
+        if (!request) throw new Error("Create a page before previewing this design on your own content.");
+        const res = await fetch(`${API}/api/tenants/${tenantId}/design-preview`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify(request || {}),
         });
         if (!res.ok) {
           let msg = `Preview failed (${res.status})`;
@@ -5418,7 +5417,9 @@
           throw new Error(msg);
         }
         frame.srcdoc = await res.text();
-        note.textContent = "A sample page in this design, with your guild's name and events.";
+        note.textContent = request && request.mode === "example"
+          ? "Example content composed for this design."
+          : `Your ${res.headers.get("X-Preview-Source") || "current"} page content in this design.`;
       } catch (e) {
         note.textContent = e.message;
         note.className = "error";
@@ -5547,17 +5548,39 @@
       }
 
       // ---- Browse designs (kits) ----
-      const kits = (options.kits || []).filter((k) => k.audience === "both" || k.audience === (isGuild ? "guild" : "business"));
+      const kits = (options.kits || [])
+        .filter((k) => k.audience === "both" || k.audience === (isGuild ? "guild" : "business"))
+        .sort((a, b) => ((a.catalog && a.catalog.order) || 9999) - ((b.catalog && b.catalog.order) || 9999));
+      const previewPage = () => {
+        const pages = (typeof WB !== "undefined" && Array.isArray(WB.pages)) ? WB.pages : [];
+        return pages.find((p) => p.slug === "home") || pages[0] || null;
+      };
+      const currentPreview = (nextDesign) => {
+        const page = previewPage();
+        if (!page) return null;
+        return {
+          mode: "current",
+          pageId: page.id,
+          source: page.has_draft ? "draft" : "published",
+          design: clone(nextDesign || design),
+        };
+      };
       if (kits.length) {
         const kitSec = section("Browse designs", "A design sets the colors, fonts, shape and layout in one go. Your pages and every word on them are kept.");
         const strip = mk("div", "wb-presets");
+        const hiddenKits = [];
         kits.forEach((k) => {
           const card = mk("div", "wb-preset qh-kit");
+          if (!k.catalog || k.catalog.collection !== "featured") {
+            card.hidden = true;
+            hiddenKits.push(card);
+          }
           const applyKit = () => {
             Object.assign(design, clone(k.design));
             refresh();
             save(k.id);
           };
+          const reviewKit = () => qhDesignPreview(currentPreview(k.design), `${k.name} on your current page`, applyKit);
           // A name and four swatches do not say what a design looks like. The
           // card shows a painted miniature of the page, and clicking it opens
           // the real renderer's output full size.
@@ -5569,8 +5592,8 @@
               qhDesignThumbButton(
                 roles,
                 { name: displayName, title: k.name, label: k.name, radius: k.design.shape && k.design.shape.radius, displayStack: pair && pair.displayStack },
-                { kit: k.id },
-                applyKit
+                { mode: "example", kitId: k.id, design: clone(k.design) },
+                reviewKit
               )
             );
           }
@@ -5580,11 +5603,24 @@
           use.type = "button";
           use.setAttribute("data-write", "");
           use.setAttribute("aria-label", `Use the ${k.name} design`);
-          use.addEventListener("click", applyKit);
+          use.addEventListener("click", reviewKit);
           card.appendChild(use);
           strip.appendChild(card);
         });
         kitSec.appendChild(strip);
+        if (hiddenKits.length) {
+          const all = mk("button", "secondary", `Show all ${kits.length} designs`);
+          all.type = "button";
+          all.dataset.readonlyOk = "";
+          all.setAttribute("aria-expanded", "false");
+          all.addEventListener("click", () => {
+            const show = all.getAttribute("aria-expanded") !== "true";
+            hiddenKits.forEach((card) => { card.hidden = !show; });
+            all.setAttribute("aria-expanded", String(show));
+            all.textContent = show ? "Show featured designs" : `Show all ${kits.length} designs`;
+          });
+          kitSec.appendChild(all);
+        }
       }
 
       // ---- Colors ----
@@ -5609,7 +5645,7 @@
             qhDesignThumbButton(
               p.roles,
               { name: displayName, title: p.name, label: p.name, radius: design.shape && design.shape.radius, displayStack: (pairById(design.typePair) || {}).displayStack },
-              { palette: p.id },
+              () => currentPreview({ ...clone(design), palette: { id: p.id, input: { ...p.input }, ...(p.ground ? { ground: p.ground } : {}) } }),
               pick
             )
           );
@@ -5660,7 +5696,7 @@
       tonePreview.style.cssText = "padding:0.3rem 0.7rem;font-size:0.8rem";
       tonePreview.addEventListener("click", () =>
         qhDesignPreview(
-          { palette: design.palette.id || "", ground: currentGround(), typePair: design.typePair },
+          currentPreview(design),
           "Your site in this tone"
         )
       );
