@@ -95,6 +95,24 @@ export const SEAT_COUNT_SQL = `(
 )`;
 
 /**
+ * The same seat count, correlated to an outer `events` row aliased `e`,
+ * for the public read path: "3 spots left" has to agree with what the
+ * conditional INSERT in POST /register will actually allow, so both sides
+ * count a seat the same way — confirmed, checked in, or holding an unexpired
+ * payment hold. seatCount.test.ts fails if the two expressions drift.
+ *
+ * Binds: nowIso (one, wherever this lands in the statement's bind order).
+ */
+export const SEAT_COUNT_CORRELATED_SQL = `(
+  SELECT COUNT(*) FROM event_registrations
+  WHERE event_id = e.id AND tenant_id = e.tenant_id
+    AND (
+      status IN ('registered', 'checked_in')
+      OR (status = 'pending_payment' AND (hold_expires_at IS NULL OR hold_expires_at > ?))
+    )
+)`;
+
+/**
  * Conditional stock reservation: one statement per line, each succeeding
  * (meta.changes = 1) only if the product still has enough. Lines whose
  * product has NULL inventory (untracked) are skipped, so callers must treat

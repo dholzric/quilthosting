@@ -26,6 +26,13 @@ export type SiteEvent = {
   registration_open: number;
   capacity: number | null;
   /**
+   * Seats already taken: confirmed, checked in, or holding an unexpired
+   * payment hold — the same count POST /register enforces against, so
+   * "3 spots left" cannot promise a seat registration would refuse.
+   * Undefined when the loader did not ask for it.
+   */
+  seats_taken?: number;
+  /**
    * Number of volunteer sign-up slots on the event. Only the single-event
    * loader (`LoadOpts.eventId`) fills it in; list loads leave it undefined.
    * The event detail stack shows a Volunteer block when it is > 0.

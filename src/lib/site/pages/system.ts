@@ -371,7 +371,29 @@ function eventPage(ctx: SystemPageContext, ev: SiteEvent, timeZone: string): Sys
     style: style({ width: "narrow" }),
     id: "event-pricing",
   });
-  if (ev.registration_open) {
+  // Spots, between the price and the button, for the same reason What to
+  // bring sits above them: someone deciding whether to sign up should learn
+  // the class is nearly full — or already full — before they commit, not from
+  // a refusal after they have filled the form in. Capped events only.
+  const spotsLeft =
+    ev.capacity != null && ev.capacity > 0 && ev.seats_taken != null
+      ? Math.max(0, ev.capacity - ev.seats_taken)
+      : null;
+  if (spotsLeft != null) {
+    sections.push({
+      type: "rich_text",
+      variant: "prose",
+      html: sanitizeHtml(
+        spotsLeft === 0
+          ? `<p><strong>This event is full.</strong> All ${ev.capacity} spots are taken. ` +
+            `Contact the guild to ask about a waiting list.</p>`
+          : `<p><strong>${spotsLeft} of ${ev.capacity} spots left.</strong></p>`
+      ),
+      style: style({ width: "narrow", bg: spotsLeft === 0 ? "tint" : "none" }),
+      id: "event-spots",
+    });
+  }
+  if (ev.registration_open && spotsLeft !== 0) {
     // See the header comment: the register island binds [id^="register-"].
     sections.push(cta(`${REGISTER_CTA_ID_PREFIX}${ev.id}`, "Register", "#", "primary"));
   }

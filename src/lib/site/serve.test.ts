@@ -67,6 +67,8 @@ type State = {
   sql: string[];
   /** volunteer_slots rows per event id (COUNT(*) answers from here). */
   volunteerSlots?: Record<string, number>;
+  /** Seats already taken, by event id, for the capacity line. */
+  seatsTaken?: Record<string, number>;
   /** members rows for the public directory. */
   members?: { id: string; tenant_id: string; first_name: string | null; last_name: string | null; bio: string | null; photo_file_id: string | null; showcase_json: string | null }[];
 };
@@ -198,10 +200,16 @@ function makeDb(state: State): D1Database {
       return { results: [{ n: state.volunteerSlots?.[binds[1] as string] ?? 0 }] };
     }
     if (sql.includes("FROM events")) {
+      // The seat-count subselect sits in the SELECT list, so its nowIso bind
+      // comes before the WHERE clause's. Read the offset off the SQL rather
+      // than hardcoding it, or this fake silently answers the wrong event.
+      const o = sql.includes("FROM event_registrations") ? 1 : 0;
+      const seats = (rows: EventRow[]) =>
+        rows.map((e) => ({ ...e, seats_taken: state.seatsTaken?.[e.id] ?? 0 }));
       if (sql.includes("WHERE id = ?")) {
-        return { results: state.events.filter((e) => e.id === binds[0] && e.tenant_id === binds[1] && e.is_public === 1) };
+        return { results: seats(state.events.filter((e) => e.id === binds[o] && e.tenant_id === binds[o + 1] && e.is_public === 1)) };
       }
-      return { results: state.events.filter((e) => e.tenant_id === binds[0] && e.is_public === 1 && e.start_at >= new Date().toISOString()) };
+      return { results: seats(state.events.filter((e) => e.tenant_id === binds[o] && e.is_public === 1 && e.start_at >= new Date().toISOString())) };
     }
     // The photos-by-slug statement JOINs galleries; the galleries list only
     // references gallery_photos inside its subselects, so test the JOIN first.

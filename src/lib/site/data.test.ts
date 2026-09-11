@@ -197,7 +197,9 @@ describe("loadSiteData", () => {
       expect.stringContaining("FROM pages"),
       expect.stringContaining("FROM galleries g"),
     ]);
-    for (const s of batch) expect(s.binds[0]).toBe(TENANT_ID);
+    // Tenant-scoped, wherever the bind sits: the events statement leads with
+    // the seat-count subselect's nowIso.
+    for (const s of batch) expect(s.binds).toContain(TENANT_ID);
   });
 
   it("events are upcoming, public, ordered by start_at, with the limit from opts (default 12)", async () => {
@@ -207,11 +209,13 @@ describe("loadSiteData", () => {
     expect(sql).toContain("is_public = 1");
     expect(sql).toContain("start_at >= datetime('now')");
     expect(sql).toContain("ORDER BY start_at ASC");
-    expect(batches[0][0].binds).toEqual([TENANT_ID, 12]);
+    // Leading bind is the seat count's "now"; holds expire against it.
+    expect(batches[0][0].binds).toEqual([expect.any(String), TENANT_ID, 12]);
+    expect(Date.parse(batches[0][0].binds[0] as string)).not.toBeNaN();
 
     const second = fakeDb();
     await loadSiteData(second.env, tenant(), new Set<DataNeed>(["events"]), { limit: 3 });
-    expect(second.batches[0][0].binds).toEqual([TENANT_ID, 3]);
+    expect(second.batches[0][0].binds).toEqual([expect.any(String), TENANT_ID, 3]);
   });
 
   it("maps levels to the SiteLevel shape (renewal_type falls back to the schema default)", async () => {
@@ -413,7 +417,7 @@ describe("loadSiteData", () => {
 
   it("eventId: the events need becomes ONE event by id plus its volunteer slot count, still in one batch", async () => {
     const { env, batches } = fakeDb({
-      "FROM events WHERE id = ?": [
+      "FROM events e WHERE id = ?": [
         {
           id: "ev-1",
           title: "Show setup",
@@ -433,8 +437,9 @@ describe("loadSiteData", () => {
     const data = await loadSiteData(env, tenant(), new Set<DataNeed>(["events"]), { eventId: "ev-1" });
     expect(batches).toHaveLength(1);
     expect(batches[0]).toHaveLength(2);
-    expect(batches[0][0].sql.replace(/\s+/g, " ")).toContain("FROM events WHERE id = ? AND tenant_id = ? AND is_public = 1");
-    expect(batches[0][0].binds).toEqual(["ev-1", TENANT_ID]);
+    expect(batches[0][0].sql.replace(/\s+/g, " ")).toContain("FROM events e WHERE id = ? AND tenant_id = ? AND is_public = 1");
+    // nowIso first: the seat-count subselect sits in the SELECT list.
+    expect(batches[0][0].binds).toEqual([expect.any(String), "ev-1", TENANT_ID]);
     expect(batches[0][1].sql).toContain("FROM volunteer_slots");
     expect(batches[0][1].binds).toEqual([TENANT_ID, "ev-1"]);
     expect(data.events).toHaveLength(1);

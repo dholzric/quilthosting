@@ -74,6 +74,7 @@ export const fixtureData: SiteData = {
       non_member_price_cents: 6500,
       registration_open: 1,
       capacity: 16,
+      seats_taken: 14,
     },
     {
       id: "ev_fall_retreat",
@@ -86,6 +87,7 @@ export const fixtureData: SiteData = {
       non_member_price_cents: 32500,
       registration_open: 1,
       capacity: 40,
+      seats_taken: 31,
     },
   ],
   products: [

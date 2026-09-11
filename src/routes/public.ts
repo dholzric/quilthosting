@@ -12,6 +12,7 @@ import {
 import { extractBearer, verifyJwt } from "../lib/auth";
 import {
   SEAT_COUNT_SQL,
+  SEAT_COUNT_CORRELATED_SQL,
   buildReleaseSeatStatement,
   buildReserveStockStatements,
   buildReleaseOrderStatements,
@@ -616,31 +617,34 @@ export function eventsStatement(
   tenantId: string,
   opts: { month?: string; limit?: number } = {}
 ): D1PreparedStatement {
+  // Both shapes carry a live seat count, so a listing can say how many spots
+  // are left. Holds expire against this instant.
+  const nowIso = new Date().toISOString();
   if (opts.month) {
     return db
       .prepare(
         `SELECT id, title, description, location, start_at, end_at,
                 member_price_cents, non_member_price_cents, capacity, registration_open,
-                settings_json
-         FROM events
+                settings_json, ${SEAT_COUNT_CORRELATED_SQL} AS seats_taken
+         FROM events e
          WHERE tenant_id = ? AND is_public = 1
            AND substr(start_at, 1, 7) = ?
          ORDER BY start_at ASC
          LIMIT 200`
       )
-      .bind(tenantId, opts.month);
+      .bind(nowIso, tenantId, opts.month);
   }
   return db
     .prepare(
       `SELECT id, title, description, location, start_at, end_at,
               member_price_cents, non_member_price_cents, capacity, registration_open,
-              settings_json
-       FROM events
+              settings_json, ${SEAT_COUNT_CORRELATED_SQL} AS seats_taken
+       FROM events e
        WHERE tenant_id = ? AND is_public = 1 AND start_at >= datetime('now')
        ORDER BY start_at ASC
        LIMIT ?`
     )
-    .bind(tenantId, opts.limit ?? 50);
+    .bind(nowIso, tenantId, opts.limit ?? 50);
 }
 
 /** ?month=YYYY-MM returns that whole month (calendar views); default is "next 50 upcoming". */

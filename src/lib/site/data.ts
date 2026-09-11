@@ -24,6 +24,7 @@ import {
   galleriesStatement,
   galleryStatement,
 } from "../../routes/public";
+import { SEAT_COUNT_CORRELATED_SQL } from "../fulfillment";
 import type { Section } from "./sections/schema";
 // What to bring lives in events.settings_json alongside the questions.
 import { normalizeBring, parseEventSettings } from "../eventQuestions";
@@ -145,10 +146,10 @@ function eventByIdStatement(db: D1Database, tenantId: string, eventId: string): 
     .prepare(
       `SELECT id, title, description, location, start_at, end_at,
               member_price_cents, non_member_price_cents, capacity, registration_open,
-              settings_json
-       FROM events WHERE id = ? AND tenant_id = ? AND is_public = 1`
+              settings_json, ${SEAT_COUNT_CORRELATED_SQL} AS seats_taken
+       FROM events e WHERE id = ? AND tenant_id = ? AND is_public = 1`
     )
-    .bind(eventId, tenantId);
+    .bind(new Date().toISOString(), eventId, tenantId);
 }
 
 /** How many volunteer sign-up slots an event has (migrations/0012, `volunteer_slots`). */
@@ -362,6 +363,7 @@ function toEvent(r: EventRow): SiteEvent {
     non_member_price_cents: Number(r.non_member_price_cents) || 0,
     registration_open: Number(r.registration_open) || 0,
     capacity: r.capacity == null ? null : Number(r.capacity),
+    seats_taken: r.seats_taken == null ? undefined : Number(r.seats_taken),
     // What to bring, for a class or a workshop (events.settings_json.bring).
     bring: normalizeBring(parseEventSettings(r.settings_json).bring),
   };

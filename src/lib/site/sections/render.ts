@@ -567,6 +567,42 @@ function summarize(text: string | null | undefined, max: number): string {
   return `${(lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).replace(/[,;:.\s]+$/, "")}…`;
 }
 
+/**
+ * Spots on a capped event. Guilds cap classes and retreats, and until now the
+ * cap was invisible: the site showed a Register button on a full event and the
+ * member found out only when the conditional INSERT refused the seat. `taken`
+ * is the same count POST /register enforces against (SEAT_COUNT_CORRELATED_SQL),
+ * so the number here cannot promise a seat registration would turn down.
+ *
+ * Events with no capacity are unlimited and say nothing at all.
+ */
+function capacity(ev: SiteEvent): { note: string; left: number; full: boolean } | null {
+  if (ev.capacity == null || !(ev.capacity > 0) || ev.seats_taken == null) return null;
+  const left = Math.max(0, ev.capacity - ev.seats_taken);
+  if (left <= 0) return { note: `Full — ${ev.capacity} spots`, left: 0, full: true };
+  // Both numbers, because "8 left" alone does not say how big the room is.
+  return { note: `${left} of ${ev.capacity} spots left`, left, full: false };
+}
+
+/** The spots line, emphasised once it is nearly gone. */
+function capacityNote(ev: SiteEvent): string {
+  const cap = capacity(ev);
+  if (!cap) return "";
+  const mod = cap.full ? " qh-event__spots--full" : cap.left <= 3 ? " qh-event__spots--low" : "";
+  return `<p class="qh-event__spots${mod}">${esc(cap.note)}</p>`;
+}
+
+/**
+ * Register, or the reason there is no Register. A full event keeps the
+ * Details link so the page still tells you what you missed.
+ */
+function registerBtn(ev: SiteEvent): string {
+  if (!ev.registration_open) return "";
+  const cap = capacity(ev);
+  if (cap?.full) return `<span class="qh-badge qh-badge--full">Full</span>`;
+  return btn("primary", "Register", `data-register="${esc(ev.id)}"`);
+}
+
 function eventArticle(ev: SiteEvent, ctx: RenderContext, layout: "cards" | "list" | "next_up"): string {
   const url = internal(`/events/${encodeURIComponent(ev.id)}`, ctx);
   const date = `<p class="qh-event__date"><time datetime="${esc(ev.start_at)}">${esc(formatEventDate(ev.start_at, ctx.timeZone))}</time></p>`;
@@ -578,10 +614,11 @@ function eventArticle(ev: SiteEvent, ctx: RenderContext, layout: "cards" | "list
   const body =
     `<h3 class="qh-event__title"><a href="${url}">${esc(ev.title)}</a></h3>` +
     (blurb ? `<p class="qh-event__blurb">${esc(blurb)}</p>` : "") +
-    `<p class="qh-event__meta">${meta}</p>`;
+    `<p class="qh-event__meta">${meta}</p>` +
+    capacityNote(ev);
   const actions =
     `<div class="qh-event__actions"><a class="qh-btn qh-btn--ghost" href="${url}">Details</a>` +
-    (ev.registration_open ? btn("primary", "Register", `data-register="${esc(ev.id)}"`) : "") +
+    registerBtn(ev) +
     `</div>`;
   if (layout === "list") return `<article class="qh-event">${date}<div class="qh-event__body">${body}</div>${actions}</article>`;
   return `<article class="qh-event">${date}<div class="qh-event__body">${body}${actions}</div></article>`;
@@ -851,9 +888,10 @@ function renderSpotlight(s: Sec<"event_spotlight">, ctx: RenderContext): string 
     `<p class="qh-event__date"><time datetime="${esc(ev.start_at)}">${esc(formatEventDate(ev.start_at, ctx.timeZone))}</time></p>` +
     `<h3 class="qh-spotlight__title"><a href="${url}">${esc(ev.title)}</a></h3>` +
     `<p class="qh-event__meta">${meta}</p>` +
+    capacityNote(ev) +
     (ev.description ? `<p class="qh-spotlight__body">${esc(ev.description)}</p>` : "") +
     `<div class="qh-event__actions"><a class="qh-btn qh-btn--secondary" href="${url}">Details</a>` +
-    (ev.registration_open ? btn("primary", "Register", `data-register="${esc(ev.id)}"`) : "") +
+    registerBtn(ev) +
     `</div></article>`;
   return wrap(s, inner, { extraClass: "qh-spotlight", ctx });
 }
