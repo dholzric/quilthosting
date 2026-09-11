@@ -1,0 +1,426 @@
+{
+  "id": "sunroom-society",
+  "name": "Sunroom Society",
+  "audience": "both",
+  "character": "A bright social sewing template in tangerine, raspberry, lilac, and sky, with confident type and playful geometric rhythm.",
+  "defaults": {
+    "palette": "signature-sunroom",
+    "typePair": "manrope",
+    "scale": "editorial",
+    "shape": {
+      "radius": "round",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "churn-dash",
+      "opacity": 0.08
+    }
+  },
+  "previewSeed": {
+    "guildName": "Sunroom Sewing Society",
+    "city": "Austin, Texas"
+  },
+  "menu": [
+    {
+      "label": "Who we are",
+      "href": "/who-we-are"
+    },
+    {
+      "label": "Sew with us",
+      "href": "/sew-with-us"
+    },
+    {
+      "label": "Color notes",
+      "href": "/color-notes"
+    },
+    {
+      "label": "What’s on",
+      "href": "/events"
+    },
+    {
+      "label": "Hello",
+      "href": "/contact"
+    }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Sewing in full color",
+          "title": "Bring the bright fabric.",
+          "subtitle": "A social sewing club for first quilts, loud palettes, useful mistakes, and Saturdays that disappear at the machine.",
+          "ctaLabel": "Find your place",
+          "ctaHref": "/membership",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Illustrative textile artwork for Sunroom Society.",
+              "caption": "Illustrative starter artwork. Replace with photography from your own organization."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "home-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Choose your way in.",
+          "items": [
+            {
+              "title": "First-quilt friendly",
+              "body": "Nobody arrives knowing how to square a block. Ask the question.",
+              "href": "/sew-with-us"
+            },
+            {
+              "title": "Color without apology",
+              "body": "Neon beside brown. Floral beside stripe. The test is whether it makes you look twice.",
+              "href": "/color-notes"
+            },
+            {
+              "title": "A room with momentum",
+              "body": "A shared table turns the project you avoid into the one you finish.",
+              "href": "/events"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Color changes when it has company.",
+          "html": "<p>Introduce the people who host your group, how new visitors are welcomed, and why a relaxed room still makes ambitious work possible.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "home-4"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace this copy with your real meeting details, policies, and current work. Replace the illustrative image with your own credited photography.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "home-5"
+        },
+        {
+          "type": "events",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-6"
+        }
+      ]
+    },
+    {
+      "slug": "who-we-are",
+      "title": "Who we are",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Who we are",
+          "title": "Serious about making. Easy about everything else.",
+          "subtitle": "Introduce the people who host your group, how new visitors are welcomed, and why a relaxed room still makes ambitious work possible.",
+          "ctaLabel": "See upcoming dates",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "who-we-are-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Tell the true beginning",
+          "html": "<p><em>Sample text — replace me:</em> Introduce the people who host your group, how new visitors are welcomed, and why a relaxed room still makes ambitious work possible.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "who-we-are-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "What holds the work together",
+          "items": [
+            {
+              "title": "First-quilt friendly",
+              "body": "Nobody arrives knowing how to square a block. Ask the question.",
+              "href": "/sew-with-us"
+            },
+            {
+              "title": "Color without apology",
+              "body": "Neon beside brown. Floral beside stripe. The test is whether it makes you look twice.",
+              "href": "/color-notes"
+            },
+            {
+              "title": "A room with momentum",
+              "body": "A shared table turns the project you avoid into the one you finish.",
+              "href": "/events"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "who-we-are-3"
+        },
+        {
+          "type": "cta",
+          "label": "See what is coming up",
+          "href": "/events",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "who-we-are-4"
+        }
+      ]
+    },
+    {
+      "slug": "sew-with-us",
+      "title": "Sew with us",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Sew with us",
+          "title": "Pack one project. Leave with momentum.",
+          "subtitle": "Explain the machines, tools, tables, power, ironing stations, and help available at your regular sew days.",
+          "ctaLabel": "Get involved",
+          "ctaHref": "/membership",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "sew-with-us-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Illustrative detail for Sunroom Society; replace with your own work.",
+              "caption": "Illustrative starter artwork. Replace with photography from your own organization."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "sew-with-us-2"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Show the work with context",
+          "html": "<p><em>Sample text — replace me:</em> Explain the machines, tools, tables, power, ironing stations, and help available at your regular sew days. Credit makers, designers, quilters, teachers, and photographers.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "sew-with-us-3"
+        },
+        {
+          "type": "cta",
+          "label": "Ask a practical question",
+          "href": "/contact",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "sew-with-us-4"
+        }
+      ]
+    },
+    {
+      "slug": "color-notes",
+      "title": "Color notes",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Color notes",
+          "title": "Try the combination you nearly put back.",
+          "subtitle": "Use this page for monthly palettes, block prompts, fabric swaps, and short lessons about value, scale, and contrast.",
+          "ctaLabel": "View the calendar",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "color-notes-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "What visitors need to know",
+          "html": "<p><em>Sample text — replace me:</em> Use this page for monthly palettes, block prompts, fabric swaps, and short lessons about value, scale, and contrast.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "color-notes-2"
+        },
+        {
+          "type": "faq",
+          "heading": "Good to know",
+          "items": [
+            {
+              "q": "May I visit before joining?",
+              "a": "Yes, when the event listing says guests are welcome. Contact the organization if you need venue or access details."
+            },
+            {
+              "q": "What should I bring?",
+              "a": "Each event should list tools, materials, equipment, and any preparation. When in doubt, ask before travelling."
+            },
+            {
+              "q": "How current is this information?",
+              "a": "Publish a review date and update this page whenever policies, prices, or locations change."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "color-notes-3"
+        },
+        {
+          "type": "cta",
+          "label": "See current dates",
+          "href": "/events",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "color-notes-4"
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Contact Sunroom Sewing Society",
+          "title": "Start with a note.",
+          "subtitle": "Ask about a first visit, a project, access, or the practical detail you need before deciding.",
+          "ctaLabel": "View events",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "contact-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add the right email, response time, venue details, and the name or role of the person who answers enquiries in Austin, Texas.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "contact-2"
+        },
+        {
+          "type": "contact",
+          "heading": "Send a note",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "contact-3"
+        }
+      ]
+    }
+  ],
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "photo",
+      "src": "public/kit-assets/sunroom-society/hero.webp",
+      "alt": "Original illustrative textile artwork for Sunroom Society"
+    }
+  ]
+}

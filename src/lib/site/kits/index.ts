@@ -104,6 +104,15 @@ import colorAssembly from "./color-assembly.json";
 import indigoHouse from "./indigo-house.json";
 import weekendHouse from "./weekend-house.json";
 
+import paperPieces from "./paper-pieces.json";
+import blackbirdStudio from "./blackbird-studio.json";
+import blueRidgeCircle from "./blue-ridge-circle.json";
+import sunroomSociety from "./sunroom-society.json";
+import redworkArchive from "./redwork-archive.json";
+import quiltShowEdition from "./quilt-show-edition.json";
+import mendingCircle from "./mending-circle.json";
+import patternHouse from "./pattern-house.json";
+
 export type { Kit, KitDefaults, KitImage, KitIssue, KitPage, SiteMenuItem } from "./schema";
 export { kitSchema, validateKit, KIT_SYSTEM_PATHS, SAMPLE_MARKER } from "./schema";
 export type { KitTenant, KitVars, PageInsert } from "./apply";
@@ -215,6 +224,14 @@ export const KITS: Kit[] = [
   colorAssembly,
   indigoHouse,
   weekendHouse,
+  paperPieces,
+  blackbirdStudio,
+  blueRidgeCircle,
+  sunroomSociety,
+  redworkArchive,
+  quiltShowEdition,
+  mendingCircle,
+  patternHouse,
 ].map((raw) => kitSchema.parse(raw));
 
 const BY_ID = new Map(KITS.map((k) => [k.id, k]));

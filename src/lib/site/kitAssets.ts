@@ -21,4 +21,12 @@ export const KIT_ASSET_ALT: Readonly<Record<string, string>> = {
   "kit-asset:color-assembly/hero.webp": "A contemporary quilt of red, cobalt, butter yellow and pink geometric blocks on a gallery wall",
   "kit-asset:indigo-house/hero.webp": "Indigo and ivory patchwork with fine white running stitches, folded on a dark wooden workbench",
   "kit-asset:weekend-house/hero.webp": "A sunlit farmhouse sewing room with a communal oak table and terracotta and sage patchwork quilt",
+  "kit-asset:paper-pieces/hero.webp": "Mulberry, rose, indigo and cream English paper-pieced rosettes in progress on a pale wood table",
+  "kit-asset:blackbird-studio/hero.webp": "A monumental black and bone improvisational quilt with one acid-yellow line in a charcoal gallery",
+  "kit-asset:blue-ridge-circle/hero.webp": "A blue and cream flying-geese quilt draped over a porch rail before misty mountain ridges",
+  "kit-asset:sunroom-society/hero.webp": "A bright orange, pink, lilac and blue patchwork quilt spread across a sunroom table",
+  "kit-asset:redwork-archive/hero.webp": "A white quilt with intricate red embroidered medallions on a textile conservation table",
+  "kit-asset:quilt-show-edition/hero.webp": "Large colorful quilts suspended in a bright industrial exhibition gallery",
+  "kit-asset:mending-circle/hero.webp": "Several pairs of hands tying and stitching a denim, rust and mustard charity quilt together",
+  "kit-asset:pattern-house/hero.webp": "A modern geometric quilt beside pattern diagrams, a ruler and coordinated fabric swatches",
 };

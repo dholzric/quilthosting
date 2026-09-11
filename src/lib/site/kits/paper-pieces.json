@@ -1,0 +1,428 @@
+{
+  "id": "paper-pieces",
+  "name": "Paper Pieces",
+  "audience": "both",
+  "character": "A quiet EPP salon in mulberry and parchment, built around small pieces, close looking, and work that travels in a pocket.",
+  "defaults": {
+    "palette": "signature-mulberry-paper",
+    "typePair": "newsreader-ibmplexsans",
+    "scale": "editorial",
+    "shape": {
+      "radius": "soft",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "centered",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "nine-patch",
+      "opacity": 0.08
+    }
+  },
+  "previewSeed": {
+    "guildName": "The Paper Parlour",
+    "city": "Savannah, Georgia"
+  },
+  "menu": [
+    {
+      "label": "The circle",
+      "href": "/the-circle"
+    },
+    {
+      "label": "At the table",
+      "href": "/at-the-table"
+    },
+    {
+      "label": "Field notes",
+      "href": "/field-notes"
+    },
+    {
+      "label": "Gatherings",
+      "href": "/events"
+    },
+    {
+      "label": "Write to us",
+      "href": "/contact"
+    }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "split",
+          "eyebrow": "English paper piecing in {{city}}",
+          "title": "Small pieces. Long conversations.",
+          "subtitle": "An English paper piecing circle for precise hands, portable projects, and evenings around one generous table.",
+          "ctaLabel": "Find your place",
+          "ctaHref": "/membership",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy",
+            "imageId": "hero-art",
+            "layout": "asym"
+          },
+          "id": "home-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Illustrative textile artwork for Paper Pieces.",
+              "caption": "Illustrative starter artwork. Replace with photography from your own organization."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "home-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "A good place to begin.",
+          "items": [
+            {
+              "title": "A pocket-sized beginning",
+              "body": "A needle, thread, and a handful of prepared pieces are enough to start.",
+              "href": "/at-the-table"
+            },
+            {
+              "title": "Pattern in the details",
+              "body": "Fussy cutting turns one printed motif into a new repeating rhythm.",
+              "href": "/field-notes"
+            },
+            {
+              "title": "Company for the long seam",
+              "body": "Bring the project that has been waiting. Nobody minds how long it takes.",
+              "href": "/events"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "A small piece can hold a whole afternoon.",
+          "html": "<p>We gather around the quiet logic of paper shapes: baste, join, press, repeat. Every rosette carries the memory of where it was sewn.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "home-4"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace this copy with your real meeting details, policies, and current work. Replace the illustrative image with your own credited photography.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "home-5"
+        },
+        {
+          "type": "events",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-6"
+        }
+      ]
+    },
+    {
+      "slug": "the-circle",
+      "title": "The circle",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "The circle",
+          "title": "A practice measured in inches, not urgency.",
+          "subtitle": "We gather around the quiet logic of paper shapes: baste, join, press, repeat. Every rosette carries the memory of where it was sewn.",
+          "ctaLabel": "See upcoming dates",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "the-circle-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Tell the true beginning",
+          "html": "<p><em>Sample text — replace me:</em> We gather around the quiet logic of paper shapes: baste, join, press, repeat. Every rosette carries the memory of where it was sewn.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "the-circle-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "What holds the work together",
+          "items": [
+            {
+              "title": "A pocket-sized beginning",
+              "body": "A needle, thread, and a handful of prepared pieces are enough to start.",
+              "href": "/at-the-table"
+            },
+            {
+              "title": "Pattern in the details",
+              "body": "Fussy cutting turns one printed motif into a new repeating rhythm.",
+              "href": "/field-notes"
+            },
+            {
+              "title": "Company for the long seam",
+              "body": "Bring the project that has been waiting. Nobody minds how long it takes.",
+              "href": "/events"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "the-circle-3"
+        },
+        {
+          "type": "cta",
+          "label": "See what is coming up",
+          "href": "/events",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "the-circle-4"
+        }
+      ]
+    },
+    {
+      "slug": "at-the-table",
+      "title": "At the table",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "At the table",
+          "title": "A place for the fussy cut and the first hexagon.",
+          "subtitle": "Bring the tin that holds your pieces. We trade templates, compare threads, and help new hands find a stitch that disappears.",
+          "ctaLabel": "Get involved",
+          "ctaHref": "/membership",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "at-the-table-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Illustrative detail for Paper Pieces; replace with your own work.",
+              "caption": "Illustrative starter artwork. Replace with photography from your own organization."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "at-the-table-2"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Show the work with context",
+          "html": "<p><em>Sample text — replace me:</em> Bring the tin that holds your pieces. We trade templates, compare threads, and help new hands find a stitch that disappears. Credit makers, designers, quilters, teachers, and photographers.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "at-the-table-3"
+        },
+        {
+          "type": "cta",
+          "label": "Ask a practical question",
+          "href": "/contact",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "at-the-table-4"
+        }
+      ]
+    },
+    {
+      "slug": "field-notes",
+      "title": "Field notes",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Field notes",
+          "title": "Notes for the next small piece.",
+          "subtitle": "Share a technique, a fabric source, or the story behind a long-running handwork project.",
+          "ctaLabel": "View the calendar",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "field-notes-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "What visitors need to know",
+          "html": "<p><em>Sample text — replace me:</em> Share a technique, a fabric source, or the story behind a long-running handwork project.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "field-notes-2"
+        },
+        {
+          "type": "faq",
+          "heading": "Good to know",
+          "items": [
+            {
+              "q": "May I visit before joining?",
+              "a": "Yes, when the event listing says guests are welcome. Contact the organization if you need venue or access details."
+            },
+            {
+              "q": "What should I bring?",
+              "a": "Each event should list tools, materials, equipment, and any preparation. When in doubt, ask before travelling."
+            },
+            {
+              "q": "How current is this information?",
+              "a": "Publish a review date and update this page whenever policies, prices, or locations change."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "field-notes-3"
+        },
+        {
+          "type": "cta",
+          "label": "See current dates",
+          "href": "/events",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "field-notes-4"
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Contact The Paper Parlour",
+          "title": "Start with a note.",
+          "subtitle": "Ask about a first visit, a project, access, or the practical detail you need before deciding.",
+          "ctaLabel": "View events",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "contact-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add the right email, response time, venue details, and the name or role of the person who answers enquiries in Savannah, Georgia.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "contact-2"
+        },
+        {
+          "type": "contact",
+          "heading": "Send a note",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "contact-3"
+        }
+      ]
+    }
+  ],
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "photo",
+      "src": "public/kit-assets/paper-pieces/hero.webp",
+      "alt": "Original illustrative textile artwork for Paper Pieces"
+    }
+  ]
+}

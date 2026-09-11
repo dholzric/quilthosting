@@ -1,0 +1,428 @@
+{
+  "id": "pattern-house",
+  "name": "Pattern House",
+  "audience": "both",
+  "character": "A graphic designer’s studio in forest, clay, pale blue, and parchment, balancing portfolio scale with a clear workshop and pattern path.",
+  "defaults": {
+    "palette": "signature-pattern-house",
+    "typePair": "dmserif-dmsans",
+    "scale": "editorial",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "split",
+      "sticky": true,
+      "cta": "none",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "none",
+      "opacity": 0.08
+    }
+  },
+  "previewSeed": {
+    "guildName": "Pattern House Studio",
+    "city": "Minneapolis, Minnesota"
+  },
+  "menu": [
+    {
+      "label": "Patterns",
+      "href": "/patterns"
+    },
+    {
+      "label": "Workshops",
+      "href": "/workshops"
+    },
+    {
+      "label": "The studio",
+      "href": "/the-studio"
+    },
+    {
+      "label": "Calendar",
+      "href": "/events"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "split",
+          "eyebrow": "Patterns from {{city}}",
+          "title": "A strong idea. Clear instructions. Your hands.",
+          "subtitle": "Independent quilt patterns and workshops built to make ambitious geometry feel possible.",
+          "ctaLabel": "Explore patterns",
+          "ctaHref": "/patterns",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy",
+            "imageId": "hero-art",
+            "layout": "asym"
+          },
+          "id": "home-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Illustrative textile artwork for Pattern House.",
+              "caption": "Illustrative starter artwork. Replace with photography from your own organization."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "home-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "From page to finished quilt.",
+          "items": [
+            {
+              "title": "Patterns with a point of view",
+              "body": "Distinct geometry, tested instructions, and room for a maker’s own color decisions.",
+              "href": "/patterns"
+            },
+            {
+              "title": "Workshops that move",
+              "body": "Technique in service of an idea, with enough time to understand the why.",
+              "href": "/workshops"
+            },
+            {
+              "title": "A useful studio practice",
+              "body": "Testing, editing, credits, and corrections treated as part of the design.",
+              "href": "/the-studio"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "A pattern should leave room for the maker.",
+          "html": "<p>Introduce your design practice, testing process, technical editing, skill-level language, accessibility choices, and the ideas behind the collection.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "home-4"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace this copy with your real meeting details, policies, and current work. Replace the illustrative image with your own credited photography.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "home-5"
+        },
+        {
+          "type": "events",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-6"
+        }
+      ]
+    },
+    {
+      "slug": "the-studio",
+      "title": "The studio",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "The studio",
+          "title": "Design that respects the person making it.",
+          "subtitle": "Introduce your design practice, testing process, technical editing, skill-level language, accessibility choices, and the ideas behind the collection.",
+          "ctaLabel": "See upcoming dates",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "the-studio-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Tell the true beginning",
+          "html": "<p><em>Sample text — replace me:</em> Introduce your design practice, testing process, technical editing, skill-level language, accessibility choices, and the ideas behind the collection.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "the-studio-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "What holds the work together",
+          "items": [
+            {
+              "title": "Patterns with a point of view",
+              "body": "Distinct geometry, tested instructions, and room for a maker’s own color decisions.",
+              "href": "/patterns"
+            },
+            {
+              "title": "Workshops that move",
+              "body": "Technique in service of an idea, with enough time to understand the why.",
+              "href": "/workshops"
+            },
+            {
+              "title": "A useful studio practice",
+              "body": "Testing, editing, credits, and corrections treated as part of the design.",
+              "href": "/the-studio"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "the-studio-3"
+        },
+        {
+          "type": "cta",
+          "label": "See what is coming up",
+          "href": "/events",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "the-studio-4"
+        }
+      ]
+    },
+    {
+      "slug": "patterns",
+      "title": "Patterns",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Patterns",
+          "title": "Choose the shape that keeps calling you back.",
+          "subtitle": "Present pattern collections with finished dimensions, skill level, techniques, fabric requirements, formats, and links to the actual store.",
+          "ctaLabel": "Get involved",
+          "ctaHref": "/contact",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "patterns-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Illustrative detail for Pattern House; replace with your own work.",
+              "caption": "Illustrative starter artwork. Replace with photography from your own organization."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "patterns-2"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Show the work with context",
+          "html": "<p><em>Sample text — replace me:</em> Present pattern collections with finished dimensions, skill level, techniques, fabric requirements, formats, and links to the actual store. Credit makers, designers, quilters, teachers, and photographers.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "patterns-3"
+        },
+        {
+          "type": "cta",
+          "label": "Ask a practical question",
+          "href": "/contact",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "patterns-4"
+        }
+      ]
+    },
+    {
+      "slug": "workshops",
+      "title": "Workshops",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Workshops",
+          "title": "A class should unlock the next decision.",
+          "subtitle": "Describe available lectures and workshops, duration, group size, equipment, supply list, teaching fee, travel terms, and booking process.",
+          "ctaLabel": "View the calendar",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "workshops-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "What visitors need to know",
+          "html": "<p><em>Sample text — replace me:</em> Describe available lectures and workshops, duration, group size, equipment, supply list, teaching fee, travel terms, and booking process.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "workshops-2"
+        },
+        {
+          "type": "faq",
+          "heading": "Good to know",
+          "items": [
+            {
+              "q": "May I visit before joining?",
+              "a": "Yes, when the event listing says guests are welcome. Contact the organization if you need venue or access details."
+            },
+            {
+              "q": "What should I bring?",
+              "a": "Each event should list tools, materials, equipment, and any preparation. When in doubt, ask before travelling."
+            },
+            {
+              "q": "How current is this information?",
+              "a": "Publish a review date and update this page whenever policies, prices, or locations change."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "workshops-3"
+        },
+        {
+          "type": "cta",
+          "label": "See current dates",
+          "href": "/events",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "workshops-4"
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Contact Pattern House Studio",
+          "title": "Start with a note.",
+          "subtitle": "Ask about a first visit, a project, access, or the practical detail you need before deciding.",
+          "ctaLabel": "View events",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "contact-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add the right email, response time, venue details, and the name or role of the person who answers enquiries in Minneapolis, Minnesota.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "contact-2"
+        },
+        {
+          "type": "contact",
+          "heading": "Send a note",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "contact-3"
+        }
+      ]
+    }
+  ],
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "photo",
+      "src": "public/kit-assets/pattern-house/hero.webp",
+      "alt": "Original illustrative textile artwork for Pattern House"
+    }
+  ]
+}

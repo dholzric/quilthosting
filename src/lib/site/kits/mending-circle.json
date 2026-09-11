@@ -1,0 +1,428 @@
+{
+  "id": "mending-circle",
+  "name": "Mending Circle",
+  "audience": "both",
+  "character": "A humane service-guild template in softened denim, rust, mustard, and moss, centered on useful work and many ways to help.",
+  "defaults": {
+    "palette": "signature-mending",
+    "typePair": "bitter-opensans",
+    "scale": "editorial",
+    "shape": {
+      "radius": "soft",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "nine-patch",
+      "opacity": 0.08
+    }
+  },
+  "previewSeed": {
+    "guildName": "Mending Circle Quilters",
+    "city": "Cincinnati, Ohio"
+  },
+  "menu": [
+    {
+      "label": "Our work",
+      "href": "/our-work"
+    },
+    {
+      "label": "Ways to help",
+      "href": "/ways-to-help"
+    },
+    {
+      "label": "Request quilts",
+      "href": "/request-quilts"
+    },
+    {
+      "label": "Work days",
+      "href": "/events"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "split",
+          "eyebrow": "Quilts for neighbors in {{city}}",
+          "title": "Warmth is something we can make.",
+          "subtitle": "A community quilt circle turning spare fabric, shared hours, and steady hands into practical care.",
+          "ctaLabel": "Find your place",
+          "ctaHref": "/membership",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy",
+            "imageId": "hero-art",
+            "layout": "asym"
+          },
+          "id": "home-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Illustrative textile artwork for Mending Circle.",
+              "caption": "Illustrative starter artwork. Replace with photography from your own organization."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "home-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Many hands make the whole.",
+          "items": [
+            {
+              "title": "Cut an hour’s worth",
+              "body": "Prepare accurate pieces at home from the current project instructions.",
+              "href": "/ways-to-help"
+            },
+            {
+              "title": "Sew beside someone",
+              "body": "Work days pair new volunteers with people who know the project standards.",
+              "href": "/events"
+            },
+            {
+              "title": "Help finish the work",
+              "body": "Longarm time, binding, labels, laundry, and delivery matter as much as the first block.",
+              "href": "/ways-to-help"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Care needs a system as well as a heart.",
+          "html": "<p>Name the partner organizations, who selects recipients, what sizes and materials are needed, and how privacy and dignity guide the work.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "home-4"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace this copy with your real meeting details, policies, and current work. Replace the illustrative image with your own credited photography.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "home-5"
+        },
+        {
+          "type": "events",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-6"
+        }
+      ]
+    },
+    {
+      "slug": "our-work",
+      "title": "Our work",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Our work",
+          "title": "Useful quilts. Respectful giving.",
+          "subtitle": "Name the partner organizations, who selects recipients, what sizes and materials are needed, and how privacy and dignity guide the work.",
+          "ctaLabel": "See upcoming dates",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "our-work-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Tell the true beginning",
+          "html": "<p><em>Sample text — replace me:</em> Name the partner organizations, who selects recipients, what sizes and materials are needed, and how privacy and dignity guide the work.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "our-work-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "What holds the work together",
+          "items": [
+            {
+              "title": "Cut an hour’s worth",
+              "body": "Prepare accurate pieces at home from the current project instructions.",
+              "href": "/ways-to-help"
+            },
+            {
+              "title": "Sew beside someone",
+              "body": "Work days pair new volunteers with people who know the project standards.",
+              "href": "/events"
+            },
+            {
+              "title": "Help finish the work",
+              "body": "Longarm time, binding, labels, laundry, and delivery matter as much as the first block.",
+              "href": "/ways-to-help"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "our-work-3"
+        },
+        {
+          "type": "cta",
+          "label": "See what is coming up",
+          "href": "/events",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "our-work-4"
+        }
+      ]
+    },
+    {
+      "slug": "ways-to-help",
+      "title": "Ways to help",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Ways to help",
+          "title": "There is a task for the time you have.",
+          "subtitle": "List current needs for fabric, cutting, block making, piecing, quilting, binding, laundering, labeling, transport, and funds.",
+          "ctaLabel": "Get involved",
+          "ctaHref": "/membership",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "ways-to-help-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Illustrative detail for Mending Circle; replace with your own work.",
+              "caption": "Illustrative starter artwork. Replace with photography from your own organization."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "ways-to-help-2"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Show the work with context",
+          "html": "<p><em>Sample text — replace me:</em> List current needs for fabric, cutting, block making, piecing, quilting, binding, laundering, labeling, transport, and funds. Credit makers, designers, quilters, teachers, and photographers.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "ways-to-help-3"
+        },
+        {
+          "type": "cta",
+          "label": "Ask a practical question",
+          "href": "/contact",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "ways-to-help-4"
+        }
+      ]
+    },
+    {
+      "slug": "request-quilts",
+      "title": "Request quilts",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Request quilts",
+          "title": "A clear request helps us respond honestly.",
+          "subtitle": "Explain who may request a quilt, the service area, available sizes, lead time, privacy practices, and what happens when demand exceeds capacity.",
+          "ctaLabel": "View the calendar",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "request-quilts-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "What visitors need to know",
+          "html": "<p><em>Sample text — replace me:</em> Explain who may request a quilt, the service area, available sizes, lead time, privacy practices, and what happens when demand exceeds capacity.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "request-quilts-2"
+        },
+        {
+          "type": "faq",
+          "heading": "Good to know",
+          "items": [
+            {
+              "q": "May I visit before joining?",
+              "a": "Yes, when the event listing says guests are welcome. Contact the organization if you need venue or access details."
+            },
+            {
+              "q": "What should I bring?",
+              "a": "Each event should list tools, materials, equipment, and any preparation. When in doubt, ask before travelling."
+            },
+            {
+              "q": "How current is this information?",
+              "a": "Publish a review date and update this page whenever policies, prices, or locations change."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "request-quilts-3"
+        },
+        {
+          "type": "cta",
+          "label": "See current dates",
+          "href": "/events",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "request-quilts-4"
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Contact Mending Circle Quilters",
+          "title": "Start with a note.",
+          "subtitle": "Ask about a first visit, a project, access, or the practical detail you need before deciding.",
+          "ctaLabel": "View events",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "contact-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add the right email, response time, venue details, and the name or role of the person who answers enquiries in Cincinnati, Ohio.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "contact-2"
+        },
+        {
+          "type": "contact",
+          "heading": "Send a note",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "contact-3"
+        }
+      ]
+    }
+  ],
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "photo",
+      "src": "public/kit-assets/mending-circle/hero.webp",
+      "alt": "Original illustrative textile artwork for Mending Circle"
+    }
+  ]
+}

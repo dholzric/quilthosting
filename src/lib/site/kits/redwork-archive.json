@@ -1,0 +1,428 @@
+{
+  "id": "redwork-archive",
+  "name": "Redwork Archive",
+  "audience": "both",
+  "character": "A scholarly ivory-and-red textile history template with conservation-table imagery and museum-like restraint.",
+  "defaults": {
+    "palette": "signature-redwork",
+    "typePair": "cormorantgaramond-sourcesans",
+    "scale": "editorial",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "centered",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "none",
+      "opacity": 0.08
+    }
+  },
+  "previewSeed": {
+    "guildName": "The Red Thread Archive",
+    "city": "Lancaster, Pennsylvania"
+  },
+  "menu": [
+    {
+      "label": "The archive",
+      "href": "/the-archive"
+    },
+    {
+      "label": "Documentation days",
+      "href": "/documentation-days"
+    },
+    {
+      "label": "Research notes",
+      "href": "/research-notes"
+    },
+    {
+      "label": "Programs",
+      "href": "/events"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "split",
+          "eyebrow": "Study · Record · Preserve",
+          "title": "Every stitch is evidence.",
+          "subtitle": "A textile study group documenting quilts, makers, methods, and the ordinary lives held in cloth.",
+          "ctaLabel": "Find your place",
+          "ctaHref": "/membership",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy",
+            "imageId": "hero-art",
+            "layout": "asym"
+          },
+          "id": "home-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Illustrative textile artwork for Redwork Archive.",
+              "caption": "Illustrative starter artwork. Replace with photography from your own organization."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "home-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "The record has three parts.",
+          "items": [
+            {
+              "title": "Document the object",
+              "body": "Dimensions, construction, materials, condition, inscriptions, and photographs.",
+              "href": "/documentation-days"
+            },
+            {
+              "title": "Record the maker",
+              "body": "Names, places, dates, relationships, and the story passed with the quilt.",
+              "href": "/the-archive"
+            },
+            {
+              "title": "Preserve the uncertainty",
+              "body": "Write “unknown” where evidence ends. A careful gap is better than an invented certainty.",
+              "href": "/research-notes"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "The record begins with looking.",
+          "html": "<p>Describe the collection or documentation project, its geographic scope, stewardship, and how descendants and researchers may access records.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "home-4"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace this copy with your real meeting details, policies, and current work. Replace the illustrative image with your own credited photography.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "home-5"
+        },
+        {
+          "type": "events",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-6"
+        }
+      ]
+    },
+    {
+      "slug": "the-archive",
+      "title": "The archive",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "The archive",
+          "title": "The maker belongs in the record.",
+          "subtitle": "Describe the collection or documentation project, its geographic scope, stewardship, and how descendants and researchers may access records.",
+          "ctaLabel": "See upcoming dates",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "the-archive-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Tell the true beginning",
+          "html": "<p><em>Sample text — replace me:</em> Describe the collection or documentation project, its geographic scope, stewardship, and how descendants and researchers may access records.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "the-archive-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "What holds the work together",
+          "items": [
+            {
+              "title": "Document the object",
+              "body": "Dimensions, construction, materials, condition, inscriptions, and photographs.",
+              "href": "/documentation-days"
+            },
+            {
+              "title": "Record the maker",
+              "body": "Names, places, dates, relationships, and the story passed with the quilt.",
+              "href": "/the-archive"
+            },
+            {
+              "title": "Preserve the uncertainty",
+              "body": "Write “unknown” where evidence ends. A careful gap is better than an invented certainty.",
+              "href": "/research-notes"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "the-archive-3"
+        },
+        {
+          "type": "cta",
+          "label": "See what is coming up",
+          "href": "/events",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "the-archive-4"
+        }
+      ]
+    },
+    {
+      "slug": "documentation-days",
+      "title": "Documentation days",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Documentation days",
+          "title": "Look carefully before you write it down.",
+          "subtitle": "Explain appointments, what owners should bring, the measurements and photographs recorded, and what the documentation does and does not establish.",
+          "ctaLabel": "Get involved",
+          "ctaHref": "/membership",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "documentation-days-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Illustrative detail for Redwork Archive; replace with your own work.",
+              "caption": "Illustrative starter artwork. Replace with photography from your own organization."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "documentation-days-2"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Show the work with context",
+          "html": "<p><em>Sample text — replace me:</em> Explain appointments, what owners should bring, the measurements and photographs recorded, and what the documentation does and does not establish. Credit makers, designers, quilters, teachers, and photographers.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "documentation-days-3"
+        },
+        {
+          "type": "cta",
+          "label": "Ask a practical question",
+          "href": "/contact",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "documentation-days-4"
+        }
+      ]
+    },
+    {
+      "slug": "research-notes",
+      "title": "Research notes",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Research notes",
+          "title": "A useful record names its uncertainty.",
+          "subtitle": "Publish sourced findings about patterns, fabrics, inscriptions, and regional practice. Separate observation from attribution.",
+          "ctaLabel": "View the calendar",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "research-notes-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "What visitors need to know",
+          "html": "<p><em>Sample text — replace me:</em> Publish sourced findings about patterns, fabrics, inscriptions, and regional practice. Separate observation from attribution.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "research-notes-2"
+        },
+        {
+          "type": "faq",
+          "heading": "Good to know",
+          "items": [
+            {
+              "q": "May I visit before joining?",
+              "a": "Yes, when the event listing says guests are welcome. Contact the organization if you need venue or access details."
+            },
+            {
+              "q": "What should I bring?",
+              "a": "Each event should list tools, materials, equipment, and any preparation. When in doubt, ask before travelling."
+            },
+            {
+              "q": "How current is this information?",
+              "a": "Publish a review date and update this page whenever policies, prices, or locations change."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "research-notes-3"
+        },
+        {
+          "type": "cta",
+          "label": "See current dates",
+          "href": "/events",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "research-notes-4"
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Contact The Red Thread Archive",
+          "title": "Start with a note.",
+          "subtitle": "Ask about a first visit, a project, access, or the practical detail you need before deciding.",
+          "ctaLabel": "View events",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "contact-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add the right email, response time, venue details, and the name or role of the person who answers enquiries in Lancaster, Pennsylvania.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "contact-2"
+        },
+        {
+          "type": "contact",
+          "heading": "Send a note",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "contact-3"
+        }
+      ]
+    }
+  ],
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "photo",
+      "src": "public/kit-assets/redwork-archive/hero.webp",
+      "alt": "Original illustrative textile artwork for Redwork Archive"
+    }
+  ]
+}

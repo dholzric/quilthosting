@@ -1,0 +1,428 @@
+{
+  "id": "blue-ridge-circle",
+  "name": "Blue Ridge Circle",
+  "audience": "both",
+  "character": "An expansive mountain guild in indigo and cream, with porch-light warmth and a landscape-led sense of place.",
+  "defaults": {
+    "palette": "signature-ridge-blue",
+    "typePair": "librebaskerville-nunitosans",
+    "scale": "editorial",
+    "shape": {
+      "radius": "soft",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "flying-geese",
+      "opacity": 0.08
+    }
+  },
+  "previewSeed": {
+    "guildName": "Blue Ridge Quilt Circle",
+    "city": "Boone, North Carolina"
+  },
+  "menu": [
+    {
+      "label": "Our story",
+      "href": "/our-story"
+    },
+    {
+      "label": "The work",
+      "href": "/mountain-work"
+    },
+    {
+      "label": "Community",
+      "href": "/community"
+    },
+    {
+      "label": "Gatherings",
+      "href": "/events"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "split",
+          "eyebrow": "Quilting in the Blue Ridge",
+          "title": "Made here. Carried forward.",
+          "subtitle": "A mountain quilt circle sharing old knowledge, new work, and a table open to the next generation.",
+          "ctaLabel": "Find your place",
+          "ctaHref": "/membership",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy",
+            "imageId": "hero-art",
+            "layout": "asym"
+          },
+          "id": "home-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Illustrative textile artwork for Blue Ridge Circle.",
+              "caption": "Illustrative starter artwork. Replace with photography from your own organization."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "home-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "What we carry forward.",
+          "items": [
+            {
+              "title": "Gather at the table",
+              "body": "Monthly programs, show and tell, and enough time to ask how something was made.",
+              "href": "/events"
+            },
+            {
+              "title": "Learn the old ways",
+              "body": "Handwork, utility quilting, and the regional patterns carried from one maker to another.",
+              "href": "/our-story"
+            },
+            {
+              "title": "Make warmth useful",
+              "body": "Shared projects for neighbors, shelters, and families welcoming a new child.",
+              "href": "/community"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "The mountains travel in the pattern.",
+          "html": "<p>Tell how quilting knowledge has moved through families, neighborhoods, church halls, and new friendships in your mountain community.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "home-4"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace this copy with your real meeting details, policies, and current work. Replace the illustrative image with your own credited photography.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "home-5"
+        },
+        {
+          "type": "events",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-6"
+        }
+      ]
+    },
+    {
+      "slug": "our-story",
+      "title": "Our story",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Our story",
+          "title": "A guild shaped by its place.",
+          "subtitle": "Tell how quilting knowledge has moved through families, neighborhoods, church halls, and new friendships in your mountain community.",
+          "ctaLabel": "See upcoming dates",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "our-story-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Tell the true beginning",
+          "html": "<p><em>Sample text — replace me:</em> Tell how quilting knowledge has moved through families, neighborhoods, church halls, and new friendships in your mountain community.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "our-story-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "What holds the work together",
+          "items": [
+            {
+              "title": "Gather at the table",
+              "body": "Monthly programs, show and tell, and enough time to ask how something was made.",
+              "href": "/events"
+            },
+            {
+              "title": "Learn the old ways",
+              "body": "Handwork, utility quilting, and the regional patterns carried from one maker to another.",
+              "href": "/our-story"
+            },
+            {
+              "title": "Make warmth useful",
+              "body": "Shared projects for neighbors, shelters, and families welcoming a new child.",
+              "href": "/community"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "our-story-3"
+        },
+        {
+          "type": "cta",
+          "label": "See what is coming up",
+          "href": "/events",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "our-story-4"
+        }
+      ]
+    },
+    {
+      "slug": "mountain-work",
+      "title": "Mountain work",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Mountain work",
+          "title": "Tradition is a language, not a cage.",
+          "subtitle": "Show how regional patterns, thrift, color, and landscape appear in members’ work today. Credit every maker and source.",
+          "ctaLabel": "Get involved",
+          "ctaHref": "/membership",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "mountain-work-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Illustrative detail for Blue Ridge Circle; replace with your own work.",
+              "caption": "Illustrative starter artwork. Replace with photography from your own organization."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "mountain-work-2"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Show the work with context",
+          "html": "<p><em>Sample text — replace me:</em> Show how regional patterns, thrift, color, and landscape appear in members’ work today. Credit every maker and source. Credit makers, designers, quilters, teachers, and photographers.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "mountain-work-3"
+        },
+        {
+          "type": "cta",
+          "label": "Ask a practical question",
+          "href": "/contact",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "mountain-work-4"
+        }
+      ]
+    },
+    {
+      "slug": "community",
+      "title": "Community",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Community",
+          "title": "Warmth made practical.",
+          "subtitle": "Describe the organizations you serve, the quilts they need, and the exact ways members can cut, piece, quilt, bind, or deliver.",
+          "ctaLabel": "View the calendar",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "community-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "What visitors need to know",
+          "html": "<p><em>Sample text — replace me:</em> Describe the organizations you serve, the quilts they need, and the exact ways members can cut, piece, quilt, bind, or deliver.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "community-2"
+        },
+        {
+          "type": "faq",
+          "heading": "Good to know",
+          "items": [
+            {
+              "q": "May I visit before joining?",
+              "a": "Yes, when the event listing says guests are welcome. Contact the organization if you need venue or access details."
+            },
+            {
+              "q": "What should I bring?",
+              "a": "Each event should list tools, materials, equipment, and any preparation. When in doubt, ask before travelling."
+            },
+            {
+              "q": "How current is this information?",
+              "a": "Publish a review date and update this page whenever policies, prices, or locations change."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "community-3"
+        },
+        {
+          "type": "cta",
+          "label": "See current dates",
+          "href": "/events",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "community-4"
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Contact Blue Ridge Quilt Circle",
+          "title": "Start with a note.",
+          "subtitle": "Ask about a first visit, a project, access, or the practical detail you need before deciding.",
+          "ctaLabel": "View events",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "contact-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add the right email, response time, venue details, and the name or role of the person who answers enquiries in Boone, North Carolina.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "contact-2"
+        },
+        {
+          "type": "contact",
+          "heading": "Send a note",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "contact-3"
+        }
+      ]
+    }
+  ],
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "photo",
+      "src": "public/kit-assets/blue-ridge-circle/hero.webp",
+      "alt": "Original illustrative textile artwork for Blue Ridge Circle"
+    }
+  ]
+}

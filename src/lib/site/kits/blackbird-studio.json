@@ -1,0 +1,428 @@
+{
+  "id": "blackbird-studio",
+  "name": "Blackbird Studio",
+  "audience": "both",
+  "character": "A severe black-and-bone art quilt template with gallery scale, acid-yellow details, and an artist-statement rhythm.",
+  "defaults": {
+    "palette": "signature-blackbird",
+    "typePair": "spacegrotesk-worksans",
+    "scale": "editorial",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "split",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "none",
+      "opacity": 0.08
+    }
+  },
+  "previewSeed": {
+    "guildName": "Blackbird Textile Group",
+    "city": "Detroit, Michigan"
+  },
+  "menu": [
+    {
+      "label": "The group",
+      "href": "/the-group"
+    },
+    {
+      "label": "Current work",
+      "href": "/current-work"
+    },
+    {
+      "label": "Crit room",
+      "href": "/crit-room"
+    },
+    {
+      "label": "Calendar",
+      "href": "/events"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "split",
+          "eyebrow": "Textile work in {{city}}",
+          "title": "Cut the expected line.",
+          "subtitle": "An art quilt group for material experiments, hard questions, and work that refuses to behave like decoration.",
+          "ctaLabel": "Find your place",
+          "ctaHref": "/membership",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "airy",
+            "imageId": "hero-art",
+            "layout": "asym"
+          },
+          "id": "home-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Illustrative textile artwork for Blackbird Studio.",
+              "caption": "Illustrative starter artwork. Replace with photography from your own organization."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "home-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Three propositions.",
+          "items": [
+            {
+              "title": "Make a proposition",
+              "body": "Start with the thing the material can say that another medium cannot.",
+              "href": "/current-work"
+            },
+            {
+              "title": "Bring unfinished work",
+              "body": "A live edge and an unresolved decision give the room something real to discuss.",
+              "href": "/crit-room"
+            },
+            {
+              "title": "Build the context",
+              "body": "Read, visit, document, and credit the artists whose ideas travel with yours.",
+              "href": "/the-group"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "The work begins where certainty ends.",
+          "html": "<p>We are makers working across quilt, assemblage, stitch, dye, and installation. The room is rigorous, generous, and open to work in progress.</p>",
+          "style": {
+            "bg": "dark",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "home-4"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace this copy with your real meeting details, policies, and current work. Replace the illustrative image with your own credited photography.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "home-5"
+        },
+        {
+          "type": "events",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-6"
+        }
+      ]
+    },
+    {
+      "slug": "the-group",
+      "title": "The group",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "The group",
+          "title": "Cloth is the medium. The idea comes first.",
+          "subtitle": "We are makers working across quilt, assemblage, stitch, dye, and installation. The room is rigorous, generous, and open to work in progress.",
+          "ctaLabel": "See upcoming dates",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "the-group-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Tell the true beginning",
+          "html": "<p><em>Sample text — replace me:</em> We are makers working across quilt, assemblage, stitch, dye, and installation. The room is rigorous, generous, and open to work in progress.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "the-group-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "What holds the work together",
+          "items": [
+            {
+              "title": "Make a proposition",
+              "body": "Start with the thing the material can say that another medium cannot.",
+              "href": "/current-work"
+            },
+            {
+              "title": "Bring unfinished work",
+              "body": "A live edge and an unresolved decision give the room something real to discuss.",
+              "href": "/crit-room"
+            },
+            {
+              "title": "Build the context",
+              "body": "Read, visit, document, and credit the artists whose ideas travel with yours.",
+              "href": "/the-group"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "the-group-3"
+        },
+        {
+          "type": "cta",
+          "label": "See what is coming up",
+          "href": "/events",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "the-group-4"
+        }
+      ]
+    },
+    {
+      "slug": "current-work",
+      "title": "Current work",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Current work",
+          "title": "The wall is part of the conversation.",
+          "subtitle": "Document exhibitions and member work with full credits, dimensions, materials, and the questions each piece is testing.",
+          "ctaLabel": "Get involved",
+          "ctaHref": "/membership",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "current-work-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Illustrative detail for Blackbird Studio; replace with your own work.",
+              "caption": "Illustrative starter artwork. Replace with photography from your own organization."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "current-work-2"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Show the work with context",
+          "html": "<p><em>Sample text — replace me:</em> Document exhibitions and member work with full credits, dimensions, materials, and the questions each piece is testing. Credit makers, designers, quilters, teachers, and photographers.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "current-work-3"
+        },
+        {
+          "type": "cta",
+          "label": "Ask a practical question",
+          "href": "/contact",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "current-work-4"
+        }
+      ]
+    },
+    {
+      "slug": "crit-room",
+      "title": "Crit room",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Crit room",
+          "title": "Look closely. Speak precisely.",
+          "subtitle": "Our critique begins with observation. The maker decides what feedback is useful and what the work needs next.",
+          "ctaLabel": "View the calendar",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "crit-room-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "What visitors need to know",
+          "html": "<p><em>Sample text — replace me:</em> Our critique begins with observation. The maker decides what feedback is useful and what the work needs next.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "crit-room-2"
+        },
+        {
+          "type": "faq",
+          "heading": "Good to know",
+          "items": [
+            {
+              "q": "May I visit before joining?",
+              "a": "Yes, when the event listing says guests are welcome. Contact the organization if you need venue or access details."
+            },
+            {
+              "q": "What should I bring?",
+              "a": "Each event should list tools, materials, equipment, and any preparation. When in doubt, ask before travelling."
+            },
+            {
+              "q": "How current is this information?",
+              "a": "Publish a review date and update this page whenever policies, prices, or locations change."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "crit-room-3"
+        },
+        {
+          "type": "cta",
+          "label": "See current dates",
+          "href": "/events",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "crit-room-4"
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Contact Blackbird Textile Group",
+          "title": "Start with a note.",
+          "subtitle": "Ask about a first visit, a project, access, or the practical detail you need before deciding.",
+          "ctaLabel": "View events",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "contact-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add the right email, response time, venue details, and the name or role of the person who answers enquiries in Detroit, Michigan.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "contact-2"
+        },
+        {
+          "type": "contact",
+          "heading": "Send a note",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "contact-3"
+        }
+      ]
+    }
+  ],
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "photo",
+      "src": "public/kit-assets/blackbird-studio/hero.webp",
+      "alt": "Original illustrative textile artwork for Blackbird Studio"
+    }
+  ]
+}

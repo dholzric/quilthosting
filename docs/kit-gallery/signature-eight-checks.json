@@ -1,0 +1,934 @@
+{
+  "failures": [],
+  "checks": 80,
+  "results": [
+    {
+      "id": "paper-pieces",
+      "page": "home",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/paper-pieces/hero-960.webp",
+          "alt": "Mulberry, rose, indigo and cream English paper-pieced rosettes in progress on a pale wood table"
+        },
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/paper-pieces/hero.webp",
+          "alt": "Illustrative textile artwork for Paper Pieces."
+        }
+      ]
+    },
+    {
+      "id": "paper-pieces",
+      "page": "the-circle",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "paper-pieces",
+      "page": "at-the-table",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/paper-pieces/hero.webp",
+          "alt": "Illustrative detail for Paper Pieces; replace with your own work."
+        }
+      ]
+    },
+    {
+      "id": "paper-pieces",
+      "page": "field-notes",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "paper-pieces",
+      "page": "contact",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "paper-pieces",
+      "page": "home",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/paper-pieces/hero-480.webp",
+          "alt": "Mulberry, rose, indigo and cream English paper-pieced rosettes in progress on a pale wood table"
+        },
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/paper-pieces/hero-480.webp",
+          "alt": "Illustrative textile artwork for Paper Pieces."
+        }
+      ]
+    },
+    {
+      "id": "paper-pieces",
+      "page": "the-circle",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "paper-pieces",
+      "page": "at-the-table",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/paper-pieces/hero-480.webp",
+          "alt": "Illustrative detail for Paper Pieces; replace with your own work."
+        }
+      ]
+    },
+    {
+      "id": "paper-pieces",
+      "page": "field-notes",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "paper-pieces",
+      "page": "contact",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "blackbird-studio",
+      "page": "home",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/blackbird-studio/hero-960.webp",
+          "alt": "A monumental black and bone improvisational quilt with one acid-yellow line in a charcoal gallery"
+        },
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/blackbird-studio/hero.webp",
+          "alt": "Illustrative textile artwork for Blackbird Studio."
+        }
+      ]
+    },
+    {
+      "id": "blackbird-studio",
+      "page": "the-group",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "blackbird-studio",
+      "page": "current-work",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/blackbird-studio/hero.webp",
+          "alt": "Illustrative detail for Blackbird Studio; replace with your own work."
+        }
+      ]
+    },
+    {
+      "id": "blackbird-studio",
+      "page": "crit-room",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "blackbird-studio",
+      "page": "contact",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "blackbird-studio",
+      "page": "home",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/blackbird-studio/hero-480.webp",
+          "alt": "A monumental black and bone improvisational quilt with one acid-yellow line in a charcoal gallery"
+        },
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/blackbird-studio/hero-480.webp",
+          "alt": "Illustrative textile artwork for Blackbird Studio."
+        }
+      ]
+    },
+    {
+      "id": "blackbird-studio",
+      "page": "the-group",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "blackbird-studio",
+      "page": "current-work",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/blackbird-studio/hero-480.webp",
+          "alt": "Illustrative detail for Blackbird Studio; replace with your own work."
+        }
+      ]
+    },
+    {
+      "id": "blackbird-studio",
+      "page": "crit-room",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "blackbird-studio",
+      "page": "contact",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "blue-ridge-circle",
+      "page": "home",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/blue-ridge-circle/hero-960.webp",
+          "alt": "A blue and cream flying-geese quilt draped over a porch rail before misty mountain ridges"
+        },
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/blue-ridge-circle/hero.webp",
+          "alt": "Illustrative textile artwork for Blue Ridge Circle."
+        }
+      ]
+    },
+    {
+      "id": "blue-ridge-circle",
+      "page": "our-story",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "blue-ridge-circle",
+      "page": "mountain-work",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/blue-ridge-circle/hero.webp",
+          "alt": "Illustrative detail for Blue Ridge Circle; replace with your own work."
+        }
+      ]
+    },
+    {
+      "id": "blue-ridge-circle",
+      "page": "community",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "blue-ridge-circle",
+      "page": "contact",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "blue-ridge-circle",
+      "page": "home",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/blue-ridge-circle/hero-480.webp",
+          "alt": "A blue and cream flying-geese quilt draped over a porch rail before misty mountain ridges"
+        },
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/blue-ridge-circle/hero-480.webp",
+          "alt": "Illustrative textile artwork for Blue Ridge Circle."
+        }
+      ]
+    },
+    {
+      "id": "blue-ridge-circle",
+      "page": "our-story",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "blue-ridge-circle",
+      "page": "mountain-work",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/blue-ridge-circle/hero-480.webp",
+          "alt": "Illustrative detail for Blue Ridge Circle; replace with your own work."
+        }
+      ]
+    },
+    {
+      "id": "blue-ridge-circle",
+      "page": "community",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "blue-ridge-circle",
+      "page": "contact",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "sunroom-society",
+      "page": "home",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/sunroom-society/hero.webp",
+          "alt": "Illustrative textile artwork for Sunroom Society."
+        }
+      ]
+    },
+    {
+      "id": "sunroom-society",
+      "page": "who-we-are",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "sunroom-society",
+      "page": "sew-with-us",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/sunroom-society/hero.webp",
+          "alt": "Illustrative detail for Sunroom Society; replace with your own work."
+        }
+      ]
+    },
+    {
+      "id": "sunroom-society",
+      "page": "color-notes",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "sunroom-society",
+      "page": "contact",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "sunroom-society",
+      "page": "home",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/sunroom-society/hero-480.webp",
+          "alt": "Illustrative textile artwork for Sunroom Society."
+        }
+      ]
+    },
+    {
+      "id": "sunroom-society",
+      "page": "who-we-are",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "sunroom-society",
+      "page": "sew-with-us",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/sunroom-society/hero-480.webp",
+          "alt": "Illustrative detail for Sunroom Society; replace with your own work."
+        }
+      ]
+    },
+    {
+      "id": "sunroom-society",
+      "page": "color-notes",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "sunroom-society",
+      "page": "contact",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "redwork-archive",
+      "page": "home",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/redwork-archive/hero-960.webp",
+          "alt": "A white quilt with intricate red embroidered medallions on a textile conservation table"
+        },
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/redwork-archive/hero.webp",
+          "alt": "Illustrative textile artwork for Redwork Archive."
+        }
+      ]
+    },
+    {
+      "id": "redwork-archive",
+      "page": "the-archive",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "redwork-archive",
+      "page": "documentation-days",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/redwork-archive/hero.webp",
+          "alt": "Illustrative detail for Redwork Archive; replace with your own work."
+        }
+      ]
+    },
+    {
+      "id": "redwork-archive",
+      "page": "research-notes",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "redwork-archive",
+      "page": "contact",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "redwork-archive",
+      "page": "home",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/redwork-archive/hero-480.webp",
+          "alt": "A white quilt with intricate red embroidered medallions on a textile conservation table"
+        },
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/redwork-archive/hero-480.webp",
+          "alt": "Illustrative textile artwork for Redwork Archive."
+        }
+      ]
+    },
+    {
+      "id": "redwork-archive",
+      "page": "the-archive",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "redwork-archive",
+      "page": "documentation-days",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/redwork-archive/hero-480.webp",
+          "alt": "Illustrative detail for Redwork Archive; replace with your own work."
+        }
+      ]
+    },
+    {
+      "id": "redwork-archive",
+      "page": "research-notes",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "redwork-archive",
+      "page": "contact",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "quilt-show-edition",
+      "page": "home",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/quilt-show-edition/hero.webp",
+          "alt": "Illustrative textile artwork for Quilt Show Edition."
+        }
+      ]
+    },
+    {
+      "id": "quilt-show-edition",
+      "page": "the-show",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "quilt-show-edition",
+      "page": "enter-a-quilt",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/quilt-show-edition/hero.webp",
+          "alt": "Illustrative detail for Quilt Show Edition; replace with your own work."
+        }
+      ]
+    },
+    {
+      "id": "quilt-show-edition",
+      "page": "plan-your-visit",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "quilt-show-edition",
+      "page": "contact",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "quilt-show-edition",
+      "page": "home",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/quilt-show-edition/hero-480.webp",
+          "alt": "Illustrative textile artwork for Quilt Show Edition."
+        }
+      ]
+    },
+    {
+      "id": "quilt-show-edition",
+      "page": "the-show",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "quilt-show-edition",
+      "page": "enter-a-quilt",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/quilt-show-edition/hero-480.webp",
+          "alt": "Illustrative detail for Quilt Show Edition; replace with your own work."
+        }
+      ]
+    },
+    {
+      "id": "quilt-show-edition",
+      "page": "plan-your-visit",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "quilt-show-edition",
+      "page": "contact",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "mending-circle",
+      "page": "home",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/mending-circle/hero-960.webp",
+          "alt": "Several pairs of hands tying and stitching a denim, rust and mustard charity quilt together"
+        },
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/mending-circle/hero.webp",
+          "alt": "Illustrative textile artwork for Mending Circle."
+        }
+      ]
+    },
+    {
+      "id": "mending-circle",
+      "page": "our-work",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "mending-circle",
+      "page": "ways-to-help",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/mending-circle/hero.webp",
+          "alt": "Illustrative detail for Mending Circle; replace with your own work."
+        }
+      ]
+    },
+    {
+      "id": "mending-circle",
+      "page": "request-quilts",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "mending-circle",
+      "page": "contact",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "mending-circle",
+      "page": "home",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/mending-circle/hero-480.webp",
+          "alt": "Several pairs of hands tying and stitching a denim, rust and mustard charity quilt together"
+        },
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/mending-circle/hero-480.webp",
+          "alt": "Illustrative textile artwork for Mending Circle."
+        }
+      ]
+    },
+    {
+      "id": "mending-circle",
+      "page": "our-work",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "mending-circle",
+      "page": "ways-to-help",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/mending-circle/hero-480.webp",
+          "alt": "Illustrative detail for Mending Circle; replace with your own work."
+        }
+      ]
+    },
+    {
+      "id": "mending-circle",
+      "page": "request-quilts",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "mending-circle",
+      "page": "contact",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "pattern-house",
+      "page": "home",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/pattern-house/hero-960.webp",
+          "alt": "A modern geometric quilt beside pattern diagrams, a ruler and coordinated fabric swatches"
+        },
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/pattern-house/hero.webp",
+          "alt": "Illustrative textile artwork for Pattern House."
+        }
+      ]
+    },
+    {
+      "id": "pattern-house",
+      "page": "the-studio",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "pattern-house",
+      "page": "patterns",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/pattern-house/hero.webp",
+          "alt": "Illustrative detail for Pattern House; replace with your own work."
+        }
+      ]
+    },
+    {
+      "id": "pattern-house",
+      "page": "workshops",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "pattern-house",
+      "page": "contact",
+      "width": 1440,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "pattern-house",
+      "page": "home",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/pattern-house/hero-480.webp",
+          "alt": "A modern geometric quilt beside pattern diagrams, a ruler and coordinated fabric swatches"
+        },
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/pattern-house/hero-480.webp",
+          "alt": "Illustrative textile artwork for Pattern House."
+        }
+      ]
+    },
+    {
+      "id": "pattern-house",
+      "page": "the-studio",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "pattern-house",
+      "page": "patterns",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": [
+        {
+          "src": "http://127.0.0.1:8791/kit-assets/pattern-house/hero-480.webp",
+          "alt": "Illustrative detail for Pattern House; replace with your own work."
+        }
+      ]
+    },
+    {
+      "id": "pattern-house",
+      "page": "workshops",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    },
+    {
+      "id": "pattern-house",
+      "page": "contact",
+      "width": 390,
+      "overflow": false,
+      "broken": [],
+      "headings": 1,
+      "images": []
+    }
+  ]
+}

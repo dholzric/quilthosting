@@ -1,0 +1,426 @@
+{
+  "id": "quilt-show-edition",
+  "name": "Quilt Show Edition",
+  "audience": "both",
+  "character": "A vivid exhibition-first template with ultramarine, scarlet, and marigold, designed to move visitors from poster-scale impact to tickets and entries.",
+  "defaults": {
+    "palette": "signature-exhibition",
+    "typePair": "spacegrotesk-worksans",
+    "scale": "editorial",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "split",
+      "sticky": true,
+      "cta": "none",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "flying-geese",
+      "opacity": 0.08
+    }
+  },
+  "previewSeed": {
+    "guildName": "Common Ground Quilt Show",
+    "city": "Chicago, Illinois"
+  },
+  "menu": [
+    {
+      "label": "The show",
+      "href": "/the-show"
+    },
+    {
+      "label": "Enter a quilt",
+      "href": "/enter-a-quilt"
+    },
+    {
+      "label": "Plan your visit",
+      "href": "/plan-your-visit"
+    },
+    {
+      "label": "Schedule",
+      "href": "/events"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "The annual quilt exhibition in {{city}}",
+          "title": "See what cloth can do.",
+          "subtitle": "One hall. Hundreds of quilts. Three days to stand close, look longer, and meet the people who made them.",
+          "ctaLabel": "Plan your visit",
+          "ctaHref": "/plan-your-visit",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Illustrative textile artwork for Quilt Show Edition.",
+              "caption": "Illustrative starter artwork. Replace with photography from your own organization."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "home-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Your day at the show.",
+          "items": [
+            {
+              "title": "Look closely",
+              "body": "Traditional mastery, modern experiments, first entries, and work that changes at six inches away.",
+              "href": "/the-show"
+            },
+            {
+              "title": "Put a quilt on the wall",
+              "body": "Clear entry rules and a fair process for makers ready to share their work.",
+              "href": "/enter-a-quilt"
+            },
+            {
+              "title": "Make a day of it",
+              "body": "Plan parking, access, demonstrations, vendors, and the pieces you do not want to miss.",
+              "href": "/plan-your-visit"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "A quilt show should change the way you look.",
+          "html": "<p>Introduce the show’s scope, featured exhibition, judged categories, demonstrations, vendors, and the guild or organization behind it.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "home-4"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Replace this copy with your real meeting details, policies, and current work. Replace the illustrative image with your own credited photography.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "home-5"
+        },
+        {
+          "type": "events",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-6"
+        }
+      ]
+    },
+    {
+      "slug": "the-show",
+      "title": "The show",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "The show",
+          "title": "A room full of reasons to look twice.",
+          "subtitle": "Introduce the show’s scope, featured exhibition, judged categories, demonstrations, vendors, and the guild or organization behind it.",
+          "ctaLabel": "See upcoming dates",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "the-show-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Tell the true beginning",
+          "html": "<p><em>Sample text — replace me:</em> Introduce the show’s scope, featured exhibition, judged categories, demonstrations, vendors, and the guild or organization behind it.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "the-show-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "What holds the work together",
+          "items": [
+            {
+              "title": "Look closely",
+              "body": "Traditional mastery, modern experiments, first entries, and work that changes at six inches away.",
+              "href": "/the-show"
+            },
+            {
+              "title": "Put a quilt on the wall",
+              "body": "Clear entry rules and a fair process for makers ready to share their work.",
+              "href": "/enter-a-quilt"
+            },
+            {
+              "title": "Make a day of it",
+              "body": "Plan parking, access, demonstrations, vendors, and the pieces you do not want to miss.",
+              "href": "/plan-your-visit"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "the-show-3"
+        },
+        {
+          "type": "cta",
+          "label": "See what is coming up",
+          "href": "/events",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "the-show-4"
+        }
+      ]
+    },
+    {
+      "slug": "enter-a-quilt",
+      "title": "Enter a quilt",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Enter a quilt",
+          "title": "Put your work in the room.",
+          "subtitle": "State eligibility, categories, dimensions, deadlines, fees, judging, insurance, delivery, pickup, photography, and sales rules in plain language.",
+          "ctaLabel": "Get involved",
+          "ctaHref": "/membership",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "enter-a-quilt-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Illustrative detail for Quilt Show Edition; replace with your own work.",
+              "caption": "Illustrative starter artwork. Replace with photography from your own organization."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "enter-a-quilt-2"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Show the work with context",
+          "html": "<p><em>Sample text — replace me:</em> State eligibility, categories, dimensions, deadlines, fees, judging, insurance, delivery, pickup, photography, and sales rules in plain language. Credit makers, designers, quilters, teachers, and photographers.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "enter-a-quilt-3"
+        },
+        {
+          "type": "cta",
+          "label": "Ask a practical question",
+          "href": "/contact",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "enter-a-quilt-4"
+        }
+      ]
+    },
+    {
+      "slug": "plan-your-visit",
+      "title": "Plan your visit",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Plan your visit",
+          "title": "Spend less time finding the door.",
+          "subtitle": "Publish dates, venue address, accessibility, parking and transit, admission, food, bag policy, photography rules, and re-entry details.",
+          "ctaLabel": "View the calendar",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "plan-your-visit-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "What visitors need to know",
+          "html": "<p><em>Sample text — replace me:</em> Publish dates, venue address, accessibility, parking and transit, admission, food, bag policy, photography rules, and re-entry details.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "plan-your-visit-2"
+        },
+        {
+          "type": "faq",
+          "heading": "Good to know",
+          "items": [
+            {
+              "q": "May I visit before joining?",
+              "a": "Yes, when the event listing says guests are welcome. Contact the organization if you need venue or access details."
+            },
+            {
+              "q": "What should I bring?",
+              "a": "Each event should list tools, materials, equipment, and any preparation. When in doubt, ask before travelling."
+            },
+            {
+              "q": "How current is this information?",
+              "a": "Publish a review date and update this page whenever policies, prices, or locations change."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "plan-your-visit-3"
+        },
+        {
+          "type": "cta",
+          "label": "See current dates",
+          "href": "/events",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "plan-your-visit-4"
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Contact Common Ground Quilt Show",
+          "title": "Start with a note.",
+          "subtitle": "Ask about a first visit, a project, access, or the practical detail you need before deciding.",
+          "ctaLabel": "View events",
+          "ctaHref": "/events",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "contact-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Make this your own",
+          "html": "<p><em>Sample text — replace me:</em> Add the right email, response time, venue details, and the name or role of the person who answers enquiries in Chicago, Illinois.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "contact-2"
+        },
+        {
+          "type": "contact",
+          "heading": "Send a note",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "contact-3"
+        }
+      ]
+    }
+  ],
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "photo",
+      "src": "public/kit-assets/quilt-show-edition/hero.webp",
+      "alt": "Original illustrative textile artwork for Quilt Show Edition"
+    }
+  ]
+}
