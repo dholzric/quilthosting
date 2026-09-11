@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { siteCacheKey } from "./cache";
+import { describe, it, expect, beforeEach } from "vitest";
+import { siteCacheKey, cachedRender, EDGE_CACHE_CONTROL, STORED_CACHE_CONTROL } from "./cache";
 
 describe("siteCacheKey", () => {
   it("produces a valid absolute URL", () => {
@@ -168,5 +168,39 @@ describe("siteCacheKey", () => {
       expect(composeVersion("a", "b:c")).toBe("a:b%3Ac");
       expect(composeVersion("a:b", "c")).not.toBe(composeVersion("a", "b:c"));
     });
+  });
+});
+
+describe("the two cache layers get different lifetimes", () => {
+  // vitest has no Cache API; a Map keyed by the request URL is enough here.
+  const store = new Map<string, Response>();
+  beforeEach(() => {
+    store.clear();
+    (globalThis as Record<string, unknown>).caches = {
+      default: {
+        match: async (k: Request) => store.get(k.url)?.clone(),
+        put: async (k: Request, v: Response) => void store.set(k.url, v),
+      },
+    };
+  });
+
+  // We key our own cache on updated_at + APP_VERSION, so an entry under it
+  // cannot be stale. The edge keys on the URL, which does not change when a
+  // page is edited or the renderer is deployed — so it may only hold the page
+  // for a moment. Sending the long TTL to both is what kept visitors on the
+  // previous day's HTML after three deploys.
+  it("stores the long TTL and sends the short one", async () => {
+    const res = await cachedRender({ host: "g.example", path: "/x", updatedAt: "v1", build: () => "<p>hi</p>" });
+    expect(res.headers.get("Cache-Control")).toBe(EDGE_CACHE_CONTROL);
+    expect(EDGE_CACHE_CONTROL).toContain("s-maxage=60");
+    expect(STORED_CACHE_CONTROL).toContain("s-maxage=86400");
+  });
+
+  it("sends the short TTL on a cache hit too", async () => {
+    const args = { host: "g.example", path: "/y", updatedAt: "v1", build: () => "<p>hi</p>" };
+    await cachedRender(args);
+    const second = await cachedRender({ ...args, build: () => "<p>SHOULD NOT REBUILD</p>" });
+    expect(await second.text()).toBe("<p>hi</p>");
+    expect(second.headers.get("Cache-Control")).toBe(EDGE_CACHE_CONTROL);
   });
 });
