@@ -661,7 +661,11 @@ function renderEvents(s: Sec<"events">, ctx: RenderContext): string {
     // data-timezone: the grid must show the guild's clock, not the visitor's.
     // Without it a member in Denver saw a Texas meeting an hour early.
     const tzAttr = ctx.timeZone ? ` data-timezone="${esc(ctx.timeZone)}"` : "";
-    return wrap(s, inner, { extraClass: cls, ctx, attrs: `data-month="${esc(monthOf(all[0]?.start_at))}"${tzAttr}` });
+    // data-event-base: where a day's chip links to. The server knows whether
+    // this site is on its own host or under /g/<slug>, so the island does not
+    // have to guess it from the current path.
+    const evBase = ` data-event-base="${internal("/events", ctx)}"`;
+    return wrap(s, inner, { extraClass: cls, ctx, attrs: `data-month="${esc(monthOf(all[0]?.start_at))}"${tzAttr}${evBase}` });
   }
   let body: string;
   if (!list.length) body = none;

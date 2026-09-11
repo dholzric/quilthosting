@@ -133,6 +133,30 @@ describe("public/qh-site.js — dialogs and motion", () => {
   });
 });
 
+describe("a calendar chip opens the event, not the signup form", () => {
+  // Clicking a date in a calendar means "what is this?", not "sign me up".
+  // It used to call openEventSignup, so a member who clicked a class got a
+  // form asking for a name and a card before anything said what the evening
+  // was, what it cost, or what to bring.
+  it("qh-site.js gives the calendar a href builder and no signup callback", () => {
+    const cal = site.slice(site.indexOf("function initCalendar("));
+    const render = cal.slice(cal.indexOf("].render("), cal.indexOf("].render(") + 420);
+    expect(render).toContain("href:");
+    expect(render).not.toContain("openEventSignup");
+  });
+
+  it("the link comes from the server's data-event-base, not a guessed path", () => {
+    // Only the server knows whether the site is on its own host or /g/<slug>.
+    expect(site).toContain("data-event-base");
+  });
+
+  it("qh-cal.js renders an anchor when a href builder is supplied", () => {
+    expect(cal).toContain("opts.href");
+    expect(cal).toMatch(/elc\(url \? "a"/);
+    expect(cal).toContain("chip.href = url");
+  });
+});
+
 describe("public/qh-cal.js", () => {
   it("parses as a script", () => {
     expect(() => new Function(cal)).not.toThrow();

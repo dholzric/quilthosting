@@ -129,8 +129,11 @@
    * qhCal.render(container, events, onClick, opts?)
    *   events   [{id, title, start_at, ...}] — only this month's are drawn
    *   onClick  (ev) => void, optional
-   *   opts     { year, month (1-12), onMonthChange(y, m) } — optional; the
-   *            month defaults to the first event's month, else today.
+   *   opts     { year, month (1-12), onMonthChange(y, m), href(ev) } —
+   *            optional; the month defaults to the first event's month, else
+   *            today. When `href` is given a chip is a real <a>, so it can be
+   *            middle-clicked, opened in a new tab and read by a screen
+   *            reader as the link it is. `href` wins over `onClick`.
    */
   window.qhCal = window.qhCal || {};
   window.qhCal.render = function (container, events, onClick, opts) {
@@ -193,8 +196,10 @@
       cell.appendChild(elc("span", "qh-cal__num", String(day)));
       for (const ev of byDay[day] || []) {
         const label = chipLabel(ev.start_at, tz, ev.title);
-        const chip = elc(onClick ? "button" : "span", "qh-cal__event", label);
-        if (onClick) { chip.type = "button"; chip.addEventListener("click", () => onClick(ev)); }
+        const url = opts.href ? opts.href(ev) : "";
+        const chip = elc(url ? "a" : onClick ? "button" : "span", "qh-cal__event", label);
+        if (url) chip.href = url;
+        else if (onClick) { chip.type = "button"; chip.addEventListener("click", () => onClick(ev)); }
         chip.title = ev.title;
         cell.appendChild(chip);
       }

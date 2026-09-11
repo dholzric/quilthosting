@@ -470,6 +470,9 @@
         if (fallback) fallback.replaceWith(host);
         else (node.querySelector(".qh-container") || node).appendChild(host);
       }
+      // Where a chip links. The server stamps it, because only it knows
+      // whether this site is on its own host or under /g/<slug>.
+      var evBase = node.getAttribute("data-event-base") || "/events";
       var m = /^(\d{4})-(\d{2})$/.exec(node.getAttribute("data-month") || "");
       var now = new Date();
       var cursor = m ? { y: Number(m[1]), m: Number(m[2]) } : { y: now.getFullYear(), m: now.getMonth() + 1 };
@@ -479,8 +482,14 @@
         node.setAttribute("data-month", monthStr);
         Promise.all([loadCalLib(), api("/events?month=" + monthStr)]).then(function (r) {
           var events = (r[1].ok && r[1].data.events) || [];
-          r[0].render(host, events, function (ev) { openEventSignup(ev); }, {
+          // A chip opens the event's page, not the signup dialog. Clicking a
+          // date in a calendar means "what is this?", not "sign me up" — the
+          // dialog asked for a name and a card before saying what the evening
+          // was. The page carries the description, what to bring, the price,
+          // the spots left and the Register button.
+          r[0].render(host, events, null, {
             year: cursor.y, month: cursor.m, timeZone: node.getAttribute("data-timezone") || "",
+            href: function (ev) { return evBase + "/" + encodeURIComponent(ev.id); },
             onMonthChange: function (y, mo) { cursor = { y: y, m: mo }; draw(); },
           });
         }).catch(function () {
