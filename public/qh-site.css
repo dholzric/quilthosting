@@ -434,7 +434,7 @@ html{scroll-padding-top:calc(var(--_header-h) + 1rem)}
 /* A tight section keeps its own top padding: the extra a minimal hero adds is
    what made a list page spend its first screen on its own title. */
 .qh-hero--minimal.qh-s--sp-tight{padding-top:calc(var(--_section-y)*.5);padding-bottom:0}
-.qh-hero--minimal.qh-s--sp-tight + .qh-s{padding-top:calc(var(--_section-y)*.75)}
+.qh-hero--minimal.qh-s--sp-tight + .qh-s{padding-top:calc(var(--_section-y)*.4)}
 /* One line of the description on a card, so a member can tell what the evening is without opening it. */
 .qh-event__blurb{margin:.15rem 0 .35rem;font-size:.95rem;line-height:1.45}
 .qh-event__actions{margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap}
@@ -769,6 +769,10 @@ form.qh-form{display:flex;flex-direction:column;gap:.8rem;max-width:34rem}
   body.qh-site{font-size:1rem}
   .qh-s{padding-block:calc(var(--_section-y)*.75)}
   .qh-s--sp-airy{padding-block:var(--_section-y)}
+  /* Was missing, so tight == normal here: a page built out of tight sections
+     (an event page is six of them) spent a fifth of the screen between each
+     pair. Same specificity as .qh-s above, so it has to come after it. */
+  .qh-s--sp-tight{padding-block:calc(var(--_section-y)*.4)}
   .qh-hero--minimal{padding-top:var(--_section-y)}
   .qh-hero__actions .qh-btn,.qh-actions .qh-btn{flex:1 1 auto}
   .qh-image--duo .qh-image__items{grid-template-columns:1fr}
