@@ -120,6 +120,24 @@ describe("POST /files/logo — content sniffing", () => {
     expect(res.status).toBe(415);
   });
 
+  // The settings screen and onboarding.ts read settings.profile.logo_file_id;
+  // the site renderer (routes/site.ts) and the site builder read
+  // settings.assets.logo_file_id. PATCH /api/tenants/:id writes both on
+  // purpose. This route wrote only `profile`, so a logo uploaded from
+  // Settings -> Public profile was stored, served, shown in the admin
+  // thumbnail — and never appeared in the site header, with nothing to say
+  // why. Three live guilds had a logo in that state.
+  it("records the logo under BOTH settings keys, so the site renderer sees it", async () => {
+    const { res, dbWrites } = await upload("/logo", "image/png", PNG);
+    expect(res.status).toBe(201);
+    const { logo_file_id } = (await res.json()) as { logo_file_id: string };
+    const update = dbWrites.find((w) => w.sql.includes("UPDATE tenants SET settings_json"));
+    expect(update).toBeDefined();
+    const settings = JSON.parse(update!.binds[0] as string);
+    expect(settings.profile.logo_file_id).toBe(logo_file_id);
+    expect(settings.assets.logo_file_id).toBe(logo_file_id);
+  });
+
   it("accepts a PNG whose magic bytes match the declared type and stores the sniffed type", async () => {
     const { res, r2Puts, dbWrites } = await upload("/logo", "image/png", PNG);
     expect(res.status).toBe(201);

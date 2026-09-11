@@ -6709,7 +6709,25 @@
       const pub = document.getElementById("wb-publish");
       if (discard) discard.classList.toggle("hidden", !(WB.page && WB.hasDraft));
       if (unpub) unpub.classList.toggle("hidden", !(WB.page && WB.page.published));
-      if (pub) pub.textContent = WB.page && WB.page.published && !WB.hasDraft && !WB.dirty ? "Published ✓" : "Publish";
+      if (pub) {
+        // A page with nothing new to publish used to keep the filled primary
+        // button and just swap its label to "Published ✓". That reads as a
+        // status, not a control, so an owner looking at any page they had not
+        // just edited concluded the page could not be published at all — only
+        // Home, the one with a draft, appeared to have a Publish button.
+        // Say it with the button's state instead of only its text.
+        const done = !!(WB.page && WB.page.published && !WB.hasDraft && !WB.dirty);
+        pub.textContent = done ? "Published ✓" : "Publish";
+        pub.classList.toggle("secondary", done);
+        // Only touch disabled when the role may write at all: applyReadOnlyState
+        // disables this button once, and this runs on every keystroke.
+        if (WB.canWrite) {
+          pub.disabled = done;
+          pub.title = done
+            ? "This page is live and there is nothing new to publish. Edit it and this becomes Publish."
+            : "Make your saved changes visible to visitors.";
+        }
+      }
       const undo = document.getElementById("wb-undo"), redo = document.getElementById("wb-redo");
       if (undo) undo.disabled = !WB.undo.length;
       if (redo) redo.disabled = !WB.redo.length;

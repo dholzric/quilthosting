@@ -213,8 +213,13 @@ fileRoutes.post("/logo", async (c) => {
     .bind(id, tenant.id, key, filename, contentType, bytes.byteLength, user.id, now)
     .run();
 
-  const profile = { ...(settings.profile || {}), logo_file_id: id };
-  settings.profile = profile;
+  // BOTH keys, the same way PATCH /api/tenants/:id does: the settings screen
+  // and onboarding.ts read settings.profile.logo_file_id, while the site
+  // renderer (routes/site.ts) and the site builder read
+  // settings.assets.logo_file_id. Writing only `profile` here is why a logo
+  // uploaded from Settings -> Public profile never appeared on the site.
+  settings.profile = { ...(settings.profile || {}), logo_file_id: id };
+  settings.assets = { ...(isRecord(settings.assets) ? settings.assets : {}), logo_file_id: id };
   await c.env.DB.prepare(
     `UPDATE tenants SET settings_json = ?, updated_at = ? WHERE id = ?`
   )
@@ -249,14 +254,22 @@ fileRoutes.post("/logo", async (c) => {
   );
 });
 
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
 /** DELETE /api/tenants/:tenantId/files/logo */
 fileRoutes.delete("/logo", async (c) => {
   const tenant = c.get("tenant");
   const settings = parseSettings(tenant.settings_json);
   const profile = { ...(settings.profile || {}) };
-  const oldId = profile.logo_file_id as string | undefined;
+  const assets = { ...(isRecord(settings.assets) ? settings.assets : {}) };
+  const oldId = (profile.logo_file_id || assets.logo_file_id) as string | undefined;
+  // Clear both keys, or the renderer keeps showing a logo the owner removed.
   delete profile.logo_file_id;
+  delete assets.logo_file_id;
   settings.profile = profile;
+  settings.assets = assets;
   const now = new Date().toISOString();
   await c.env.DB.prepare(
     `UPDATE tenants SET settings_json = ?, updated_at = ? WHERE id = ?`
