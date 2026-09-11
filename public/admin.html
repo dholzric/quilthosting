@@ -7775,6 +7775,94 @@
     // than the original), upload the original (POST /files), then the sizes
     // (POST /files/:id/variants). The sizes are best-effort: the original is
     // usable on its own, so a variants failure is reported, not thrown.
+    /**
+     * Cut a flat background out of an image, in the browser.
+     *
+     * Guild logos are very often a PHOTOGRAPH of an embroidered or appliqued
+     * badge lying on white cloth, so the badge arrives inside a pale
+     * rectangle that shows as a box against the page. Fixing that used to
+     * mean sending us the file.
+     *
+     * Fills inward from the four edges only, so white INSIDE the badge (very
+     * common — the centre of a patch is usually pale fabric) is kept: a pixel
+     * is background only if it is both pale-and-neutral AND reachable from
+     * the border without crossing the artwork. The alpha edge is softened by
+     * a pixel so the cut is not stair-stepped, and the result is trimmed to
+     * what is left, which is what removes the dead margin around the badge.
+     *
+     * Returns a PNG File, or null when there is no flat border to remove.
+     */
+    async function wbCutBackground(file, opts) {
+      const tolerance = (opts && opts.tolerance) || 0;
+      let bmp;
+      try { bmp = await createImageBitmap(file); } catch { return null; }
+      const w = bmp.width, h = bmp.height;
+      if (!w || !h || w * h > 40e6) return null;
+      const c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      const ctx = c.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(bmp, 0, 0);
+      bmp.close && bmp.close();
+      const img = ctx.getImageData(0, 0, w, h);
+      const d = img.data;
+      // Pale and near-neutral. Loosened by `tolerance` so an owner whose
+      // cloth is beige rather than white can still get a clean cut.
+      const minL = 196 - tolerance * 3, maxChroma = 26 + tolerance * 2;
+      const isBg = (i) => {
+        const r = d[i], g = d[i + 1], b = d[i + 2];
+        const lo = Math.min(r, g, b), hi = Math.max(r, g, b);
+        return lo > minL && hi - lo < maxChroma;
+      };
+      const seen = new Uint8Array(w * h);
+      const stack = [];
+      const push = (x, y) => {
+        const p = y * w + x;
+        if (!seen[p] && isBg(p * 4)) { seen[p] = 1; stack.push(p); }
+      };
+      for (let x = 0; x < w; x++) { push(x, 0); push(x, h - 1); }
+      for (let y = 0; y < h; y++) { push(0, y); push(w - 1, y); }
+      while (stack.length) {
+        const p = stack.pop(), x = p % w, y = (p - x) / w;
+        if (x > 0) push(x - 1, y);
+        if (x < w - 1) push(x + 1, y);
+        if (y > 0) push(x, y - 1);
+        if (y < h - 1) push(x, y + 1);
+      }
+      let cut = 0;
+      for (let p = 0; p < seen.length; p++) if (seen[p]) { d[p * 4 + 3] = 0; cut++; }
+      // Nothing flat around the edges: leave the file alone rather than
+      // returning something subtly damaged.
+      if (cut < seen.length * 0.02) return null;
+      // Soften: a pixel keeping its colour but bordering a cut one goes
+      // half-transparent, which reads as an anti-aliased edge.
+      const edge = [];
+      for (let p = 0; p < seen.length; p++) {
+        if (seen[p]) continue;
+        const x = p % w, y = (p - x) / w;
+        if ((x > 0 && seen[p - 1]) || (x < w - 1 && seen[p + 1]) ||
+            (y > 0 && seen[p - w]) || (y < h - 1 && seen[p + w])) edge.push(p);
+      }
+      for (const p of edge) d[p * 4 + 3] = 140;
+      ctx.putImageData(img, 0, 0);
+      // Trim to what survived: the badge, without the margin it was shot on.
+      let x0 = w, y0 = h, x1 = -1, y1 = -1;
+      for (let p = 0; p < seen.length; p++) {
+        if (seen[p]) continue;
+        const x = p % w, y = (p - x) / w;
+        if (x < x0) x0 = x; if (x > x1) x1 = x;
+        if (y < y0) y0 = y; if (y > y1) y1 = y;
+      }
+      if (x1 < x0 || y1 < y0) return null;
+      const tw = x1 - x0 + 1, th = y1 - y0 + 1;
+      const out = document.createElement("canvas");
+      out.width = tw; out.height = th;
+      out.getContext("2d").drawImage(c, x0, y0, tw, th, 0, 0, tw, th);
+      const blob = await new Promise((res) => out.toBlob(res, "image/png"));
+      if (!blob) return null;
+      const name = (file.name || "image").replace(/\.[^.]+$/, "") + "-no-background.png";
+      return new File([blob], name, { type: "image/png" });
+    }
+
     async function wbUploadImage(f, onProgress) {
       const progress = typeof onProgress === "function" ? onProgress : () => {};
       if (!/^image\/(png|jpeg|gif|webp)$/.test(f.type)) throw new Error("Please choose a PNG, JPEG, GIF or WebP image.");
@@ -8514,10 +8602,27 @@
                 : `<span class="muted" style="font-size:0.75rem;text-align:center;padding:0.25rem">No logo</span>`}
             </div>
             <div>
-              <input type="file" id="logo-input" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" />
+              <input type="file" id="logo-input" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" onchange="previewGuildLogo()" />
               <div style="margin-top:0.4rem;display:flex;gap:0.4rem;flex-wrap:wrap">
                 <button type="button" onclick="uploadGuildLogo()">Upload logo</button>
                 ${prof.logo_file_id ? `<button type="button" class="secondary" onclick="removeGuildLogo()">Remove</button>` : ""}
+              </div>
+              <label style="display:flex;align-items:center;gap:0.4rem;margin:0.5rem 0 0;font-weight:400">
+                <input type="checkbox" id="logo-cutbg" style="width:auto" onchange="previewGuildLogo()" />
+                Remove the background behind it
+              </label>
+              <p class="muted" style="font-size:0.8rem;margin:0.15rem 0 0">
+                For a photo of a badge or patch on a plain cloth or paper background. Leave it off for a logo that is already transparent.
+              </p>
+              <div id="logo-cut-preview" class="hidden" style="display:flex;align-items:center;gap:0.75rem;margin-top:0.5rem">
+                <div style="width:64px;height:64px;border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--surface-2)">
+                  <img id="logo-cut-before" alt="Before" style="max-width:100%;max-height:100%;object-fit:contain" />
+                </div>
+                <span class="muted" aria-hidden="true">→</span>
+                <div id="logo-cut-after-box" style="width:64px;height:64px;border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:repeating-conic-gradient(#e9e9e9 0% 25%, #fff 0% 50%) 50%/12px 12px">
+                  <img id="logo-cut-after" alt="After" style="max-width:100%;max-height:100%;object-fit:contain" />
+                </div>
+                <span id="logo-cut-note" class="muted" style="font-size:0.8rem"></span>
               </div>
               <p class="muted" style="font-size:0.8rem;margin:0.35rem 0 0">PNG, JPEG, WebP, or SVG · max 2 MB. Shown on your public page and embeds.</p>
               <span id="logo-msg" class="muted" style="font-size:0.85rem"></span>
@@ -9081,11 +9186,50 @@
       }
     }
 
+    /** The file the Upload button will send: the cut version when asked for. */
+    let _logoCutFile = null;
+
+    /** Show what removing the background would do, before committing to it. */
+    async function previewGuildLogo() {
+      const input = document.getElementById("logo-input");
+      const on = document.getElementById("logo-cutbg");
+      const box = document.getElementById("logo-cut-preview");
+      const note = document.getElementById("logo-cut-note");
+      const f = input && input.files && input.files[0];
+      _logoCutFile = null;
+      if (!box) return;
+      if (!f || !on || !on.checked) { box.classList.add("hidden"); return; }
+      if (/svg/.test(f.type)) {
+        box.classList.remove("hidden");
+        note.textContent = "An SVG is already shape-based — nothing to cut.";
+        return;
+      }
+      box.classList.remove("hidden");
+      note.textContent = "Working…";
+      try {
+        const cut = await wbCutBackground(f);
+        if (!cut) {
+          note.textContent = "No flat background found around the edges, so the file is left as it is.";
+          return;
+        }
+        _logoCutFile = cut;
+        document.getElementById("logo-cut-before").src = URL.createObjectURL(f);
+        document.getElementById("logo-cut-after").src = URL.createObjectURL(cut);
+        note.textContent = "This is what will be uploaded.";
+      } catch (e) {
+        note.textContent = "Could not read that image (" + e.message + ").";
+      }
+    }
+
     async function uploadGuildLogo() {
       const input = document.getElementById("logo-input");
       const msg = document.getElementById("logo-msg");
-      const f = input?.files?.[0];
-      if (!f) { if (msg) msg.textContent = "Choose an image first."; return; }
+      const chosen = input?.files?.[0];
+      if (!chosen) { if (msg) msg.textContent = "Choose an image first."; return; }
+      const cutOn = document.getElementById("logo-cutbg");
+      // previewGuildLogo ran on the checkbox; re-run if the file changed after.
+      if (cutOn && cutOn.checked && !_logoCutFile) await previewGuildLogo();
+      const f = (cutOn && cutOn.checked && _logoCutFile) || chosen;
       if (msg) msg.textContent = "Uploading…";
       try {
         const res = await fetch(`${API}/api/tenants/${tenantId}/files/logo`, {
