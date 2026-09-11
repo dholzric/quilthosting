@@ -5869,10 +5869,13 @@
       const patClear = mk("button", "secondary", "Remove my block");
       patClear.type = "button";
       patClear.setAttribute("data-write", "");
-      patClear.addEventListener("click", () => {
+      patClear.addEventListener("click", async () => {
         delete design.pattern.fileId;
         if (design.pattern.id === "custom") design.pattern.id = "none";
         refresh();
+        patMsg.textContent = "Removing…";
+        await save();
+        patMsg.textContent = "Block removed.";
       });
       const patMsg = mk("span", "muted");
       patMsg.setAttribute("aria-live", "polite");
@@ -5886,8 +5889,10 @@
           });
           design.pattern.fileId = id;
           design.pattern.id = "custom";
-          patMsg.textContent = "Block uploaded. Save the design to use it.";
           refresh();
+          patMsg.textContent = "Block uploaded. Saving…";
+          await save();
+          patMsg.textContent = "Block uploaded and saved.";
         } catch (e) {
           patMsg.textContent = e.message;
         }
@@ -5962,7 +5967,13 @@
       const heroClear = mk("button", "secondary", "Remove photo");
       heroClear.type = "button";
       heroClear.setAttribute("data-write", "");
-      heroClear.addEventListener("click", () => { design.heroPhoto = {}; refresh(); });
+      heroClear.addEventListener("click", async () => {
+        design.heroPhoto = {};
+        refresh();
+        heroMsg.textContent = "Removing…";
+        await save();
+        heroMsg.textContent = "Photo removed.";
+      });
       const heroMsg = mk("span", "muted");
       heroMsg.setAttribute("aria-live", "polite");
       heroFile.addEventListener("change", async () => {
@@ -5974,8 +5985,10 @@
             if (pr.stage === "warn") heroMsg.textContent = pr.message;
           });
           design.heroPhoto = { fileId: id };
-          heroMsg.textContent = "Photo uploaded. Save the design to use it.";
           refresh();
+          heroMsg.textContent = "Photo uploaded. Saving…";
+          await save();
+          heroMsg.textContent = "Photo uploaded and saved.";
         } catch (e) {
           heroMsg.textContent = e.message;
         }
