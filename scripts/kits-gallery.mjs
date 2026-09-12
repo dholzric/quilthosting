@@ -130,7 +130,10 @@ function sampleData(kit) {
 function rewritePageHtml(html, pageSlugs) {
   let out = html
     .replaceAll('href="/qh-site.css"', 'href="../../_assets/qh-site.css"')
+    .replaceAll('href="/qh-signature.css"', 'href="../../_assets/qh-signature.css"')
     .replaceAll('src="/qh-site.js"', 'src="../../_assets/qh-site.js"');
+  out = out.replaceAll('src="/qh-signature.js"', 'src="../../_assets/qh-signature.js"');
+  out = out.replaceAll('src="/kit-assets/', 'src="../../kit-assets/').replaceAll('srcset="/kit-assets/', 'srcset="../../kit-assets/').replaceAll(', /kit-assets/', ', ../../kit-assets/');
   out = out.replace(/href="\/"/g, 'href="home.html"');
   out = out.replace(/href="\/([a-z0-9-]+)"/g, (m, slug) => (pageSlugs.has(slug) ? `href="${slug}.html"` : m));
   return out;
@@ -394,6 +397,8 @@ async function main() {
     mkdirSync(ASSETS, { recursive: true });
     copyFileSync(path.join(ROOT, "public", "qh-site.css"), path.join(ASSETS, "qh-site.css"));
     copyFileSync(path.join(ROOT, "public", "qh-site.js"), path.join(ASSETS, "qh-site.js"));
+    copyFileSync(path.join(ROOT, "public", "qh-signature.css"), path.join(ASSETS, "qh-signature.css"));
+    copyFileSync(path.join(ROOT, "public", "qh-signature.js"), path.join(ASSETS, "qh-signature.js"));
     if (existsSync(SITES)) rmSync(SITES, { recursive: true, force: true });
     mkdirSync(SITES, { recursive: true });
     if (existsSync(path.join(ROOT, "public", "kit-assets"))) {

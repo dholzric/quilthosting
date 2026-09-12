@@ -102,6 +102,9 @@ import quiltingFellowship from "./quilting-fellowship.json";
 import linenJournal from "./linen-journal.json";
 import colorAssembly from "./color-assembly.json";
 import indigoHouse from "./indigo-house.json";
+import quiltBiennial from "./quilt-biennial.json";
+import commonThreadReview from "./common-thread-review.json";
+import atelierNoir from "./atelier-noir.json";
 import weekendHouse from "./weekend-house.json";
 
 import paperPieces from "./paper-pieces.json";
@@ -138,6 +141,9 @@ export {
 
 /** Parsed (typed, section-normalized) kits, in gallery order. */
 export const KITS: Kit[] = [
+  quiltBiennial,
+  commonThreadReview,
+  atelierNoir,
   heritage,
   modernGuild,
   showFestival,

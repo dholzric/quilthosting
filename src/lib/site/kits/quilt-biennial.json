@@ -1,0 +1,525 @@
+{
+  "id": "quilt-biennial",
+  "name": "Quilt Biennial",
+  "audience": "guild",
+  "character": "A contemporary quilt exhibition with monumental typography, hard rules, numbered program rows, and gallery-scale artwork.",
+  "defaults": {
+    "palette": "signature-vermilion",
+    "composition": "biennial",
+    "typePair": "spacegrotesk-worksans",
+    "scale": "editorial",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "normal",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "none",
+      "opacity": 0
+    }
+  },
+  "previewSeed": {
+    "guildName": "Quilt Biennial",
+    "city": "Columbus, Ohio"
+  },
+  "menu": [
+    {
+      "label": "The Show",
+      "href": "/the-show"
+    },
+    {
+      "label": "Enter a Quilt",
+      "href": "/enter-a-quilt"
+    },
+    {
+      "label": "Program",
+      "href": "/program"
+    },
+    {
+      "label": "Plan Your Visit",
+      "href": "/plan-your-visit"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "A quilt show for ideas too large to fold away.",
+          "subtitle": "The 2027 Quilt Biennial brings radical color, exacting craft, and 80 new works into one charged room.",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "normal"
+          },
+          "eyebrow": "Columbus · September 18–October 10",
+          "ctaLabel": "See the exhibition",
+          "ctaHref": "/contact",
+          "id": "home-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "An original textile study in color, curves, and unexpected company. Add your collective’s own quilt here.",
+              "caption": "An original textile study in color, curves, and unexpected company. Add your collective’s own quilt here."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "home-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "icons",
+          "heading": "Different ways in. One very good room.",
+          "items": [
+            {
+              "icon": "↗",
+              "title": "The open table",
+              "body": "Bring the quilt that will not behave. We have spare pins and opinions, if you want them.",
+              "href": "/contact"
+            },
+            {
+              "icon": "◒",
+              "title": "The color experiment",
+              "body": "Try a palette you would normally put back. A small block is a good place to take a chance.",
+              "href": "/contact"
+            },
+            {
+              "icon": "⊞",
+              "title": "The wall",
+              "body": "Finished is worth sharing. So is the interesting thing that happened on the way there.",
+              "href": "/contact"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-3"
+        },
+        {
+          "type": "meeting_info",
+          "heading": "Less scrolling. More sewing.",
+          "when": "We meet {{meeting_info}}.",
+          "where": "{{city}}",
+          "note": "A first quilt, a fifth attempt, a sketch on a napkin. Bring what you have.",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "normal",
+            "layout": "framed"
+          },
+          "id": "home-4"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Home, considered",
+          "html": "<p><em>Sample text — replace me:</em> The 2027 Quilt Biennial brings radical color, exacting craft, and 80 new works into one charged room.</p><p>This demonstration shows how a real home page can carry its own editorial purpose, pace, and voice. Replace it with the organization’s facts while keeping the composition.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "home-5"
+        },
+        {
+          "type": "join_band",
+          "title": "A quilt show for ideas too large to fold away.",
+          "body": "The 2027 Quilt Biennial brings radical color, exacting craft, and 80 new works into one charged room.",
+          "ctaLabel": "See the exhibition",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy",
+            "divider": "points"
+          },
+          "id": "home-6"
+        }
+      ]
+    },
+    {
+      "slug": "the-show",
+      "title": "The Show",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Eighty quilts. No quiet walls.",
+          "subtitle": "A juried survey of makers changing what a quilt can hold, say, and do.",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "The exhibition",
+          "id": "the-show-1",
+          "ctaLabel": "Meet the artists",
+          "ctaHref": "/the-show"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Inside The Show",
+          "html": "<p><em>Sample text — replace me:</em> A juried survey of makers changing what a quilt can hold, say, and do.</p><p>This demonstration shows how a real the show page can carry its own editorial purpose, pace, and voice. Replace it with the organization’s facts while keeping the composition.</p>",
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "the-show-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "The way we work",
+          "items": [
+            {
+              "title": "Credit the idea",
+              "body": "Name the pattern designer, teacher, maker, and quilter when you share work."
+            },
+            {
+              "title": "Ask before advising",
+              "body": "Sometimes a quilt wants critique. Sometimes its maker just wants to show you."
+            },
+            {
+              "title": "Make room",
+              "body": "Different budgets, bodies, schedules, and experience levels belong at the same table."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "the-show-3"
+        },
+        {
+          "type": "cta",
+          "label": "Meet the artists",
+          "href": "/contact",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "the-show-4"
+        }
+      ]
+    },
+    {
+      "slug": "enter-a-quilt",
+      "title": "Enter a Quilt",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Send us the work only you could make.",
+          "subtitle": "Open call for original quilts completed after January 2025. Emerging and established makers are judged together.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "2027 open call",
+          "id": "enter-a-quilt-1",
+          "ctaLabel": "Read entry requirements",
+          "ctaHref": "/enter-a-quilt"
+        },
+        {
+          "type": "process",
+          "heading": "Your first sew day",
+          "items": [
+            {
+              "title": "Choose a gathering",
+              "body": "Check the events calendar for times, venue details, and any guest registration."
+            },
+            {
+              "title": "Pack one project",
+              "body": "Bring your usual tools. Each event lists whether you need a machine or hand-sewing kit."
+            },
+            {
+              "title": "Find a seat",
+              "body": "Say hello to the host. There is no requirement to bring something finished."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "enter-a-quilt-2"
+        },
+        {
+          "type": "faq",
+          "heading": "A few things you might be wondering",
+          "items": [
+            {
+              "q": "Do I need to make modern quilts?",
+              "a": "You need curiosity, not a portfolio. Traditional skills and unexpected fabrics both have a place here."
+            },
+            {
+              "q": "Can I join from outside the city?",
+              "a": "Check the calendar for the format of each gathering. Contact us about any remote sessions before joining."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "enter-a-quilt-3"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Inside Enter a Quilt",
+          "html": "<p><em>Sample text — replace me:</em> Open call for original quilts completed after January 2025. Emerging and established makers are judged together.</p><p>This demonstration shows how a real enter a quilt page can carry its own editorial purpose, pace, and voice. Replace it with the organization’s facts while keeping the composition.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "enter-a-quilt-4"
+        },
+        {
+          "type": "cta",
+          "label": "Read entry requirements",
+          "href": "/events",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "enter-a-quilt-5"
+        }
+      ]
+    },
+    {
+      "slug": "program",
+      "title": "Program",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Three weekends. One live argument about cloth.",
+          "subtitle": "Artist talks, demonstrations, late-night gallery hours, and sharp conversations about contemporary quilt practice.",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "Talks · Workshops · Encounters",
+          "id": "program-1",
+          "ctaLabel": "Build your itinerary",
+          "ctaHref": "/program"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Illustrative geometric quilt study. Replace with member work and maker credits.",
+              "caption": "Illustrative geometric quilt study. Replace with member work and maker credits."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "program-2"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Program, considered",
+          "html": "<p><em>Sample text — replace me:</em> Artist talks, demonstrations, late-night gallery hours, and sharp conversations about contemporary quilt practice.</p><p>This demonstration shows how a real program page can carry its own editorial purpose, pace, and voice. Replace it with the organization’s facts while keeping the composition.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "program-3"
+        },
+        {
+          "type": "cta",
+          "label": "Build your itinerary",
+          "href": "/galleries",
+          "kind": "primary",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "program-4"
+        }
+      ]
+    },
+    {
+      "slug": "plan-your-visit",
+      "title": "Plan Your Visit",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Come close enough to see the hand.",
+          "subtitle": "Find hours, access details, group visits, and everything you need for a full day at the Biennial.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "The Foundry · Columbus",
+          "id": "plan-your-visit-1",
+          "ctaLabel": "Plan your day",
+          "ctaHref": "/plan-your-visit"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Inside Plan Your Visit",
+          "html": "<p><em>Sample text — replace me:</em> Find hours, access details, group visits, and everything you need for a full day at the Biennial.</p><p>This demonstration shows how a real plan your visit page can carry its own editorial purpose, pace, and voice. Replace it with the organization’s facts while keeping the composition.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "plan-your-visit-2"
+        },
+        {
+          "type": "contact",
+          "heading": "Send the collective a note",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "plan-your-visit-3"
+        },
+        {
+          "type": "newsletter_signup",
+          "heading": "Keep plan your visit close",
+          "body": "Find hours, access details, group visits, and everything you need for a full day at the Biennial.",
+          "buttonLabel": "Keep me in the loop",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "plan-your-visit-4"
+        }
+      ]
+    },
+    {
+      "slug": "contact",
+      "title": "Contact",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Questions belong in the room, too.",
+          "subtitle": "Talk with the exhibition team about entries, press, access, schools, or partnerships.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "Biennial office",
+          "id": "contact-1",
+          "ctaLabel": "Contact the team",
+          "ctaHref": "/contact"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Inside Contact",
+          "html": "<p><em>Sample text — replace me:</em> Talk with the exhibition team about entries, press, access, schools, or partnerships.</p><p>This demonstration shows how a real contact page can carry its own editorial purpose, pace, and voice. Replace it with the organization’s facts while keeping the composition.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "contact-2"
+        },
+        {
+          "type": "contact",
+          "heading": "Send the collective a note",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "contact-3"
+        },
+        {
+          "type": "newsletter_signup",
+          "heading": "Keep contact close",
+          "body": "Talk with the exhibition team about entries, press, access, schools, or partnerships.",
+          "buttonLabel": "Keep me in the loop",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "contact-4"
+        }
+      ]
+    }
+  ],
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "photo",
+      "src": "public/kit-assets/quilt-biennial/hero.webp",
+      "alt": "A monumental abstract quilt in indigo, rust, cream, and yellow displayed in a modern gallery"
+    },
+    {
+      "id": "detail-art",
+      "kind": "photo",
+      "src": "public/kit-assets/quilt-biennial/detail.webp",
+      "alt": "Close crop of piecing and stitched curves in the exhibition quilt"
+    },
+    {
+      "id": "context-art",
+      "kind": "photo",
+      "src": "public/kit-assets/quilt-biennial/context.webp",
+      "alt": "Wide gallery detail with the exhibition quilt and raking daylight"
+    }
+  ]
+}

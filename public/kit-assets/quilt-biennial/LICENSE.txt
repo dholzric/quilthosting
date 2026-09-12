@@ -1,0 +1,3 @@
+Original AI-generated sample artwork created for QuiltHosting with the built-in OpenAI image generation tool, 2026-09-12.
+No third-party image was supplied. This depicts a fictional exhibition setting and must not be represented as a real show, venue, quilt, or client work.
+hero, detail, and context files are responsive crops of the same original artwork. Replace them with the organization’s own approved photographs before launch.

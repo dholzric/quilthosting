@@ -76,3 +76,74 @@
   [data-qh-composition="destination"] .qh-main > .qh-hero--split:first-child{padding-top:16rem;min-height:0}
   [data-qh-composition="cinema"] .qh-main > .qh-hero--split:first-child{min-height:80svh;padding:2rem 1.25rem}
 }
+
+/* SHOWCASE — Quilt Biennial. A hard-edged exhibition poster, never cards. */
+[data-qh-composition="biennial"]{--qh-showcase-rule:2px solid var(--_ink)}
+[data-qh-composition="biennial"] .qh-header{border-bottom:var(--qh-showcase-rule);background:var(--_bg);box-shadow:none}
+[data-qh-composition="biennial"] .qh-header__inner{max-width:none;padding-inline:clamp(1rem,3vw,3.5rem)}
+[data-qh-composition="biennial"] .qh-brand{font-family:var(--qh-font-body);font-weight:800;text-transform:uppercase;letter-spacing:-.04em}
+[data-qh-composition="biennial"] .qh-nav a{text-transform:uppercase;font-size:.73rem;font-weight:750;letter-spacing:.12em}
+[data-qh-composition="biennial"] .qh-main>.qh-hero:first-child{min-height:calc(100svh - 5rem);max-width:none;padding:clamp(2rem,5vw,6rem) clamp(1rem,3vw,3.5rem);display:grid;grid-template-columns:minmax(0,1.15fr) minmax(18rem,.85fr);align-items:end;gap:clamp(1.5rem,4vw,5rem);border-bottom:var(--qh-showcase-rule);background:var(--_primary);color:var(--_on-primary)}
+[data-qh-composition="biennial"] .qh-main>.qh-hero:first-child .qh-hero__body{max-width:none;align-self:end}
+[data-qh-composition="biennial"] .qh-main>.qh-hero:first-child .qh-hero__title{font-family:var(--qh-font-body);font-weight:850;text-transform:uppercase;font-size:clamp(4.25rem,10vw,11.5rem);line-height:.77;letter-spacing:-.075em;max-width:8ch;margin-block:.2em}
+[data-qh-composition="biennial"] .qh-main>.qh-hero:first-child .qh-hero__media{order:2;align-self:stretch;min-height:55vh}
+[data-qh-composition="biennial"] .qh-main>.qh-hero:first-child img{height:100%;width:100%;object-fit:cover;aspect-ratio:3/4;border-radius:0;filter:saturate(.9) contrast(1.08)}
+[data-qh-composition="biennial"] .qh-main>.qh-s:not(.qh-hero){border-bottom:var(--qh-showcase-rule);padding-block:clamp(3rem,7vw,8rem)}
+[data-qh-composition="biennial"] .qh-section-head{display:grid;grid-template-columns:minmax(10rem,.38fr) 1fr;gap:2rem;align-items:start}
+[data-qh-composition="biennial"] :is(.qh-section-title,.qh-s h2){font-family:var(--qh-font-body);text-transform:uppercase;font-size:clamp(2.4rem,5vw,6rem);line-height:.88;letter-spacing:-.055em}
+[data-qh-composition="biennial"] :is(.qh-grid,.qh-features .qh-grid){gap:0;border-top:var(--qh-showcase-rule)}
+[data-qh-composition="biennial"] :is(.qh-feature,.qh-event,.qh-card){border:0;border-radius:0;border-bottom:1px solid var(--_ink);background:transparent;box-shadow:none;padding:1.5rem 0}
+[data-qh-composition="biennial"] .qh-feature:nth-child(odd){background:var(--_ink);color:var(--_bg);padding-inline:1.5rem}
+[data-qh-composition="biennial"] .qh-footer{background:var(--_ink);color:var(--_bg);border:0}
+
+/* SHOWCASE — Common Thread Review. Publication masthead and reading rhythm. */
+[data-qh-composition="review"] .qh-header{position:relative;border:0;background:var(--_bg);box-shadow:none;padding-top:1.2rem}
+[data-qh-composition="review"] .qh-header__inner{display:grid;grid-template-columns:1fr;justify-items:center;gap:.85rem;max-width:90rem;border-block:1px solid var(--_ink);padding-block:1rem}
+[data-qh-composition="review"] .qh-brand{font-family:var(--qh-font-display);font-size:clamp(2.3rem,5vw,5.6rem);line-height:.9;letter-spacing:-.055em;text-align:center}
+[data-qh-composition="review"] .qh-nav{justify-content:center}
+[data-qh-composition="review"] .qh-nav a{font-family:var(--qh-font-body);font-size:.72rem;text-transform:uppercase;letter-spacing:.14em}
+[data-qh-composition="review"] .qh-main>.qh-hero:first-child{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(18rem,.65fr);gap:clamp(2rem,5vw,6rem);max-width:90rem;padding-block:clamp(3rem,7vw,8rem);border-bottom:3px double var(--_ink)}
+[data-qh-composition="review"] .qh-main>.qh-hero:first-child .qh-hero__body{max-width:55rem}
+[data-qh-composition="review"] .qh-main>.qh-hero:first-child .qh-hero__title{font-size:clamp(4rem,7.5vw,9rem);line-height:.87;letter-spacing:-.06em}
+[data-qh-composition="review"] .qh-main>.qh-hero:first-child .qh-hero__sub{font-family:var(--qh-font-display);font-size:clamp(1.25rem,2vw,1.75rem);max-width:38ch;border-top:1px solid var(--_ink);padding-top:1.3rem}
+[data-qh-composition="review"] .qh-main>.qh-hero:first-child img{aspect-ratio:4/5;object-fit:cover;border-radius:0;filter:saturate(.72)}
+[data-qh-composition="review"] .qh-main>.qh-s:not(.qh-hero){max-width:90rem;border-bottom:1px solid var(--_border)}
+[data-qh-composition="review"] :is(.qh-section-title,.qh-s h2){font-weight:500;letter-spacing:-.035em}
+[data-qh-composition="review"] .qh-features .qh-grid{grid-template-columns:1fr;gap:0;border-top:1px solid var(--_ink)}
+[data-qh-composition="review"] .qh-feature{display:grid;grid-template-columns:minmax(8rem,.35fr) 1fr;gap:clamp(1rem,4vw,5rem);border:0;border-bottom:1px solid var(--_border);border-radius:0;background:transparent;padding:1.5rem 0}
+[data-qh-composition="review"] .qh-prose{font-family:var(--qh-font-display);font-size:1.12rem;line-height:1.72}
+[data-qh-composition="review"] .qh-footer{border-top:3px double var(--_ink);background:var(--_bg)}
+
+/* SHOWCASE — Atelier Noir. A cinematic portfolio with dark project chapters. */
+[data-qh-composition="noir"]{background:var(--_dark);color:var(--_on-dark)}
+[data-qh-composition="noir"] .qh-header{position:absolute;inset:0 0 auto;z-index:20;background:transparent;color:var(--_on-dark);border:0;box-shadow:none}
+[data-qh-composition="noir"] .qh-header a{color:inherit}
+[data-qh-composition="noir"] .qh-header__inner{max-width:none;padding-inline:clamp(1.2rem,4vw,5rem)}
+[data-qh-composition="noir"] .qh-brand{text-transform:uppercase;letter-spacing:.22em;font-size:.8rem}
+[data-qh-composition="noir"] .qh-nav a{text-transform:uppercase;letter-spacing:.16em;font-size:.67rem}
+[data-qh-composition="noir"] .qh-main>.qh-hero:first-child{position:relative;max-width:none;min-height:100svh;padding:clamp(6rem,10vw,10rem) clamp(1.2rem,4vw,5rem) clamp(3rem,6vw,7rem);display:flex;align-items:flex-end;isolation:isolate;background:var(--_dark);color:var(--_on-dark);overflow:hidden}
+[data-qh-composition="noir"] .qh-main>.qh-hero:first-child .qh-hero__media{position:absolute;inset:0;z-index:-2;width:100%;height:100%}
+[data-qh-composition="noir"] .qh-main>.qh-hero:first-child img{width:100%;height:100%;object-fit:cover;aspect-ratio:auto;border-radius:0;filter:saturate(.65) contrast(1.12)}
+[data-qh-composition="noir"] .qh-main>.qh-hero:first-child:after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgb(0 0 0/.78),transparent 62%),linear-gradient(0deg,rgb(0 0 0/.75),transparent 65%)}
+[data-qh-composition="noir"] .qh-main>.qh-hero:first-child .qh-hero__body{max-width:70rem;border-left:1px solid color-mix(in oklab,var(--_on-dark) 45%,transparent);padding-left:clamp(1rem,3vw,3rem)}
+[data-qh-composition="noir"] .qh-main>.qh-hero:first-child .qh-hero__title{font-size:clamp(4rem,8vw,10rem);line-height:.83;font-weight:400;max-width:10ch}
+[data-qh-composition="noir"] .qh-main>.qh-s:not(.qh-hero){max-width:none;padding:clamp(4rem,9vw,11rem) clamp(1.2rem,8vw,10rem);background:var(--_dark);color:var(--_on-dark);border-bottom:1px solid color-mix(in oklab,var(--_on-dark) 18%,transparent)}
+[data-qh-composition="noir"] .qh-main>.qh-s:nth-child(odd){background:var(--_bg);color:var(--_ink)}
+[data-qh-composition="noir"] :is(.qh-section-title,.qh-s h2){font-size:clamp(3rem,6vw,7rem);font-weight:400;line-height:.9;max-width:12ch}
+[data-qh-composition="noir"] :is(.qh-feature,.qh-event,.qh-card){border:0;border-radius:0;background:transparent;box-shadow:none;border-top:1px solid currentColor;padding:1.5rem 0}
+[data-qh-composition="noir"] .qh-footer{background:var(--_dark);color:var(--_on-dark);border-top:1px solid color-mix(in oklab,var(--_on-dark) 24%,transparent)}
+
+@media(max-width:760px){
+  [data-qh-composition="biennial"] .qh-main>.qh-hero:first-child{grid-template-columns:1fr;min-height:auto;padding-top:3rem}
+  [data-qh-composition="biennial"] .qh-main>.qh-hero:first-child .qh-hero__title{font-size:clamp(3.5rem,20vw,6.5rem)}
+  [data-qh-composition="biennial"] .qh-main>.qh-hero:first-child .qh-hero__media{min-height:55svh}
+  [data-qh-composition="biennial"] .qh-section-head{grid-template-columns:1fr}
+  [data-qh-composition="review"] .qh-header__inner{justify-items:start}
+  [data-qh-composition="review"] .qh-brand{text-align:left;font-size:2.5rem}
+  [data-qh-composition="review"] .qh-main>.qh-hero:first-child{grid-template-columns:1fr}
+  [data-qh-composition="review"] .qh-main>.qh-hero:first-child .qh-hero__title{font-size:clamp(3.4rem,17vw,6rem)}
+  [data-qh-composition="review"] .qh-feature{grid-template-columns:1fr;gap:.5rem}
+  [data-qh-composition="noir"] .qh-header{position:absolute}
+  [data-qh-composition="noir"] .qh-main>.qh-hero:first-child{min-height:88svh}
+  [data-qh-composition="noir"] .qh-main>.qh-hero:first-child .qh-hero__title{font-size:clamp(3.7rem,18vw,6.5rem)}
+}

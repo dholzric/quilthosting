@@ -1,0 +1,522 @@
+{
+  "id": "atelier-noir",
+  "name": "Atelier Noir",
+  "audience": "business",
+  "character": "A cinematic quilt atelier with full-screen project imagery, dark editorial chapters, material notes, and a restrained commission path.",
+  "defaults": {
+    "palette": "signature-midnight",
+    "composition": "noir",
+    "typePair": "cormorantgaramond-sourcesans",
+    "scale": "editorial",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "split",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "none",
+      "opacity": 0
+    }
+  },
+  "previewSeed": {
+    "guildName": "Atelier Noir",
+    "city": "Asheville, North Carolina"
+  },
+  "menu": [
+    {
+      "label": "Selected Work",
+      "href": "/selected-work"
+    },
+    {
+      "label": "Commissions",
+      "href": "/commissions"
+    },
+    {
+      "label": "Process",
+      "href": "/process"
+    },
+    {
+      "label": "Studio",
+      "href": "/studio"
+    },
+    {
+      "label": "Inquiry",
+      "href": "/inquiry"
+    }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "split",
+          "title": "Textile works with a life after the room.",
+          "subtitle": "Atelier Noir creates singular quilted surfaces for collectors, architects, and interiors with something at stake.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy",
+            "imageId": "hero-art",
+            "media": "left",
+            "layout": "asym_reverse",
+            "imageFocal": [
+              0.52,
+              0.5
+            ]
+          },
+          "eyebrow": "Asheville · By commission",
+          "ctaLabel": "View selected work",
+          "ctaHref": "/inquiry",
+          "id": "home-1"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Inside Home",
+          "html": "<p><em>Sample text — replace me:</em> Atelier Noir creates singular quilted surfaces for collectors, architects, and interiors with something at stake.</p><p>This demonstration shows how a real home page can carry its own editorial purpose, pace, and voice. Replace it with the organization’s facts while keeping the composition.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "home-2"
+        },
+        {
+          "type": "services",
+          "variant": "table",
+          "heading": "Ways to work together",
+          "items": [
+            {
+              "title": "Everyday finishing",
+              "body": "An edge-to-edge rhythm chosen to suit the scale, use, and character of your quilt.",
+              "price": "Quoted by size"
+            },
+            {
+              "title": "Custom quilting",
+              "body": "Individual attention to blocks, borders, and the spaces between.",
+              "price": "Quoted by design"
+            },
+            {
+              "title": "A quilt from the beginning",
+              "body": "A commissioned piece, with fabric and composition developed around your brief.",
+              "price": "Quoted by project"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-3"
+        },
+        {
+          "type": "process",
+          "heading": "A considered process",
+          "items": [
+            {
+              "title": "A conversation",
+              "body": "Tell us about the quilt, its dimensions, and the life you imagine for it."
+            },
+            {
+              "title": "A written proposal",
+              "body": "We agree the design, materials, price, and timing before any work begins."
+            },
+            {
+              "title": "The finishing",
+              "body": "Your piece is quilted, checked, and prepared for collection or agreed shipping."
+            }
+          ],
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "airy",
+            "divider": "rule"
+          },
+          "id": "home-4"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Home, considered",
+          "html": "<p><em>Sample text — replace me:</em> Atelier Noir creates singular quilted surfaces for collectors, architects, and interiors with something at stake.</p><p>This demonstration shows how a real home page can carry its own editorial purpose, pace, and voice. Replace it with the organization’s facts while keeping the composition.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "home-5"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Inside Home",
+          "html": "<p><em>Sample text — replace me:</em> Atelier Noir creates singular quilted surfaces for collectors, architects, and interiors with something at stake.</p><p>This demonstration shows how a real home page can carry its own editorial purpose, pace, and voice. Replace it with the organization’s facts while keeping the composition.</p>",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "normal"
+          },
+          "id": "home-6"
+        }
+      ]
+    },
+    {
+      "slug": "selected-work",
+      "title": "Selected Work",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Light changes. The work answers.",
+          "subtitle": "A restrained portfolio of monumental quilts, architectural panels, and intimate studies.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "Works 2023–2027",
+          "id": "selected-work-1",
+          "ctaLabel": "View project notes",
+          "ctaHref": "/selected-work"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Inside Selected Work",
+          "html": "<p><em>Sample text — replace me:</em> A restrained portfolio of monumental quilts, architectural panels, and intimate studies.</p><p>This demonstration shows how a real selected work page can carry its own editorial purpose, pace, and voice. Replace it with the organization’s facts while keeping the composition.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "selected-work-2"
+        },
+        {
+          "type": "benefits",
+          "heading": "What matters in the studio",
+          "items": [
+            {
+              "title": "Clarity before cutting",
+              "body": "Scope, materials, and estimates agreed in writing."
+            },
+            {
+              "title": "Care for the work already done",
+              "body": "Your piecing and fabric choices guide the finishing."
+            },
+            {
+              "title": "A useful life beyond the studio",
+              "body": "Quilting density, thread, and care guidance suited to how the quilt will be used."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "selected-work-3"
+        },
+        {
+          "type": "cta",
+          "label": "View project notes",
+          "href": "/inquiry",
+          "kind": "primary",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "selected-work-4"
+        }
+      ]
+    },
+    {
+      "slug": "commissions",
+      "title": "Commissions",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Made for one wall, one room, one client.",
+          "subtitle": "Scale, material, light, and use are resolved together through a limited annual commission program.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "Four commissions per year",
+          "id": "commissions-1",
+          "ctaLabel": "Begin an inquiry",
+          "ctaHref": "/commissions"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Illustrative indigo textile study with white running stitches. Replace with your studio portfolio.",
+              "caption": "Illustrative indigo textile study with white running stitches. Replace with your studio portfolio."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "commissions-2"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Commissions, considered",
+          "html": "<p><em>Sample text — replace me:</em> Scale, material, light, and use are resolved together through a limited annual commission program.</p><p>This demonstration shows how a real commissions page can carry its own editorial purpose, pace, and voice. Replace it with the organization’s facts while keeping the composition.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "commissions-3"
+        },
+        {
+          "type": "cta",
+          "label": "Begin an inquiry",
+          "href": "/inquiry",
+          "kind": "primary",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "commissions-4"
+        }
+      ]
+    },
+    {
+      "slug": "process",
+      "title": "Process",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Nothing decorative is accidental.",
+          "subtitle": "Research, drawings, cloth studies, quilting maps, and full-scale tests bring each work into focus.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "Study · Sample · Resolve",
+          "id": "process-1",
+          "ctaLabel": "See how we work",
+          "ctaHref": "/process"
+        },
+        {
+          "type": "services",
+          "variant": "table",
+          "heading": "A starting point for your project",
+          "items": [
+            {
+              "title": "Edge-to-edge quilting",
+              "body": "Share the width and length of the top, desired density, and whether batting and backing are supplied.",
+              "price": "Written estimate"
+            },
+            {
+              "title": "Custom quilting",
+              "body": "Share a full photograph and close details of the piecing. Design planning is included in your proposal.",
+              "price": "Written estimate"
+            },
+            {
+              "title": "Commissioned quilt",
+              "body": "Tell us the intended size, use, palette, and any meaningful fabrics you would like to include.",
+              "price": "Written estimate"
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "process-2"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Process, considered",
+          "html": "<p><em>Sample text — replace me:</em> Research, drawings, cloth studies, quilting maps, and full-scale tests bring each work into focus.</p><p>This demonstration shows how a real process page can carry its own editorial purpose, pace, and voice. Replace it with the organization’s facts while keeping the composition.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "process-3"
+        },
+        {
+          "type": "cta",
+          "label": "See how we work",
+          "href": "/inquiry",
+          "kind": "primary",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "process-4"
+        }
+      ]
+    },
+    {
+      "slug": "studio",
+      "title": "Studio",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "A quiet practice of material precision.",
+          "subtitle": "The studio works with linen, cotton, wool, and reclaimed cloth selected for depth, hand, and endurance.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "Asheville, North Carolina",
+          "id": "studio-1",
+          "ctaLabel": "Visit by appointment",
+          "ctaHref": "/studio"
+        },
+        {
+          "type": "faq",
+          "heading": "A few things you might be wondering",
+          "items": [
+            {
+              "q": "What do you need for an estimate?",
+              "a": "The top’s width and length, photographs, your preferred finish, any deadline, and whether backing and batting are supplied."
+            },
+            {
+              "q": "Should I baste the layers?",
+              "a": "Contact the studio first. Longarm work generally needs the top, batting, and backing as separate layers; the required extra backing depends on the setup."
+            },
+            {
+              "q": "Can you guarantee a date?",
+              "a": "A date is confirmed only in your accepted proposal. Let us know about weddings, gifts, or show deadlines before booking."
+            },
+            {
+              "q": "How do I send a quilt?",
+              "a": "Agree the delivery address and packing instructions with the studio before shipping. Include your name and project reference inside the package."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "studio-2"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Studio, considered",
+          "html": "<p><em>Sample text — replace me:</em> The studio works with linen, cotton, wool, and reclaimed cloth selected for depth, hand, and endurance.</p><p>This demonstration shows how a real studio page can carry its own editorial purpose, pace, and voice. Replace it with the organization’s facts while keeping the composition.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "studio-3"
+        },
+        {
+          "type": "cta",
+          "label": "Visit by appointment",
+          "href": "/inquiry",
+          "kind": "primary",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "studio-4"
+        }
+      ]
+    },
+    {
+      "slug": "inquiry",
+      "title": "Inquiry",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Tell us about the room before the object.",
+          "subtitle": "Share the site, scale, timing, and ambition. The studio responds personally to aligned projects.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "New work begins here",
+          "id": "inquiry-1",
+          "ctaLabel": "Submit an inquiry",
+          "ctaHref": "/inquiry"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Inside Inquiry",
+          "html": "<p><em>Sample text — replace me:</em> Share the site, scale, timing, and ambition. The studio responds personally to aligned projects.</p><p>This demonstration shows how a real inquiry page can carry its own editorial purpose, pace, and voice. Replace it with the organization’s facts while keeping the composition.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "inquiry-2"
+        },
+        {
+          "type": "contact",
+          "heading": "Tell us about your quilt",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "inquiry-3"
+        }
+      ]
+    }
+  ],
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "photo",
+      "src": "public/kit-assets/atelier-noir/hero.webp",
+      "alt": "A sculptural indigo and bone wholecloth quilt illuminated in a dark contemporary studio"
+    },
+    {
+      "id": "detail-art",
+      "kind": "photo",
+      "src": "public/kit-assets/atelier-noir/detail.webp",
+      "alt": "Close view of indigo cloth and sculptural stitched relief"
+    },
+    {
+      "id": "context-art",
+      "kind": "photo",
+      "src": "public/kit-assets/atelier-noir/context.webp",
+      "alt": "Shadowed atelier interior with a dramatically lit wholecloth quilt"
+    }
+  ]
+}
