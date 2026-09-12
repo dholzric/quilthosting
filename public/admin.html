@@ -5574,7 +5574,7 @@
         const hiddenKits = [];
         kits.forEach((k) => {
           const card = mk("div", "wb-preset qh-kit");
-          if (!k.catalog || k.catalog.collection !== "featured") {
+          if (!k.catalog || !["showcase", "featured"].includes(k.catalog.collection)) {
             card.classList.add("qh-kit--catalog-hidden");
             hiddenKits.push(card);
           }
@@ -5621,7 +5621,7 @@
             const show = all.getAttribute("aria-expanded") !== "true";
             hiddenKits.forEach((card) => card.classList.toggle("qh-kit--catalog-hidden", !show));
             all.setAttribute("aria-expanded", String(show));
-            all.textContent = show ? "Show featured designs" : allLabel;
+            all.textContent = show ? "Show showcase + featured designs" : allLabel;
           });
           kitSec.appendChild(all);
         }
