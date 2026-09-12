@@ -1,6 +1,6 @@
 /* QuiltHosting service worker — network-first for HTML so API shape changes ship;
    cache shell assets for offline check-in. */
-const CACHE = "qh-v26";
+const CACHE = "qh-v27";
 const PRECACHE = [
   "/qh.css",
   "/manifest.webmanifest",
@@ -33,7 +33,8 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(req.url);
   // Network-first for API
-  if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/public/")) {
+  if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/public/") ||
+      url.pathname === "/qh-signature.css" || url.pathname === "/qh-signature.js") {
     event.respondWith(fetch(req).catch(() => caches.match(req)));
     return;
   }

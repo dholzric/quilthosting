@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const JS = readFileSync(path.join(ROOT, "public/qh-signature.js"), "utf8");
 const CSS = readFileSync(path.join(ROOT, "public/qh-signature.css"), "utf8");
+const SW = readFileSync(path.join(ROOT, "public/sw.js"), "utf8");
 
 describe("showcase signature experiences", () => {
   it("gives every flagship composition its own named interaction", () => {
@@ -24,5 +25,10 @@ describe("showcase signature experiences", () => {
 
   it("remains valid browser JavaScript", () => {
     expect(() => new Function(JS)).not.toThrow();
+  });
+
+  it("fetches changing signature assets from the network before cached copies", () => {
+    expect(SW).toContain('url.pathname === "/qh-signature.css"');
+    expect(SW).toContain('url.pathname === "/qh-signature.js"');
   });
 });

@@ -68,6 +68,13 @@ describe("admin.html editor phase 2 — functions and contracts", () => {
     expect(panel).toContain("compatible designs (${totalDesigns} total)");
   });
 
+  it("opens a kit's own composed example from both preview entry points", () => {
+    const panel = fnSource("qhDesignPanel");
+    expect(panel).toContain('const examplePreview = { mode: "example", kitId: k.id, design: clone(k.design) };');
+    expect(panel).toContain('qhDesignPreview(examplePreview, `${k.name} example`, applyKit)');
+    expect(panel).toContain('examplePreview,\n                applyKit');
+  });
+
   it("the image pipeline follows the Task B contract", () => {
     expect(ADMIN).toContain("const WB_VARIANT_WIDTHS = [240, 480, 960, 1600, 2400];");
     expect(ADMIN).toContain("const WB_VARIANT_QUALITY = 0.82;");

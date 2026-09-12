@@ -5583,7 +5583,8 @@
             refresh();
             save(k.id);
           };
-          const reviewKit = () => qhDesignPreview(currentPreview(k.design), `${k.name} on your current page`, applyKit);
+          const examplePreview = { mode: "example", kitId: k.id, design: clone(k.design) };
+          const reviewKit = () => qhDesignPreview(examplePreview, `${k.name} example`, applyKit);
           // A name and four swatches do not say what a design looks like. The
           // card shows a painted miniature of the page, and clicking it opens
           // the real renderer's output full size.
@@ -5595,8 +5596,8 @@
               qhDesignThumbButton(
                 roles,
                 { name: displayName, title: k.name, label: k.name, radius: k.design.shape && k.design.shape.radius, displayStack: pair && pair.displayStack },
-                { mode: "example", kitId: k.id, design: clone(k.design) },
-                reviewKit
+                examplePreview,
+                applyKit
               )
             );
           }
