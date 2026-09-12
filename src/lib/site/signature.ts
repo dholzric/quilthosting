@@ -1,4 +1,4 @@
-export const COMPOSITION_IDS = ["classic", "cinema", "destination", "poster", "collage", "journal", "salon"] as const;
+export const COMPOSITION_IDS = ["classic", "cinema", "destination", "poster", "collage", "journal", "salon", "biennial", "review", "social", "noir", "fieldstone", "heirloom"] as const;
 export type CompositionId = (typeof COMPOSITION_IDS)[number];
 
 /** Compatibility mapping for signature kits saved before composition became explicit. */
@@ -9,6 +9,8 @@ const COMPOSITIONS: Record<string, Exclude<CompositionId, "classic">> = {
   "paper-pieces": "collage", "selvage-club": "collage", "sunroom-society": "collage",
   "linen-journal": "journal", "story-cloth": "journal", "redwork-archive": "journal", "lake-effect": "journal",
   "modern-heirloom": "salon", "holiday-house": "salon", "pattern-house": "salon", "mending-circle": "salon",
+  "quilt-biennial": "biennial", "common-thread-review": "review", "patchwork-social": "social",
+  "atelier-noir": "noir", "fieldstone-retreat": "fieldstone", "heirloom-house": "heirloom",
 };
 
 function isComposition(value: unknown): value is CompositionId {

@@ -16,4 +16,13 @@ describe("resolveComposition", () => {
     expect(resolveComposition(undefined, "unknown-kit")).toBe("classic");
     expect(resolveComposition("parallax", "indigo-house")).toBe("cinema");
   });
+
+  it("maps six new showcase kits to distinct compositions", () => {
+    expect(resolveComposition(undefined, "quilt-biennial")).toBe("biennial");
+    expect(resolveComposition(undefined, "common-thread-review")).toBe("review");
+    expect(resolveComposition(undefined, "patchwork-social")).toBe("social");
+    expect(resolveComposition(undefined, "atelier-noir")).toBe("noir");
+    expect(resolveComposition(undefined, "fieldstone-retreat")).toBe("fieldstone");
+    expect(resolveComposition(undefined, "heirloom-house")).toBe("heirloom");
+  });
 });
