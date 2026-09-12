@@ -1,7 +1,7 @@
 {
   "id": "atelier-noir",
   "name": "Atelier Noir",
-  "audience": "business",
+  "audience": "both",
   "character": "A cinematic quilt atelier with full-screen project imagery, dark editorial chapters, material notes, and a restrained commission path.",
   "defaults": {
     "palette": "signature-midnight",

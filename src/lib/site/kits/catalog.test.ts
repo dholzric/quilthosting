@@ -27,4 +27,10 @@ describe("kit catalog", () => {
     expect(KITS.filter((kit) => ids.includes(kit.id)).map((kit) => kit.defaults.composition)).toEqual(["biennial", "review", "noir", "social", "fieldstone", "heirloom"]);
     expect(catalogPolicy("heritage", 0).collection).toBe("featured");
   });
+
+  it("offers every showcase design to both guild and business sites", () => {
+    const showcase = KIT_CATALOG.filter((entry) => entry.collection === "showcase");
+    expect(showcase).toHaveLength(6);
+    expect(showcase.map((entry) => KITS.find((kit) => kit.id === entry.id)?.audience)).toEqual(Array(6).fill("both"));
+  });
 });

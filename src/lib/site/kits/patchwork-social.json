@@ -1,7 +1,7 @@
 {
   "id": "patchwork-social",
   "name": "Patchwork Social",
-  "audience": "guild",
+  "audience": "both",
   "character": "A distinctive social composition created as a flagship QuiltHosting showcase.",
   "defaults": {
     "palette": "signature-mulberry-paper",

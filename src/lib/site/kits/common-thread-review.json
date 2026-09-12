@@ -1,7 +1,7 @@
 {
   "id": "common-thread-review",
   "name": "Common Thread Review",
-  "audience": "guild",
+  "audience": "both",
   "character": "An independent textile review with a publication masthead, issue-led stories, editorial columns, captions, and a rigorous archive.",
   "defaults": {
     "palette": "signature-oat-ink",

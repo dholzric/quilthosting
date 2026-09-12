@@ -1,7 +1,7 @@
 {
   "id": "heirloom-house",
   "name": "Heirloom House",
-  "audience": "business",
+  "audience": "both",
   "character": "A distinctive heirloom composition created as a flagship QuiltHosting showcase.",
   "defaults": {
     "palette": "signature-modern-heirloom",

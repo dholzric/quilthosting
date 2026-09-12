@@ -1,7 +1,7 @@
 {
   "id": "fieldstone-retreat",
   "name": "Fieldstone Retreat",
-  "audience": "business",
+  "audience": "both",
   "character": "A distinctive fieldstone composition created as a flagship QuiltHosting showcase.",
   "defaults": {
     "palette": "signature-terracotta",

@@ -1,7 +1,7 @@
 {
   "id": "quilt-biennial",
   "name": "Quilt Biennial",
-  "audience": "guild",
+  "audience": "both",
   "character": "A contemporary quilt exhibition with monumental typography, hard rules, numbered program rows, and gallery-scale artwork.",
   "defaults": {
     "palette": "signature-vermilion",
