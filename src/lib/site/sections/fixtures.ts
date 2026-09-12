@@ -449,6 +449,23 @@ export const SECTION_FIXTURES: SectionFixture[] = [
     },
   },
   {
+    name: "gallery/piecing manual",
+    section: {
+      type: "gallery",
+      id: "gallery-piecing",
+      variant: "piecing",
+      source: "manual",
+      items: [
+        { imageId: "ph_charity_01", alt: "Stack of charity quilts", caption: "Delivered to CASA in March" },
+        { imageId: "ph_charity_02", alt: "Twin-size charity quilt in blues" },
+        { imageId: "ph_charity_03", alt: "Members tying a charity quilt" },
+        { imageId: "ph_show_01", alt: "Show and tell at the October meeting" },
+        { imageId: "ph_show_02", alt: "A finished log cabin top" },
+      ],
+      style: style(),
+    },
+  },
+  {
     name: "gallery/grid from a gallery",
     section: {
       type: "gallery",

@@ -13,6 +13,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { MATERIALS, MATERIAL_LABELS, MATERIAL_HINTS, siteDesignSchema, DEFAULT_DESIGN } from "./design/tokens";
+import { SECTION_VARIANTS } from "./sections/schema";
 import { renderSitePage } from "./render";
 import type { SiteDesign } from "./design/tokens";
 
@@ -113,5 +114,31 @@ describe("the hand: finished edges", () => {
 
   it("keeps the five edges that already existed", () => {
     for (const d of ["rule", "points", "scallop", "notch"]) expect(CSS).toContain(`.qh-s--divider-${d}`);
+  });
+});
+
+describe("piecing: the gallery as a quilt top", () => {
+  it("is offered as a gallery variant", () => {
+    expect(SECTION_VARIANTS.gallery).toContain("piecing");
+  });
+
+  it("joins the blocks with sashing — the container's own ground in the gap", () => {
+    const css = CSS.slice(CSS.indexOf(".qh-gallery--piecing"));
+    expect(css).toContain("--_sash");
+    expect(css).toMatch(/background:var\(--_accent\)/);
+    expect(css).toMatch(/gap:var\(--_sash\)/);
+  });
+
+  it("uses one span size, because more than one opened holes in the top", () => {
+    // A 2x2 every seventh block still lets four columns pack solid. Adding a
+    // second and third span size left gaps in the MIDDLE of the quilt, which
+    // a pieced top does not have.
+    const spans = CSS.match(/\.qh-gallery--piecing \.qh-gallery__item:nth-child\([^)]+\)\{grid-/g) || [];
+    expect(spans.length).toBe(1);
+    expect(CSS).toContain("grid-auto-flow:dense");
+  });
+
+  it("drops to two columns on a phone, where four blocks wide is unreadable", () => {
+    expect(CSS).toMatch(/\.qh-gallery--piecing \.qh-gallery__items\{grid-template-columns:repeat\(2,1fr\)\}/);
   });
 });

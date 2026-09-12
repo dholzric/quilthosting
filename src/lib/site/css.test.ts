@@ -138,7 +138,7 @@ describe("qh-site.css design rules", () => {
     // fix the next thing a phone turns up. The cloth layer and the three
     // handwork edges add ~45: they are new capability for every one of the
     // 120 kits at once, not decoration on one of them.
-    expect(css.split("\n").length).toBeLessThanOrEqual(900);
+    expect(css.split("\n").length).toBeLessThanOrEqual(940);
   });
 
   it("phase 2: sponsors logos are grayscale until hover, process steps use counter(), services table scrolls in its wrapper", () => {

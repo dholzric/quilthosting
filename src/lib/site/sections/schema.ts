@@ -298,7 +298,7 @@ export const SECTION_VARIANTS: Record<SectionType, readonly string[]> = Object.f
   feature_grid: ["cards", "icons", "numbered"],
   faq: [""],
   testimonials: ["grid", "single"],
-  gallery: ["grid", "masonry"],
+  gallery: ["grid", "masonry", "piecing"],
   events: ["cards", "list", "calendar", "next_up"],
   membership_levels: ["cards", "compact"],
   join_band: [""],

@@ -571,6 +571,8 @@ function renderGallery(s: Sec<"gallery">, ctx: RenderContext): string {
       (p.caption ? `<figcaption>${esc(p.caption)}</figcaption>` : "") +
       `</figure>`
   );
+  // "piecing" lays the photos out as a quilt top: unequal blocks joined by
+  // sashing. It owns its own grid, so it does not take .qh-grid.
   const listCls = s.variant === "grid" ? "qh-gallery__items qh-grid" : "qh-gallery__items";
   const inner = figures.length ? `<div class="${listCls}">${figures.join("")}</div>` : empty("No photos have been added yet.");
   return wrap(s, inner, { extraClass: `qh-gallery qh-gallery--${s.variant}`, ctx });

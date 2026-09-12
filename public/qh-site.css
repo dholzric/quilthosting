@@ -410,6 +410,34 @@ html{scroll-padding-top:calc(var(--_header-h) + 1rem)}
 .qh-gallery--grid .qh-gallery__item img{aspect-ratio:1;object-fit:cover}
 .qh-gallery--masonry .qh-gallery__items{columns:3;column-gap:.75rem}
 .qh-gallery--masonry .qh-gallery__item{break-inside:avoid;margin-bottom:.75rem}
+/* Piecing: the gallery laid out as a quilt top rather than a card grid.
+   Blocks of unequal size, joined by sashing — the strips of fabric between
+   them, which here is the container's own ground showing through the gap.
+   This is the structural variant: every other gallery is equal rectangles in
+   a row, which is what made 120 kits read as the same page in new colours. */
+.qh-gallery--piecing .qh-gallery__items{
+  --_sash:clamp(5px,.55vw,9px);
+  display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:clamp(4.5rem,9vw,7.5rem);
+  grid-auto-flow:dense;gap:var(--_sash);background:var(--_accent);
+  padding:var(--_sash);border-radius:var(--_radius);overflow:hidden
+}
+.qh-gallery--piecing .qh-gallery__item{margin:0;position:relative;overflow:hidden;background:var(--_surface)}
+.qh-gallery--piecing .qh-gallery__item a{display:block;height:100%}
+.qh-gallery--piecing .qh-gallery__item img{width:100%;height:100%;object-fit:cover;display:block;border-radius:0}
+/* Captions would break the piecing; the lightbox still carries them. */
+.qh-gallery--piecing .qh-gallery__item figcaption{
+  position:absolute;inset:auto 0 0 0;margin:0;padding:.3rem .5rem;font-size:.78rem;
+  background:color-mix(in oklab,var(--_dark) 72%,transparent);color:var(--_on-dark);
+  opacity:0;transition:opacity .18s
+}
+.qh-gallery--piecing .qh-gallery__item:hover figcaption,
+.qh-gallery--piecing .qh-gallery__item:focus-within figcaption{opacity:1}
+/* Unequal blocks — but only ones that still TILE. A 2x2 centre every seventh
+   block leaves the four columns able to pack solid; adding a second and third
+   span size opened holes in the middle of the top, which a pieced quilt does
+   not have. Dense packing fills behind the big block. */
+.qh-gallery--piecing .qh-gallery__item:nth-child(7n+1){grid-column:span 2;grid-row:span 2}
+@media (prefers-reduced-motion:reduce){.qh-gallery--piecing .qh-gallery__item figcaption{transition:none}}
 /* Near-black ground: the close/prev/next controls and their focus ring have to
    switch to the on-dark ink or they are invisible against the backdrop. */
 .qh-lightbox{border:0;padding:0;background:rgb(0 0 0/.92);max-width:100vw;max-height:100vh;width:100%;height:100%;
@@ -813,6 +841,7 @@ form.qh-form{display:flex;flex-direction:column;gap:.8rem;max-width:34rem}
   .qh-hero--split .qh-media,.qh-hero--split .qh-hero__media,.qh-rich--with_image .qh-media{order:-1;max-width:none}
   .qh-rich--two_column .qh-rich__body{columns:1}
   .qh-gallery--masonry .qh-gallery__items{columns:2}
+  .qh-gallery--piecing .qh-gallery__items{grid-template-columns:repeat(2,1fr)}
   .qh-events--list .qh-event{grid-template-columns:1fr;gap:.25rem}
   .qh-events--next_up .qh-event{grid-template-columns:1fr;gap:1rem}
   .qh-levels--compact .qh-level{grid-template-columns:1fr auto}
