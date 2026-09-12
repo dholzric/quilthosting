@@ -55,6 +55,8 @@ export type SectionLayout = "band" | "framed" | "offset" | "bleed" | "asym" | "a
  */
 // The edge where a section meets the one above. The last three are handwork:
 // a running stitch, a pinked seam, and binding.
+export type SectionMotion = "none" | "piece_in";
+
 export type SectionDivider =
   | "none" | "rule" | "points" | "scallop" | "notch"
   | "stitch" | "pinked" | "binding";
@@ -67,6 +69,8 @@ export type SectionStyle = {
   media: "left" | "right" | "top";
   layout: SectionLayout;
   divider: SectionDivider;
+  /** Whether the section settles into place as it scrolls into view. */
+  motion?: SectionMotion;
   /** files.id, served at /public/:slug/img/:id (platform host) or /img/:id (tenant host). */
   imageId?: string;
   /** 0..1 focal point for `bg: "image"`; default [0.5, 0.5]. */
@@ -79,6 +83,7 @@ export const SECTION_LAYOUTS: readonly SectionLayout[] = Object.freeze([
 export const SECTION_DIVIDERS: readonly SectionDivider[] = Object.freeze([
   "none", "rule", "points", "scallop", "notch", "stitch", "pinked", "binding",
 ]);
+export const SECTION_MOTIONS: readonly SectionMotion[] = Object.freeze(["none", "piece_in"]);
 
 export const DEFAULT_STYLE: SectionStyle = Object.freeze({
   bg: "none",
@@ -113,6 +118,7 @@ const styleSchema = z
     media: z.enum(["left", "right", "top"]).default(DEFAULT_STYLE.media),
     layout: z.enum(["band", "framed", "offset", "bleed", "asym", "asym_reverse"]).default(DEFAULT_STYLE.layout),
     divider: z.enum(["none", "rule", "points", "scallop", "notch", "stitch", "pinked", "binding"]).default(DEFAULT_STYLE.divider),
+    motion: z.enum(["none", "piece_in"]).optional(),
     imageId: z.string().regex(IMAGE_REF_RE).optional(),
     imageFocal: z.tuple([z.number().min(0).max(1), z.number().min(0).max(1)]).optional(),
   })
@@ -157,7 +163,7 @@ export type Section =
   | { type: "testimonials"; variant: "grid" | "single"; items: { quote: string; author?: string }[]; style: SectionStyle; id: string }
   | {
       type: "gallery";
-      variant: "grid" | "masonry";
+      variant: "grid" | "masonry" | "piecing";
       source: "manual" | "gallery";
       gallerySlug?: string;
       items: { imageId?: string; url?: string; alt?: string; caption?: string }[];

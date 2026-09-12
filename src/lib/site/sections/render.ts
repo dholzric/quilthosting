@@ -392,6 +392,10 @@ function wrap(s: Section, inner: string, opts: WrapOpts = {}): string {
   // shape renders exactly the markup it did before these existed.
   if (st.layout && st.layout !== "band") classes.push(`qh-s--layout-${st.layout.replace(/_/g, "-")}`);
   if (st.divider && st.divider !== "none") classes.push(`qh-s--divider-${st.divider}`);
+  // Motion is opt-in per section, and the class only ever animates FROM
+  // "in place" — the resting state is assembled, so nothing is hidden
+  // waiting for a scroll that may never come.
+  if (st.motion === "piece_in") classes.push("qh-s--piece-in");
   if (opts.extraClass) classes.push(opts.extraClass);
 
   const decls: string[] = [];

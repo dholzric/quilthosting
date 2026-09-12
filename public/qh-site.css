@@ -554,6 +554,40 @@ body.qh-site.qh-site--dark[data-qh-material]:not([data-qh-material="plain"])::af
 }
 .qh-s--divider-binding{border-top:10px solid var(--_accent);box-shadow:inset 0 10px 0 -9px rgb(0 0 0/.35)}
 
+/* ---- Piecing (motion) ----------------------------------------------------
+   Blocks arrive cut and settle into place as the page is scrolled. Driven by
+   the scroll position itself (animation-timeline: view()), so there is no
+   observer, no JavaScript and nothing to boot.
+
+   The resting state is ASSEMBLED. The animation only ever runs backwards from
+   "in place", so a browser that does not support scroll timelines — or a
+   visitor who has asked for less motion, or anyone whose stylesheet arrives
+   before the feature query resolves — sees a finished quilt top rather than a
+   blank page waiting to be animated. That is the rule the whole thing is
+   built around: nothing is ever hidden pending motion. */
+@media (prefers-reduced-motion:no-preference){
+  @supports (animation-timeline:view()){
+    @keyframes qh-piece-in{
+      from{opacity:0;transform:translateY(var(--_piece-y,14px)) rotate(var(--_piece-r,-1.5deg)) scale(.965)}
+      to{opacity:1;transform:none}
+    }
+    .qh-s--piece-in{
+      animation:qh-piece-in linear both;
+      animation-timeline:view();
+      animation-range:entry 8% cover 26%;
+    }
+    /* A pieced gallery settles block by block, which is how a top is laid
+       out — one at a time, not the whole thing at once. */
+    .qh-gallery--piecing .qh-gallery__item{
+      animation:qh-piece-in linear both;
+      animation-timeline:view();
+      animation-range:entry 4% cover 30%;
+    }
+    .qh-gallery--piecing .qh-gallery__item:nth-child(3n+2){--_piece-r:1.5deg;--_piece-y:20px}
+    .qh-gallery--piecing .qh-gallery__item:nth-child(3n+3){--_piece-r:-.8deg;--_piece-y:9px}
+  }
+}
+
 /* ---- Section: membership_levels (cards | compact) ----------------------- */
 .qh-level{min-width:0}
 .qh-level__name{font-size:var(--_fs5);margin:0 0 .25rem}

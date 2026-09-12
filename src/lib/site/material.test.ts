@@ -13,7 +13,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { MATERIALS, MATERIAL_LABELS, MATERIAL_HINTS, siteDesignSchema, DEFAULT_DESIGN } from "./design/tokens";
-import { SECTION_VARIANTS } from "./sections/schema";
+import { SECTION_VARIANTS, SECTION_MOTIONS, DEFAULT_STYLE } from "./sections/schema";
 import { renderSitePage } from "./render";
 import type { SiteDesign } from "./design/tokens";
 
@@ -140,5 +140,43 @@ describe("piecing: the gallery as a quilt top", () => {
 
   it("drops to two columns on a phone, where four blocks wide is unreadable", () => {
     expect(CSS).toMatch(/\.qh-gallery--piecing \.qh-gallery__items\{grid-template-columns:repeat\(2,1fr\)\}/);
+  });
+});
+
+describe("piecing: the motion", () => {
+  const MOTION = CSS.slice(CSS.indexOf("/* ---- Piecing (motion)"), CSS.indexOf("/* ---- Section: membership_levels"));
+
+  it("is driven by the scroll position, with no JavaScript at all", () => {
+    expect(MOTION).toContain("animation-timeline:view()");
+    const js = readFileSync(path.join(REPO_ROOT, "public/qh-site.js"), "utf8");
+    expect(js).not.toContain("qh-s--piece-in");
+  });
+
+  it("rests ASSEMBLED — nothing is ever hidden waiting for a scroll", () => {
+    // The single rule the whole thing is built around. A browser with no
+    // scroll timelines, or a stylesheet that arrives before the feature query
+    // resolves, must show a finished quilt top, not a blank page.
+    expect(MOTION).toMatch(/to\{opacity:1;transform:none\}/);
+    expect(MOTION).toMatch(/from\{opacity:0/);
+    // and the animating rules live INSIDE the guards, so they cannot apply
+    // anywhere the animation will not run.
+    const guardStart = MOTION.indexOf("@media (prefers-reduced-motion:no-preference)");
+    expect(guardStart).toBeGreaterThan(-1);
+    expect(MOTION.indexOf(".qh-s--piece-in")).toBeGreaterThan(guardStart);
+    expect(MOTION.indexOf("@supports (animation-timeline:view())")).toBeGreaterThan(guardStart);
+  });
+
+  it("does not move for a visitor who asked for less motion", () => {
+    expect(MOTION).toContain("prefers-reduced-motion:no-preference");
+  });
+
+  it("is opt-in per section, off by default", () => {
+    expect(DEFAULT_STYLE.motion).toBeUndefined();
+    expect(SECTION_MOTIONS).toEqual(["none", "piece_in"]);
+  });
+
+  it("settles a pieced gallery block by block, not all at once", () => {
+    expect(MOTION).toContain(".qh-gallery--piecing .qh-gallery__item");
+    expect(MOTION).toMatch(/nth-child\(3n\+2\)\{--_piece-r/);
   });
 });
