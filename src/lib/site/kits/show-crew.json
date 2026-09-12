@@ -27,7 +27,8 @@
       "opacity": 0.08
     },
     "palette": "modern-indigo-mustard",
-    "typePair": "system"
+    "typePair": "system",
+    "material": "cotton"
   },
   "imagery": [
     {
@@ -91,7 +92,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -106,7 +108,8 @@
           ],
           "style": {
             "bg": "tint",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -117,7 +120,8 @@
           "submitLabel": "Request a crew",
           "style": {
             "bg": "brand",
-            "divider": "rule"
+            "divider": "pinked",
+            "motion": "piece_in"
           }
         }
       ]
@@ -161,7 +165,8 @@
             "bg": "tint",
             "width": "wide",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         }
       ]
@@ -193,7 +198,8 @@
             "bg": "tint",
             "width": "wide",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -204,7 +210,8 @@
           "html": "<p><em>Sample text — replace me:</em> Spring shows book in the fall. If you write in March for an April show I will say no, kindly, once.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -234,7 +241,8 @@
           "style": {
             "bg": "tint",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -245,7 +253,8 @@
           "kind": "secondary",
           "style": {
             "bg": "none",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -276,7 +285,8 @@
             "bg": "tint",
             "width": "narrow",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -290,7 +300,8 @@
             }
           ],
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         }
       ]
@@ -318,7 +329,8 @@
           "style": {
             "bg": "tint",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -329,7 +341,8 @@
           "where": "{{city}}",
           "style": {
             "bg": "brand",
-            "divider": "rule"
+            "divider": "pinked",
+            "motion": "piece_in"
           }
         }
       ]

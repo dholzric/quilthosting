@@ -25,10 +25,11 @@
       "variant": "columns"
     },
     "pattern": {
-      "id": "none",
-      "opacity": 0
+      "id": "signature",
+      "opacity": 0.1
     },
-    "composition": "fieldstone"
+    "composition": "fieldstone",
+    "material": "linen"
   },
   "previewSeed": {
     "guildName": "Fieldstone Retreat",
@@ -107,7 +108,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "home-2"
         },
@@ -119,7 +121,8 @@
             "bg": "tint",
             "width": "narrow",
             "spacing": "airy",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           },
           "id": "home-3"
         },
@@ -143,7 +146,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "home-4"
         },
@@ -154,7 +158,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "tight"
+            "spacing": "tight",
+            "motion": "piece_in"
           },
           "id": "home-5"
         },
@@ -167,7 +172,8 @@
             "bg": "brand",
             "width": "wide",
             "spacing": "normal",
-            "divider": "scallop"
+            "divider": "binding",
+            "motion": "piece_in"
           },
           "id": "home-6"
         }
@@ -206,7 +212,8 @@
           "style": {
             "bg": "none",
             "width": "full",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "the-retreat-2"
         },
@@ -217,7 +224,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "the-retreat-3"
         },
@@ -237,7 +245,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "the-retreat-4"
         },
@@ -250,7 +259,8 @@
             "bg": "brand",
             "width": "wide",
             "spacing": "tight",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           },
           "id": "the-retreat-5"
         }
@@ -296,7 +306,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "stays-2"
         },
@@ -307,7 +318,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "stays-3"
         },
@@ -320,7 +332,8 @@
             "bg": "brand",
             "width": "wide",
             "spacing": "tight",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           },
           "id": "stays-4"
         }
@@ -370,7 +383,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "workshops-2"
         },
@@ -381,7 +395,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "tight"
+            "spacing": "tight",
+            "motion": "piece_in"
           },
           "id": "workshops-3"
         },
@@ -394,7 +409,8 @@
             "bg": "brand",
             "width": "wide",
             "spacing": "tight",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           },
           "id": "workshops-4"
         }
@@ -444,7 +460,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "the-table-2"
         },
@@ -455,7 +472,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "tight"
+            "spacing": "tight",
+            "motion": "piece_in"
           },
           "id": "the-table-3"
         },
@@ -468,7 +486,8 @@
             "bg": "none",
             "width": "wide",
             "spacing": "tight",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           },
           "id": "the-table-4"
         }
@@ -501,7 +520,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "reserve-2"
         },
@@ -512,7 +532,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "reserve-3"
         }

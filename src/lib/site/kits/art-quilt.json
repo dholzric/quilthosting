@@ -25,9 +25,10 @@
       "variant": "simple"
     },
     "pattern": {
-      "id": "none",
-      "opacity": 0
-    }
+      "id": "signature",
+      "opacity": 0.1
+    },
+    "material": "cotton"
   },
   "imagery": [
     {
@@ -93,7 +94,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -104,7 +106,8 @@
           "gallerySlug": "members",
           "style": {
             "bg": "none",
-            "width": "full"
+            "width": "full",
+            "motion": "piece_in"
           }
         },
         {
@@ -115,7 +118,8 @@
           "ctaLabel": "Apply",
           "style": {
             "bg": "brand",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -146,7 +150,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -156,18 +161,20 @@
           "html": "<p>Work must be ready to hang: a sleeve, a label, and a written statement of no more than 150 words. The hanging committee photographs every piece for the archive.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
           "type": "gallery",
           "id": "ex-grid",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "exhibitions",
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         }
       ]
@@ -199,7 +206,8 @@
           "style": {
             "bg": "tint",
             "width": "full",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -209,7 +217,8 @@
           "html": "<p>To add a piece, send a photograph and the statement to the archive chair after it has been through critique. We do not post work that has not been discussed.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -247,7 +256,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -275,7 +285,8 @@
           "html": "<p>We meet {{meeting_info}} in {{city}}. Business is ten minutes. Critique is the rest of the evening. Visiting artists may sit in once; after that they apply.</p><p>Dues cover the gallery rent for member shows and a modest honorarium for the juror of the open call.</p>",
           "style": {
             "bg": "tint",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -289,7 +300,8 @@
             }
           ],
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         },
         {
@@ -320,7 +332,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -351,7 +364,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -369,7 +383,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -396,7 +411,8 @@
           "showDetails": true,
           "style": {
             "bg": "tint",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -405,7 +421,8 @@
           "when": "{{meeting_info}}",
           "where": "{{city}}",
           "style": {
-            "bg": "dark"
+            "bg": "dark",
+            "motion": "piece_in"
           }
         }
       ]

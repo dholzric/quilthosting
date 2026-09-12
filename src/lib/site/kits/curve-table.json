@@ -27,7 +27,8 @@
       "opacity": 0.1
     },
     "palette": "jewel-amethyst",
-    "typePair": "lora-karla"
+    "typePair": "lora-karla",
+    "material": "linen"
   },
   "imagery": [
     {
@@ -74,7 +75,8 @@
           "where": "the room we rent in {{city}}",
           "note": "Pins every inch on a curve. If you clip a seam, clip it. The straight-stitch guild is across town and they are very good.",
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         },
         {
@@ -85,7 +87,8 @@
           "limit": 3,
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -109,7 +112,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -120,7 +124,8 @@
           "ctaLabel": "See dues",
           "style": {
             "bg": "brand",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -149,7 +154,8 @@
           "html": "<p><em>Sample text — replace me:</em> Straight piecing is a fine craft. This room is for the other one. {{guild_name}} exists so you do not have to apologize for a block that will not sit on a grid. We still square a quilt when it is done. The inside is allowed to swim.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -172,7 +178,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           },
           "heading": "A year with us"
         },
@@ -204,7 +211,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -246,7 +254,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -257,7 +266,8 @@
           "html": "<p><em>Sample text — replace me:</em> A curved center may have a straight border. We are not fanatics. We are specific.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -284,7 +294,8 @@
           "variant": "cards",
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -302,7 +313,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -340,7 +352,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -367,7 +380,8 @@
           "when": "{{meeting_info}}",
           "where": "the room we rent in {{city}}",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -378,7 +392,8 @@
           "limit": 8,
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         }
       ]
@@ -404,7 +419,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -413,7 +429,8 @@
           "when": "{{meeting_info}}",
           "where": "the room we rent in {{city}}",
           "style": {
-            "bg": "dark"
+            "bg": "dark",
+            "motion": "piece_in"
           }
         }
       ]

@@ -25,9 +25,10 @@
       "variant": "simple"
     },
     "pattern": {
-      "id": "none",
-      "opacity": 0
-    }
+      "id": "signature",
+      "opacity": 0.1
+    },
+    "material": "cotton"
   },
   "imagery": [
     {
@@ -128,20 +129,22 @@
             "bg": "tint",
             "width": "wide",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
           "type": "gallery",
           "id": "home-gallery",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "sessions",
           "heading": "From the wall",
           "style": {
             "bg": "dark",
             "width": "wide",
-            "divider": "rule"
+            "divider": "binding",
+            "motion": "piece_in"
           }
         },
         {
@@ -152,7 +155,8 @@
           "html": "<p>Show entry, magazine submission, jury applications, and the family archive all run on the same photograph. Phone cameras guess at reds and stretch texture; a quilt photographed properly looks on screen the way it looks in your hands.</p><p>Every session delivers web-sized images for forms and print-ready files for catalogs, both color-checked against the quilt on the wall before they leave the studio.</p>",
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -166,7 +170,8 @@
             "width": "normal",
             "align": "center",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         }
       ]
@@ -224,7 +229,8 @@
             "bg": "tint",
             "width": "wide",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -235,7 +241,8 @@
           "html": "<p>Bring the quilt loose, not pinned to a rod, and give it ten minutes to relax out of the car. Squares go on the wall with pins that have never met a quilt before, the level does the arguing, and each shot is checked on the monitor with you standing there.</p><p>You pick keepers on the spot. Nothing is delivered that you did not approve, and nothing is retouched that the quilt did not do.</p>",
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -259,7 +266,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "divider": "rule"
+            "divider": "binding",
+            "motion": "piece_in"
           }
         }
       ]
@@ -293,7 +301,8 @@
           "style": {
             "bg": "none",
             "width": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -309,7 +318,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "divider": "rule"
+            "divider": "binding",
+            "motion": "piece_in"
           }
         }
       ]
@@ -341,7 +351,8 @@
             "bg": "tint",
             "width": "normal",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -356,7 +367,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         }
       ]
@@ -389,7 +401,8 @@
             "bg": "tint",
             "width": "normal",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -400,7 +413,8 @@
           "html": "<p>You get a confirmation with the next slot and the prep sheet: how to fold, what to bring, and why the quilt rides flat on the back seat. Files arrive within two days, or the same day on the rush.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -430,7 +444,8 @@
           "style": {
             "bg": "none",
             "width": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -443,7 +458,8 @@
           "style": {
             "bg": "brand",
             "width": "wide",
-            "divider": "rule"
+            "divider": "pinked",
+            "motion": "piece_in"
           }
         }
       ]

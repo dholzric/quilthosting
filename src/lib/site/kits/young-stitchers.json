@@ -27,7 +27,8 @@
     "pattern": {
       "id": "nine-patch",
       "opacity": 0.12
-    }
+    },
+    "material": "flannel"
   },
   "imagery": [
     {
@@ -127,7 +128,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -138,7 +140,8 @@
           "limit": 3,
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -150,19 +153,21 @@
           "note": "The club owns six machines that live in the cabinet, so nobody has to carry one on the bus.",
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
           "type": "gallery",
           "id": "home-gallery",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "finished",
           "heading": "Finished and proud",
           "style": {
             "bg": "dark",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -174,7 +179,8 @@
           "style": {
             "bg": "brand",
             "width": "full",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -205,7 +211,8 @@
           "html": "<p>How to thread a needle and a machine, how to press instead of iron, how to read a cutting mat, and how to unpick a seam without losing patience. The quilt skills are the excuse; the quiet confidence of finishing something real is the point.</p><p>Older members mentor younger ones from the first night. A fourteen-year-old who taught a nine-year-old to tie a quilter's knot last spring is now known, accurately, as Professor Knot.</p>",
           "style": {
             "bg": "tint",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -224,7 +231,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -255,7 +263,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -285,7 +294,8 @@
           "limit": 6,
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -296,7 +306,8 @@
           "html": "<p>Just yourself the first time. After that: your project bag, your pins if you have a favorite kind, and any fabric you have been saving. Scissors, machines, irons, and band-aids belong to the club.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -352,18 +363,20 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
           "type": "gallery",
           "id": "projects-gallery",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "finished",
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         }
       ]
@@ -389,12 +402,13 @@
         {
           "type": "gallery",
           "id": "gallery-grid",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "finished",
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -405,7 +419,8 @@
           "html": "<p>Every face on this page belongs to a member whose grown-up signed the permission slip. Quilts are photographed with first names or no names, whichever the family chose.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -435,7 +450,8 @@
           "html": "<p>Every meeting has at least three background-checked adults, including one certified in first aid. Rotary cutters live in a locked drawer and are introduced one skill at a time; the iron is hot and the rule about walking past it is absolute.</p><p>Dues are ten dollars for the year and materials are included. The spring raffle quilt is licensed through the county 4-H office and the proceeds buy fabric, thread, and the club's machines; the ledger is read at the family potluck in May.</p>",
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -462,7 +478,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -491,7 +508,8 @@
           "showDetails": true,
           "style": {
             "bg": "tint",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -502,7 +520,8 @@
           "html": "<p>The club sews through about forty yards of cotton a season and is always glad of clean fabric, especially flannel. Biggest wish right now: safety pins, for basting the spring quilt.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]

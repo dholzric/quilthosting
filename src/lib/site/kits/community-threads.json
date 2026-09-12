@@ -27,7 +27,8 @@
     "pattern": {
       "id": "nine-patch",
       "opacity": 0.12
-    }
+    },
+    "material": "cotton"
   },
   "imagery": [
     {
@@ -107,7 +108,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -119,7 +121,8 @@
           "style": {
             "bg": "tint",
             "layout": "framed",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         },
         {
@@ -131,7 +134,8 @@
           "style": {
             "bg": "dark",
             "align": "center",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         }
       ]
@@ -177,20 +181,22 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
           "type": "gallery",
           "id": "p-gal",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "charity",
           "style": {
             "bg": "tint",
             "width": "wide",
             "layout": "framed",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         },
         {
@@ -201,7 +207,8 @@
           "kind": "primary",
           "style": {
             "bg": "none",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -247,7 +254,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         },
         {
@@ -258,7 +266,8 @@
           "limit": 4,
           "style": {
             "bg": "none",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -268,7 +277,8 @@
           "showDetails": false,
           "style": {
             "bg": "brand",
-            "divider": "scallop"
+            "divider": "pinked",
+            "motion": "piece_in"
           }
         }
       ]
@@ -298,7 +308,8 @@
           "variant": "cards",
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -310,7 +321,8 @@
             "bg": "tint",
             "width": "narrow",
             "layout": "framed",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         },
         {
@@ -348,7 +360,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -379,7 +392,8 @@
           "note": "The charity closet is open thirty minutes before the meeting.",
           "style": {
             "bg": "tint",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         },
         {
@@ -390,7 +404,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -416,13 +431,14 @@
         {
           "type": "gallery",
           "id": "g-grid",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "charity",
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         }
       ]
@@ -449,7 +465,8 @@
           "showDetails": true,
           "style": {
             "bg": "tint",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         },
         {
@@ -460,7 +477,8 @@
           "style": {
             "bg": "brand",
             "layout": "framed",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         }
       ]

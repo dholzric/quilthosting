@@ -23,11 +23,12 @@
       "variant": "simple"
     },
     "pattern": {
-      "id": "none",
-      "opacity": 0
+      "id": "signature",
+      "opacity": 0.1
     },
     "palette": "modern-slate-lime",
-    "typePair": "system"
+    "typePair": "system",
+    "material": "cotton"
   },
   "imagery": [
     {
@@ -89,7 +90,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -103,7 +105,8 @@
             }
           ],
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -113,7 +116,8 @@
           "heading": "Die name, fabric amount, and whether you are coming in or mailing a stack",
           "submitLabel": "Request a quote",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "motion": "piece_in"
           }
         }
       ]
@@ -155,7 +159,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         }
       ]
@@ -185,7 +190,8 @@
           "where": "{{city}}",
           "note": "Closed-toe shoes. Fabric pre-pressed. I will not press your wrinkles as part of the hour.",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         }
       ]
@@ -213,7 +219,8 @@
           "heading": "Die name, fabric amount, and whether you are coming in or mailing a stack",
           "submitLabel": "Send details",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -224,7 +231,8 @@
           "kind": "secondary",
           "style": {
             "bg": "none",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -253,7 +261,8 @@
           "html": "<p><em>Sample text — replace me:</em> I got tired of people buying dies they used twice. {{guild_name}} is the room with the expensive ones and a calendar. You still sew the quilt. I just keep your rotary cutter from lying about a hexagon.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -267,7 +276,8 @@
             }
           ],
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         }
       ]
@@ -293,7 +303,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -303,7 +314,8 @@
           "when": "{{meeting_info}}",
           "where": "{{city}}",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "motion": "piece_in"
           }
         }
       ]

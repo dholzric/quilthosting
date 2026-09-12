@@ -27,7 +27,8 @@
     "pattern": {
       "id": "bear-paw",
       "opacity": 0.06
-    }
+    },
+    "material": "flannel"
   },
   "previewSeed": {
     "guildName": "Night Bloom",
@@ -89,7 +90,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "home-2"
         },
@@ -117,7 +119,8 @@
           "style": {
             "bg": "dark",
             "width": "wide",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "home-3"
         },
@@ -129,7 +132,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "home-4"
         },
@@ -141,7 +145,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "tight"
+            "spacing": "tight",
+            "motion": "piece_in"
           },
           "id": "home-5"
         }
@@ -173,7 +178,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "circle-2"
         },
@@ -198,7 +204,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "circle-3"
         },
@@ -210,7 +217,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "tight"
+            "spacing": "tight",
+            "motion": "piece_in"
           },
           "id": "circle-4"
         }
@@ -247,7 +255,8 @@
           "style": {
             "bg": "none",
             "width": "full",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "hand-2"
         },
@@ -272,7 +281,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "hand-3"
         },
@@ -284,7 +294,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "tight"
+            "spacing": "tight",
+            "motion": "piece_in"
           },
           "id": "hand-4"
         }
@@ -318,7 +329,8 @@
           "style": {
             "bg": "dark",
             "width": "wide",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "show-2"
         },
@@ -342,7 +354,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "show-3"
         },
@@ -354,7 +367,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "tight"
+            "spacing": "tight",
+            "motion": "piece_in"
           },
           "id": "show-4"
         }
@@ -386,7 +400,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "tight"
+            "spacing": "tight",
+            "motion": "piece_in"
           },
           "id": "contact-2"
         },
@@ -397,7 +412,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "contact-3"
         }

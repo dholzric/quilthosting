@@ -27,7 +27,8 @@
     "pattern": {
       "id": "flying-geese",
       "opacity": 0.1
-    }
+    },
+    "material": "flannel"
   },
   "imagery": [
     {
@@ -75,7 +76,8 @@
           "note": "The first meeting is the second week of November. The last is the week before Easter.",
           "style": {
             "bg": "none",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -86,7 +88,8 @@
           "limit": 3,
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -111,7 +114,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -123,7 +127,8 @@
           "style": {
             "bg": "brand",
             "align": "center",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -169,7 +174,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -178,7 +184,8 @@
           "heading": "From the letter",
           "limit": 3,
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         }
       ]
@@ -207,7 +214,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -221,7 +229,8 @@
             }
           ],
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         },
         {
@@ -252,7 +261,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -283,7 +293,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -301,7 +312,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -339,7 +351,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -370,7 +383,8 @@
           "note": "Park on the north lot. The hall is cool; bring a sweater.",
           "style": {
             "bg": "tint",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -380,7 +394,8 @@
           "limit": 8,
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         }
       ]
@@ -407,7 +422,8 @@
           "showDetails": true,
           "style": {
             "bg": "tint",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -416,7 +432,8 @@
           "when": "{{meeting_info}}",
           "where": "{{city}}",
           "style": {
-            "bg": "dark"
+            "bg": "dark",
+            "motion": "piece_in"
           }
         }
       ]

@@ -7,22 +7,61 @@
     "palette": "jewel-amethyst",
     "typePair": "spacegrotesk-worksans",
     "scale": "compact",
-    "shape": { "radius": "sharp", "shadow": "none" },
-    "rhythm": { "spacing": "tight", "container": "normal" },
-    "header": { "variant": "left", "sticky": true, "cta": "quote", "overlayHero": false },
-    "footer": { "variant": "columns" },
-    "pattern": { "id": "flying-geese", "opacity": 0.1 }
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "tight",
+      "container": "normal"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "flying-geese",
+      "opacity": 0.1
+    },
+    "material": "linen"
   },
   "imagery": [
-    { "id": "hero-art", "kind": "pattern", "alt": "" }
+    {
+      "id": "hero-art",
+      "kind": "pattern",
+      "alt": ""
+    }
   ],
-  "previewSeed": { "guildName": "Bobbin Clinic", "city": "Dayton, Ohio" },
+  "previewSeed": {
+    "guildName": "Bobbin Clinic",
+    "city": "Dayton, Ohio"
+  },
   "menu": [
-    { "label": "Services", "href": "/services" },
-    { "label": "Vintage restorations", "href": "/vintage" },
-    { "label": "About", "href": "/about" },
-    { "label": "Contact", "href": "/contact" },
-    { "label": "Book a repair", "href": "/request-a-quote" }
+    {
+      "label": "Services",
+      "href": "/services"
+    },
+    {
+      "label": "Vintage restorations",
+      "href": "/vintage"
+    },
+    {
+      "label": "About",
+      "href": "/about"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    },
+    {
+      "label": "Book a repair",
+      "href": "/request-a-quote"
+    }
   ],
   "pages": [
     {
@@ -41,7 +80,12 @@
           "ctaHref": "/request-a-quote",
           "secondaryLabel": "Services and prices",
           "secondaryHref": "/services",
-          "style": { "bg": "pattern", "width": "wide", "spacing": "airy", "imageId": "hero-art" }
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "spacing": "airy",
+            "imageId": "hero-art"
+          }
         },
         {
           "type": "feature_grid",
@@ -49,12 +93,36 @@
           "variant": "cards",
           "heading": "The standard menu",
           "items": [
-            { "title": "Annual tune-up", "body": "Clean, oil, tension, timing check, and a sew-off on three fabrics.", "price": "$89", "href": "/services" },
-            { "title": "Repair diagnosis", "body": "Applied to the repair if you approve it the same day.", "price": "$45", "href": "/services" },
-            { "title": "Vintage restoration", "body": "Belts, wiring, motors, and cabinets for the machines worth saving.", "price": "from $180", "href": "/vintage" },
-            { "title": "Trade-in credit", "body": "Working machines taken on credit toward service or a refurbished one.", "price": "varies", "href": "/services" }
+            {
+              "title": "Annual tune-up",
+              "body": "Clean, oil, tension, timing check, and a sew-off on three fabrics.",
+              "price": "$89",
+              "href": "/services"
+            },
+            {
+              "title": "Repair diagnosis",
+              "body": "Applied to the repair if you approve it the same day.",
+              "price": "$45",
+              "href": "/services"
+            },
+            {
+              "title": "Vintage restoration",
+              "body": "Belts, wiring, motors, and cabinets for the machines worth saving.",
+              "price": "from $180",
+              "href": "/vintage"
+            },
+            {
+              "title": "Trade-in credit",
+              "body": "Working machines taken on credit toward service or a refurbished one.",
+              "price": "varies",
+              "href": "/services"
+            }
           ],
-          "style": { "bg": "none", "width": "wide" }
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "motion": "piece_in"
+          }
         },
         {
           "type": "rich_text",
@@ -62,17 +130,31 @@
           "variant": "two_column",
           "heading": "On the bench",
           "html": "<p>Most of what walks in is thread soup in the bobbin area and a needle installed backwards. Both are a ten-minute fix and we will show you how so the next one is yours to fix.</p><p>The rest is timing, feed dogs, and motors that ran out of carbon brushes around the second Nixon administration. We keep those parts on the shelf, not on order.</p>",
-          "style": { "bg": "dark", "width": "wide" }
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "motion": "piece_in"
+          }
         },
         {
           "type": "testimonials",
           "id": "home-quotes",
           "variant": "grid",
           "items": [
-            { "quote": "My 1974 Singer came home running quieter than the day my mother bought it.", "author": "R., Fairborn" },
-            { "quote": "They found the fault in twenty minutes after another shop had my machine for six weeks.", "author": "T., Oakwood" }
+            {
+              "quote": "My 1974 Singer came home running quieter than the day my mother bought it.",
+              "author": "R., Fairborn"
+            },
+            {
+              "quote": "They found the fault in twenty minutes after another shop had my machine for six weeks.",
+              "author": "T., Oakwood"
+            }
           ],
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal",
+            "motion": "piece_in"
+          }
         },
         {
           "type": "quote_cta",
@@ -80,7 +162,12 @@
           "projectType": "repair",
           "heading": "Describe the trouble",
           "submitLabel": "Book a repair",
-          "style": { "bg": "tint", "width": "normal", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "align": "center",
+            "motion": "piece_in"
+          }
         }
       ]
     },
@@ -95,7 +182,11 @@
           "variant": "minimal",
           "title": "Services and pricing",
           "subtitle": "Sample text — replace me: Flat rates where possible, a diagnosis fee that applies to the fix, and no work started without your yes.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "feature_grid",
@@ -103,13 +194,37 @@
           "variant": "cards",
           "heading": "The price list",
           "items": [
-            { "title": "Tune-up, mechanical", "body": "Every machine that sews forward and back. Includes bobbin case polish.", "price": "$89" },
-            { "title": "Tune-up, computerized", "body": "Same bench work, plus error-code history and firmware check.", "price": "$119" },
-            { "title": "Sergers", "body": "Loopers, knives, and the rethreading lesson you have been avoiding.", "price": "$99" },
-            { "title": "Walking foot service", "body": "Clean and re-grease. Bring it with the machine and the price is halved.", "price": "$25" },
-            { "title": "Scissors and rotary blades", "body": "Sharpened while you wait on Saturdays.", "price": "from $8" }
+            {
+              "title": "Tune-up, mechanical",
+              "body": "Every machine that sews forward and back. Includes bobbin case polish.",
+              "price": "$89"
+            },
+            {
+              "title": "Tune-up, computerized",
+              "body": "Same bench work, plus error-code history and firmware check.",
+              "price": "$119"
+            },
+            {
+              "title": "Sergers",
+              "body": "Loopers, knives, and the rethreading lesson you have been avoiding.",
+              "price": "$99"
+            },
+            {
+              "title": "Walking foot service",
+              "body": "Clean and re-grease. Bring it with the machine and the price is halved.",
+              "price": "$25"
+            },
+            {
+              "title": "Scissors and rotary blades",
+              "body": "Sharpened while you wait on Saturdays.",
+              "price": "from $8"
+            }
           ],
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "motion": "piece_in"
+          }
         },
         {
           "type": "rich_text",
@@ -117,18 +232,35 @@
           "variant": "two_column",
           "heading": "What to bring",
           "html": "<p>The machine, its foot pedal and cords, one bobbin, and a story about what it is doing or refusing to do. If it is a repair, a photo of the stitch on scrap helps and so does the needle you were using.</p><p>Serger owners: thread it before you come if it will run at all. We can decode a threaded serger; an unthreaded one is a museum piece until you find the manual.</p>",
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal",
+            "motion": "piece_in"
+          }
         },
         {
           "type": "faq",
           "id": "services-faq",
           "heading": "Before you book",
           "items": [
-            { "q": "How long does a tune-up take?", "a": "Three to five shop days. Repairs depend on parts, and we call with the estimate before anything is ordered." },
-            { "q": "Do you service every brand?", "a": "Everything mechanical and most computerized machines. For a few newer electronic models the maker holds the parts hostage, and we will tell you that up front." },
-            { "q": "Is the diagnosis fee really applied?", "a": "Yes, same day. If you decline the repair it covers the bench time, and the machine comes home reassembled and honest about what is wrong." }
+            {
+              "q": "How long does a tune-up take?",
+              "a": "Three to five shop days. Repairs depend on parts, and we call with the estimate before anything is ordered."
+            },
+            {
+              "q": "Do you service every brand?",
+              "a": "Everything mechanical and most computerized machines. For a few newer electronic models the maker holds the parts hostage, and we will tell you that up front."
+            },
+            {
+              "q": "Is the diagnosis fee really applied?",
+              "a": "Yes, same day. If you decline the repair it covers the bench time, and the machine comes home reassembled and honest about what is wrong."
+            }
           ],
-          "style": { "bg": "tint", "width": "narrow" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "motion": "piece_in"
+          }
         }
       ]
     },
@@ -145,7 +277,12 @@
           "subtitle": "Sample text — replace me: Blackside Singers, featherweights with original cases, and treadle cabinets that outlived three kitchens.",
           "ctaLabel": "Have one looked at",
           "ctaHref": "/request-a-quote",
-          "style": { "bg": "pattern", "width": "wide", "align": "center", "imageId": "hero-art" }
+          "style": {
+            "bg": "pattern",
+            "width": "wide",
+            "align": "center",
+            "imageId": "hero-art"
+          }
         },
         {
           "type": "rich_text",
@@ -153,16 +290,24 @@
           "variant": "two_column",
           "heading": "Kept running, not restored to death",
           "html": "<p>The rule on this bench is to keep the machine the machine. Original decals stay, worn gold fill is left alone, and replacements are period-correct or clearly marked. A machine that sewed a wedding trousseau in 1938 should still look like it did.</p><p>Wiring is the exception. Cloth insulation fails and we rewire for safety, every time, before the machine goes home to a table where people sew.</p>",
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal",
+            "motion": "piece_in"
+          }
         },
         {
           "type": "gallery",
           "id": "vintage-gallery",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "restorations",
           "heading": "Machines that went home",
-          "style": { "bg": "tint", "width": "wide" }
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "motion": "piece_in"
+          }
         }
       ]
     },
@@ -177,23 +322,38 @@
           "variant": "minimal",
           "title": "About {{guild_name}}",
           "subtitle": "Sample text — replace me: A workbench in a garage that grew a shop, twenty-two years of machines, and a parts drawer organized by decade.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "rich_text",
           "id": "about-body",
           "variant": "two_column",
           "html": "<p>The first machine on this bench was my grandmother's, brought back to life so she could finish a quilt for my graduation. The second and third belonged to neighbors. The hundredth was a brand that no longer exists, and the shop opened not long after, in a garage with good light and a concrete floor that forgives dropped presser feet.</p><p>We service what we sell, refurbish what we can, and tell you the truth about the rest. No appointment needed to drop off, though Saturdays fill by nine.</p>",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "motion": "piece_in"
+          }
         },
         {
           "type": "testimonials",
           "id": "about-quote",
           "variant": "single",
           "items": [
-            { "quote": "The only shop I have ever trusted to touch my grandmother's machine, and now the only one that touches mine.", "author": "L., Kettering" }
+            {
+              "quote": "The only shop I have ever trusted to touch my grandmother's machine, and now the only one that touches mine.",
+              "author": "L., Kettering"
+            }
           ],
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal",
+            "motion": "piece_in"
+          }
         }
       ]
     },
@@ -209,7 +369,11 @@
           "variant": "minimal",
           "title": "Book a repair",
           "subtitle": "Sample text — replace me: Tell us the brand, the age, and what it is doing or refusing to do. We reply with the earliest bench slot.",
-          "style": { "bg": "none", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "quote_cta",
@@ -217,7 +381,11 @@
           "projectType": "repair",
           "heading": "Machine details",
           "submitLabel": "Send the request",
-          "style": { "bg": "tint", "width": "normal" }
+          "style": {
+            "bg": "tint",
+            "width": "normal",
+            "motion": "piece_in"
+          }
         },
         {
           "type": "rich_text",
@@ -225,7 +393,11 @@
           "variant": "prose",
           "heading": "What happens next",
           "html": "<p>You get a confirmation with a drop-off window. At the bench the machine gets the diagnosis first, then a call with the number before any part is ordered. Most repairs that start on Monday are sewing again by Friday.</p>",
-          "style": { "bg": "none", "width": "narrow" }
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "motion": "piece_in"
+          }
         }
       ]
     },
@@ -240,14 +412,22 @@
           "variant": "minimal",
           "title": "Contact the clinic",
           "subtitle": "Sample text — replace me: Drop-off hours, parts questions, and the answer to whether we can find a foot pedal for that one.",
-          "style": { "bg": "tint", "width": "narrow", "align": "center" }
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "align": "center"
+          }
         },
         {
           "type": "contact",
           "id": "contact-form",
           "heading": "Send a message",
           "showDetails": true,
-          "style": { "bg": "none", "width": "normal" }
+          "style": {
+            "bg": "none",
+            "width": "normal",
+            "motion": "piece_in"
+          }
         },
         {
           "type": "meeting_info",
@@ -257,7 +437,11 @@
           "where": "{{city}}",
           "address": "Behind the garden center on Wayne Avenue",
           "note": "Parking is tight; pull through the alley and carry the machine in with two hands.",
-          "style": { "bg": "brand", "width": "wide" }
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "motion": "piece_in"
+          }
         }
       ]
     }

@@ -27,7 +27,8 @@
     "pattern": {
       "id": "flying-geese",
       "opacity": 0.1
-    }
+    },
+    "material": "cotton"
   },
   "imagery": [
     {
@@ -96,7 +97,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -132,7 +134,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -143,7 +146,8 @@
           "html": "<p>Half the building is a 1963 machine shop that used to make textile mill parts; the other half is a quilt room where the prototypes get sewn. If a template cannot survive a beginner's rotary cutter and an expert's stash? an expert's stash, it does not get etched, packed, or sold.</p>",
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -156,7 +160,8 @@
             "bg": "dark",
             "width": "normal",
             "align": "center",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -186,7 +191,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -197,7 +203,8 @@
           "html": "<p>Quilt shops carry the line on net-thirty terms with a counter display that ships flat. Write through the contact page and the wholesale sheet comes back the same week, with the display and the first dozen sets priced to try.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -228,7 +235,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -239,7 +247,8 @@
           "html": "<p>New to acrylic? Read the seam-allowance guide before the first cut: the etched lines are the stitching line, the solid edge is the cutting line, and everything else on the ruler is a bonus you will earn later.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -270,7 +279,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -285,7 +295,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         }
       ]
@@ -317,7 +328,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -340,7 +352,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -370,7 +383,8 @@
           "style": {
             "bg": "none",
             "width": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -381,7 +395,8 @@
           "html": "<p>The laser runs weekdays; the quilt room runs whenever the light is good. Write before you drive: the front door is the one with the hexagon etched in the glass, and the parking is on the mill yard side.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -415,7 +430,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]

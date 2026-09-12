@@ -23,11 +23,12 @@
       "variant": "simple"
     },
     "pattern": {
-      "id": "none",
-      "opacity": 0
+      "id": "signature",
+      "opacity": 0.1
     },
     "palette": "dark-ink-rose",
-    "typePair": "dmserif-dmsans"
+    "typePair": "dmserif-dmsans",
+    "material": "cotton"
   },
   "imagery": [
     {
@@ -72,7 +73,8 @@
           "where": "the room we rent in {{city}}",
           "note": "Beds stay home. If you bring a lap quilt we will admire it in ten seconds and ask where the coat is.",
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         },
         {
@@ -85,7 +87,8 @@
             "bg": "tint",
             "width": "wide",
             "layout": "framed",
-            "divider": "scallop"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         },
         {
@@ -110,7 +113,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -122,7 +126,8 @@
           "style": {
             "bg": "brand",
             "align": "center",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         }
       ]
@@ -152,7 +157,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "divider": "scallop"
+            "divider": "binding",
+            "motion": "piece_in"
           }
         },
         {
@@ -176,7 +182,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           },
           "heading": "A year with us"
         },
@@ -208,7 +215,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -251,7 +259,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         }
       ]
@@ -279,7 +288,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "scallop"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         },
         {
@@ -298,7 +308,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -336,7 +347,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -364,7 +376,8 @@
           "where": "the room we rent in {{city}}",
           "style": {
             "bg": "tint",
-            "divider": "scallop"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         },
         {
@@ -376,7 +389,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -403,7 +417,8 @@
           "showDetails": true,
           "style": {
             "bg": "tint",
-            "divider": "scallop"
+            "divider": "pinked",
+            "motion": "piece_in"
           }
         },
         {
@@ -414,7 +429,8 @@
           "style": {
             "bg": "dark",
             "layout": "framed",
-            "divider": "scallop"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         }
       ]

@@ -25,9 +25,10 @@
       "variant": "columns"
     },
     "pattern": {
-      "id": "none",
-      "opacity": 0
-    }
+      "id": "signature",
+      "opacity": 0.1
+    },
+    "material": "linen"
   },
   "previewSeed": {
     "guildName": "The Weekend House",
@@ -107,7 +108,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "home-2"
         },
@@ -119,7 +121,8 @@
             "bg": "tint",
             "width": "narrow",
             "spacing": "airy",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           },
           "id": "home-3"
         },
@@ -143,7 +146,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "home-4"
         },
@@ -154,7 +158,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "tight"
+            "spacing": "tight",
+            "motion": "piece_in"
           },
           "id": "home-5"
         },
@@ -167,7 +172,8 @@
             "bg": "brand",
             "width": "wide",
             "spacing": "normal",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           },
           "id": "home-6"
         }
@@ -204,7 +210,8 @@
           "style": {
             "bg": "none",
             "width": "full",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "the-house-2"
         },
@@ -215,7 +222,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "the-house-3"
         },
@@ -235,7 +243,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "the-house-4"
         },
@@ -248,7 +257,8 @@
             "bg": "brand",
             "width": "wide",
             "spacing": "tight",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           },
           "id": "the-house-5"
         }
@@ -292,7 +302,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "your-weekend-2"
         },
@@ -303,7 +314,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "your-weekend-3"
         },
@@ -316,7 +328,8 @@
             "bg": "brand",
             "width": "wide",
             "spacing": "tight",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           },
           "id": "your-weekend-4"
         }
@@ -364,7 +377,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "gatherings-2"
         },
@@ -375,7 +389,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "tight"
+            "spacing": "tight",
+            "motion": "piece_in"
           },
           "id": "gatherings-3"
         },
@@ -388,7 +403,8 @@
             "bg": "brand",
             "width": "wide",
             "spacing": "tight",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           },
           "id": "gatherings-4"
         }
@@ -436,7 +452,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "good-to-know-2"
         },
@@ -447,7 +464,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "tight"
+            "spacing": "tight",
+            "motion": "piece_in"
           },
           "id": "good-to-know-3"
         },
@@ -460,7 +478,8 @@
             "bg": "none",
             "width": "wide",
             "spacing": "tight",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           },
           "id": "good-to-know-4"
         }
@@ -491,7 +510,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "request-a-quote-2"
         },
@@ -502,7 +522,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "request-a-quote-3"
         }

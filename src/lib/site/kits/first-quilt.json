@@ -27,7 +27,8 @@
       "opacity": 0.12
     },
     "palette": "seasonal-spring",
-    "typePair": "nunito"
+    "typePair": "nunito",
+    "material": "flannel"
   },
   "imagery": [
     {
@@ -74,7 +75,8 @@
           "where": "the room we rent in {{city}}",
           "note": "Machines are provided for the first three meetings if you do not own one yet. Bring fabric for a 12-inch nine-patch, or use the class pack.",
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         },
         {
@@ -85,7 +87,8 @@
           "limit": 3,
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -109,7 +112,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -120,7 +124,8 @@
           "ctaLabel": "See dues",
           "style": {
             "bg": "brand",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -149,7 +154,8 @@
           "html": "<p><em>Sample text — replace me:</em> Shops teach a Saturday. Regular guilds assume you already know a quarter-inch. {{guild_name}} sits in the gap: adults in {{city}} who want a finished quilt, not a drawer of samples. Mentors are members who finished here last year.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -172,7 +178,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           },
           "heading": "A year with us"
         },
@@ -204,7 +211,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -250,7 +258,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -261,7 +270,8 @@
           "html": "<p><em>Sample text — replace me:</em> If you have a machine, bring it. If not, use ours for the cohort. Fabric: three one-yard cuts that contrast. We sell a pack at cost if choosing fabric is the thing that has stopped you.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -288,7 +298,8 @@
           "variant": "cards",
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -306,7 +317,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -344,7 +356,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -371,7 +384,8 @@
           "when": "{{meeting_info}}",
           "where": "the room we rent in {{city}}",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -382,7 +396,8 @@
           "limit": 8,
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         }
       ]
@@ -408,7 +423,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -417,7 +433,8 @@
           "when": "{{meeting_info}}",
           "where": "the room we rent in {{city}}",
           "style": {
-            "bg": "dark"
+            "bg": "dark",
+            "motion": "piece_in"
           }
         }
       ]

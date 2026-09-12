@@ -27,7 +27,8 @@
       "opacity": 0.08
     },
     "palette": "heritage-indigo",
-    "typePair": "playfair-lato"
+    "typePair": "playfair-lato",
+    "material": "linen"
   },
   "imagery": [
     {
@@ -90,7 +91,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -104,7 +106,8 @@
             }
           ],
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -114,7 +117,8 @@
           "heading": "Guild name, date window, lecture or trunk, and the room size",
           "submitLabel": "Request a date",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "motion": "piece_in"
           }
         }
       ]
@@ -157,7 +161,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -168,7 +173,8 @@
           "limit": 8,
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         }
       ]
@@ -199,7 +205,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -228,7 +235,8 @@
           "submitLabel": "Request a date",
           "style": {
             "bg": "tint",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -239,7 +247,8 @@
           "kind": "secondary",
           "style": {
             "bg": "none",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -269,7 +278,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -283,7 +293,8 @@
             }
           ],
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         }
       ]
@@ -310,7 +321,8 @@
           "showDetails": true,
           "style": {
             "bg": "tint",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -320,7 +332,8 @@
           "when": "{{meeting_info}}",
           "where": "{{city}}",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "motion": "piece_in"
           }
         }
       ]

@@ -27,7 +27,8 @@
       "opacity": 0.1
     },
     "palette": "seasonal-summer",
-    "typePair": "newsreader-ibmplexsans"
+    "typePair": "newsreader-ibmplexsans",
+    "material": "linen"
   },
   "imagery": [
     {
@@ -75,7 +76,8 @@
           "where": "the room we rent in {{city}}",
           "note": "If a storm warning is up, we cancel by noon and sew the next fair Tuesday. The library is our backup room.",
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         },
         {
@@ -87,7 +89,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -111,7 +114,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -123,7 +127,8 @@
           "style": {
             "bg": "brand",
             "align": "center",
-            "divider": "notch"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         }
       ]
@@ -153,7 +158,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         },
         {
@@ -177,7 +183,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           },
           "heading": "A year with us"
         },
@@ -209,7 +216,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -252,7 +260,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "notch"
+            "divider": "binding",
+            "motion": "piece_in"
           }
         },
         {
@@ -264,7 +273,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -292,7 +302,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         },
         {
@@ -311,7 +322,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -349,7 +361,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -377,7 +390,8 @@
           "where": "the room we rent in {{city}}",
           "style": {
             "bg": "tint",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         },
         {
@@ -389,7 +403,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -416,7 +431,8 @@
           "showDetails": true,
           "style": {
             "bg": "tint",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         },
         {
@@ -426,7 +442,8 @@
           "where": "the room we rent in {{city}}",
           "style": {
             "bg": "dark",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         }
       ]

@@ -27,7 +27,8 @@
       "opacity": 0.08
     },
     "palette": "jewel-sapphire",
-    "typePair": "manrope"
+    "typePair": "manrope",
+    "material": "cotton"
   },
   "imagery": [
     {
@@ -90,7 +91,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -105,7 +107,8 @@
           ],
           "style": {
             "bg": "tint",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -115,7 +118,8 @@
           "heading": "Show name, quilt size, sleeve or no sleeve, and the hall's receiving dates",
           "submitLabel": "Request a crate",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "motion": "piece_in"
           }
         }
       ]
@@ -158,7 +162,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         }
       ]
@@ -189,7 +194,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         },
         {
@@ -201,7 +207,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -230,7 +237,8 @@
           "submitLabel": "Request a crate",
           "style": {
             "bg": "tint",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         },
         {
@@ -242,7 +250,8 @@
           "style": {
             "bg": "none",
             "align": "center",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -272,7 +281,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         },
         {
@@ -287,7 +297,8 @@
           ],
           "style": {
             "bg": "none",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -314,7 +325,8 @@
           "showDetails": true,
           "style": {
             "bg": "tint",
-            "divider": "notch"
+            "divider": "pinked",
+            "motion": "piece_in"
           }
         },
         {
@@ -325,7 +337,8 @@
           "where": "{{city}}",
           "style": {
             "bg": "brand",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         }
       ]

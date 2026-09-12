@@ -25,9 +25,10 @@
       "variant": "simple"
     },
     "pattern": {
-      "id": "none",
-      "opacity": 0
-    }
+      "id": "signature",
+      "opacity": 0.1
+    },
+    "material": "linen"
   },
   "imagery": [
     {
@@ -92,7 +93,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -102,7 +104,8 @@
           "heading": "Next certification",
           "limit": 1,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -112,7 +115,8 @@
           "heading": "Ask for an open slot once you are certified",
           "submitLabel": "Request hours",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "motion": "piece_in"
           }
         }
       ]
@@ -161,7 +165,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -172,7 +177,8 @@
           "html": "<p>No rotary cutters at the frame. No food on the table. If you break a needle, there is a box. If you break a ruler, tell us before you leave.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -204,7 +210,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -222,7 +229,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -251,7 +259,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -262,7 +271,8 @@
           "where": "{{city}}",
           "note": "The door code is in your booking email.",
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         }
       ]
@@ -291,7 +301,8 @@
           "submitLabel": "Request a slot",
           "style": {
             "bg": "tint",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -302,7 +313,8 @@
           "kind": "secondary",
           "style": {
             "bg": "none",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -329,7 +341,8 @@
           "showDetails": true,
           "style": {
             "bg": "tint",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -338,7 +351,8 @@
           "when": "{{meeting_info}}",
           "where": "{{city}}",
           "style": {
-            "bg": "dark"
+            "bg": "dark",
+            "motion": "piece_in"
           }
         }
       ]

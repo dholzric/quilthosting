@@ -27,7 +27,8 @@
     "pattern": {
       "id": "nine-patch",
       "opacity": 0.1
-    }
+    },
+    "material": "cotton"
   },
   "imagery": [
     {
@@ -98,7 +99,8 @@
             "bg": "tint",
             "width": "wide",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -108,7 +110,8 @@
           "limit": 4,
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -145,7 +148,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -158,7 +162,8 @@
             "bg": "none",
             "width": "normal",
             "align": "center",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -189,7 +194,8 @@
             "bg": "tint",
             "width": "wide",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "pinked",
+            "motion": "piece_in"
           }
         },
         {
@@ -200,7 +206,8 @@
           "html": "<p>Everything is pre-washed, machine quilted, and labeled, and it can all go in the machine again: cold water, gentle cycle, dry flat for the runners. Stock changes weekly, and restocks are announced at the market booth first.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -232,7 +239,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -244,7 +252,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         }
       ]
@@ -277,7 +286,8 @@
             "bg": "tint",
             "width": "normal",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -292,7 +302,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         }
       ]
@@ -324,7 +335,8 @@
           "style": {
             "bg": "none",
             "width": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -336,7 +348,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         }
       ]
@@ -367,7 +380,8 @@
             "bg": "tint",
             "width": "normal",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -380,7 +394,8 @@
           "style": {
             "bg": "brand",
             "width": "wide",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         }
       ]

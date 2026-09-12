@@ -27,7 +27,8 @@
     "pattern": {
       "id": "nine-patch",
       "opacity": 0.06
-    }
+    },
+    "material": "flannel"
   },
   "imagery": [
     {
@@ -123,19 +124,21 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
           "type": "gallery",
           "id": "home-gallery",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "circles",
           "heading": "Made in the circles",
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -154,7 +157,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -167,7 +171,8 @@
             "bg": "brand",
             "width": "full",
             "align": "center",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -215,7 +220,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -226,7 +232,8 @@
           "html": "<p>Anyone. No diagnosis, referral, or paperwork is required, and no experience is expected; half the stitches learned here are the first ones. Everything made in a circle belongs to the maker, and nothing made here is graded, judged, or photographed without permission.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -249,7 +256,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -280,7 +288,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -291,7 +300,8 @@
           "html": "<p>Twelve dollars assembles one hospital kit. Forty stocks a circle's materials for a month. A hundred keeps the childcare room open on a Tuesday. The ledger is read at the annual potluck and posted to the members' area, because trust is part of the care.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -303,7 +313,8 @@
           "style": {
             "bg": "brand",
             "width": "full",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -334,7 +345,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -349,7 +361,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -380,7 +393,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -410,7 +424,8 @@
           "style": {
             "bg": "none",
             "width": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -421,7 +436,8 @@
           "html": "<p>Soft washed cotton, flannel, and perle cotton thread are always in season. We cannot accept batting scraps or polyester for the hospital kits, and the donation door answer is on the answering machine, which is staffed by a volunteer with strong opinions.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -455,7 +471,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]

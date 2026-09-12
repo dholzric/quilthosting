@@ -27,7 +27,8 @@
       "opacity": 0.08
     },
     "palette": "heritage-madder",
-    "typePair": "newsreader-ibmplexsans"
+    "typePair": "newsreader-ibmplexsans",
+    "material": "linen"
   },
   "imagery": [
     {
@@ -90,7 +91,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -105,7 +107,8 @@
           ],
           "style": {
             "bg": "tint",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -115,7 +118,8 @@
           "heading": "What you are looking for, and whether a photo from the rack is enough",
           "submitLabel": "Request a quote",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "motion": "piece_in"
           }
         }
       ]
@@ -144,7 +148,8 @@
           "limit": 6,
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -156,7 +161,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -186,7 +192,8 @@
           "where": "{{city}}",
           "note": "Ring. The door sticks. Do not yank the glass.",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         }
       ]
@@ -214,7 +221,8 @@
           "heading": "What you are looking for, and whether a photo from the rack is enough",
           "submitLabel": "Send details",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -226,7 +234,8 @@
           "style": {
             "bg": "none",
             "align": "center",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -255,7 +264,8 @@
           "html": "<p><em>Sample text — replace me:</em> Estate sales leave bolts. Mills leave deadstock. {{guild_name}} is the place those yards wait until someone wants a border that does not exist on a new wall. I am not an appraiser. I am a person with a ruler and a notebook.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -270,7 +280,8 @@
           ],
           "style": {
             "bg": "none",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -296,7 +307,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -307,7 +319,8 @@
           "where": "{{city}}",
           "style": {
             "bg": "brand",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]

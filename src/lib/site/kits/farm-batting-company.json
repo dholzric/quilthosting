@@ -27,7 +27,8 @@
     "pattern": {
       "id": "nine-patch",
       "opacity": 0.08
-    }
+    },
+    "material": "linen"
   },
   "imagery": [
     {
@@ -133,7 +134,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -145,7 +147,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         },
         {
@@ -164,7 +167,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -177,7 +181,8 @@
             "bg": "tint",
             "width": "normal",
             "align": "center",
-            "divider": "points"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         }
       ]
@@ -207,7 +212,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "points"
+            "divider": "binding",
+            "motion": "piece_in"
           }
         },
         {
@@ -218,7 +224,8 @@
           "html": "<p>Rolls leave the mill on Tuesdays, boxed tight and labeled with the loft and lot. By-the-yard orders ride in a tube. Colorado orders often arrive next day by accident of geography rather than by paying for it.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -249,7 +256,8 @@
           "html": "<p>Wash a wool quilt gently: cold water, mild soap, and the gentlest cycle the machine owns, or the bathtub if the quilt matters. Dry it flat or low, never wrung. The three to five percent shrink is the wool relaxing into the stitches, and it happens once.</p><p>For storage, fold along new lines a few times a year or keep it on a bed. Wool prefers being used; cedar chests and plastic bins are where quilts go to get musty.</p>",
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -273,7 +281,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         }
       ]
@@ -305,7 +314,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         },
         {
@@ -320,7 +330,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         }
       ]
@@ -352,7 +363,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         },
         {
@@ -363,7 +375,8 @@
           "html": "<p>Net thirty after the first order, no order minimum after the initial case, and a mill-store discount for the drive-in trade. Guild bulk buys ride the wholesale rate with one invoice and one very tall stack of rolls.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -392,7 +405,8 @@
           "showDetails": true,
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -405,7 +419,8 @@
           "style": {
             "bg": "brand",
             "width": "wide",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         }
       ]

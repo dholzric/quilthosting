@@ -27,7 +27,8 @@
     "pattern": {
       "id": "nine-patch",
       "opacity": 0.1
-    }
+    },
+    "material": "flannel"
   },
   "imagery": [
     {
@@ -119,7 +120,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -130,19 +132,21 @@
           "html": "<p>Estate sales first, church rummage sales second, and the thrift stores on their restock mornings. A good vintage sheet is pre-shrunk by decades, prints all over, and costs less than a fat quarter of new cotton. The washing happens twice before any cutting, once to clean and once to be sure.</p>",
           "style": {
             "bg": "dark",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
           "type": "gallery",
           "id": "home-gallery",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "hauls",
           "heading": "Finished and photographed in real light",
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -154,7 +158,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -183,7 +188,8 @@
           "limit": 8,
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -194,7 +200,8 @@
           "html": "<p>Machine wash, gentle, and dry on low or on the line. The fabrics have already survived forty years of Sunday mornings; they can survive your laundry, but they have earned the gentle cycle.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -224,7 +231,8 @@
           "limit": 3,
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -236,7 +244,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -266,7 +275,8 @@
           "html": "<p>The first quilt was an accident of arithmetic: one king sheet plus one flat sheet equaled exactly one queen quilt top, and the house only had so many beds. Friends started leaving sheets on the porch. The porch filled. The studio followed.</p><p>The rule has not changed: nothing new is bought that a thrift store can supply, and every quilt keeps a tag listing the origin of its cloth, down to the church that donated the pillowcases.</p>",
           "style": {
             "bg": "tint",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -281,7 +291,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         }
       ]
@@ -312,7 +323,8 @@
           "submitLabel": "Send the details",
           "style": {
             "bg": "tint",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -323,7 +335,8 @@
           "html": "<p>You send photographs and rough measurements first; the quote comes back with a design direction and the honest news about which pieces are too worn for the top and will ride in the back instead. Washed linens arrive, the quilt is cut within the month, and the offcuts return as pillow covers.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -352,7 +365,8 @@
           "showDetails": true,
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -363,7 +377,8 @@
           "html": "<p>The studio accepts clean vintage sheets and pillowcases by the bag, and every donation is acknowledged with a photograph of whatever it becomes. Flat sheets, fitted sheets, and the mysterious third pillowcase are all welcome.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -397,7 +412,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]

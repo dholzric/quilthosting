@@ -27,7 +27,8 @@
       "opacity": 0.1
     },
     "palette": "naturals-clay",
-    "typePair": "bitter-opensans"
+    "typePair": "bitter-opensans",
+    "material": "linen"
   },
   "imagery": [
     {
@@ -89,7 +90,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -103,7 +105,8 @@
             }
           ],
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -113,7 +116,8 @@
           "heading": "Address or photograph, which side of the house, and whether the porch must be there",
           "submitLabel": "Request a quote",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "motion": "piece_in"
           }
         }
       ]
@@ -155,7 +159,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         }
       ]
@@ -185,7 +190,8 @@
           "html": "<p><em>Sample text — replace me:</em> One from the sidewalk, one from across the street. If it is gone, send the blurry one anyway. I have drawn from worse.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -213,7 +219,8 @@
           "heading": "Address or photograph, which side of the house, and whether the porch must be there",
           "submitLabel": "Send details",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -224,7 +231,8 @@
           "kind": "secondary",
           "style": {
             "bg": "none",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -253,7 +261,8 @@
           "html": "<p><em>Sample text — replace me:</em> I pieced barns for a while. Then people wanted the house they were leaving. {{guild_name}} is that job: a portrait that can hang in the next kitchen.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -267,7 +276,8 @@
             }
           ],
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         }
       ]
@@ -293,7 +303,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -303,7 +314,8 @@
           "when": "{{meeting_info}}",
           "where": "{{city}}",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "motion": "piece_in"
           }
         }
       ]

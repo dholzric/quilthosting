@@ -353,6 +353,8 @@ describe("heritage kit content", () => {
       header: { variant: "left", sticky: true, cta: "join", overlayHero: false },
       footer: { variant: "meeting" },
       pattern: { id: "log-cabin", opacity: 0.14 },
+      // Heritage takes flannel: a warm palette family, napped cloth.
+      material: "flannel",
     });
   });
 

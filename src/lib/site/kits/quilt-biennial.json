@@ -26,8 +26,8 @@
       "variant": "simple"
     },
     "pattern": {
-      "id": "none",
-      "opacity": 0
+      "id": "signature",
+      "opacity": 0.1
     }
   },
   "previewSeed": {
@@ -90,7 +90,8 @@
           "style": {
             "bg": "none",
             "width": "full",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "home-2"
         },
@@ -121,7 +122,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "home-3"
         },
@@ -135,7 +137,8 @@
             "bg": "dark",
             "width": "wide",
             "spacing": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           },
           "id": "home-4"
         },
@@ -146,7 +149,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "tight"
+            "spacing": "tight",
+            "motion": "piece_in"
           },
           "id": "home-5"
         },
@@ -159,7 +163,8 @@
             "bg": "brand",
             "width": "wide",
             "spacing": "airy",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           },
           "id": "home-6"
         }
@@ -192,7 +197,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "the-show-2"
         },
@@ -217,7 +223,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "the-show-3"
         },
@@ -230,7 +237,8 @@
             "bg": "brand",
             "width": "wide",
             "spacing": "tight",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           },
           "id": "the-show-4"
         }
@@ -276,7 +284,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "enter-a-quilt-2"
         },
@@ -296,7 +305,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "enter-a-quilt-3"
         },
@@ -307,7 +317,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "tight"
+            "spacing": "tight",
+            "motion": "piece_in"
           },
           "id": "enter-a-quilt-4"
         },
@@ -320,7 +331,8 @@
             "bg": "brand",
             "width": "wide",
             "spacing": "tight",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           },
           "id": "enter-a-quilt-5"
         }
@@ -359,7 +371,8 @@
           "style": {
             "bg": "none",
             "width": "full",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "program-2"
         },
@@ -370,7 +383,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "program-3"
         },
@@ -383,7 +397,8 @@
             "bg": "none",
             "width": "wide",
             "spacing": "tight",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           },
           "id": "program-4"
         }
@@ -416,7 +431,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "tight"
+            "spacing": "tight",
+            "motion": "piece_in"
           },
           "id": "plan-your-visit-2"
         },
@@ -427,7 +443,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "plan-your-visit-3"
         },
@@ -439,7 +456,8 @@
           "style": {
             "bg": "brand",
             "width": "wide",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "plan-your-visit-4"
         }
@@ -472,7 +490,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "tight"
+            "spacing": "tight",
+            "motion": "piece_in"
           },
           "id": "contact-2"
         },
@@ -483,7 +502,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "contact-3"
         },
@@ -495,7 +515,8 @@
           "style": {
             "bg": "brand",
             "width": "wide",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "contact-4"
         }

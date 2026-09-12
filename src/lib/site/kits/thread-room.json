@@ -23,11 +23,12 @@
       "variant": "simple"
     },
     "pattern": {
-      "id": "none",
-      "opacity": 0
+      "id": "signature",
+      "opacity": 0.1
     },
     "palette": "jewel-garnet",
-    "typePair": "newsreader-ibmplexsans"
+    "typePair": "newsreader-ibmplexsans",
+    "material": "linen"
   },
   "imagery": [
     {
@@ -90,7 +91,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -105,7 +107,8 @@
           ],
           "style": {
             "bg": "tint",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -115,7 +118,8 @@
           "heading": "Fiber, weight, and a swatch if you cannot come in",
           "submitLabel": "Ask for a match",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "motion": "piece_in"
           }
         }
       ]
@@ -157,7 +161,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         }
       ]
@@ -187,7 +192,8 @@
           "where": "{{city}}",
           "note": "The chair by the window is for matching. The stool is for paying. Do not mix them up when there is a line.",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         }
       ]
@@ -215,7 +221,8 @@
           "heading": "Fiber, weight, and a swatch if you cannot come in",
           "submitLabel": "Ask for a match",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -227,7 +234,8 @@
           "style": {
             "bg": "none",
             "align": "center",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -256,7 +264,8 @@
           "html": "<p><em>Sample text — replace me:</em> Every fabric shop has a spinning rack. This room is the other way around. {{guild_name}} exists because matching a binding should not require buying a bolt you do not want.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -271,7 +280,8 @@
           ],
           "style": {
             "bg": "none",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -297,7 +307,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -308,7 +319,8 @@
           "where": "{{city}}",
           "style": {
             "bg": "brand",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]

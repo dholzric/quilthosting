@@ -27,7 +27,8 @@
       "opacity": 0.08
     },
     "palette": "heritage-wheat",
-    "typePair": "librebaskerville-nunitosans"
+    "typePair": "librebaskerville-nunitosans",
+    "material": "flannel"
   },
   "imagery": [
     {
@@ -89,7 +90,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -103,7 +105,8 @@
             }
           ],
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -113,7 +116,8 @@
           "heading": "Place, year if it matters, and which buildings must be findable",
           "submitLabel": "Request a quote",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "motion": "piece_in"
           }
         }
       ]
@@ -144,7 +148,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -162,7 +167,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -208,7 +214,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         }
       ]
@@ -237,7 +244,8 @@
           "submitLabel": "Send details",
           "style": {
             "bg": "tint",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -248,7 +256,8 @@
           "kind": "secondary",
           "style": {
             "bg": "none",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -278,7 +287,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -292,7 +302,8 @@
             }
           ],
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         }
       ]
@@ -319,7 +330,8 @@
           "showDetails": true,
           "style": {
             "bg": "tint",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -329,7 +341,8 @@
           "when": "{{meeting_info}}",
           "where": "{{city}}",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "motion": "piece_in"
           }
         }
       ]

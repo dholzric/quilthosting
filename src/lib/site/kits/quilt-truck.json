@@ -27,7 +27,8 @@
     "pattern": {
       "id": "churn-dash",
       "opacity": 0.1
-    }
+    },
+    "material": "linen"
   },
   "imagery": [
     {
@@ -94,7 +95,8 @@
           "limit": 1,
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -131,7 +133,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -141,7 +144,8 @@
           "limit": 4,
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -154,7 +158,8 @@
             "bg": "tint",
             "width": "normal",
             "align": "center",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         }
       ]
@@ -185,7 +190,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         },
         {
@@ -197,7 +203,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -227,7 +234,8 @@
           "limit": 8,
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -239,7 +247,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         }
       ]
@@ -270,7 +279,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         },
         {
@@ -286,7 +296,8 @@
           "style": {
             "bg": "none",
             "width": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -317,7 +328,8 @@
           "submitLabel": "Check a date",
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -341,7 +353,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         }
       ]
@@ -371,7 +384,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         },
         {
@@ -384,7 +398,8 @@
           "style": {
             "bg": "brand",
             "width": "wide",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         }
       ]

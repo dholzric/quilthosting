@@ -25,9 +25,10 @@
       "variant": "simple"
     },
     "pattern": {
-      "id": "none",
-      "opacity": 0
-    }
+      "id": "signature",
+      "opacity": 0.1
+    },
+    "material": "cotton"
   },
   "previewSeed": {
     "guildName": "Color Assembly",
@@ -91,7 +92,8 @@
           "style": {
             "bg": "none",
             "width": "full",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "home-2"
         },
@@ -122,7 +124,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "home-3"
         },
@@ -136,7 +139,8 @@
             "bg": "dark",
             "width": "wide",
             "spacing": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           },
           "id": "home-4"
         },
@@ -147,7 +151,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "tight"
+            "spacing": "tight",
+            "motion": "piece_in"
           },
           "id": "home-5"
         },
@@ -160,7 +165,8 @@
             "bg": "brand",
             "width": "wide",
             "spacing": "airy",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           },
           "id": "home-6"
         }
@@ -191,7 +197,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "collective-2"
         },
@@ -216,7 +223,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "collective-3"
         },
@@ -229,7 +237,8 @@
             "bg": "brand",
             "width": "wide",
             "spacing": "tight",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           },
           "id": "collective-4"
         }
@@ -273,7 +282,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "make-with-us-2"
         },
@@ -293,7 +303,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "make-with-us-3"
         },
@@ -304,7 +315,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "tight"
+            "spacing": "tight",
+            "motion": "piece_in"
           },
           "id": "make-with-us-4"
         },
@@ -317,7 +329,8 @@
             "bg": "brand",
             "width": "wide",
             "spacing": "tight",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           },
           "id": "make-with-us-5"
         }
@@ -354,7 +367,8 @@
           "style": {
             "bg": "none",
             "width": "full",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "on-the-wall-2"
         },
@@ -365,7 +379,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "on-the-wall-3"
         },
@@ -378,7 +393,8 @@
             "bg": "none",
             "width": "wide",
             "spacing": "tight",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           },
           "id": "on-the-wall-4"
         }
@@ -409,7 +425,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "spacing": "tight"
+            "spacing": "tight",
+            "motion": "piece_in"
           },
           "id": "contact-2"
         },
@@ -420,7 +437,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "contact-3"
         },
@@ -432,7 +450,8 @@
           "style": {
             "bg": "brand",
             "width": "wide",
-            "spacing": "airy"
+            "spacing": "airy",
+            "motion": "piece_in"
           },
           "id": "contact-4"
         }

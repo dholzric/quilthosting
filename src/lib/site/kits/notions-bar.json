@@ -23,11 +23,12 @@
       "variant": "simple"
     },
     "pattern": {
-      "id": "none",
-      "opacity": 0
+      "id": "signature",
+      "opacity": 0.1
     },
     "palette": "naturals-moss",
-    "typePair": "dmserif-dmsans"
+    "typePair": "dmserif-dmsans",
+    "material": "flannel"
   },
   "imagery": [
     {
@@ -89,7 +90,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -104,7 +106,8 @@
           ],
           "style": {
             "bg": "tint",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         },
         {
@@ -115,7 +118,8 @@
           "submitLabel": "Ask for a tool",
           "style": {
             "bg": "brand",
-            "divider": "points"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         }
       ]
@@ -158,7 +162,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         }
       ]
@@ -189,7 +194,8 @@
           "note": "Bring the dull blade. I will believe you, but I like to see the damage.",
           "style": {
             "bg": "tint",
-            "divider": "points"
+            "divider": "binding",
+            "motion": "piece_in"
           }
         }
       ]
@@ -218,7 +224,8 @@
           "submitLabel": "Ask for a tool",
           "style": {
             "bg": "tint",
-            "divider": "points"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         },
         {
@@ -229,7 +236,8 @@
           "kind": "secondary",
           "style": {
             "bg": "none",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -259,7 +267,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         },
         {
@@ -273,7 +282,8 @@
             }
           ],
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         }
       ]
@@ -300,7 +310,8 @@
           "showDetails": true,
           "style": {
             "bg": "tint",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         },
         {
@@ -311,7 +322,8 @@
           "where": "{{city}}",
           "style": {
             "bg": "brand",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         }
       ]

@@ -27,7 +27,8 @@
     "pattern": {
       "id": "churn-dash",
       "opacity": 0.1
-    }
+    },
+    "material": "linen"
   },
   "imagery": [
     {
@@ -110,7 +111,8 @@
           "limit": 3,
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -144,7 +146,8 @@
             "bg": "tint",
             "width": "wide",
             "layout": "framed",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         },
         {
@@ -155,20 +158,22 @@
           "html": "<p>Every chapter holds one seat on the board, and the board meets on the second Wednesday in {{city}} or by video when the roads are bad. Dues are split three ways: half stays with programs, a quarter funds the grants, and a quarter keeps the insurance and the post office box.</p><p>The bylaws fit on eleven pages and have survived thirty years of amendments, mostly about the raffle table.</p>",
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
           "type": "gallery",
           "id": "home-gallery",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "gathering",
           "heading": "The gathering, last spring",
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "scallop"
+            "divider": "pinked",
+            "motion": "piece_in"
           }
         },
         {
@@ -182,7 +187,8 @@
             "width": "full",
             "align": "center",
             "layout": "framed",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         }
       ]
@@ -239,7 +245,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         },
         {
@@ -251,7 +258,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -303,7 +311,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         },
         {
@@ -315,7 +324,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -347,7 +357,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         },
         {
@@ -359,7 +370,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -383,7 +395,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "divider": "scallop"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         },
         {
@@ -421,7 +434,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -454,7 +468,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         },
         {
@@ -474,7 +489,8 @@
           "style": {
             "bg": "none",
             "width": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -505,7 +521,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -534,7 +551,8 @@
           "showDetails": true,
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -548,7 +566,8 @@
             "bg": "brand",
             "width": "wide",
             "layout": "framed",
-            "divider": "scallop"
+            "divider": "binding",
+            "motion": "piece_in"
           }
         }
       ]

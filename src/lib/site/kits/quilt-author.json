@@ -27,7 +27,8 @@
     "pattern": {
       "id": "nine-patch",
       "opacity": 0.06
-    }
+    },
+    "material": "cotton"
   },
   "imagery": [
     {
@@ -101,7 +102,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -112,7 +114,8 @@
           "limit": 1,
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -127,7 +130,8 @@
           ],
           "style": {
             "bg": "dark",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -140,7 +144,8 @@
             "bg": "tint",
             "width": "normal",
             "align": "center",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         }
       ]
@@ -170,7 +175,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -181,7 +187,8 @@
           "html": "<p>Copies ordered here are signed and shipped from the writing room within the week. Bookstores and guild libraries can order through the distributor listed on the contact page, and wholesale terms are the same ones every publisher pretends are special.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -213,7 +220,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -224,7 +232,8 @@
           "html": "<p>A stop is an evening lecture, or a lecture plus a next-day workshop for twenty. The guild provides the room, the projector, and one hotel night; the books table handles itself with two volunteers and a pen that signs quilts too, if you ask nicely.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -256,7 +265,8 @@
           "style": {
             "bg": "none",
             "width": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -271,7 +281,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         }
       ]
@@ -303,7 +314,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -314,7 +326,8 @@
           "html": "<p>Lectures and workshops are priced on the fee sheet sent with the reply, and travel is shared when two guilds within an hour book the same week. Guilds that cannot afford the fee should write anyway; the fund from the books table exists exactly for that.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -344,7 +357,8 @@
           "style": {
             "bg": "none",
             "width": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -355,7 +369,8 @@
           "html": "<p>If you own a quilt with a mystery, write the whole story down before you write to me. Half the answers arrive while you are typing, and the rest make better letters than questions.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -389,7 +404,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]

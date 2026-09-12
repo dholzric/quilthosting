@@ -27,7 +27,8 @@
     "pattern": {
       "id": "bear-paw",
       "opacity": 0.12
-    }
+    },
+    "material": "linen"
   },
   "imagery": [
     {
@@ -95,7 +96,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -132,7 +134,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "rule"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         },
         {
@@ -143,13 +146,14 @@
           "limit": 3,
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
           "type": "gallery",
           "id": "home-gallery",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "builds",
           "heading": "Finished, mostly",
@@ -157,7 +161,8 @@
             "bg": "dark",
             "width": "wide",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -170,7 +175,8 @@
             "bg": "brand",
             "width": "full",
             "align": "center",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         }
       ]
@@ -223,19 +229,21 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
           "type": "gallery",
           "id": "builds-gallery",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "builds",
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         }
       ]
@@ -268,7 +276,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -279,7 +288,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -302,7 +312,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -340,7 +351,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -372,7 +384,8 @@
             "bg": "tint",
             "width": "normal",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -387,7 +400,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -418,7 +432,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -448,7 +463,8 @@
           "style": {
             "bg": "none",
             "width": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -461,7 +477,8 @@
           "style": {
             "bg": "brand",
             "width": "wide",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         }
       ]

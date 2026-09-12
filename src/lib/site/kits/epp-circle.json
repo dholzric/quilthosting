@@ -27,7 +27,8 @@
     "pattern": {
       "id": "nine-patch",
       "opacity": 0.1
-    }
+    },
+    "material": "flannel"
   },
   "imagery": [
     {
@@ -73,7 +74,8 @@
           "where": "{{city}}",
           "note": "Bring a tin of papers, a glue pen, and whatever you are stitching. Needles and thread are on the table.",
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         },
         {
@@ -84,7 +86,8 @@
           "limit": 3,
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -109,7 +112,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -120,7 +124,8 @@
           "ctaLabel": "See dues",
           "style": {
             "bg": "brand",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -149,7 +154,8 @@
           "variant": "two_column",
           "html": "<p>{{guild_name}} started as four people around a kitchen table with a bag of 1-inch hexies. We still meet {{meeting_info}} in {{city}}. The business meeting is ten minutes. The rest is stitching.</p><p>We are not a modern guild and not a Baltimore guild. If you like English paper piecing, you already know how to sit with us.</p>",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -167,7 +173,8 @@
             }
           ],
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         },
         {
@@ -198,7 +205,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -240,7 +248,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -249,7 +258,8 @@
           "heading": "From the newsletter",
           "limit": 3,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         }
       ]
@@ -290,7 +300,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -300,7 +311,8 @@
           "ctaLabel": "Join first",
           "style": {
             "bg": "dark",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -330,7 +342,8 @@
           "variant": "compact",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -348,7 +361,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -386,7 +400,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -412,7 +427,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -421,7 +437,8 @@
           "when": "{{meeting_info}}",
           "where": "{{city}}",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "motion": "piece_in"
           }
         }
       ]

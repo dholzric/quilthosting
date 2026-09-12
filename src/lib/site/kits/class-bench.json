@@ -23,11 +23,12 @@
       "variant": "simple"
     },
     "pattern": {
-      "id": "none",
-      "opacity": 0
+      "id": "signature",
+      "opacity": 0.1
     },
     "palette": "soft-blush",
-    "typePair": "lora-karla"
+    "typePair": "lora-karla",
+    "material": "cotton"
   },
   "imagery": [
     {
@@ -90,7 +91,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           },
           "heading": "What we teach"
         },
@@ -105,7 +107,8 @@
             }
           ],
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -115,7 +118,8 @@
           "heading": "Class name, dates, and whether you have a machine",
           "submitLabel": "Ask about a seat",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "motion": "piece_in"
           }
         }
       ]
@@ -146,7 +150,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -157,7 +162,8 @@
           "html": "<p><em>Sample text — replace me:</em> Machine if you have one, or say so and use a house machine. Fabric lists go out a week ahead. We do not sell kits for the joy of leftover packs. We sell them when the supply run would otherwise stall the class.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -188,7 +194,8 @@
           "note": "Street parking after 6. The door is on the alley if the front is blocked by the cafe line.",
           "style": {
             "bg": "tint",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         }
       ]
@@ -217,7 +224,8 @@
           "submitLabel": "Ask about a seat",
           "style": {
             "bg": "tint",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -228,7 +236,8 @@
           "kind": "secondary",
           "style": {
             "bg": "none",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -258,7 +267,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -272,7 +282,8 @@
             }
           ],
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         }
       ]
@@ -299,7 +310,8 @@
           "showDetails": true,
           "style": {
             "bg": "tint",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -309,7 +321,8 @@
           "when": "{{meeting_info}}",
           "where": "{{city}}",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "motion": "piece_in"
           }
         }
       ]

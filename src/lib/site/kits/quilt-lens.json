@@ -23,11 +23,12 @@
       "variant": "simple"
     },
     "pattern": {
-      "id": "none",
-      "opacity": 0
+      "id": "signature",
+      "opacity": 0.1
     },
     "palette": "dark-charcoal-gold",
-    "typePair": "spacegrotesk-worksans"
+    "typePair": "spacegrotesk-worksans",
+    "material": "flannel"
   },
   "imagery": [
     {
@@ -90,7 +91,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -105,7 +107,8 @@
           ],
           "style": {
             "bg": "tint",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -115,7 +118,8 @@
           "heading": "Quilt size, show due date, and whether it is already quilted",
           "submitLabel": "Request a session",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "motion": "piece_in"
           }
         }
       ]
@@ -157,7 +161,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         }
       ]
@@ -182,12 +187,13 @@
         {
           "type": "gallery",
           "id": "wall",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "wall",
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         }
       ]
@@ -215,7 +221,8 @@
           "heading": "Quilt size, show due date, and whether it is already quilted",
           "submitLabel": "Request a session",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -227,7 +234,8 @@
           "style": {
             "bg": "none",
             "align": "center",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -256,7 +264,8 @@
           "html": "<p><em>Sample text — replace me:</em> I used to volunteer at intake. The photographs were the thing that failed first. {{guild_name}} is a wall, two lights, and a ladder. I will not style your quilt on a bed.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -271,7 +280,8 @@
           ],
           "style": {
             "bg": "none",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -297,7 +307,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -308,7 +319,8 @@
           "where": "{{city}}",
           "style": {
             "bg": "brand",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]

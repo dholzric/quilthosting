@@ -27,7 +27,8 @@
     "pattern": {
       "id": "bear-paw",
       "opacity": 0.12
-    }
+    },
+    "material": "flannel"
   },
   "imagery": [
     {
@@ -119,20 +120,22 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
           "type": "gallery",
           "id": "home-gallery",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "trail",
           "heading": "Blocks from the trail",
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "points"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         },
         {
@@ -143,7 +146,8 @@
           "limit": 1,
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -156,7 +160,8 @@
             "bg": "dark",
             "width": "full",
             "align": "center",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         }
       ]
@@ -187,7 +192,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         },
         {
@@ -211,7 +217,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -225,7 +232,8 @@
           "style": {
             "bg": "brand",
             "width": "wide",
-            "divider": "points"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         }
       ]
@@ -283,7 +291,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -295,7 +304,8 @@
           "style": {
             "bg": "tint",
             "align": "center",
-            "divider": "points"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         }
       ]
@@ -327,7 +337,8 @@
           "html": "<p>Dues buy exterior paint, primer, the bucket-truck rental two weekends a year, and the brochure printing. The association is all volunteers; nobody has ever been paid, though the paint crew eats well at the fish fry.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -338,7 +349,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "points"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         },
         {
@@ -361,7 +373,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -399,7 +412,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -431,7 +445,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         },
         {
@@ -446,7 +461,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -477,7 +493,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -506,7 +523,8 @@
           "showDetails": true,
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -518,7 +536,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         },
         {
@@ -552,7 +571,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]

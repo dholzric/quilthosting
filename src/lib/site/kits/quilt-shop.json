@@ -27,7 +27,8 @@
     "pattern": {
       "id": "churn-dash",
       "opacity": 0.1
-    }
+    },
+    "material": "flannel"
   },
   "imagery": [
     {
@@ -74,7 +75,8 @@
           "where": "{{city}}",
           "note": "Street parking on the north side. The ramp is at the alley door.",
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         },
         {
@@ -85,7 +87,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -96,7 +99,8 @@
           "limit": 3,
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -107,7 +111,8 @@
           "kind": "primary",
           "style": {
             "bg": "brand",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -138,7 +143,8 @@
           "limit": 8,
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -157,7 +163,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -201,7 +208,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -212,7 +220,8 @@
           "submitLabel": "Send details",
           "style": {
             "bg": "tint",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -240,7 +249,8 @@
           "html": "<p>We buy bolts we would sew with: cotton prints, a wall of solids, and a modest wool section. Precuts are cut here, not ordered in boxes. The staff will help you find a backing that is actually wide enough.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -255,7 +265,8 @@
           ],
           "style": {
             "bg": "none",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -284,7 +295,8 @@
           "where": "{{city}}",
           "note": "Closed Sunday and Monday. The alley door has a ramp and a bell.",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -295,7 +307,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -321,7 +334,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -331,7 +345,8 @@
           "limit": 3,
           "style": {
             "bg": "none",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]

@@ -27,7 +27,8 @@
     "pattern": {
       "id": "churn-dash",
       "opacity": 0.08
-    }
+    },
+    "material": "linen"
   },
   "imagery": [
     {
@@ -133,7 +134,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -144,7 +146,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "points"
+            "divider": "pinked",
+            "motion": "piece_in"
           }
         },
         {
@@ -155,7 +158,8 @@
           "html": "<p>Six-week courses meet once a week for three hours, in cohorts that stay together from Foundations to Finishing. Machines, mats, and irons belong to the academy; fabric lists go out two weeks before the first class, with amounts honest enough to include mistakes.</p><p>Every cohort ends with a finished quilt on the studio wall for one week, photographed for the family group chat and the academy's album alike.</p>",
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -167,7 +171,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "points"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         },
         {
@@ -180,7 +185,8 @@
             "bg": "dark",
             "width": "full",
             "align": "center",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         }
       ]
@@ -237,7 +243,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         },
         {
@@ -248,7 +255,8 @@
           "html": "<p>The academy provides machines, mats, irons, and the classroom stash of neutral thread. Students buy fabric and one good rotary blade; the supply lists say exactly how much, with the mistakes budgeted in.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -272,7 +280,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         }
       ]
@@ -321,7 +330,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         },
         {
@@ -336,7 +346,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         }
       ]
@@ -368,7 +379,8 @@
           "html": "<p>Members sew at the academy any open studio hour: machines set up, irons hot, and an instructor on site for the questions that halt a project at nine at night. Membership also holds your place in cohort registration, which fills in the order the list is kept.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -379,7 +391,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         },
         {
@@ -417,7 +430,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         },
         {
@@ -430,7 +444,8 @@
             "bg": "brand",
             "width": "full",
             "align": "center",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         }
       ]
@@ -461,7 +476,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "divider": "points"
+            "divider": "pinked",
+            "motion": "piece_in"
           }
         },
         {
@@ -476,7 +492,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -507,7 +524,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -536,7 +554,8 @@
           "showDetails": true,
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -549,7 +568,8 @@
           "style": {
             "bg": "brand",
             "width": "wide",
-            "divider": "points"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         }
       ]

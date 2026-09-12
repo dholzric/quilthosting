@@ -27,7 +27,8 @@
     "pattern": {
       "id": "bear-paw",
       "opacity": 0.1
-    }
+    },
+    "material": "flannel"
   },
   "imagery": [
     {
@@ -96,7 +97,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -107,7 +109,8 @@
           "html": "<p>Every baptized baby gets a quilt, every graduating senior gets a quilt, and every December bazaar raises the fund that keeps the batting shelf full. In between, comfort quilts go where the congregation hears of need, which is to say everywhere.</p><p>The work is shared and the lessons are inherited: the women who taught the frames in 1953 taught the women who teach them now, and the patterns live in in a notebook with a cracked spine that travels to every meeting.</p>",
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -139,20 +142,22 @@
           ],
           "style": {
             "bg": "dark",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
           "type": "gallery",
           "id": "home-gallery",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "fellowship",
           "heading": "From the frames",
           "style": {
             "bg": "tint",
             "width": "wide",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -164,7 +169,8 @@
           "style": {
             "bg": "brand",
             "width": "full",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -190,13 +196,14 @@
         {
           "type": "gallery",
           "id": "quilts-gallery",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "fellowship",
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -207,7 +214,8 @@
           "html": "<p>Comfort quilts are requested through the church office, by anyone, for anyone, and no reason is required beyond a hard season. Baptism and graduation quilts find their families automatically. The waiting list is short and the frames are long.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -240,7 +248,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -250,7 +259,8 @@
           "heading": "Supporting levels",
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -273,7 +283,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -311,7 +322,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -342,7 +354,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -357,7 +370,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -388,7 +402,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -418,7 +433,8 @@
           "style": {
             "bg": "none",
             "width": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -430,7 +446,8 @@
           "note": "If the north door is locked, knock loudly; the machines are loud too and nobody hears the first knock.",
           "style": {
             "bg": "brand",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         }
       ]

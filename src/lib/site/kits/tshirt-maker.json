@@ -27,7 +27,8 @@
     "pattern": {
       "id": "nine-patch",
       "opacity": 0.1
-    }
+    },
+    "material": "cotton"
   },
   "imagery": [
     {
@@ -92,19 +93,21 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
           "type": "gallery",
           "id": "home-gal",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "tees",
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -115,7 +118,8 @@
           "submitLabel": "Get a quote",
           "style": {
             "bg": "brand",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         }
       ]
@@ -162,7 +166,8 @@
             "bg": "tint",
             "width": "wide",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -173,7 +178,8 @@
           "html": "<p>Shirts, jerseys, and baby onesies all work. Avoid thick embroidery on seams if you can. I will not cut a shirt you marked keep. Put those in a separate bag.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -205,7 +211,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -235,7 +242,8 @@
           "style": {
             "bg": "tint",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -253,7 +261,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -283,7 +292,8 @@
             "bg": "tint",
             "width": "narrow",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "pinked",
+            "motion": "piece_in"
           }
         },
         {
@@ -294,7 +304,8 @@
           "where": "{{city}}",
           "note": "By appointment. The studio is a garage with a bell.",
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         }
       ]
@@ -322,7 +333,8 @@
           "style": {
             "bg": "tint",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "binding",
+            "motion": "piece_in"
           }
         },
         {
@@ -356,7 +368,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         },
         {
@@ -368,7 +381,8 @@
           "style": {
             "bg": "brand",
             "align": "center",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         }
       ]

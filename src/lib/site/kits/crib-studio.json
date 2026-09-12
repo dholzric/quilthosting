@@ -27,7 +27,8 @@
       "opacity": 0.1
     },
     "palette": "soft-sky",
-    "typePair": "nunito"
+    "typePair": "nunito",
+    "material": "cotton"
   },
   "imagery": [
     {
@@ -90,7 +91,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -104,7 +106,8 @@
             }
           ],
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -114,7 +117,8 @@
           "heading": "Due date, crib or play mat, and whether the palette is already chosen",
           "submitLabel": "Request a quote",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "motion": "piece_in"
           }
         }
       ]
@@ -158,7 +162,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         }
       ]
@@ -196,7 +201,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         }
       ]
@@ -225,7 +231,8 @@
           "submitLabel": "Send details",
           "style": {
             "bg": "tint",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -236,7 +243,8 @@
           "kind": "secondary",
           "style": {
             "bg": "none",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -266,7 +274,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -280,7 +289,8 @@
             }
           ],
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         }
       ]
@@ -307,7 +317,8 @@
           "showDetails": true,
           "style": {
             "bg": "tint",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -317,7 +328,8 @@
           "when": "{{meeting_info}}",
           "where": "{{city}}",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "motion": "piece_in"
           }
         }
       ]

@@ -27,7 +27,8 @@
     "pattern": {
       "id": "log-cabin",
       "opacity": 0.07
-    }
+    },
+    "material": "flannel"
   },
   "imagery": [
     {
@@ -100,7 +101,8 @@
           "limit": 4,
           "style": {
             "bg": "tint",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -112,7 +114,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -123,7 +126,8 @@
           "html": "<p>One needle, one thread, one running stitch repeated until the cloth changes. Hand stitching is the part of quilting that cannot be hurried and does not need to be; an evening of Sashiko goes about as fast as a pot of tea.</p><p>Everything here is built for that pace: patterns that fit on one page, kits with the floss cut, and workshops that end with fewer stitches than you expected and better ones.</p>",
           "style": {
             "bg": "dark",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -135,7 +139,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -165,7 +170,8 @@
           "limit": 6,
           "style": {
             "bg": "tint",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -198,7 +204,8 @@
           "style": {
             "bg": "none",
             "width": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -209,7 +216,8 @@
           "html": "<p>Classes run three hours on Saturday afternoons. The kettle stays on, thimbles are tried until one fits, and the last half hour is always quieter than the first, which is the point. Finished practice cloth goes home with everyone, however far it got.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -238,7 +246,8 @@
           "limit": 8,
           "style": {
             "bg": "tint",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -250,7 +259,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -281,7 +291,8 @@
           "html": "<p>For ten years I sewed fast, on deadlines, for other people's labels. The sabbatical was supposed to be a month off and turned into a winter of stitching lines on old linen at a speed my grandmother would have recognized. The studio opened the following spring with one table, six chairs, and the grain sack framed on the wall.</p><p>Everything taught or sold here was tested at that table first. If a pattern cannot be stitched in an evening and a half, it goes back to the drafting paper.</p>",
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -297,7 +308,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -328,7 +340,8 @@
           "submitLabel": "Send the request",
           "style": {
             "bg": "tint",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -340,7 +353,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -369,7 +383,8 @@
           "showDetails": true,
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -382,7 +397,8 @@
           "style": {
             "bg": "brand",
             "width": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]

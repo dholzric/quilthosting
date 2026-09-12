@@ -27,7 +27,8 @@
       "opacity": 0.1
     },
     "palette": "jewel-emerald",
-    "typePair": "manrope"
+    "typePair": "manrope",
+    "material": "linen"
   },
   "imagery": [
     {
@@ -74,7 +75,8 @@
           "where": "the room we rent in {{city}}",
           "note": "Shop-night rules: irons on the fireproof mat, rotary blades in, and the radio stays low enough to hear a seam question.",
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         },
         {
@@ -85,7 +87,8 @@
           "limit": 3,
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -109,7 +112,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -120,7 +124,8 @@
           "ctaLabel": "See dues",
           "style": {
             "bg": "brand",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -149,7 +154,8 @@
           "html": "<p><em>Sample text — replace me:</em> Most of us learned from a mother, a shop class, or a longarm we bought on a whim. Mixed guilds are fine. This one exists because some of us sew more when the room is mostly men, the talk is about tension and grain, and nobody asks whether the quilt is for a wife.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -172,7 +178,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           },
           "heading": "A year with us"
         },
@@ -204,7 +211,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -234,7 +242,8 @@
           "html": "<p><em>Sample text — replace me:</em> Doors at 6. Irons hot by 6:15. We sew until 9:30. If you need a lesson, ask the person at the next machine. If you need a program with a slide deck, a different guild will treat you better.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -245,7 +254,8 @@
           "limit": 6,
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         }
       ]
@@ -272,7 +282,8 @@
           "variant": "cards",
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -290,7 +301,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -328,7 +340,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -355,7 +368,8 @@
           "when": "{{meeting_info}}",
           "where": "the room we rent in {{city}}",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -366,7 +380,8 @@
           "limit": 8,
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         }
       ]
@@ -392,7 +407,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -401,7 +417,8 @@
           "when": "{{meeting_info}}",
           "where": "the room we rent in {{city}}",
           "style": {
-            "bg": "dark"
+            "bg": "dark",
+            "motion": "piece_in"
           }
         }
       ]

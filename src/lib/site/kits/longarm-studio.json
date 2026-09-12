@@ -25,9 +25,10 @@
       "variant": "simple"
     },
     "pattern": {
-      "id": "none",
-      "opacity": 0
-    }
+      "id": "signature",
+      "opacity": 0.1
+    },
+    "material": "cotton"
   },
   "imagery": [
     {
@@ -94,18 +95,20 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
           "type": "gallery",
           "id": "home-port",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "portfolio",
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -123,7 +126,8 @@
             }
           ],
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         },
         {
@@ -135,7 +139,8 @@
           "style": {
             "bg": "brand",
             "align": "center",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         }
       ]
@@ -184,7 +189,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -195,7 +201,8 @@
           "html": "<p>Press seams. Stay-stitch the edges if they wobble. Clip threads on the back. Do not pin or baste. Fold, do not hang, for the drive over. If the backing is pieced, press that seam open.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -206,7 +213,8 @@
           "kind": "primary",
           "style": {
             "bg": "brand",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -238,7 +246,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -249,7 +258,8 @@
           "kind": "secondary",
           "style": {
             "bg": "tint",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -277,7 +287,8 @@
           "html": "<p>I quilted on a domestic machine for a decade before I bought the longarm. Most of the work is still edge-to-edge for guild charity tops and shop samples. Custom slots are booked six to eight weeks out.</p><p>Studio visits are by appointment. The dog stays in the house.</p>",
           "style": {
             "bg": "tint",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -288,7 +299,8 @@
           "where": "{{city}}",
           "note": "Drop-offs are Tuesday and Thursday. Pickups are Friday.",
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         }
       ]
@@ -317,7 +329,8 @@
           "submitLabel": "Send for a quote",
           "style": {
             "bg": "tint",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -335,7 +348,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -380,7 +394,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -391,7 +406,8 @@
           "kind": "primary",
           "style": {
             "bg": "none",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]

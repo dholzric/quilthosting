@@ -27,7 +27,8 @@
     "pattern": {
       "id": "churn-dash",
       "opacity": 0.06
-    }
+    },
+    "material": "cotton"
   },
   "imagery": [
     {
@@ -114,7 +115,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "divider": "notch"
+            "divider": "pinked",
+            "motion": "piece_in"
           }
         },
         {
@@ -126,7 +128,8 @@
           "style": {
             "bg": "none",
             "width": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -146,7 +149,8 @@
           "style": {
             "bg": "dark",
             "width": "normal",
-            "divider": "notch"
+            "divider": "binding",
+            "motion": "piece_in"
           }
         },
         {
@@ -159,7 +163,8 @@
             "bg": "tint",
             "width": "normal",
             "align": "center",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         }
       ]
@@ -216,7 +221,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         },
         {
@@ -228,7 +234,8 @@
           "style": {
             "bg": "none",
             "width": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -240,7 +247,8 @@
           "style": {
             "bg": "tint",
             "align": "center",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         }
       ]
@@ -271,7 +279,8 @@
           "html": "<p>My family called ours a Civil War quilt for forty years. The cloth said 1930, the feed sacks said 1938, and the appraisal course said both of those were interesting enough. I took the training to learn the answer and stayed for the quilts other people trust me to read.</p><p>Certification is maintained with continuing education every year, and the reference shelf runs from pattern books to auction records. When a quilt deserves a conservator rather than an appraiser, the referral is part of the service.</p>",
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -287,7 +296,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         }
       ]
@@ -337,7 +347,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         },
         {
@@ -349,7 +360,8 @@
           "style": {
             "bg": "none",
             "align": "center",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -381,7 +393,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "divider": "notch"
+            "divider": "pinked",
+            "motion": "piece_in"
           }
         },
         {
@@ -393,7 +406,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -422,7 +436,8 @@
           "showDetails": true,
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -435,7 +450,8 @@
           "style": {
             "bg": "brand",
             "width": "normal",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         }
       ]

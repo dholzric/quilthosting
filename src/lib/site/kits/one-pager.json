@@ -27,7 +27,8 @@
     "pattern": {
       "id": "flying-geese",
       "opacity": 0.1
-    }
+    },
+    "material": "flannel"
   },
   "menu": [
     {
@@ -94,7 +95,8 @@
           "html": "<p>We sew charity quilts, keep a modest library, and run a block of the month that anyone can finish at their own pace. Officers take two-year turns. There is no quilt show unless the membership votes one in.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -106,7 +108,8 @@
           "note": "Bring a project and a mug. Coffee is on the back table.",
           "style": {
             "bg": "tint",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         },
         {
@@ -116,7 +119,8 @@
           "heading": "Coming up",
           "limit": 3,
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         },
         {
@@ -127,7 +131,8 @@
           "style": {
             "bg": "brand",
             "width": "wide",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         },
         {
@@ -150,7 +155,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -160,7 +166,8 @@
           "showDetails": true,
           "style": {
             "bg": "tint",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         },
         {
@@ -173,7 +180,8 @@
             "bg": "dark",
             "width": "full",
             "align": "center",
-            "divider": "points"
+            "divider": "pinked",
+            "motion": "piece_in"
           }
         }
       ]

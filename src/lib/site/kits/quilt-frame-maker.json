@@ -27,7 +27,8 @@
     "pattern": {
       "id": "log-cabin",
       "opacity": 0.08
-    }
+    },
+    "material": "flannel"
   },
   "imagery": [
     {
@@ -121,7 +122,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -133,7 +135,8 @@
           "style": {
             "bg": "dark",
             "width": "wide",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         },
         {
@@ -152,7 +155,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -165,7 +169,8 @@
             "bg": "tint",
             "width": "normal",
             "align": "center",
-            "divider": "points"
+            "divider": "binding",
+            "motion": "piece_in"
           }
         }
       ]
@@ -227,7 +232,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "points"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         },
         {
@@ -238,7 +244,8 @@
           "html": "<p>Every order ships with the frame or hoop, clamps sized to the rails, a canvas? a twill tacking strip already stapled, spare screws in a labeled envelope, and one sheet of instructions worth reading, written after the first fifty crates taught us what to say.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -262,7 +269,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "divider": "points"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         }
       ]
@@ -294,7 +302,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "divider": "points"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         },
         {
@@ -305,7 +314,8 @@
           "kind": "secondary",
           "style": {
             "bg": "none",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -336,7 +346,8 @@
           "html": "<p>The first frame was built for my wife's quilting bee when the shop frames they could buy kept loosening by spring. The bee ordered four more. The bee told two other bees, and the woodshop stopped building kitchen cabinets that year.</p><p>The same jig drills every rail, the same hands rub every finish, and every crate gets the maker's mark under the bottom rail where only the next generation will look for it.</p>",
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -352,7 +363,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "divider": "points"
+            "divider": "pinked",
+            "motion": "piece_in"
           }
         }
       ]
@@ -384,7 +396,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         },
         {
@@ -395,7 +408,8 @@
           "html": "<p>Oak is standard and always in the pile. Cherry and walnut are cut when the sawmill has them and cost what they cost; the quote will say. Half down holds your place on the list, and the balance is due when the crate is on the truck.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -424,7 +438,8 @@
           "showDetails": true,
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -437,7 +452,8 @@
           "style": {
             "bg": "brand",
             "width": "wide",
-            "divider": "points"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         }
       ]

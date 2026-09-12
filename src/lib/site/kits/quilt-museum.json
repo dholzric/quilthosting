@@ -27,7 +27,8 @@
     "pattern": {
       "id": "nine-patch",
       "opacity": 0.06
-    }
+    },
+    "material": "flannel"
   },
   "imagery": [
     {
@@ -109,7 +110,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -120,19 +122,21 @@
           "limit": 3,
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
           "type": "gallery",
           "id": "collection-teaser",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "collection",
           "heading": "From the collection",
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -144,7 +148,8 @@
           "style": {
             "bg": "dark",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -157,7 +162,8 @@
             "bg": "brand",
             "width": "full",
             "align": "center",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -183,13 +189,14 @@
         {
           "type": "gallery",
           "id": "collection-grid",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "collection",
           "style": {
             "bg": "tint",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -200,7 +207,8 @@
           "html": "<p>The study room seats twelve and any quilt in the vault can be requested by catalog number. Appointments are Tuesday and Thursday mornings; bring pencils only, and cotton gloves are provided.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -232,7 +240,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -243,7 +252,8 @@
           "html": "<p>Past exhibitions stay on view as online albums, with the curator's notes and the label copy for every quilt. Ten years of catalogs are available in the reading room.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -277,7 +287,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -288,7 +299,8 @@
           "html": "<p>Guild bus trips and school groups are welcome, with a docent if booked two weeks ahead. The galleries are on one level, wheelchairs are available at the desk, and the reading room has a large-print catalog.</p><p>Photography without flash is encouraged, except where a label asks otherwise; loans from private collectors sometimes travel with that condition.</p>",
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -311,7 +323,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -343,7 +356,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -354,7 +368,8 @@
           "html": "<p>Membership underwrites the school program, which brings every fourth-grade class in the county through the galleries each spring. Conservation adoption covers the exact cost of stabilizing one quilt: batting, cloth, a conservator's hours, and a frame that will outlast us.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -366,7 +381,8 @@
           "style": {
             "bg": "brand",
             "width": "full",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -398,7 +414,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -413,7 +430,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -444,7 +462,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -474,7 +493,8 @@
           "style": {
             "bg": "none",
             "width": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -485,7 +505,8 @@
           "html": "<p>Research and study-room requests reach the registrar, image licensing the collections manager, and everything else the front desk, which has never once lost a question.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]

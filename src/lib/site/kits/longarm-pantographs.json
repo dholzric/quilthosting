@@ -27,7 +27,8 @@
     "pattern": {
       "id": "flying-geese",
       "opacity": 0.1
-    }
+    },
+    "material": "flannel"
   },
   "imagery": [
     {
@@ -100,7 +101,8 @@
           "limit": 4,
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -135,19 +137,21 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
           "type": "gallery",
           "id": "home-stitched",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "stitched",
           "heading": "Stitched by customers",
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -159,7 +163,8 @@
           "style": {
             "bg": "none",
             "width": "normal",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -189,7 +194,8 @@
           "limit": 8,
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -200,7 +206,8 @@
           "html": "<p>One purchase covers one longarm: stitch it on customer quilts, show quilts, and everything in between. Reselling or sharing the file is the one thing the license is strict about, because the digitizer eats the same way you do.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -230,7 +237,8 @@
           "html": "<p>Every purchase includes the file in the major frame languages, a printable full-size preview sheet with the row height marked, and a text file with the recommended stitch length and spacing tested on the studio machine.</p><p>If your system wants something unusual, write before you buy; conversion is quick and included. Computerized frames of every era are supported, from the early ones that count stitches like beads to the newest that take cloud uploads.</p>",
           "style": {
             "bg": "tint",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -253,7 +261,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -283,7 +292,8 @@
           "html": "<p>I drew piping and lot lines for a decade before a longarm arrived in the garage, and the first pantograph was drawn for a customer quilt nobody could find a design for. It stitched well, then stitched well again for someone else, and the catalog started by accident the way most small studios do.</p><p>Every design is still drawn point by point on the same software, stitched out on the studio machine, and photographed before it goes in the catalog. If a design cannot survive a king-size wholecloth, it does not ship.</p>",
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -298,7 +308,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         }
       ]
@@ -329,7 +340,8 @@
           "submitLabel": "Get a quote",
           "style": {
             "bg": "tint",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -352,7 +364,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -381,7 +394,8 @@
           "showDetails": true,
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -392,7 +406,8 @@
           "html": "<p>If a design will not load, write with your frame model and the error message; the fix is usually a two-line reply and it is free forever, even if someone else sold you the file.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -426,7 +441,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]

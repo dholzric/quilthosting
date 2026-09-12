@@ -27,7 +27,8 @@
     "pattern": {
       "id": "log-cabin",
       "opacity": 0.12
-    }
+    },
+    "material": "flannel"
   },
   "imagery": [
     {
@@ -75,7 +76,8 @@
           "where": "{{city}}",
           "note": "The fellowship hall. Coffee is on. Names for this week's quilts are on the whiteboard.",
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         },
         {
@@ -101,7 +103,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -111,7 +114,8 @@
           "heading": "Sew mornings",
           "limit": 3,
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         },
         {
@@ -122,7 +126,8 @@
           "ctaLabel": "Join the circle",
           "style": {
             "bg": "brand",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -149,7 +154,8 @@
           "heading": "Send a request",
           "showDetails": false,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -168,7 +174,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -195,7 +202,8 @@
           "variant": "two_column",
           "html": "<p>{{guild_name}} meets {{meeting_info}} in {{city}}. We keep the theology short and the sewing long. Anyone who will sit and stitch is welcome, church member or not.</p><p>Labels are printed, not embroidered, so a quilt can leave the same week it is bound.</p>",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -210,7 +218,8 @@
           ],
           "style": {
             "bg": "none",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -241,7 +250,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -271,7 +281,8 @@
           "variant": "compact",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -282,7 +293,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -320,7 +332,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -346,12 +359,13 @@
         {
           "type": "gallery",
           "id": "g-grid",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "delivered",
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         }
       ]
@@ -377,7 +391,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -387,7 +402,8 @@
           "where": "{{city}}",
           "style": {
             "bg": "brand",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]

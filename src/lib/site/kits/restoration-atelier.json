@@ -27,7 +27,8 @@
     "pattern": {
       "id": "log-cabin",
       "opacity": 0.08
-    }
+    },
+    "material": "linen"
   },
   "imagery": [
     {
@@ -86,7 +87,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         },
         {
@@ -101,7 +103,8 @@
           ],
           "style": {
             "bg": "none",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -112,7 +115,8 @@
           "submitLabel": "Request a consult",
           "style": {
             "bg": "brand",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         }
       ]
@@ -161,7 +165,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         },
         {
@@ -173,7 +178,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -199,12 +205,13 @@
         {
           "type": "gallery",
           "id": "g-grid",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "repairs",
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         }
       ]
@@ -233,7 +240,8 @@
           "submitLabel": "Send photographs",
           "style": {
             "bg": "tint",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         },
         {
@@ -252,7 +260,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -281,7 +290,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         },
         {
@@ -292,7 +302,8 @@
           "where": "{{city}}",
           "style": {
             "bg": "none",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -319,7 +330,8 @@
           "showDetails": true,
           "style": {
             "bg": "tint",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         },
         {
@@ -353,7 +365,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         },
         {
@@ -366,7 +379,8 @@
             "bg": "brand",
             "align": "center",
             "layout": "framed",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         }
       ]

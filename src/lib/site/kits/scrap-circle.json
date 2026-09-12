@@ -27,7 +27,8 @@
     "pattern": {
       "id": "churn-dash",
       "opacity": 0.12
-    }
+    },
+    "material": "linen"
   },
   "imagery": [
     {
@@ -71,7 +72,8 @@
           "where": "{{city}}",
           "note": "The scrap bins open thirty minutes early. Take what you will use. Leave what you will not.",
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         },
         {
@@ -82,7 +84,8 @@
           "limit": 3,
           "style": {
             "bg": "tint",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         },
         {
@@ -108,7 +111,8 @@
           "style": {
             "bg": "dark",
             "width": "wide",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         },
         {
@@ -119,7 +123,8 @@
           "style": {
             "bg": "brand",
             "align": "center",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         }
       ]
@@ -147,7 +152,8 @@
           "html": "<p>{{guild_name}} meets {{meeting_info}} in {{city}}. The program is usually a string-block demo or a crumb-quilt show and tell. New fabric is allowed. Boasting about yardage is not.</p><p>The library is a wall of bins labeled by color, not by designer. Take a scoop. Bring a scoop back.</p>",
           "style": {
             "bg": "tint",
-            "divider": "points"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         },
         {
@@ -165,7 +171,8 @@
             }
           ],
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         },
         {
@@ -196,7 +203,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -226,7 +234,8 @@
           "html": "<p>Scrap night is listed on the <a href=\"/events\">events page</a>. Bring a bag of leftovers or use the guild bins. We do not cut into yardage that still has a bolt fold. Crumbs, strings, and orphan blocks only.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -237,7 +246,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "points"
+            "divider": "binding",
+            "motion": "piece_in"
           }
         }
       ]
@@ -268,7 +278,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         },
         {
@@ -286,7 +297,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -324,7 +336,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -356,7 +369,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "points"
+            "divider": "binding",
+            "motion": "piece_in"
           }
         }
       ]
@@ -383,7 +397,8 @@
           "showDetails": true,
           "style": {
             "bg": "tint",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         },
         {
@@ -393,7 +408,8 @@
           "where": "{{city}}",
           "style": {
             "bg": "brand",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         }
       ]

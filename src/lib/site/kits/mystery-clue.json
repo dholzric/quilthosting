@@ -27,7 +27,8 @@
       "opacity": 0.12
     },
     "palette": "heritage-indigo",
-    "typePair": "cormorantgaramond-sourcesans"
+    "typePair": "cormorantgaramond-sourcesans",
+    "material": "flannel"
   },
   "imagery": [
     {
@@ -75,7 +76,8 @@
           "where": "the room we rent in {{city}}",
           "note": "Envelopes on the chair. Do not open the next one. If you came late, you still do not skip ahead.",
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         },
         {
@@ -87,7 +89,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -112,7 +115,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -124,7 +128,8 @@
           "style": {
             "bg": "brand",
             "align": "center",
-            "divider": "notch"
+            "divider": "binding",
+            "motion": "piece_in"
           }
         }
       ]
@@ -154,7 +159,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         },
         {
@@ -178,7 +184,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           },
           "heading": "A year with us"
         },
@@ -210,7 +217,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -241,7 +249,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         },
         {
@@ -260,7 +269,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -288,7 +298,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         },
         {
@@ -307,7 +318,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -345,7 +357,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -373,7 +386,8 @@
           "where": "the room we rent in {{city}}",
           "style": {
             "bg": "tint",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         },
         {
@@ -385,7 +399,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -412,7 +427,8 @@
           "showDetails": true,
           "style": {
             "bg": "tint",
-            "divider": "notch"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         },
         {
@@ -422,7 +438,8 @@
           "where": "the room we rent in {{city}}",
           "style": {
             "bg": "dark",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         }
       ]

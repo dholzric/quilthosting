@@ -105,7 +105,8 @@
             "bg": "tint",
             "width": "wide",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "pinked",
+            "motion": "piece_in"
           }
         },
         {
@@ -116,7 +117,8 @@
           "limit": 3,
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -153,20 +155,22 @@
           "style": {
             "bg": "dark",
             "width": "wide",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
           "type": "gallery",
           "id": "recent",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "show-and-tell",
           "heading": "From the last meeting",
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -179,7 +183,8 @@
             "bg": "brand",
             "width": "full",
             "align": "center",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         }
       ]
@@ -213,7 +218,8 @@
             "bg": "tint",
             "width": "normal",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -241,7 +247,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -261,7 +268,8 @@
           "style": {
             "bg": "dark",
             "width": "normal",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -292,7 +300,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -324,7 +333,8 @@
             "bg": "tint",
             "width": "wide",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -335,7 +345,8 @@
           "html": "<p>Register on the event page and the supply list arrives by email. Kit orders ship the week before class. Workshops are recorded and stay in the member library, so a time zone is never a disqualification.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -361,14 +372,15 @@
         {
           "type": "gallery",
           "id": "sat-gallery",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "show-and-tell",
           "heading": "Recent finishes",
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -380,7 +392,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         }
       ]
@@ -431,7 +444,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -443,7 +457,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         }
       ]
@@ -477,7 +492,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -489,7 +505,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -512,7 +529,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -550,7 +568,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -581,7 +600,8 @@
             "bg": "tint",
             "width": "normal",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         },
         {
@@ -592,7 +612,8 @@
           "html": "<p>Swap parcels go to the guild post office box listed in the newsletter. Put your forum name on the return label so your partner can thank the right quilter.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]

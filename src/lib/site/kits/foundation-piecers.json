@@ -27,7 +27,8 @@
     "pattern": {
       "id": "flying-geese",
       "opacity": 0.12
-    }
+    },
+    "material": "flannel"
   },
   "imagery": [
     {
@@ -71,7 +72,8 @@
           "heading": "Next sew",
           "limit": 1,
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         },
         {
@@ -98,7 +100,8 @@
             "bg": "tint",
             "width": "wide",
             "layout": "framed",
-            "divider": "scallop"
+            "divider": "binding",
+            "motion": "piece_in"
           }
         },
         {
@@ -110,7 +113,8 @@
           "style": {
             "bg": "brand",
             "align": "center",
-            "divider": "scallop"
+            "divider": "binding",
+            "motion": "piece_in"
           }
         }
       ]
@@ -139,7 +143,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         },
         {
@@ -154,7 +159,8 @@
           ],
           "style": {
             "bg": "none",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -185,7 +191,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -227,7 +234,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -238,7 +246,8 @@
           "style": {
             "bg": "tint",
             "layout": "framed",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         }
       ]
@@ -269,7 +278,8 @@
           "note": "Bring a small ruler, an add-a-quarter, and a paper-piecing foot if you have one.",
           "style": {
             "bg": "tint",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         },
         {
@@ -280,7 +290,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -310,7 +321,8 @@
           "variant": "compact",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -330,7 +342,8 @@
             "bg": "tint",
             "width": "narrow",
             "layout": "framed",
-            "divider": "scallop"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         },
         {
@@ -368,7 +381,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -395,7 +409,8 @@
           "showDetails": true,
           "style": {
             "bg": "tint",
-            "divider": "scallop"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         },
         {
@@ -406,7 +421,8 @@
           "style": {
             "bg": "dark",
             "layout": "framed",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         }
       ]

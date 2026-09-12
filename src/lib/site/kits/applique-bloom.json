@@ -27,7 +27,8 @@
     "pattern": {
       "id": "bear-paw",
       "opacity": 0.11
-    }
+    },
+    "material": "cotton"
   },
   "imagery": [
     {
@@ -74,7 +75,8 @@
           "note": "Bring a portable light if you are working needleturn during the program.",
           "style": {
             "bg": "none",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -86,7 +88,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -109,7 +112,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -120,7 +124,8 @@
           "style": {
             "bg": "tint",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -132,7 +137,8 @@
           "style": {
             "bg": "brand",
             "align": "center",
-            "divider": "rule"
+            "divider": "binding",
+            "motion": "piece_in"
           }
         }
       ]
@@ -163,7 +169,8 @@
           "style": {
             "bg": "tint",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -181,7 +188,8 @@
             }
           ],
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         },
         {
@@ -212,7 +220,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -244,7 +253,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -263,7 +273,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "divider": "rule"
+            "divider": "pinked",
+            "motion": "piece_in"
           }
         },
         {
@@ -301,7 +312,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -332,7 +344,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -342,7 +355,8 @@
           "where": "{{city}}",
           "style": {
             "bg": "tint",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         }
       ]
@@ -368,14 +382,15 @@
         {
           "type": "gallery",
           "id": "g-grid",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "applique",
           "style": {
             "bg": "tint",
             "width": "wide",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -386,7 +401,8 @@
           "kind": "secondary",
           "style": {
             "bg": "none",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -414,7 +430,8 @@
           "style": {
             "bg": "tint",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -425,7 +442,8 @@
           "kind": "secondary",
           "style": {
             "bg": "none",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -453,7 +471,8 @@
           "style": {
             "bg": "tint",
             "layout": "framed",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         },
         {
@@ -463,7 +482,8 @@
           "where": "{{city}}",
           "style": {
             "bg": "brand",
-            "divider": "rule"
+            "divider": "rule",
+            "motion": "piece_in"
           }
         }
       ]

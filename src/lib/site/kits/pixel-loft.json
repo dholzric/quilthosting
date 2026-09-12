@@ -27,7 +27,8 @@
       "opacity": 0.08
     },
     "palette": "modern-indigo-mustard",
-    "typePair": "manrope"
+    "typePair": "manrope",
+    "material": "cotton"
   },
   "imagery": [
     {
@@ -87,7 +88,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           },
           "heading": "How a pixel quilt is built"
         },
@@ -102,7 +104,8 @@
             }
           ],
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -112,7 +115,8 @@
           "heading": "Photo, finished size, and how close people will stand",
           "submitLabel": "Request a quote",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "motion": "piece_in"
           }
         }
       ]
@@ -154,7 +158,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         }
       ]
@@ -179,12 +184,13 @@
         {
           "type": "gallery",
           "id": "samp",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "gallerySlug": "pixels",
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         }
       ]
@@ -212,7 +218,8 @@
           "heading": "Photo, finished size, and how close people will stand",
           "submitLabel": "Send details",
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -223,7 +230,8 @@
           "kind": "secondary",
           "style": {
             "bg": "none",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -252,7 +260,8 @@
           "html": "<p><em>Sample text — replace me:</em> I tried to make photographs look painted with thread. They looked sorry. Squares are honest. {{guild_name}} is the honest version: a grid, a limited palette, a picture that appears when you walk away.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -266,7 +275,8 @@
             }
           ],
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         }
       ]
@@ -292,7 +302,8 @@
           "id": "form",
           "showDetails": true,
           "style": {
-            "bg": "tint"
+            "bg": "tint",
+            "motion": "piece_in"
           }
         },
         {
@@ -302,7 +313,8 @@
           "when": "{{meeting_info}}",
           "where": "{{city}}",
           "style": {
-            "bg": "brand"
+            "bg": "brand",
+            "motion": "piece_in"
           }
         }
       ]

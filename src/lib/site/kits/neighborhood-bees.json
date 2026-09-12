@@ -27,7 +27,8 @@
     "pattern": {
       "id": "nine-patch",
       "opacity": 0.1
-    }
+    },
+    "material": "flannel"
   },
   "imagery": [
     {
@@ -118,7 +119,8 @@
           ],
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -130,7 +132,8 @@
           "note": "An open monthly gathering for anyone between bees, with the matchmakers at the back table.",
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -141,7 +144,8 @@
           "limit": 1,
           "style": {
             "bg": "tint",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -160,7 +164,8 @@
           ],
           "style": {
             "bg": "dark",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -172,7 +177,8 @@
           "style": {
             "bg": "brand",
             "width": "full",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -202,7 +208,8 @@
           "html": "<p>Bees stay small: three to five quilters, so everybody's project fits on the table. Distance is measured in bus routes and parking, not crow flies. Skill is mixed on purpose, because the fastest way to learn binding is to sit next to someone who likes binding.</p><p>Every bee keeps one open seat for a newcomer, and hosts rotate by season so nobody becomes the venue permanently. When a bee outgrows the table, it hatches: half move two blocks over and a new bee is born with the network's blessing and a spare iron.</p>",
           "style": {
             "bg": "tint",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -229,7 +236,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -261,7 +269,8 @@
           "html": "<p>The match, the quarterly check-in, open hive nights, the retreat lottery, and the machine-loaner list. Dues pay the meeting room coffee and the postage for the swap round. <a href=\"/membership\">Open the membership form</a> and the matchkeepers take it from there.</p>",
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -271,7 +280,8 @@
           "heading": "Levels",
           "style": {
             "bg": "tint",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -283,7 +293,8 @@
           "style": {
             "bg": "none",
             "width": "normal",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -313,7 +324,8 @@
           "html": "<p>The network began in 2018 when the city's largest guild had ninety people on a waitlist and only forty folding chairs. Instead of a bigger hall, the board tried smaller living rooms: match the waitlist into neighborhood bees and keep the monthly meeting as the reunion. The waitlist emptied in a season and the bees outgrew the guild that planted them.</p><p>Today the network is its own nonprofit with eleven volunteer matchkeepers, a map covered in pins, and a strict policy of staying small at the table and big at the reunion.</p>",
           "style": {
             "bg": "tint",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -328,7 +340,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -359,7 +372,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -388,7 +402,8 @@
           "showDetails": true,
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -399,7 +414,8 @@
           "html": "<p>The matchkeeper playbook is free for the asking: the form, the matching rules, the check-in postcards, and every mistake we made in year one, footnoted. Write and we will send the folder and a phone call.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]

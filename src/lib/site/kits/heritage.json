@@ -27,7 +27,8 @@
     "pattern": {
       "id": "log-cabin",
       "opacity": 0.14
-    }
+    },
+    "material": "flannel"
   },
   "imagery": [
     {
@@ -80,7 +81,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         },
         {
@@ -95,7 +97,8 @@
             "spacing": "normal",
             "align": "left",
             "media": "right",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -130,7 +133,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         },
         {
@@ -144,7 +148,8 @@
             "spacing": "normal",
             "align": "left",
             "media": "right",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         },
         {
@@ -159,7 +164,8 @@
             "spacing": "normal",
             "align": "center",
             "media": "right",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         }
       ]
@@ -194,7 +200,8 @@
             "spacing": "normal",
             "align": "left",
             "media": "right",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         },
         {
@@ -225,7 +232,8 @@
             "spacing": "normal",
             "align": "left",
             "media": "right",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -239,7 +247,8 @@
             "spacing": "normal",
             "align": "left",
             "media": "right",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         },
         {
@@ -252,7 +261,8 @@
             "width": "normal",
             "spacing": "tight",
             "align": "center",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -318,7 +328,8 @@
             "spacing": "normal",
             "align": "left",
             "media": "right",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         },
         {
@@ -348,7 +359,8 @@
             "spacing": "normal",
             "align": "left",
             "media": "right",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -386,7 +398,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         },
         {
@@ -400,7 +413,8 @@
             "spacing": "normal",
             "align": "center",
             "media": "right",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         }
       ]
@@ -436,7 +450,8 @@
             "spacing": "normal",
             "align": "left",
             "media": "right",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         },
         {
@@ -450,7 +465,8 @@
             "spacing": "normal",
             "align": "left",
             "media": "right",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -464,7 +480,8 @@
             "spacing": "normal",
             "align": "left",
             "media": "right",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         },
         {
@@ -477,7 +494,8 @@
             "width": "normal",
             "spacing": "tight",
             "align": "center",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -542,7 +560,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         },
         {
@@ -556,7 +575,8 @@
             "spacing": "normal",
             "align": "left",
             "media": "right",
-            "layout": "offset"
+            "layout": "offset",
+            "motion": "piece_in"
           }
         },
         {
@@ -569,7 +589,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "center",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -602,7 +623,8 @@
             "spacing": "normal",
             "align": "left",
             "media": "right",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         },
         {
@@ -616,7 +638,8 @@
             "spacing": "normal",
             "align": "left",
             "media": "right",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -630,7 +653,8 @@
             "spacing": "tight",
             "align": "center",
             "media": "right",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         }
       ]
@@ -655,7 +679,7 @@
         },
         {
           "type": "gallery",
-          "variant": "grid",
+          "variant": "piecing",
           "source": "gallery",
           "items": [],
           "style": {
@@ -664,7 +688,8 @@
             "spacing": "normal",
             "align": "left",
             "media": "right",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         },
         {
@@ -678,7 +703,8 @@
             "spacing": "normal",
             "align": "left",
             "media": "right",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -692,7 +718,8 @@
             "spacing": "tight",
             "align": "center",
             "media": "right",
-            "divider": "notch"
+            "divider": "binding",
+            "motion": "piece_in"
           }
         }
       ]
@@ -725,7 +752,8 @@
             "spacing": "normal",
             "align": "left",
             "media": "right",
-            "divider": "notch"
+            "divider": "notch",
+            "motion": "piece_in"
           }
         },
         {
@@ -739,7 +767,8 @@
             "spacing": "normal",
             "align": "left",
             "media": "right",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -753,7 +782,8 @@
             "spacing": "normal",
             "align": "left",
             "media": "right",
-            "divider": "notch"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         }
       ]

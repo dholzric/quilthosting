@@ -93,7 +93,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -105,7 +106,8 @@
           "style": {
             "bg": "tint",
             "layout": "framed",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         },
         {
@@ -116,7 +118,8 @@
           "gallerySlug": "show-and-tell",
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -129,7 +132,8 @@
             "bg": "brand",
             "width": "full",
             "align": "center",
-            "divider": "scallop"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         }
       ]
@@ -159,7 +163,8 @@
           "html": "<p>We follow the usual modern-guild habits: a speaker or demo, a timed show and tell, and a design-wall hour after the meeting. Traditional blocks are welcome if you are willing to crop them, rotate them, or put them on a grey ground.</p><p>Officers rotate every two years. Committees are small on purpose.</p>",
           "style": {
             "bg": "tint",
-            "divider": "scallop"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         },
         {
@@ -174,7 +179,8 @@
           ],
           "style": {
             "bg": "none",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -205,7 +211,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -237,7 +244,8 @@
           "heading": "Levels",
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -257,7 +265,8 @@
             "bg": "tint",
             "width": "narrow",
             "layout": "framed",
-            "divider": "scallop"
+            "divider": "pinked",
+            "motion": "piece_in"
           }
         },
         {
@@ -295,7 +304,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -325,7 +335,8 @@
           "where": "{{city}}",
           "note": "Street parking. The room is on the second floor with an elevator.",
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         },
         {
@@ -338,7 +349,8 @@
             "bg": "tint",
             "width": "wide",
             "layout": "framed",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         }
       ]
@@ -368,7 +380,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         },
         {
@@ -380,7 +393,8 @@
           "style": {
             "bg": "none",
             "align": "center",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -422,7 +436,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -435,7 +450,8 @@
             "bg": "brand",
             "align": "center",
             "layout": "framed",
-            "divider": "scallop"
+            "divider": "pinked",
+            "motion": "piece_in"
           }
         }
       ]
@@ -463,7 +479,8 @@
           "showDetails": true,
           "style": {
             "bg": "tint",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         },
         {
@@ -474,7 +491,8 @@
           "style": {
             "bg": "dark",
             "layout": "framed",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         }
       ]

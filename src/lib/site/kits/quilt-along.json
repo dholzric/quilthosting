@@ -27,7 +27,8 @@
     "pattern": {
       "id": "flying-geese",
       "opacity": 0.1
-    }
+    },
+    "material": "cotton"
   },
   "imagery": [
     {
@@ -72,7 +73,8 @@
           "heading": "Next clue",
           "limit": 1,
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         },
         {
@@ -84,7 +86,8 @@
             "bg": "tint",
             "width": "wide",
             "layout": "framed",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         },
         {
@@ -102,7 +105,8 @@
             }
           ],
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         }
       ]
@@ -134,7 +138,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         },
         {
@@ -145,7 +150,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -173,7 +179,8 @@
           "limit": 8,
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -193,7 +200,8 @@
             "bg": "tint",
             "width": "narrow",
             "layout": "framed",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         }
       ]
@@ -222,7 +230,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "scallop"
+            "divider": "binding",
+            "motion": "piece_in"
           }
         },
         {
@@ -234,7 +243,8 @@
           "style": {
             "bg": "dark",
             "layout": "framed",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         }
       ]
@@ -262,7 +272,8 @@
           "html": "<p>I write patterns I can finish in a season of weeknights. The QAL exists because people asked for a shared calendar, not because the math required one.</p><p>Errata go on the blog the same day I find them.</p>",
           "style": {
             "bg": "tint",
-            "divider": "scallop"
+            "divider": "binding",
+            "motion": "piece_in"
           }
         },
         {
@@ -272,7 +283,8 @@
           "limit": 3,
           "style": {
             "bg": "none",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -299,7 +311,8 @@
           "showDetails": true,
           "style": {
             "bg": "tint",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         },
         {
@@ -333,7 +346,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         },
         {
@@ -346,7 +360,8 @@
             "bg": "brand",
             "align": "center",
             "layout": "framed",
-            "divider": "scallop"
+            "divider": "pinked",
+            "motion": "piece_in"
           }
         }
       ]

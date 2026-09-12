@@ -27,7 +27,8 @@
     "pattern": {
       "id": "churn-dash",
       "opacity": 0.08
-    }
+    },
+    "material": "linen"
   },
   "imagery": [
     {
@@ -108,7 +109,8 @@
           "limit": 3,
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -146,7 +148,8 @@
             "bg": "tint",
             "width": "wide",
             "layout": "framed",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         },
         {
@@ -158,7 +161,8 @@
           "style": {
             "bg": "dark",
             "width": "wide",
-            "divider": "scallop"
+            "divider": "stitch",
+            "motion": "piece_in"
           }
         },
         {
@@ -177,7 +181,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         }
       ]
@@ -208,7 +213,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "scallop"
+            "divider": "pinked",
+            "motion": "piece_in"
           }
         },
         {
@@ -220,7 +226,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -268,7 +275,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -285,7 +293,8 @@
             "bg": "tint",
             "width": "normal",
             "layout": "framed",
-            "divider": "scallop"
+            "divider": "binding",
+            "motion": "piece_in"
           }
         }
       ]
@@ -317,7 +326,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         },
         {
@@ -333,7 +343,8 @@
           "style": {
             "bg": "none",
             "width": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -365,7 +376,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         },
         {
@@ -393,7 +405,8 @@
           "style": {
             "bg": "none",
             "width": "narrow",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -422,7 +435,8 @@
           "showDetails": true,
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -436,7 +450,8 @@
             "bg": "brand",
             "width": "wide",
             "layout": "framed",
-            "divider": "scallop"
+            "divider": "scallop",
+            "motion": "piece_in"
           }
         }
       ]

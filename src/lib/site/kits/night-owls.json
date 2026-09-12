@@ -23,11 +23,12 @@
       "variant": "simple"
     },
     "pattern": {
-      "id": "none",
-      "opacity": 0
+      "id": "signature",
+      "opacity": 0.1
     },
     "palette": "dark-ink-rose",
-    "typePair": "manrope"
+    "typePair": "manrope",
+    "material": "flannel"
   },
   "imagery": [
     {
@@ -72,7 +73,8 @@
           "where": "the room we rent in {{city}}",
           "note": "Doors at 8:30 p.m. Sewing until 11. The building wants us out at 11:15. Coffee is decaf after 10.",
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         },
         {
@@ -84,7 +86,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "points"
+            "divider": "pinked",
+            "motion": "piece_in"
           }
         },
         {
@@ -108,7 +111,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -120,7 +124,8 @@
           "style": {
             "bg": "brand",
             "align": "center",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         }
       ]
@@ -150,7 +155,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "divider": "points"
+            "divider": "binding",
+            "motion": "piece_in"
           }
         },
         {
@@ -173,7 +179,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           },
           "heading": "A year with us"
         },
@@ -205,7 +212,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -236,7 +244,8 @@
           "style": {
             "bg": "tint",
             "width": "narrow",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         },
         {
@@ -247,7 +256,8 @@
           "where": "the third-floor room in {{city}}",
           "note": "Buzzer code in the newsletter. Do not hold the street door open.",
           "style": {
-            "bg": "none"
+            "bg": "none",
+            "motion": "piece_in"
           }
         }
       ]
@@ -275,7 +285,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         },
         {
@@ -293,7 +304,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -331,7 +343,8 @@
             "width": "normal",
             "spacing": "normal",
             "align": "left",
-            "media": "right"
+            "media": "right",
+            "motion": "piece_in"
           }
         }
       ]
@@ -359,7 +372,8 @@
           "where": "the room we rent in {{city}}",
           "style": {
             "bg": "tint",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         },
         {
@@ -370,7 +384,8 @@
           "limit": 8,
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         }
       ]
@@ -397,7 +412,8 @@
           "showDetails": true,
           "style": {
             "bg": "tint",
-            "divider": "points"
+            "divider": "binding",
+            "motion": "piece_in"
           }
         },
         {
@@ -407,7 +423,8 @@
           "where": "the room we rent in {{city}}",
           "style": {
             "bg": "dark",
-            "divider": "points"
+            "divider": "points",
+            "motion": "piece_in"
           }
         }
       ]

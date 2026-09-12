@@ -27,7 +27,8 @@
     "pattern": {
       "id": "log-cabin",
       "opacity": 0.1
-    }
+    },
+    "material": "flannel"
   },
   "imagery": [
     {
@@ -117,7 +118,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -128,7 +130,8 @@
           "limit": 1,
           "style": {
             "bg": "tint",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -139,7 +142,8 @@
           "html": "<p>The barn milked cows until 1998 and held hay until 2019, when the last stall came out and the tables went in. It has a woodstove, a half bath, and lights that stay on as long as the sewing does. The farmhouse next door sleeps ten and holds the kitchen, the porch, and a hand-quilting frame that has never once stood empty.</p><p>Regulars call the weak cell signal a feature. The wifi reaches the barn, the coffee is on from six, and nobody has to be anywhere.</p>",
           "style": {
             "bg": "dark",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -159,7 +163,8 @@
           "style": {
             "bg": "none",
             "width": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -172,7 +177,8 @@
             "bg": "tint",
             "width": "normal",
             "align": "center",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         }
       ]
@@ -220,7 +226,8 @@
           "style": {
             "bg": "tint",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -252,7 +259,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         },
         {
@@ -263,7 +271,8 @@
           "html": "<p>Tables, chairs, pressing stations, design walls, wifi, coffee, tea, and the shelf of community rulers, mats, and the one purple thimble that has survived nine years. You bring your machine, your project, and your quorum. One well-behaved dog is negotiable.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -297,7 +306,8 @@
           "style": {
             "bg": "none",
             "width": "wide",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -308,7 +318,8 @@
           "html": "<p>Doors open Friday at four and supper is at seven. Sewing goes as late as the barn lights do. Meals are simple and themed: soup night, taco night, leftover night. The show and tell after Sunday brunch is the real reason to come, and seats are $195 a person for the weekend, bedding included.</p>",
           "style": {
             "bg": "tint",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         },
         {
@@ -319,7 +330,8 @@
           "kind": "secondary",
           "style": {
             "bg": "none",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -351,7 +363,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -366,7 +379,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "normal"
+            "width": "normal",
+            "motion": "piece_in"
           }
         },
         {
@@ -377,7 +391,8 @@
           "kind": "primary",
           "style": {
             "bg": "tint",
-            "align": "center"
+            "align": "center",
+            "motion": "piece_in"
           }
         }
       ]
@@ -409,7 +424,8 @@
           "style": {
             "bg": "tint",
             "width": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -436,7 +452,8 @@
           ],
           "style": {
             "bg": "none",
-            "width": "narrow"
+            "width": "narrow",
+            "motion": "piece_in"
           }
         }
       ]
@@ -466,7 +483,8 @@
           "style": {
             "bg": "none",
             "width": "normal",
-            "layout": "framed"
+            "layout": "framed",
+            "motion": "piece_in"
           }
         },
         {
@@ -480,7 +498,8 @@
           "note": "Park behind the barn. The ramp is at the farmhouse side door.",
           "style": {
             "bg": "brand",
-            "width": "wide"
+            "width": "wide",
+            "motion": "piece_in"
           }
         }
       ]
