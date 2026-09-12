@@ -6435,7 +6435,13 @@
       const ed = qhNavEditor(document.getElementById("wb-nav-editor"), {
         items: WB.site.nav,
         pages: WB.pages,
-        linkFor: (p) => wbPagePath(p.slug),
+        // Root-relative, NOT wbPagePath: a menu href is stored as-is and the
+        // renderer prefixes it with the site's base at render time, so a
+        // guild's "/g/<slug>/about" would come back out as
+        // "https://<guild>.quilthosting.com/g/<slug>/about". It also has to
+        // match the shape nav_default uses, or every adopted item shows as a
+        // "Web link" when it is a page on this site.
+        linkFor: (p) => (!p.slug || p.slug === "home" ? "/" : `/${p.slug}`),
         emptyText: "Your menu is built automatically. Use the button above to take it over and set your own order.",
         allowUnknownInternal: true,
       });

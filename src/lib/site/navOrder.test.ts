@@ -102,6 +102,15 @@ describe("the endpoint and the editor agree", () => {
     expect(adopt).toContain("Save menu");
   });
 
+  it("stores root-relative hrefs, which is what the renderer expects", () => {
+    // A stored href is prefixed with the site's base at render time. Handing
+    // the editor the admin's own preview path would make a guild's menu point
+    // at https://<guild>.quilthosting.com/g/<guild>/about.
+    const card = ADMIN.slice(ADMIN.indexOf("function wbRenderNavCard"), ADMIN.indexOf("/* ---------- editor ---------- */"));
+    expect(card).not.toMatch(/linkFor: \(p\) => wbPagePath/);
+    expect(card).toMatch(/linkFor: \(p\) => \(!p\.slug \|\| p\.slug === "home" \? "\/" : `\/\$\{p\.slug\}`\)/);
+  });
+
   it("the arrow buttons it hands the rows to are still there", () => {
     expect(ADMIN).toContain('mk("↑", "Move up"');
     expect(ADMIN).toContain('mk("↓", "Move down"');
