@@ -1,0 +1,503 @@
+{
+  "id": "heirloom-house",
+  "name": "Heirloom House",
+  "audience": "business",
+  "character": "A distinctive heirloom composition created as a flagship QuiltHosting showcase.",
+  "defaults": {
+    "palette": "signature-modern-heirloom",
+    "typePair": "librebaskerville-nunitosans",
+    "scale": "editorial",
+    "shape": {
+      "radius": "sharp",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "centered",
+      "sticky": true,
+      "cta": "none",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "simple"
+    },
+    "pattern": {
+      "id": "none",
+      "opacity": 0
+    },
+    "composition": "heirloom"
+  },
+  "previewSeed": {
+    "guildName": "Heirloom House",
+    "businessName": "Heirloom House",
+    "city": "Charleston, South Carolina"
+  },
+  "menu": [
+    {
+      "label": "Collection",
+      "href": "/collection"
+    },
+    {
+      "label": "Commissions",
+      "href": "/commissions"
+    },
+    {
+      "label": "Provenance",
+      "href": "/provenance"
+    },
+    {
+      "label": "The House",
+      "href": "/the-house"
+    },
+    {
+      "label": "Private Viewing",
+      "href": "/private-viewing"
+    }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "split",
+          "eyebrow": "Charleston · Est. 1987",
+          "title": "Quilts with history still ahead of them.",
+          "subtitle": "Heirloom House presents rare textiles, considered commissions, and enduring domestic works for collectors.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy",
+            "imageId": "hero-art",
+            "layout": "asym_reverse",
+            "media": "left"
+          },
+          "ctaLabel": "Explore the story",
+          "ctaHref": "/home",
+          "id": "home-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Inside Home",
+          "html": "<p><em>Sample text — replace me:</em> Heirloom House presents rare textiles, considered commissions, and enduring domestic works for collectors.</p><p>Use this space for the specific details, voices, and proof that make this page useful.</p>",
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "home-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Made for real milestones",
+          "items": [
+            {
+              "title": "A wedding quilt",
+              "body": "A lasting object built around place, palette, and a shared beginning.",
+              "href": "/private-viewing"
+            },
+            {
+              "title": "A memory quilt",
+              "body": "Meaningful garments edited with care and supported for daily use.",
+              "href": "/private-viewing"
+            },
+            {
+              "title": "An anniversary piece",
+              "body": "A new composition that gathers dates, places, and quiet references."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-3"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Original Modern Heirloom textile study; replace with commissioned work and client permission.",
+              "caption": "Original Modern Heirloom textile study; replace with commissioned work and client permission."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "home-4"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "The home edit",
+          "html": "<p><em>Sample text — replace me:</em> Heirloom House presents rare textiles, considered commissions, and enduring domestic works for collectors.</p><p>Use this space for the specific details, voices, and proof that make this page useful.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "home-5"
+        }
+      ]
+    },
+    {
+      "slug": "collection",
+      "title": "Collection",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Available works",
+          "title": "Objects worth living with slowly.",
+          "subtitle": "Explore singular quilts and textiles selected for material intelligence, condition, and presence.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "collection-1",
+          "ctaLabel": "Explore Collection",
+          "ctaHref": "/collection"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Three starting points",
+          "items": [
+            {
+              "title": "A new heirloom",
+              "body": "Designed and made from new cloth for a specific person or place."
+            },
+            {
+              "title": "Clothing with a history",
+              "body": "Selected garments stabilized and composed with respect for their original character."
+            },
+            {
+              "title": "A shared family piece",
+              "body": "A design developed with several contributors and one clear decision-maker."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "collection-2"
+        },
+        {
+          "type": "faq",
+          "heading": "Before we agree",
+          "items": [
+            {
+              "q": "What will it cost?",
+              "a": "Publish a realistic range and the factors that change it."
+            },
+            {
+              "q": "How long will it take?",
+              "a": "State current lead time and when dates become binding."
+            },
+            {
+              "q": "Will every garment be used?",
+              "a": "Explain selection, stabilization, unsuitable fabrics, and return of unused material."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "collection-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Inside Collection",
+          "html": "<p><em>Sample text — replace me:</em> Explore singular quilts and textiles selected for material intelligence, condition, and presence.</p><p>Use this space for the specific details, voices, and proof that make this page useful.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "collection-4"
+        }
+      ]
+    },
+    {
+      "slug": "commissions",
+      "title": "Commissions",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Private commissions",
+          "title": "A future heirloom begins in conversation.",
+          "subtitle": "We pair clients with exceptional makers to develop one-of-one works shaped by place, family, and use.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "commissions-1",
+          "ctaLabel": "Explore Commissions",
+          "ctaHref": "/commissions"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Original pearl and oxblood quilt study; replace with your material and stitching details.",
+              "caption": "Original pearl and oxblood quilt study; replace with your material and stitching details."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "commissions-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Chosen with purpose",
+          "items": [
+            {
+              "title": "Cloth",
+              "body": "Fiber, weave, provenance, and how each fabric behaves in use."
+            },
+            {
+              "title": "The middle layer",
+              "body": "Loft, drape, warmth, and laundering guide the batting choice."
+            },
+            {
+              "title": "Stitched structure",
+              "body": "Thread and quilting density support both the design and its useful life."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "commissions-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Inside Commissions",
+          "html": "<p><em>Sample text — replace me:</em> We pair clients with exceptional makers to develop one-of-one works shaped by place, family, and use.</p><p>Use this space for the specific details, voices, and proof that make this page useful.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "commissions-4"
+        }
+      ]
+    },
+    {
+      "slug": "provenance",
+      "title": "Provenance",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Documented with care",
+          "title": "Every object carries its evidence.",
+          "subtitle": "Research notes, maker histories, condition records, and care guidance accompany every acquired work.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "provenance-1",
+          "ctaLabel": "Explore Provenance",
+          "ctaHref": "/provenance"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "numbered",
+          "heading": "From story to cloth",
+          "items": [
+            {
+              "title": "01 · Listen",
+              "body": "A written brief records people, place, use, dimensions, and deadline."
+            },
+            {
+              "title": "02 · Design",
+              "body": "Palette and composition are presented for a defined round of approval."
+            },
+            {
+              "title": "03 · Make",
+              "body": "Construction begins after sign-off; progress updates follow the agreement."
+            },
+            {
+              "title": "04 · Deliver",
+              "body": "The finished quilt arrives with care instructions and documentation."
+            }
+          ],
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "provenance-2"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "The provenance edit",
+          "html": "<p><em>Sample text — replace me:</em> Research notes, maker histories, condition records, and care guidance accompany every acquired work.</p><p>Use this space for the specific details, voices, and proof that make this page useful.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "provenance-3"
+        },
+        {
+          "type": "cta",
+          "label": "Explore Provenance",
+          "href": "/private-viewing",
+          "kind": "primary",
+          "style": {
+            "bg": "dark",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "provenance-4"
+        }
+      ]
+    },
+    {
+      "slug": "the-house",
+      "title": "The House",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Charleston, South Carolina",
+          "title": "A salon for cloth, craft, and memory.",
+          "subtitle": "Visit rooms arranged to show how serious textiles live alongside furniture, art, books, and daily life.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "the-house-1",
+          "ctaLabel": "Explore The House",
+          "ctaHref": "/the-house"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Inside The House",
+          "html": "<p><em>Sample text — replace me:</em> Visit rooms arranged to show how serious textiles live alongside furniture, art, books, and daily life.</p><p>Use this space for the specific details, voices, and proof that make this page useful.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "the-house-2"
+        },
+        {
+          "type": "contact",
+          "heading": "Tell me about the piece",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "the-house-3"
+        }
+      ]
+    },
+    {
+      "slug": "private-viewing",
+      "title": "Private Viewing",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "By appointment",
+          "title": "See the work at its own pace.",
+          "subtitle": "Arrange an unhurried appointment with the collection team in person or by private video consultation.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "private-viewing-1",
+          "ctaLabel": "Explore Private Viewing",
+          "ctaHref": "/private-viewing"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Inside Private Viewing",
+          "html": "<p><em>Sample text — replace me:</em> Arrange an unhurried appointment with the collection team in person or by private video consultation.</p><p>Use this space for the specific details, voices, and proof that make this page useful.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "private-viewing-2"
+        },
+        {
+          "type": "contact",
+          "heading": "Tell me about the piece",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "private-viewing-3"
+        }
+      ]
+    }
+  ],
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "photo",
+      "src": "public/kit-assets/heirloom-house/hero.webp",
+      "alt": "Original sample artwork for Heirloom House.",
+      "license": "Original AI-generated sample artwork for Heirloom House; replace before launch."
+    },
+    {
+      "id": "detail-art",
+      "kind": "photo",
+      "src": "public/kit-assets/heirloom-house/detail.webp",
+      "alt": "Detail crop of original sample artwork for Heirloom House.",
+      "license": "Original AI-generated sample artwork for Heirloom House; replace before launch."
+    },
+    {
+      "id": "context-art",
+      "kind": "photo",
+      "src": "public/kit-assets/heirloom-house/context.webp",
+      "alt": "Context crop of original sample artwork for Heirloom House.",
+      "license": "Original AI-generated sample artwork for Heirloom House; replace before launch."
+    }
+  ]
+}

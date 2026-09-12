@@ -77,6 +77,38 @@
   [data-qh-composition="cinema"] .qh-main > .qh-hero--split:first-child{min-height:80svh;padding:2rem 1.25rem}
 }
 
+/* Three flagship compositions: collage, destination, and collector salon. */
+[data-qh-composition="social"]{--s-blue:#163ee8;--s-pink:#ff4d9d;background:#f7f0dc;color:#17130f}
+[data-qh-composition="social"] .qh-header{background:#f7f0dc;border-bottom:3px solid #17130f;transform:rotate(-.25deg)}
+[data-qh-composition="social"] .qh-brand{font-weight:950;text-transform:uppercase;letter-spacing:-.06em;color:var(--s-blue)}
+[data-qh-composition="social"] .qh-main>.qh-hero:first-child{min-height:88svh;align-items:end;background:linear-gradient(90deg,#f7f0dcf5 0 45%,#f7f0dc18 72%),url('/kit-assets/patchwork-social/hero.webp') center/cover;padding:8vw 4vw}
+[data-qh-composition="social"] .qh-main>.qh-hero:first-child .qh-hero__title{max-width:8ch;font-size:clamp(4rem,10vw,9rem);line-height:.76;letter-spacing:-.08em;text-transform:uppercase;color:var(--s-blue);text-shadow:4px 4px #f7f0dc}
+[data-qh-composition="social"] .qh-main>.qh-section:not(:first-child){margin:clamp(2rem,5vw,6rem) auto;border:3px solid #17130f;box-shadow:12px 12px var(--s-blue);background:#fffdf4;transform:rotate(-.35deg)}
+[data-qh-composition="social"] .qh-main>.qh-section:nth-child(3n){box-shadow:12px 12px var(--s-pink);transform:rotate(.45deg)}
+[data-qh-composition="social"] .qh-btn{border:3px solid #17130f;border-radius:0;background:#f6e54a;color:#17130f;box-shadow:5px 5px #17130f;text-transform:uppercase;font-weight:950}
+
+[data-qh-composition="fieldstone"]{background:#e9e5d8;color:#233127}
+[data-qh-composition="fieldstone"] .qh-header{position:absolute;inset:0 0 auto;z-index:5;background:linear-gradient(#142019d6,transparent);color:#fff;border:0}
+[data-qh-composition="fieldstone"] .qh-main>.qh-hero:first-child{min-height:100svh;align-items:end;background:linear-gradient(0deg,#0f1c13d9,#0f1c1312 65%),url('/kit-assets/fieldstone-retreat/hero.webp') center/cover;color:#fff;padding:10vh 7vw}
+[data-qh-composition="fieldstone"] .qh-main>.qh-hero:first-child .qh-section__inner{margin:0;max-width:850px}
+[data-qh-composition="fieldstone"] .qh-main>.qh-hero:first-child .qh-hero__title{font-family:Georgia,serif;font-size:clamp(4rem,8vw,8rem);font-weight:400;line-height:.9;letter-spacing:-.055em;max-width:10ch}
+[data-qh-composition="fieldstone"] .qh-main>.qh-section:not(:first-child){padding-block:clamp(5rem,10vw,11rem);border:0}
+[data-qh-composition="fieldstone"] .qh-main>.qh-section:nth-child(even){background:#233127;color:#f5f0e4}
+[data-qh-composition="fieldstone"] .qh-section__title{font-family:Georgia,serif;font-weight:400;font-size:clamp(3rem,6vw,6.5rem);line-height:.96;letter-spacing:-.045em}
+[data-qh-composition="fieldstone"] .qh-btn{border-radius:999px;background:#d8b56e;color:#18231c;border:0}
+
+[data-qh-composition="heirloom"]{background:#2b0909;color:#eadbc1}
+[data-qh-composition="heirloom"] .qh-header{background:#2b0909;color:#eadbc1;border-bottom:1px solid #8f724c}
+[data-qh-composition="heirloom"] .qh-brand{font-family:Georgia,serif;font-weight:400;letter-spacing:.08em}
+[data-qh-composition="heirloom"] .qh-main>.qh-hero:first-child{min-height:92svh;align-items:center;background:linear-gradient(90deg,#2b0909 0 38%,transparent 68%),url('/kit-assets/heirloom-house/hero.webp') 60% center/cover;padding:7vw}
+[data-qh-composition="heirloom"] .qh-main>.qh-hero:first-child .qh-section__inner{margin:0;max-width:690px;background:#240707df;padding:clamp(2rem,5vw,5rem);border:1px solid #a38355;box-shadow:0 0 0 12px #24070780}
+[data-qh-composition="heirloom"] .qh-main>.qh-hero:first-child .qh-hero__title{font-family:Georgia,serif;font-size:clamp(3.8rem,7vw,7.4rem);line-height:.9;font-weight:400;letter-spacing:-.05em}
+[data-qh-composition="heirloom"] .qh-main>.qh-section:not(:first-child){margin:4vw;max-width:none;border:1px solid #745333;background:#35100e;padding:clamp(3rem,7vw,8rem)}
+[data-qh-composition="heirloom"] .qh-main>.qh-section:nth-child(odd){margin-left:14vw;background:#eadbc1;color:#35100e}
+[data-qh-composition="heirloom"] .qh-section__title{font-family:Georgia,serif;font-size:clamp(2.8rem,5vw,5.5rem);font-weight:400;line-height:.95}
+[data-qh-composition="heirloom"] .qh-btn{background:transparent;color:inherit;border:1px solid currentColor;border-radius:0;text-transform:uppercase;letter-spacing:.12em}
+@media(max-width:760px){[data-qh-composition="social"] .qh-main>.qh-hero:first-child .qh-hero__title{font-size:4rem}[data-qh-composition="fieldstone"] .qh-main>.qh-hero:first-child{min-height:88svh;padding:7rem 1.25rem 3rem}[data-qh-composition="heirloom"] .qh-main>.qh-hero:first-child{background-position:68% center;padding:6rem 1rem 2rem}[data-qh-composition="heirloom"] .qh-main>.qh-hero:first-child .qh-section__inner{padding:2rem 1.2rem}[data-qh-composition="heirloom"] .qh-main>.qh-section:not(:first-child),[data-qh-composition="heirloom"] .qh-main>.qh-section:nth-child(odd){margin:1rem}}
+
 /* SHOWCASE — Quilt Biennial. A hard-edged exhibition poster, never cards. */
 [data-qh-composition="biennial"]{--qh-showcase-rule:2px solid var(--_ink)}
 [data-qh-composition="biennial"] .qh-header{border-bottom:var(--qh-showcase-rule);background:var(--_bg);box-shadow:none}

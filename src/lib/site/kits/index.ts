@@ -105,6 +105,9 @@ import indigoHouse from "./indigo-house.json";
 import quiltBiennial from "./quilt-biennial.json";
 import commonThreadReview from "./common-thread-review.json";
 import atelierNoir from "./atelier-noir.json";
+import patchworkSocial from "./patchwork-social.json";
+import fieldstoneRetreat from "./fieldstone-retreat.json";
+import heirloomHouse from "./heirloom-house.json";
 import weekendHouse from "./weekend-house.json";
 
 import paperPieces from "./paper-pieces.json";
@@ -144,6 +147,9 @@ export const KITS: Kit[] = [
   quiltBiennial,
   commonThreadReview,
   atelierNoir,
+  patchworkSocial,
+  fieldstoneRetreat,
+  heirloomHouse,
   heritage,
   modernGuild,
   showFestival,

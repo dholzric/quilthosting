@@ -1,0 +1,545 @@
+{
+  "id": "fieldstone-retreat",
+  "name": "Fieldstone Retreat",
+  "audience": "business",
+  "character": "A distinctive fieldstone composition created as a flagship QuiltHosting showcase.",
+  "defaults": {
+    "palette": "signature-terracotta",
+    "typePair": "dmserif-dmsans",
+    "scale": "editorial",
+    "shape": {
+      "radius": "soft",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "left",
+      "sticky": true,
+      "cta": "quote",
+      "overlayHero": true
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "none",
+      "opacity": 0
+    },
+    "composition": "fieldstone"
+  },
+  "previewSeed": {
+    "guildName": "Fieldstone Retreat",
+    "businessName": "Fieldstone Retreat",
+    "city": "Blue Ridge Mountains"
+  },
+  "menu": [
+    {
+      "label": "The Retreat",
+      "href": "/the-retreat"
+    },
+    {
+      "label": "Stays",
+      "href": "/stays"
+    },
+    {
+      "label": "Workshops",
+      "href": "/workshops"
+    },
+    {
+      "label": "The Table",
+      "href": "/the-table"
+    },
+    {
+      "label": "Reserve",
+      "href": "/reserve"
+    }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "image",
+          "title": "Room to make. Time to notice.",
+          "subtitle": "A mountain quilting retreat with a luminous studio, long tables, and uninterrupted days in the Blue Ridge.",
+          "style": {
+            "bg": "image",
+            "width": "wide",
+            "spacing": "airy",
+            "imageId": "hero-art",
+            "imageFocal": [
+              0.5,
+              0.56
+            ]
+          },
+          "eyebrow": "Blue Ridge Mountains",
+          "ctaLabel": "Explore the story",
+          "ctaHref": "/home",
+          "id": "home-1"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Unpack. Settle in. Sew a little longer.",
+          "items": [
+            {
+              "title": "A table to spread out on",
+              "body": "Leave the cutting mat out. Keep the blocks in order. Pick up exactly where you left off.",
+              "href": "/reserve"
+            },
+            {
+              "title": "A slower sort of weekend",
+              "body": "A walk, another cup of tea, then one more row. The schedule can leave space for you.",
+              "href": "/reserve"
+            },
+            {
+              "title": "Your people, under one roof",
+              "body": "A bee, a guild, or a few friends who have been saying “we should” for far too long.",
+              "href": "/reserve"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-2"
+        },
+        {
+          "type": "rich_text",
+          "heading": "The home edit",
+          "html": "<p><em>Sample text — replace me:</em> A mountain quilting retreat with a luminous studio, long tables, and uninterrupted days in the Blue Ridge.</p><p>Use this space for the specific details, voices, and proof that make this page useful.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy",
+            "divider": "scallop"
+          },
+          "id": "home-3"
+        },
+        {
+          "type": "process",
+          "heading": "A few easy steps to getting away",
+          "items": [
+            {
+              "title": "Gather your people",
+              "body": "Tell us your group size, preferred dates, and what you want from the weekend."
+            },
+            {
+              "title": "Make a plan",
+              "body": "We confirm availability, room arrangements, access needs, and the full cost."
+            },
+            {
+              "title": "Bring the unfinished things",
+              "body": "Pack your projects and usual tools. We send the house guide before you arrive."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-4"
+        },
+        {
+          "type": "rich_text",
+          "heading": "The home edit",
+          "html": "<p><em>Sample text — replace me:</em> A mountain quilting retreat with a luminous studio, long tables, and uninterrupted days in the Blue Ridge.</p><p>Use this space for the specific details, voices, and proof that make this page useful.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "home-5"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Inside Home",
+          "html": "<p><em>Sample text — replace me:</em> A mountain quilting retreat with a luminous studio, long tables, and uninterrupted days in the Blue Ridge.</p><p>Use this space for the specific details, voices, and proof that make this page useful.</p>",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "normal",
+            "divider": "scallop"
+          },
+          "id": "home-6"
+        }
+      ]
+    },
+    {
+      "slug": "the-retreat",
+      "title": "The Retreat",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "The landscape sets the pace.",
+          "subtitle": "Fieldstone pairs a purpose-built making studio with quiet rooms, meadow paths, and space between decisions.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "A different kind of productive",
+          "id": "the-retreat-1",
+          "ctaLabel": "Explore The Retreat",
+          "ctaHref": "/the-retreat"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Illustrative farmhouse sewing room. Replace with photographs of your actual retreat property.",
+              "caption": "Illustrative farmhouse sewing room. Replace with photographs of your actual retreat property."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "the-retreat-2"
+        },
+        {
+          "type": "rich_text",
+          "heading": "The the retreat edit",
+          "html": "<p><em>Sample text — replace me:</em> Fieldstone pairs a purpose-built making studio with quiet rooms, meadow paths, and space between decisions.</p><p>Use this space for the specific details, voices, and proof that make this page useful.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "the-retreat-3"
+        },
+        {
+          "type": "faq",
+          "heading": "A few things you might be wondering",
+          "items": [
+            {
+              "q": "Are bedrooms shared?",
+              "a": "Ask for the current room plan. Sleeping arrangements and any single-room supplements are confirmed before booking."
+            },
+            {
+              "q": "Is the house accessible?",
+              "a": "Please tell us your access needs. We will provide specific information about entrances, thresholds, bathrooms, and sewing-table arrangements before you decide."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "the-retreat-4"
+        },
+        {
+          "type": "cta",
+          "label": "Explore The Retreat",
+          "href": "/reserve",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "the-retreat-5"
+        }
+      ]
+    },
+    {
+      "slug": "stays",
+      "title": "Stays",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Sleep deeply. Start early.",
+          "subtitle": "Eight private rooms, generous common spaces, and every practical comfort handled with calm attention.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "Two to five nights",
+          "id": "stays-1",
+          "ctaLabel": "Explore Stays",
+          "ctaHref": "/stays"
+        },
+        {
+          "type": "process",
+          "heading": "A weekend might look like this",
+          "items": [
+            {
+              "title": "Friday · Arrive and unfold",
+              "body": "Set up your space, get to know the house, and make a gentle start after supper."
+            },
+            {
+              "title": "Saturday · Find your rhythm",
+              "body": "A long sewing session, a proper break, and an evening of showing each other what changed."
+            },
+            {
+              "title": "Sunday · One more seam",
+              "body": "A last quiet session, a photograph of the work, and time to pack without rushing."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "stays-2"
+        },
+        {
+          "type": "rich_text",
+          "heading": "The stays edit",
+          "html": "<p><em>Sample text — replace me:</em> Eight private rooms, generous common spaces, and every practical comfort handled with calm attention.</p><p>Use this space for the specific details, voices, and proof that make this page useful.</p>",
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "stays-3"
+        },
+        {
+          "type": "cta",
+          "label": "Explore Stays",
+          "href": "/reserve",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "stays-4"
+        }
+      ]
+    },
+    {
+      "slug": "workshops",
+      "title": "Workshops",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Learn where attention comes easily.",
+          "subtitle": "Small-format intensives led by working artists, with enough studio time to move beyond demonstration.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "Seasonal program",
+          "id": "workshops-1",
+          "ctaLabel": "Explore Workshops",
+          "ctaHref": "/workshops"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "Choose your kind of gathering",
+          "items": [
+            {
+              "title": "Your own bee",
+              "body": "Bring an established group and make the weekend yours. Ask about available dates and minimum group size.",
+              "href": "/reserve"
+            },
+            {
+              "title": "A hosted weekend",
+              "body": "Browse listed events for any open sewing retreats. Each listing sets out the schedule, inclusions, and registration terms.",
+              "href": "/events"
+            },
+            {
+              "title": "A workshop stay",
+              "body": "Ask about combining a group stay with a teacher-led session. Tutor availability and fees are confirmed separately.",
+              "href": "/reserve"
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "workshops-2"
+        },
+        {
+          "type": "rich_text",
+          "heading": "The workshops edit",
+          "html": "<p><em>Sample text — replace me:</em> Small-format intensives led by working artists, with enough studio time to move beyond demonstration.</p><p>Use this space for the specific details, voices, and proof that make this page useful.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "workshops-3"
+        },
+        {
+          "type": "cta",
+          "label": "Explore Workshops",
+          "href": "/events",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "workshops-4"
+        }
+      ]
+    },
+    {
+      "slug": "the-table",
+      "title": "The Table",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Good work needs good meals.",
+          "subtitle": "Long-table dinners draw from nearby farms and leave room for the conversations that continue in the studio.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "Breakfast · Lunch · Supper",
+          "id": "the-table-1",
+          "ctaLabel": "Explore The Table",
+          "ctaHref": "/the-table"
+        },
+        {
+          "type": "faq",
+          "heading": "A few things you might be wondering",
+          "items": [
+            {
+              "q": "Do I bring my own machine?",
+              "a": "Confirm the equipment list before travelling. Bring your machine, power lead, foot control, and preferred tools unless your booking says otherwise."
+            },
+            {
+              "q": "Are meals included?",
+              "a": "Meal arrangements depend on the stay. Your written proposal lists catered meals, self-catering facilities, and any dietary arrangements."
+            },
+            {
+              "q": "Can I book the whole house?",
+              "a": "Tell us your group size and preferred dates. We will confirm whether an exclusive group booking is available."
+            },
+            {
+              "q": "When is my stay confirmed?",
+              "a": "After availability, pricing, the booking agreement, and the required payment have been confirmed. Sending an enquiry does not reserve a date."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "the-table-2"
+        },
+        {
+          "type": "rich_text",
+          "heading": "The the table edit",
+          "html": "<p><em>Sample text — replace me:</em> Long-table dinners draw from nearby farms and leave room for the conversations that continue in the studio.</p><p>Use this space for the specific details, voices, and proof that make this page useful.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "tight"
+          },
+          "id": "the-table-3"
+        },
+        {
+          "type": "cta",
+          "label": "Explore The Table",
+          "href": "/reserve",
+          "kind": "primary",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "the-table-4"
+        }
+      ]
+    },
+    {
+      "slug": "reserve",
+      "title": "Reserve",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "title": "Choose your stretch of quiet.",
+          "subtitle": "Reserve a workshop stay, bring a private group, or ask about an independent studio week.",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "eyebrow": "2027 dates now open",
+          "id": "reserve-1",
+          "ctaLabel": "Explore Reserve",
+          "ctaHref": "/reserve"
+        },
+        {
+          "type": "rich_text",
+          "heading": "Inside Reserve",
+          "html": "<p><em>Sample text — replace me:</em> Reserve a workshop stay, bring a private group, or ask about an independent studio week.</p><p>Use this space for the specific details, voices, and proof that make this page useful.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "reserve-2"
+        },
+        {
+          "type": "contact",
+          "heading": "Ask about a stay",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "reserve-3"
+        }
+      ]
+    }
+  ],
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "photo",
+      "src": "public/kit-assets/fieldstone-retreat/hero.webp",
+      "alt": "Original sample artwork for Fieldstone Retreat.",
+      "license": "Original AI-generated sample artwork for Fieldstone Retreat; replace before launch."
+    },
+    {
+      "id": "detail-art",
+      "kind": "photo",
+      "src": "public/kit-assets/fieldstone-retreat/detail.webp",
+      "alt": "Detail crop of original sample artwork for Fieldstone Retreat.",
+      "license": "Original AI-generated sample artwork for Fieldstone Retreat; replace before launch."
+    },
+    {
+      "id": "context-art",
+      "kind": "photo",
+      "src": "public/kit-assets/fieldstone-retreat/context.webp",
+      "alt": "Context crop of original sample artwork for Fieldstone Retreat.",
+      "license": "Original AI-generated sample artwork for Fieldstone Retreat; replace before launch."
+    }
+  ]
+}

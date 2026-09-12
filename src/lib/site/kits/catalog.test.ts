@@ -22,8 +22,9 @@ describe("kit catalog", () => {
   });
 
   it("reserves Showcase classification for the six new IDs", () => {
-    expect(catalogPolicy("quilt-biennial", 114).collection).toBe("showcase");
-    expect(catalogPolicy("heirloom-house", 119).collection).toBe("showcase");
+    const ids = ["quilt-biennial", "common-thread-review", "patchwork-social", "atelier-noir", "fieldstone-retreat", "heirloom-house"];
+    expect(ids.map((id, index) => catalogPolicy(id, 114 + index).collection)).toEqual(Array(6).fill("showcase"));
+    expect(KITS.filter((kit) => ids.includes(kit.id)).map((kit) => kit.defaults.composition)).toEqual(["biennial", "review", "noir", "social", "fieldstone", "heirloom"]);
     expect(catalogPolicy("heritage", 0).collection).toBe("featured");
   });
 });

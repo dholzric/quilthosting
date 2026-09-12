@@ -1,0 +1,490 @@
+{
+  "id": "patchwork-social",
+  "name": "Patchwork Social",
+  "audience": "guild",
+  "character": "A distinctive social composition created as a flagship QuiltHosting showcase.",
+  "defaults": {
+    "palette": "signature-mulberry-paper",
+    "typePair": "newsreader-ibmplexsans",
+    "scale": "editorial",
+    "shape": {
+      "radius": "soft",
+      "shadow": "none"
+    },
+    "rhythm": {
+      "spacing": "airy",
+      "container": "wide"
+    },
+    "header": {
+      "variant": "centered",
+      "sticky": true,
+      "cta": "join",
+      "overlayHero": false
+    },
+    "footer": {
+      "variant": "columns"
+    },
+    "pattern": {
+      "id": "nine-patch",
+      "opacity": 0.08
+    },
+    "composition": "social"
+  },
+  "previewSeed": {
+    "guildName": "Patchwork Social",
+    "businessName": "Patchwork Social",
+    "city": "Austin, Texas"
+  },
+  "menu": [
+    {
+      "label": "Meetups",
+      "href": "/meetups"
+    },
+    {
+      "label": "Projects",
+      "href": "/projects"
+    },
+    {
+      "label": "People",
+      "href": "/people"
+    },
+    {
+      "label": "Field Notes",
+      "href": "/field-notes"
+    },
+    {
+      "label": "Join In",
+      "href": "/join-in"
+    }
+  ],
+  "pages": [
+    {
+      "slug": "home",
+      "title": "Home",
+      "nav": false,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "split",
+          "eyebrow": "Austin · All levels",
+          "title": "Make something. Bring everyone.",
+          "subtitle": "A bright, unruly quilting community built around open tables, shared experiments, and work in progress.",
+          "ctaLabel": "Explore the story",
+          "ctaHref": "/home",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy",
+            "imageId": "hero-art",
+            "layout": "asym"
+          },
+          "id": "home-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Illustrative textile artwork for Paper Pieces.",
+              "caption": "Illustrative starter artwork. Replace with photography from your own organization."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "home-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "A good place to begin.",
+          "items": [
+            {
+              "title": "A pocket-sized beginning",
+              "body": "A needle, thread, and a handful of prepared pieces are enough to start.",
+              "href": "/join-in"
+            },
+            {
+              "title": "Pattern in the details",
+              "body": "Fussy cutting turns one printed motif into a new repeating rhythm.",
+              "href": "/field-notes"
+            },
+            {
+              "title": "Company for the long seam",
+              "body": "Bring the project that has been waiting. Nobody minds how long it takes.",
+              "href": "/events"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-3"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Inside Home",
+          "html": "<p><em>Sample text — replace me:</em> A bright, unruly quilting community built around open tables, shared experiments, and work in progress.</p><p>Use this space for the specific details, voices, and proof that make this page useful.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "home-4"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "The home edit",
+          "html": "<p><em>Sample text — replace me:</em> A bright, unruly quilting community built around open tables, shared experiments, and work in progress.</p><p>Use this space for the specific details, voices, and proof that make this page useful.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "home-5"
+        },
+        {
+          "type": "events",
+          "variant": "cards",
+          "heading": "Coming up",
+          "limit": 3,
+          "style": {
+            "bg": "tint",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "home-6"
+        }
+      ]
+    },
+    {
+      "slug": "meetups",
+      "title": "Meetups",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "This month",
+          "title": "The table is already messy.",
+          "subtitle": "Drop-in sew nights, block swaps, neighborhood pop-ups, and generous critique without ceremony.",
+          "ctaLabel": "Explore Meetups",
+          "ctaHref": "/meetups",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "meetups-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Inside Meetups",
+          "html": "<p><em>Sample text — replace me:</em> Drop-in sew nights, block swaps, neighborhood pop-ups, and generous critique without ceremony.</p><p>Use this space for the specific details, voices, and proof that make this page useful.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "meetups-2"
+        },
+        {
+          "type": "feature_grid",
+          "variant": "cards",
+          "heading": "What holds the work together",
+          "items": [
+            {
+              "title": "A pocket-sized beginning",
+              "body": "A needle, thread, and a handful of prepared pieces are enough to start.",
+              "href": "/join-in"
+            },
+            {
+              "title": "Pattern in the details",
+              "body": "Fussy cutting turns one printed motif into a new repeating rhythm.",
+              "href": "/field-notes"
+            },
+            {
+              "title": "Company for the long seam",
+              "body": "Bring the project that has been waiting. Nobody minds how long it takes.",
+              "href": "/events"
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "meetups-3"
+        },
+        {
+          "type": "cta",
+          "label": "Explore Meetups",
+          "href": "/events",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "meetups-4"
+        }
+      ]
+    },
+    {
+      "slug": "projects",
+      "title": "Projects",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Made together",
+          "title": "Big ideas travel hand to hand.",
+          "subtitle": "Follow collaborative quilts, public installations, swaps, and member-led experiments from first sketch to final stitch.",
+          "ctaLabel": "Explore Projects",
+          "ctaHref": "/projects",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "projects-1"
+        },
+        {
+          "type": "image",
+          "variant": "full_bleed",
+          "items": [
+            {
+              "imageId": "hero-art",
+              "alt": "Illustrative detail for Paper Pieces; replace with your own work.",
+              "caption": "Illustrative starter artwork. Replace with photography from your own organization."
+            }
+          ],
+          "style": {
+            "bg": "none",
+            "width": "full",
+            "spacing": "airy"
+          },
+          "id": "projects-2"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "The projects edit",
+          "html": "<p><em>Sample text — replace me:</em> Follow collaborative quilts, public installations, swaps, and member-led experiments from first sketch to final stitch.</p><p>Use this space for the specific details, voices, and proof that make this page useful.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "projects-3"
+        },
+        {
+          "type": "cta",
+          "label": "Explore Projects",
+          "href": "/join-in",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "projects-4"
+        }
+      ]
+    },
+    {
+      "slug": "people",
+      "title": "People",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "The whole crew",
+          "title": "Every style gets a seat.",
+          "subtitle": "Meet the makers, teachers, beginners, collectors, and curious neighbors who keep this community in motion.",
+          "ctaLabel": "Explore People",
+          "ctaHref": "/people",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "people-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Inside People",
+          "html": "<p><em>Sample text — replace me:</em> Meet the makers, teachers, beginners, collectors, and curious neighbors who keep this community in motion.</p><p>Use this space for the specific details, voices, and proof that make this page useful.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "people-2"
+        },
+        {
+          "type": "faq",
+          "heading": "Good to know",
+          "items": [
+            {
+              "q": "May I visit before joining?",
+              "a": "Yes, when the event listing says guests are welcome. Contact the organization if you need venue or access details."
+            },
+            {
+              "q": "What should I bring?",
+              "a": "Each event should list tools, materials, equipment, and any preparation. When in doubt, ask before travelling."
+            },
+            {
+              "q": "How current is this information?",
+              "a": "Publish a review date and update this page whenever policies, prices, or locations change."
+            }
+          ],
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "people-3"
+        },
+        {
+          "type": "cta",
+          "label": "Explore People",
+          "href": "/events",
+          "kind": "primary",
+          "style": {
+            "bg": "brand",
+            "width": "wide",
+            "spacing": "tight",
+            "align": "center"
+          },
+          "id": "people-4"
+        }
+      ]
+    },
+    {
+      "slug": "field-notes",
+      "title": "Field Notes",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "From the worktable",
+          "title": "Proof that process is the interesting part.",
+          "subtitle": "Quick interviews, studio scraps, useful mistakes, and dispatches from wherever members are making.",
+          "ctaLabel": "Explore Field Notes",
+          "ctaHref": "/field-notes",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "field-notes-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Inside Field Notes",
+          "html": "<p><em>Sample text — replace me:</em> Quick interviews, studio scraps, useful mistakes, and dispatches from wherever members are making.</p><p>Use this space for the specific details, voices, and proof that make this page useful.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "field-notes-2"
+        },
+        {
+          "type": "contact",
+          "heading": "Send a note",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "field-notes-3"
+        }
+      ]
+    },
+    {
+      "slug": "join-in",
+      "title": "Join In",
+      "nav": true,
+      "sections": [
+        {
+          "type": "hero",
+          "variant": "minimal",
+          "eyebrow": "Come as you are",
+          "title": "You do not need a perfect quarter inch.",
+          "subtitle": "Bring one project, borrow what you need, and start with the gathering that fits your week.",
+          "ctaLabel": "Explore Join In",
+          "ctaHref": "/join-in",
+          "style": {
+            "bg": "none",
+            "width": "wide",
+            "spacing": "airy"
+          },
+          "id": "join-in-1"
+        },
+        {
+          "type": "rich_text",
+          "variant": "prose",
+          "heading": "Inside Join In",
+          "html": "<p><em>Sample text — replace me:</em> Bring one project, borrow what you need, and start with the gathering that fits your week.</p><p>Use this space for the specific details, voices, and proof that make this page useful.</p>",
+          "style": {
+            "bg": "tint",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "join-in-2"
+        },
+        {
+          "type": "contact",
+          "heading": "Send a note",
+          "showDetails": true,
+          "style": {
+            "bg": "none",
+            "width": "narrow",
+            "spacing": "airy"
+          },
+          "id": "join-in-3"
+        }
+      ]
+    }
+  ],
+  "imagery": [
+    {
+      "id": "hero-art",
+      "kind": "photo",
+      "src": "public/kit-assets/patchwork-social/hero.webp",
+      "alt": "Original sample artwork for Patchwork Social.",
+      "license": "Original AI-generated sample artwork for Patchwork Social; replace before launch."
+    },
+    {
+      "id": "detail-art",
+      "kind": "photo",
+      "src": "public/kit-assets/patchwork-social/detail.webp",
+      "alt": "Detail crop of original sample artwork for Patchwork Social.",
+      "license": "Original AI-generated sample artwork for Patchwork Social; replace before launch."
+    },
+    {
+      "id": "context-art",
+      "kind": "photo",
+      "src": "public/kit-assets/patchwork-social/context.webp",
+      "alt": "Context crop of original sample artwork for Patchwork Social.",
+      "license": "Original AI-generated sample artwork for Patchwork Social; replace before launch."
+    }
+  ]
+}
