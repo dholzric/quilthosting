@@ -15,6 +15,7 @@ import {
 import { nextActions } from "../lib/nextActions";
 import { featuresSchema, uiSchema } from "../lib/features";
 import { firstRunState } from "../lib/firstRun";
+import { signatureBlockUri, describeBlock } from "../lib/site/design/blockStudio";
 import { DEFAULT_DESIGN, PATTERN_IDS, deriveRoles, designFontsHref, designGround, siteDesignSchema } from "../lib/site/design/tokens";
 import {
   PALETTES,
@@ -515,12 +516,21 @@ tenantRoutes.get("/:id/design-options", async (c) => {
       displayStack: fontStackFor(p.display),
       bodyStack: fontStackFor(p.body),
     })),
-    // PATTERN_IDS is the generated art only; "custom" is the guild's own
-    // uploaded block and has no swatch to draw here.
-    patterns: PATTERN_IDS.filter((pid) => pid !== "custom").map((pid) => ({
+    // PATTERN_IDS is the generated art only. "custom" is the guild's own
+    // uploaded block and "signature" is the one pieced from its slug; neither
+    // has a fixed swatch to draw here.
+    patterns: PATTERN_IDS.filter((pid) => pid !== "custom" && pid !== "signature").map((pid) => ({
       id: pid,
-      dataUri: patternDataUri(pid as Exclude<typeof pid, "custom">, patternColors),
+      dataUri: patternDataUri(pid as Exclude<typeof pid, "custom" | "signature">, patternColors),
     })),
+    // The guild's own block, so the Design panel can show it as a real swatch
+    // rather than a name. Same function the renderer uses.
+    signature: {
+      dataUri: signatureBlockUri(tenant.slug, {
+        a: patternColors.a, b: patternColors.b, c: patternColors.c, d: currentRoles.bg,
+      }, 96),
+      recipe: describeBlock(tenant.slug),
+    },
     kits: KITS.map((k) => ({
       id: k.id,
       name: k.name,

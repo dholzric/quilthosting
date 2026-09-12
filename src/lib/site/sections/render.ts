@@ -28,6 +28,7 @@ import { sanitizeHtml, sanitizeUrl } from "../../sanitize";
 import { formatMoney } from "../../utils/money";
 import { deriveRoles, designGround, isDarkDesign } from "../design/tokens";
 import type { Roles, SiteDesign } from "../design/tokens";
+import { signatureBlockUri } from "../design/blockStudio";
 import { patternDataUri, PATTERN_IDS } from "../design/patterns";
 import {
   srcsetFor,
@@ -131,9 +132,25 @@ function patternFor(ctx: RenderContext): string {
     if (!p.fileId) return "none";
     return `url("${esc(ctx.imgUrl(p.fileId, 480))}")`;
   }
+  // The guild's own block, pieced from its name. Deterministic, so it is the
+  // same block on every render — see design/blockStudio.ts.
+  if (p?.id === "signature") return signaturePattern(ctx);
   const id = generatedPattern(p?.id);
   const r = rolesFor(ctx.design);
   return patternDataUri(id, { a: r.primary, b: r.dark, c: r.accent });
+}
+
+/** This guild's own block, coloured from its derived roles. */
+function signaturePattern(ctx: RenderContext): string {
+  const r = rolesFor(ctx.design);
+  const tile = ctx.design.pattern?.tile;
+  return signatureBlockUri(
+    // Seeded on the SLUG, not the display name: the slug is the identity that
+    // does not move, so a guild that renames itself keeps its own block.
+    ctx.slug || "guild",
+    { a: r.primary, b: r.dark, c: r.accent, d: r.bg },
+    typeof tile === "number" && isFinite(tile) ? tile : 96
+  );
 }
 
 /** The design's block id, narrowed to one the art module can draw. */

@@ -5919,6 +5919,30 @@
         patTiles.push(btn);
         patGrid.appendChild(btn);
       });
+      let sigNote = null;
+      // ---- This guild's own block ----
+      // Generated from the slug, so no two guilds get the same one. It sits
+      // with the drawn patterns because that is what it is — a block — but it
+      // has no fixed art, so the server sends the swatch it would render.
+      if (options.signature && options.signature.dataUri) {
+        const sigBtn = mk("button", "wb-preset");
+        sigBtn.type = "button";
+        sigBtn.dataset.pattern = "signature";
+        sigBtn.setAttribute("aria-label", "Use your guild's own block");
+        const sigArt = mk("div", "qh-pattern-tile");
+        sigArt.style.backgroundImage = options.signature.dataUri;
+        sigBtn.appendChild(sigArt);
+        sigBtn.appendChild(mk("div", "wb-preset-name", "Your guild's block"));
+        sigBtn.addEventListener("click", () => { design.pattern.id = "signature"; refresh(); });
+        patTiles.push(sigBtn);
+        patGrid.appendChild(sigBtn);
+        sigNote = mk("p", "muted");
+        sigNote.style.cssText = "font-size:0.85rem;margin:0.15rem 0 0.6rem";
+        sigNote.textContent =
+          "Your guild's block is pieced from your web address, so no other guild has it: "
+          + options.signature.recipe + ". It never changes.";
+      }
+
       // ---- Your own block ----
       // A guild can design a block anywhere — createablock.com is the one most
       // ask about — save it as an image, and use it here. The picture is a
@@ -5937,6 +5961,7 @@
       patTiles.push(ownTile);
       patGrid.appendChild(ownTile);
       patSec.appendChild(patGrid);
+      if (sigNote) patSec.appendChild(sigNote);
 
       const patFile = document.createElement("input");
       patFile.type = "file";

@@ -38,11 +38,18 @@ export const ROLE_KEYS: readonly (keyof Roles)[] = [
 
 // Kept in sync with PatternId in ./patterns.ts (defined locally so this
 // module has no dependency on the pattern art).
-export type PatternId = "none" | "nine-patch" | "flying-geese" | "log-cabin" | "churn-dash" | "bear-paw" | "custom";
+// "signature" is the guild's OWN block, generated from its name — see
+// design/blockStudio.ts. It is not in the drawn set because it is not one
+// fixed shape; every guild gets a different one.
+export type PatternId =
+  | "none" | "nine-patch" | "flying-geese" | "log-cabin" | "churn-dash" | "bear-paw"
+  | "signature" | "custom";
 /** The generated blocks, in picker order. "custom" is not one of them — it is the guild's own upload. */
 export const PATTERN_IDS: readonly PatternId[] = [
   "none", "nine-patch", "flying-geese", "log-cabin", "churn-dash", "bear-paw",
 ];
+/** The guild's own generated block. Not in PATTERN_IDS: it has no fixed art. */
+export const SIGNATURE_PATTERN_ID = "signature" as const;
 export const CUSTOM_PATTERN_ID = "custom" as const;
 
 /**
@@ -198,7 +205,7 @@ export const siteDesignSchema: z.ZodType<SiteDesign, z.ZodTypeDef, unknown> = z.
     .default({}),
   pattern: z
     .object({
-      id: z.enum(["none", "nine-patch", "flying-geese", "log-cabin", "churn-dash", "bear-paw", "custom"]).default("none"),
+      id: z.enum(["none", "nine-patch", "flying-geese", "log-cabin", "churn-dash", "bear-paw", "signature", "custom"]).default("none"),
       opacity: z.number().min(0).max(1).default(DEFAULT_DESIGN.pattern.opacity),
       /** files.id of an uploaded block, used when id is "custom". */
       fileId: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/).optional(),
