@@ -27,11 +27,11 @@ import { sanitizeUrl } from "../sanitize";
 import { buildRootVars } from "./theme";
 import { readTenantTheme } from "./themeMigrate";
 import { buildSeoHead, buildLocalBusinessJsonLd, type SeoPage, type SeoBusiness } from "./seo";
-import { buildDesignVars, deriveRoles, designFontsHref, designGround, isDarkDesign } from "./design/tokens";
+import { buildDesignVars, deriveRoles, designFontsHref, designGround, isDarkDesign, MATERIALS } from "./design/tokens";
 import { LOGO_WIDTH, withWidth } from "../images";
 import { readTimeZone } from "./timezone";
 export { readTimeZone, DEFAULT_TIMEZONE } from "./timezone";
-import type { SiteDesign } from "./design/tokens";
+import type { SiteDesign, Material } from "./design/tokens";
 import { readSiteDesign } from "./design/migrate";
 import { renderSections } from "./sections/render";
 import type { RenderContext } from "./sections/render";
@@ -482,6 +482,8 @@ export function renderSitePage(args: SitePageArgs): string {
   const { tenant, page, baseUrl, design } = args;
   const settings = tenant.settings_json;
   const siteSettings = parseSettings(settings).site;
+  // The cloth the page is woven from. "plain" emits no rules at all.
+  const material = MATERIALS.includes(design.material as Material) ? design.material! : "plain";
   const composition = resolveComposition(
     design.composition,
     siteSettings && typeof siteSettings === "object" ? (siteSettings as { kit?: unknown }).kit : undefined
@@ -546,7 +548,7 @@ ${fontLinks}<link rel="stylesheet" href="/qh-site.css">${composition !== "classi
 <style>:root{${rootVars}}.qh-skip{position:absolute;left:-999px;top:0;z-index:100;padding:.5rem .75rem;background:var(--qh-primary);color:var(--qh-on-primary)}.qh-skip:focus{left:.5rem;top:.5rem}</style>
 ${jsonLd}
 </head>
-<body class="qh-site" data-qh-composition="${composition}" data-qh-slug="${esc(tenant.slug)}" data-qh-base="${esc(origin)}" data-qh-type="${esc(tenant.tenant_type)}"${args.preview ? ' data-qh-preview="true"' : ""}>
+<body class="qh-site" data-qh-composition="${composition}" data-qh-material="${material}" data-qh-slug="${esc(tenant.slug)}" data-qh-base="${esc(origin)}" data-qh-type="${esc(tenant.tenant_type)}"${args.preview ? ' data-qh-preview="true"' : ""}>
 <a class="qh-skip" href="#main">Skip to content</a>
 ${renderHeader(args, siteName, current, cta, overlay)}
 <main id="main" class="qh-main">

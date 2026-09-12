@@ -5707,6 +5707,48 @@
       );
       toneSec.appendChild(tonePreview);
 
+      // ---- Material -------------------------------------------------------
+      // The first axis that changes what the page is MADE of rather than what
+      // colour it is painted. Quilt pattern prints a block ON the page; this
+      // is the cloth the page is woven from.
+      const QH_MATERIALS = [
+        ["plain", "Plain", "A flat page. No weave."],
+        ["cotton", "Quilting cotton", "An even weave, the way a fat quarter reads up close."],
+        ["linen", "Linen", "Slubby and irregular — the yarn varies along its length."],
+        ["flannel", "Flannel", "Napped and soft, with the weave showing through a haze."],
+      ];
+      const matSec = section("Cloth", "What the page itself is woven from. Drawn, not downloaded — it costs nothing to load.");
+      const matRow = mk("div", "qh-tone");
+      matRow.setAttribute("role", "group");
+      matRow.setAttribute("aria-label", "Cloth");
+      const matBtns = [];
+      QH_MATERIALS.forEach(([id, label]) => {
+        const b = mk("button", "secondary", label);
+        b.type = "button";
+        b.dataset.material = id;
+        b.setAttribute("data-write", "");
+        b.addEventListener("click", () => {
+          if (id === "plain") delete design.material; else design.material = id;
+          refresh();
+        });
+        matBtns.push(b);
+        matRow.appendChild(b);
+      });
+      const matNote = mk("p", "muted");
+      matNote.style.cssText = "margin:0 0 0.5rem;font-size:0.85rem";
+      matNote.setAttribute("aria-live", "polite");
+      matSec.appendChild(matRow);
+      matSec.appendChild(matNote);
+      refreshers.push(() => {
+        const cur = design.material || "plain";
+        matBtns.forEach((b) => {
+          const on = b.dataset.material === cur;
+          b.classList.toggle("on", on);
+          b.setAttribute("aria-pressed", String(on));
+        });
+        matNote.textContent = (QH_MATERIALS.find((m) => m[0] === cur) || [])[2] || "";
+      });
+
       const custom = mk("details");
       const customSummary = mk("summary", "", "Custom — choose your own four colors");
       custom.appendChild(customSummary);

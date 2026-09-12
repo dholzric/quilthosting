@@ -53,7 +53,11 @@ export type SectionLayout = "band" | "framed" | "offset" | "bleed" | "asym" | "a
  * Drawn in the section's own background colour, so it is invisible — and
  * harmless — on a section with no background.
  */
-export type SectionDivider = "none" | "rule" | "points" | "scallop" | "notch";
+// The edge where a section meets the one above. The last three are handwork:
+// a running stitch, a pinked seam, and binding.
+export type SectionDivider =
+  | "none" | "rule" | "points" | "scallop" | "notch"
+  | "stitch" | "pinked" | "binding";
 
 export type SectionStyle = {
   bg: "none" | "tint" | "brand" | "dark" | "image" | "pattern";
@@ -73,7 +77,7 @@ export const SECTION_LAYOUTS: readonly SectionLayout[] = Object.freeze([
   "band", "framed", "offset", "bleed", "asym", "asym_reverse",
 ]);
 export const SECTION_DIVIDERS: readonly SectionDivider[] = Object.freeze([
-  "none", "rule", "points", "scallop", "notch",
+  "none", "rule", "points", "scallop", "notch", "stitch", "pinked", "binding",
 ]);
 
 export const DEFAULT_STYLE: SectionStyle = Object.freeze({
@@ -108,7 +112,7 @@ const styleSchema = z
     align: z.enum(["left", "center"]).default(DEFAULT_STYLE.align),
     media: z.enum(["left", "right", "top"]).default(DEFAULT_STYLE.media),
     layout: z.enum(["band", "framed", "offset", "bleed", "asym", "asym_reverse"]).default(DEFAULT_STYLE.layout),
-    divider: z.enum(["none", "rule", "points", "scallop", "notch"]).default(DEFAULT_STYLE.divider),
+    divider: z.enum(["none", "rule", "points", "scallop", "notch", "stitch", "pinked", "binding"]).default(DEFAULT_STYLE.divider),
     imageId: z.string().regex(IMAGE_REF_RE).optional(),
     imageFocal: z.tuple([z.number().min(0).max(1), z.number().min(0).max(1)]).optional(),
   })

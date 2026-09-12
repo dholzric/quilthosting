@@ -45,6 +45,32 @@ export const PATTERN_IDS: readonly PatternId[] = [
 ];
 export const CUSTOM_PATTERN_ID = "custom" as const;
 
+/**
+ * The cloth the page is woven from. `pattern` prints a block ON the page;
+ * this is what the page itself is made of — a warp, a weft and the slub in
+ * the yarn, drawn with gradients and one turbulence filter, no images.
+ *
+ * Ordered plain -> coarsest: quilting cotton is an even weave, linen is
+ * slubby and irregular, flannel is napped and soft.
+ */
+export const MATERIALS = ["plain", "cotton", "linen", "flannel"] as const;
+export type Material = (typeof MATERIALS)[number];
+
+export const MATERIAL_LABELS: Record<Material, string> = {
+  plain: "Plain",
+  cotton: "Quilting cotton",
+  linen: "Linen",
+  flannel: "Flannel",
+};
+
+/** One line each, for the Design panel. */
+export const MATERIAL_HINTS: Record<Material, string> = {
+  plain: "A flat page. No weave.",
+  cotton: "An even weave, the way a fat quarter reads up close.",
+  linen: "Slubby and irregular — the yarn varies along its length.",
+  flannel: "Napped and soft, with the weave showing through a haze.",
+};
+
 export type SiteDesign = {
   palette: { id?: string; input: PaletteInput; ground?: PaletteGround };
   typePair: string;
@@ -60,6 +86,11 @@ export type SiteDesign = {
    * wide one repeat is drawn, in px; the generated blocks look right at 96.
    */
   pattern: { id: PatternId; opacity: number; fileId?: string; tile?: number };
+  /**
+   * What the page is woven from. "plain" is the default and emits nothing, so
+   * an existing site renders byte-identically until an owner chooses.
+   */
+  material?: Material;
   /**
    * The picture beside the home page's headline. A guild that has a photo of
    * its own work wants it there; without one the hero shows the generated
@@ -175,6 +206,7 @@ export const siteDesignSchema: z.ZodType<SiteDesign, z.ZodTypeDef, unknown> = z.
       tile: z.number().int().min(24).max(640).optional(),
     })
     .default({}),
+  material: z.enum(MATERIALS).optional(),
   heroPhoto: z
     .object({
       /** files.id of an uploaded photo. Absent means "use the quilt block". */

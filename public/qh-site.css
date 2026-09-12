@@ -468,6 +468,64 @@ html{scroll-padding-top:calc(var(--_header-h) + 1rem)}
 .qh-cal__event{display:block;width:100%;text-align:left;margin-top:.25rem;padding:.15rem .4rem;border-radius:4px;background:var(--_tint);
   color:var(--_primary);font-size:.8rem;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
+/* ---- Cloth ---------------------------------------------------------------
+   What the page is WOVEN from, as opposed to --qh-pattern, which prints a
+   block on it. A warp, a weft and the slub in the yarn: repeating gradients
+   and one turbulence filter, no images and no extra requests.
+
+   It has to be ONE overlay over the whole viewport, not the body's own
+   background: every section paints its own ground, so a weave on the body
+   showed only in the gaps between them. Multiplied over everything at a few
+   per cent, the way cloth is printed — the cards, the bands and the type all
+   sit on the same piece of fabric.
+
+   "plain" matches nothing here, so a site that never asks for cloth renders
+   exactly the bytes it did before. */
+body.qh-site[data-qh-material="cotton"]::after,
+body.qh-site[data-qh-material="linen"]::after,
+body.qh-site[data-qh-material="flannel"]::after{
+  content:"";position:fixed;inset:0;z-index:9;pointer-events:none;
+  mix-blend-mode:multiply;opacity:var(--_cloth,.5);
+  --_thread:6px;--_warp:rgb(0 0 0/.09);--_weft:rgb(0 0 0/.06);
+  background-image:
+    repeating-linear-gradient(90deg,var(--_warp) 0 calc(var(--_thread)/2),transparent calc(var(--_thread)/2) var(--_thread)),
+    repeating-linear-gradient(0deg,var(--_weft) 0 calc(var(--_thread)/2),transparent calc(var(--_thread)/2) var(--_thread));
+}
+/* Linen: a coarser thread, and the slub that is what makes it linen. */
+body.qh-site[data-qh-material="linen"]::after{
+  --_thread:9px;--_warp:rgb(0 0 0/.11);
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='s'><feTurbulence type='fractalNoise' baseFrequency='0.8 0.035' numOctaves='3'/></filter><rect width='200' height='200' filter='url(%23s)' opacity='.42'/></svg>"),
+    repeating-linear-gradient(90deg,var(--_warp) 0 calc(var(--_thread)/2),transparent calc(var(--_thread)/2) var(--_thread)),
+    repeating-linear-gradient(0deg,var(--_weft) 0 calc(var(--_thread)/2),transparent calc(var(--_thread)/2) var(--_thread));
+}
+/* Flannel: napped, so the weave shows through a haze rather than sharply. */
+body.qh-site[data-qh-material="flannel"]::after{
+  --_thread:12px;--_warp:rgb(0 0 0/.07);--_weft:rgb(0 0 0/.05);--_cloth:.75;
+  filter:blur(.4px);
+}
+/* A dark page is lit, not shaded: multiplying black on it just makes mud. */
+body.qh-site.qh-site--dark[data-qh-material]:not([data-qh-material="plain"])::after{
+  mix-blend-mode:screen;--_warp:rgb(255 255 255/.07);--_weft:rgb(255 255 255/.05);
+}
+/* A fixed overlay repaints on every scroll frame; skip it where the visitor
+   has asked for less work, and on print where it is only ink. */
+@media (prefers-reduced-motion:reduce){body.qh-site[data-qh-material]::after{background-attachment:scroll}}
+@media print{body.qh-site[data-qh-material]::after{display:none}}
+
+/* ---- The hand ------------------------------------------------------------
+   Quilts have finished edges. These extend the divider set (none, rule,
+   points, scallop, notch) with the three that read as handwork: a running
+   stitch, a pinked seam, and binding. */
+.qh-s--divider-stitch{border-top:2px dashed color-mix(in oklab,var(--_ink) 34%,transparent)}
+.qh-s--divider-pinked{
+  -webkit-mask:conic-gradient(from -45deg at 50% 0,transparent 0 90deg,#000 0) 0 0/20px 13px repeat-x,
+    linear-gradient(#000,#000) 0 13px/100% calc(100% - 13px) no-repeat;
+  mask:conic-gradient(from -45deg at 50% 0,transparent 0 90deg,#000 0) 0 0/20px 13px repeat-x,
+    linear-gradient(#000,#000) 0 13px/100% calc(100% - 13px) no-repeat;
+}
+.qh-s--divider-binding{border-top:10px solid var(--_accent);box-shadow:inset 0 10px 0 -9px rgb(0 0 0/.35)}
+
 /* ---- Section: membership_levels (cards | compact) ----------------------- */
 .qh-level{min-width:0}
 .qh-level__name{font-size:var(--_fs5);margin:0 0 .25rem}
