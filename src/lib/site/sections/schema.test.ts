@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { DEFAULT_STYLE, SECTION_TYPES, SECTION_VARIANTS, parseSections } from "./schema";
+import { DEFAULT_STYLE, SECTION_TYPES, SECTION_VARIANTS, parseSections , sectionSchema } from "./schema";
 
 describe("parseSections", () => {
   it("parses a valid hero split section", () => {
@@ -289,5 +289,27 @@ describe("SECTION_TYPES / SECTION_VARIANTS", () => {
       bg: "none", width: "normal", spacing: "normal", align: "left", media: "right",
       layout: "band", divider: "none",
     });
+  });
+});
+
+describe("the variant lists cannot drift apart", () => {
+  // SECTION_VARIANTS, the TypeScript union and the zod enum are three separate
+  // copies of the same list. Adding "piecing" to the first two and not the
+  // third shipped a variant the renderer drew and the schema refused to store,
+  // which only showed up when a kit tried to use it.
+  it("every variant SECTION_VARIANTS advertises actually parses", () => {
+    const bad: string[] = [];
+    for (const [type, variants] of Object.entries(SECTION_VARIANTS)) {
+      for (const variant of variants) {
+        const probe: Record<string, unknown> = { type, variant, id: "probe", style: { ...DEFAULT_STYLE } };
+        if (!sectionSchema.safeParse(probe).success) {
+          // Some sections need more than a variant to be valid; only count the
+          // ones that fail BECAUSE of the variant.
+          const issues = sectionSchema.safeParse(probe).error?.issues ?? [];
+          if (issues.some((i) => i.path.includes("variant"))) bad.push(`${type}/${variant}`);
+        }
+      }
+    }
+    expect(bad).toEqual([]);
   });
 });

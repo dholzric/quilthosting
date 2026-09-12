@@ -426,7 +426,7 @@ const testimonialsSchema = z.object({
 const gallerySchema = z.object({
   ...base,
   type: z.literal("gallery"),
-  variant: z.enum(["grid", "masonry"]).default("grid"),
+  variant: z.enum(["grid", "masonry", "piecing"]).default("grid"),
   source: z.enum(["manual", "gallery"]).default("manual"),
   gallerySlug: optText(100),
   items: z
