@@ -60,6 +60,10 @@ export const PLATFORM_PATH_PREFIXES: readonly string[] = [
   // the kit schema requires a kit's own photos to live under
   // public/kit-assets/<kit-id>/.
   "/kit-assets",
+  // Screenshots of each starter design, shown on the Design panel's cards.
+  // Admin-only, but listed here for the same reason /kit-assets is: a path
+  // the platform owns must never be mistaken for a tenant page.
+  "/kit-shots",
   "/api/",
   "/t/",
   "/public/",

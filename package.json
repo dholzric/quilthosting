@@ -1,6 +1,6 @@
 {
   "name": "quilthosting",
-  "version": "0.82.0-preview",
+  "version": "0.83.0-preview",
   "private": true,
   "type": "module",
   "scripts": {
@@ -22,7 +22,8 @@
     "kits:preview": "node scripts/kits-preview.mjs",
     "kits:gallery": "node scripts/kits-gallery.mjs",
     "kits:audit": "node scripts/kits-audit.mjs",
-    "photos:check": "node scripts/photos-check.mjs"
+    "photos:check": "node scripts/photos-check.mjs",
+    "kits:shots": "node scripts/kit-shots.mjs"
   },
   "dependencies": {
     "hono": "^4.7.0",

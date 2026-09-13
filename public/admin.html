@@ -88,6 +88,12 @@
     .qh-thumb-cards i { flex: 1; height: 17px; border-radius: var(--t-radius); background: var(--t-surface); border: 1px solid var(--t-border); }
     .qh-thumb-foot { display: block; height: 11px; background: var(--t-dark); }
     .qh-thumb-wrap { position: relative; display: block; }
+    /* The real render of the design. Anchored to the top because the header
+       and the opening of the page are what distinguish one from another; the
+       footer is nearly identical on all 120. */
+    .qh-kit-shot { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3;
+      object-fit: cover; object-position: top center; border-radius: 6px;
+      border: 1px solid var(--border); background: var(--surface-2); }
     .qh-thumb-zoom { position: absolute; right: 4px; bottom: 4px; padding: 0.1rem 0.35rem; font-size: 0.65rem; line-height: 1.5;
       border-radius: 999px; border: 1px solid rgba(255,255,255,0.5); background: rgba(17,17,17,0.72); color: #fff; opacity: 0; transition: opacity 0.12s; }
     .qh-thumb-wrap:hover .qh-thumb-zoom, .qh-thumb-wrap:focus-within .qh-thumb-zoom { opacity: 1; }
@@ -5332,7 +5338,29 @@
       btn.type = "button";
       btn.style.cssText = "display:block;width:100%;padding:0;border:0;background:none;box-shadow:none;cursor:zoom-in";
       btn.setAttribute("aria-label", `See the ${opts.label || "design"} full size`);
-      btn.appendChild(qhDesignThumb(roles, opts));
+      // A real screenshot of the design when we have one. The painted
+      // miniature below is derived from four palette colours, and 120 of
+      // those are almost impossible to tell apart — which is the one job
+      // this card has. opts.shotId names the file; a kit whose shot has not
+      // been rendered yet simply keeps the painting.
+      let shot = null;
+      if (opts.shotId) {
+        shot = document.createElement("img");
+        shot.className = "qh-kit-shot";
+        shot.src = `/kit-shots/${encodeURIComponent(opts.shotId)}.webp`;
+        shot.alt = "";
+        shot.loading = "lazy";
+        shot.decoding = "async";
+        shot.width = 640;
+        shot.height = 480;
+        // No shot on disk: fall back rather than leaving a broken frame.
+        shot.addEventListener("error", () => {
+          shot.remove();
+          btn.insertBefore(qhDesignThumb(roles, opts), btn.firstChild);
+        }, { once: true });
+        btn.appendChild(shot);
+      }
+      if (!shot) btn.appendChild(qhDesignThumb(roles, opts));
       btn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -5595,7 +5623,7 @@
             card.appendChild(
               qhDesignThumbButton(
                 roles,
-                { name: displayName, title: k.name, label: k.name, radius: k.design.shape && k.design.shape.radius, displayStack: pair && pair.displayStack },
+                { name: displayName, title: k.name, label: k.name, shotId: k.id, radius: k.design.shape && k.design.shape.radius, displayStack: pair && pair.displayStack },
                 examplePreview,
                 applyKit
               )
