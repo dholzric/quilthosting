@@ -107,6 +107,11 @@
     .qh-tone { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.25rem 0 0.75rem; }
     .qh-tone button { padding: 0.35rem 0.7rem; font-size: 0.82rem; border-radius: 999px; }
     .qh-tone button.on { border-color: var(--brand); }
+    /* Designs are chosen by eye, so the picture has to be big enough to see.
+       .wb-presets is 150px because it also holds palette and pattern
+       swatches; a design needs roughly twice that before two of them are
+       tellable apart. */
+    .wb-presets--kits { grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr)); gap: 1.1rem; }
     .qh-kit { display: flex; flex-direction: column; gap: 0.25rem; cursor: default; }
     .qh-kit.qh-kit--catalog-hidden { display: none; }
     .qh-kit .qh-kit-character { margin: 0; font-size: 0.8rem; flex: 1; }
@@ -5598,7 +5603,7 @@
         const totalDesigns = (options.kits || []).length;
         const siteKind = isGuild ? "guild" : "business";
         const kitSec = section("Browse designs", `A design sets the colors, fonts, shape and layout in one go. Your pages and every word on them are kept. ${kits.length} designs work with this ${siteKind} site; ${totalDesigns} exist across guild and business sites.`);
-        const strip = mk("div", "wb-presets");
+        const strip = mk("div", "wb-presets wb-presets--kits");
         const hiddenKits = [];
         kits.forEach((k) => {
           const card = mk("div", "wb-preset qh-kit");
