@@ -91,6 +91,10 @@ export const PLATFORM_EXACT_PATHS: ReadonlySet<string> = new Set([
   "/terms",
   "/terms.html",
   "/index.html",
+  // The starter-library review sheet. Platform-owned, so a guild that happens
+  // to name a page "design-review" cannot collide with it.
+  "/design-review",
+  "/design-review.html",
   "/qh-admin-ext.js",
   "/qh-cal.js",
   "/qh-site-builder.js",

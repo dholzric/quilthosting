@@ -45,6 +45,7 @@ import { chapterRoutes } from "./routes/chapters";
 import { v1Routes } from "./routes/v1";
 import { outboundWebhookRoutes } from "./routes/outboundWebhooks";
 import { qboRoutes } from "./routes/qbo";
+import { designReviewRoutes } from "./routes/designReview";
 import { platformRoutes } from "./routes/platform";
 import { domainRoutes } from "./routes/domain";
 import { projectRoutes } from "./routes/projects";
@@ -337,6 +338,9 @@ app.get("/t/c/:logId", async (c) => {
 app.route("/api/v1", v1Routes);
 app.route("/api/auth", authRoutes);
 app.route("/api/platform", platformRoutes);
+// The starter-library review sheet. Behind the site gate like everything
+// else, and never touches tenant data.
+app.route("/api/design-review", designReviewRoutes);
 app.route("/api/tenants", tenantRoutes);
 app.route("/api/portal", portalRoutes);
 

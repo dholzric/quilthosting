@@ -31,6 +31,8 @@ const OUT = path.join(ROOT, "public", "kit-shots");
 const PORT = 8894;
 /** Wide enough to stay crisp on a 2x screen at the card's ~300px. */
 const WIDTH = 640;
+/** The Design panel loads all 120 at once, so one heavy shot is 120 heavy. */
+const MAX_KB = 80;
 
 const only = (() => {
   const i = process.argv.indexOf("--only");
@@ -89,6 +91,7 @@ for (const id of kitIds) {
     await page.waitForTimeout(250);
     const png = await page.screenshot();
     const webp = await sharp(png).resize({ width: WIDTH }).webp({ quality: 70 }).toBuffer();
+    if (webp.length > MAX_KB * 1024) throw new Error(`${Math.round(webp.length / 1024)} kB exceeds the ${MAX_KB} kB cap`);
     writeFileSync(path.join(OUT, `${id}.webp`), webp);
     bytes += webp.length;
     process.stdout.write(".");

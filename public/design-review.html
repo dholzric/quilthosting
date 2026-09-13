@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Design Review · QuiltHosting</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700;6..96,900&family=Karla:wght@300;400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ink:#0f141c;--ink-2:#161d27;--ink-3:#1d2531;--line:#2a3543;
+  --muslin:#e7e1d3;--dim:#98a2ae;--ochre:#cf9640;--madder:#c04a32;--chalk:#6fb3c4;--sage:#7d9471;
+  --display:"Bodoni Moda",ui-serif,Georgia,serif;
+  --body:"Karla",ui-sans-serif,system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,monospace;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--ink);color:var(--muslin);font-family:var(--body);line-height:1.55;-webkit-font-smoothing:antialiased}
+img{max-width:100%}
+.wrap{max-width:92rem;margin-inline:auto;padding-inline:clamp(1rem,3vw,2.4rem)}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance}
+button,input,textarea{font:inherit}
+:focus-visible{outline:2px solid var(--chalk);outline-offset:2px}
+
+header.top{padding:clamp(2rem,5vh,3.4rem) 0 1.2rem}
+.eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--ochre);margin:0 0 .9rem}
+h1{font-size:clamp(2.4rem,7vw,5rem);line-height:.9;font-weight:900;letter-spacing:-.025em;font-variation-settings:"opsz" 96}
+.standfirst{max-width:58ch;margin:1rem 0 0;color:var(--dim)}
+.standfirst b{color:var(--muslin);font-weight:600}
+
+.who{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-top:1.3rem;
+  padding:.85rem 1rem;background:var(--ink-2);border:1px solid var(--line);border-radius:4px}
+.who label{font-family:var(--mono);font-size:.75rem;color:var(--dim)}
+.who input{background:var(--ink);color:var(--muslin);border:1px solid var(--line);border-radius:3px;
+  padding:.36rem .7rem;font-family:var(--mono);font-size:.8rem;min-width:11rem}
+.who .ok{font-family:var(--mono);font-size:.75rem;color:var(--sage)}
+.warn{margin:1rem 0 0;padding:.8rem 1rem;border-left:3px solid var(--madder);background:var(--ink-2);font-size:.9rem;color:var(--dim)}
+
+.rail{position:sticky;top:0;z-index:20;background:color-mix(in oklab,var(--ink) 93%,transparent);
+  backdrop-filter:blur(8px);border-block:1px solid var(--line);margin-top:1.4rem}
+.rail-in{display:flex;gap:.8rem 1.3rem;align-items:center;flex-wrap:wrap;padding:.75rem 0}
+.grp{display:flex;gap:.35rem;align-items:center;flex-wrap:wrap}
+.grp>b{font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-weight:400}
+.chip{font-family:var(--mono);font-size:.74rem;padding:.3rem .62rem;border:1px solid var(--line);
+  border-radius:999px;background:transparent;color:var(--dim);cursor:pointer;transition:.14s}
+.chip:hover{border-color:var(--dim);color:var(--muslin)}
+.chip[aria-pressed="true"]{background:var(--ochre);border-color:var(--ochre);color:#20180a;font-weight:500}
+input[type=search]{font-family:var(--mono);font-size:.78rem;background:var(--ink-2);color:var(--muslin);
+  border:1px solid var(--line);border-radius:999px;padding:.34rem .8rem;min-width:11rem}
+.prog{font-family:var(--mono);font-size:.74rem;color:var(--dim);margin-left:auto;white-space:nowrap}
+.prog b{color:var(--muslin);font-weight:500}
+
+.sheet{display:grid;gap:clamp(1rem,2vw,1.6rem);padding:1.8rem 0 5rem;
+  grid-template-columns:repeat(auto-fill,minmax(min(100%,22rem),1fr))}
+.kit{margin:0;min-width:0;background:var(--ink-2);border:1px solid var(--line);border-radius:4px;
+  overflow:hidden;display:flex;flex-direction:column}
+.kit.done{border-color:color-mix(in oklab,var(--sage) 55%,var(--line))}
+.shot{width:100%;height:auto;display:block;aspect-ratio:4/3;object-fit:cover;object-position:top center;
+  background:var(--ink-3);border-bottom:1px solid var(--line);cursor:zoom-in}
+.body{padding:.85rem .95rem 1rem;display:flex;flex-direction:column;gap:.5rem;flex:1}
+.kit h3{font-size:1.04rem;line-height:1.2;font-variation-settings:"opsz" 18}
+.char{margin:0;font-size:.83rem;color:var(--dim);line-height:1.4}
+.meta{display:flex;gap:.3rem;flex-wrap:wrap;margin:0}
+.t{font-family:var(--mono);font-size:.65rem;padding:.12rem .4rem;border-radius:3px;background:var(--ink-3);
+  color:var(--dim);border:1px solid var(--line)}
+.t--guild{color:var(--chalk)}.t--business{color:var(--sage)}
+
+.rate{display:flex;gap:.18rem;flex-wrap:wrap;margin-top:.15rem}
+.r,.clear{font-family:var(--mono);font-size:.74rem;width:1.9rem;height:1.9rem;padding:0;border-radius:3px;
+  border:1px solid var(--line);background:var(--ink-3);color:var(--dim);cursor:pointer;transition:.12s}
+.r:hover,.clear:hover{border-color:var(--dim);color:var(--muslin)}
+.r[aria-pressed="true"]{background:var(--chalk);border-color:var(--chalk);color:#081418;font-weight:500}
+.kit[data-score="8"] .r[aria-pressed="true"],.kit[data-score="9"] .r[aria-pressed="true"],
+.kit[data-score="10"] .r[aria-pressed="true"]{background:var(--sage);border-color:var(--sage);color:#0c1a0f}
+.kit[data-score="1"] .r[aria-pressed="true"],.kit[data-score="2"] .r[aria-pressed="true"],
+.kit[data-score="3"] .r[aria-pressed="true"]{background:var(--madder);border-color:var(--madder);color:#fff}
+.clear{margin-left:.25rem;color:#6d7783}
+
+.note{width:100%;background:var(--ink);color:var(--muslin);border:1px solid var(--line);border-radius:3px;
+  padding:.45rem .6rem;font-size:.86rem;resize:vertical;min-height:2.6rem;font-family:inherit}
+.pick{display:flex;gap:.5rem;align-items:flex-start;font-size:.84rem;color:var(--dim);cursor:pointer;margin-top:auto}
+.pick input{width:auto;margin-top:.22rem;accent-color:var(--ochre)}
+.pick:has(input:checked){color:var(--ochre)}
+.state{margin:0;min-height:1em;font-family:var(--mono);font-size:.68rem;color:var(--sage)}
+.state.err{color:var(--madder)}
+.empty,.loading{grid-column:1/-1;padding:3rem 0;text-align:center;color:var(--dim);font-family:var(--mono);font-size:.85rem}
+
+dialog{border:0;padding:0;background:transparent;max-width:min(94vw,70rem);max-height:94vh}
+dialog::backdrop{background:rgb(6 9 13/.92)}
+dialog img{width:100%;height:auto;display:block;border-radius:4px}
+.lb-close{position:absolute;top:.6rem;right:.6rem;font-family:var(--mono);font-size:.74rem;
+  background:var(--ink-3);color:var(--muslin);border:1px solid var(--line);border-radius:3px;padding:.3rem .7rem;cursor:pointer}
+footer{border-top:1px solid var(--line);padding:1.6rem 0 3rem;color:var(--dim);font-family:var(--mono);font-size:.72rem;line-height:1.7}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <p class="eyebrow">QuiltHosting &middot; starter designs &middot; review</p>
+    <h1>Design Review</h1>
+    <p class="standfirst">Every starter design a new site can be built from. Give each one a score out of
+      ten, say what you think, and tick the ones we should offer as defaults. <b>Everything saves as you
+      type</b> &mdash; there is no submit button, and you can stop and come back.</p>
+
+    <div class="who">
+      <label for="who">Your name</label>
+      <input id="who" type="text" placeholder="e.g. Stephanie" autocomplete="name" spellcheck="false">
+      <span class="ok" id="whoOk"></span>
+    </div>
+    <p class="warn" id="offline" hidden></p>
+  </header>
+</div>
+
+<div class="rail"><div class="wrap"><div class="rail-in">
+  <div class="grp" role="group" aria-label="Audience">
+    <b>for</b>
+    <button class="chip" data-f="audience" data-v="guild" aria-pressed="false" type="button">guild</button>
+    <button class="chip" data-f="audience" data-v="both" aria-pressed="false" type="button">both</button>
+    <button class="chip" data-f="audience" data-v="business" aria-pressed="false" type="button">business</button>
+  </div>
+  <div class="grp" role="group" aria-label="Progress">
+    <b>show</b>
+    <button class="chip" data-f="state" data-v="todo" aria-pressed="false" type="button">not yet rated</button>
+    <button class="chip" data-f="state" data-v="picked" aria-pressed="false" type="button">my picks</button>
+  </div>
+  <input type="search" id="q" placeholder="search designs..." aria-label="Search designs">
+  <p class="prog"><b id="done">0</b> rated &middot; <b id="picks">0</b> picked &middot; <span id="shown">0</span> shown</p>
+</div></div></div>
+
+<div class="wrap">
+  <div class="sheet" id="sheet">
+    <p class="loading" id="loading">Loading the designs&hellip;</p>
+    <p class="empty" id="empty" hidden>Nothing matches those filters.</p>
+  </div>
+  <footer>
+    Each picture is the real page, rendered by the site renderer. Click one to see it bigger.<br>
+    Notes are saved against the name above, so two people can work through this independently.
+  </footer>
+</div>
+
+<dialog id="lb"><div style="position:relative"><img id="lb-img" alt=""><button class="lb-close" id="lb-close" type="button">Close</button></div></dialog>
+
+<script>
+(function () {
+  "use strict";
+  var sheet = document.getElementById("sheet"), loading = document.getElementById("loading"),
+      emptyEl = document.getElementById("empty"), doneEl = document.getElementById("done"),
+      picksEl = document.getElementById("picks"), shownEl = document.getElementById("shown"),
+      whoEl = document.getElementById("who"), whoOk = document.getElementById("whoOk"),
+      offline = document.getElementById("offline");
+  var cards = [], active = { audience: null, state: null }, query = "", timers = {};
+
+  function slug(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40); }
+  function who() { return slug(whoEl.value); }
+
+  try { whoEl.value = localStorage.getItem("qh_reviewer") || ""; } catch (e) {}
+  function whoNote() { whoOk.textContent = whoEl.value.trim() ? "notes saved against this name" : "enter a name to save your notes"; }
+  whoNote();
+  whoEl.addEventListener("input", function () {
+    try { localStorage.setItem("qh_reviewer", whoEl.value); } catch (e) {}
+    whoNote(); loadEntries();
+  });
+
+  function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+
+  function build(kits) {
+    loading.remove();
+    kits.forEach(function (k) {
+      var card = el("article", "kit");
+      card.dataset.id = k.id;
+      card.dataset.audience = k.audience;
+      card.dataset.q = (k.id + " " + k.name + " " + k.character).toLowerCase();
+
+      var img = el("img", "shot");
+      img.src = k.shot; img.alt = "The " + k.name + " starter design";
+      img.loading = "lazy"; img.decoding = "async"; img.width = 640; img.height = 480;
+      img.addEventListener("click", function () {
+        document.getElementById("lb-img").src = k.shot;
+        document.getElementById("lb-img").alt = img.alt;
+        document.getElementById("lb").showModal();
+      });
+      card.appendChild(img);
+
+      var body = el("div", "body");
+      body.appendChild(el("h3", null, k.name));
+      body.appendChild(el("p", "char", k.character));
+      var meta = el("p", "meta");
+      meta.appendChild(el("span", "t t--" + k.audience, k.audience));
+      body.appendChild(meta);
+
+      var rate = el("div", "rate");
+      rate.setAttribute("role", "group");
+      rate.setAttribute("aria-label", "Rating for " + k.name);
+      for (var i = 1; i <= 10; i++) {
+        var b = el("button", "r", String(i));
+        b.type = "button"; b.dataset.r = String(i);
+        b.setAttribute("aria-label", i + " out of 10");
+        b.addEventListener("click", onRate);
+        rate.appendChild(b);
+      }
+      var clr = el("button", "clear", "×");
+      clr.type = "button"; clr.setAttribute("aria-label", "Clear rating");
+      clr.addEventListener("click", function () { paint(card, {}); tally(); apply(); save(card); });
+      rate.appendChild(clr);
+      body.appendChild(rate);
+
+      var note = el("textarea", "note");
+      note.rows = 2; note.placeholder = "What works, what doesn't...";
+      note.setAttribute("aria-label", "Comments on " + k.name);
+      note.addEventListener("input", function () { card.classList.add("done"); save(card); });
+      body.appendChild(note);
+
+      var pick = el("label", "pick");
+      var cb = el("input"); cb.type = "checkbox"; cb.className = "def";
+      cb.addEventListener("change", function () { tally(); apply(); save(card); });
+      pick.appendChild(cb);
+      pick.appendChild(el("span", null, "Make this one of our default choices"));
+      body.appendChild(pick);
+      body.appendChild(el("p", "state"));
+      body.querySelector(".state").setAttribute("aria-live", "polite");
+
+      card.appendChild(body);
+      sheet.insertBefore(card, emptyEl);
+      cards.push(card);
+    });
+    tally(); apply();
+  }
+
+  function onRate(e) {
+    var b = e.currentTarget, card = b.closest(".kit"), v = +b.dataset.r;
+    var cur = card.dataset.score ? +card.dataset.score : null;
+    paint(card, { rating: cur === v ? null : v, comment: card.querySelector(".note").value,
+                  isDefault: card.querySelector(".def").checked });
+    tally(); apply(); save(card);
+  }
+
+  function paint(card, r) {
+    card.querySelectorAll(".r").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(r.rating != null && +b.dataset.r <= r.rating));
+    });
+    if (r.rating != null) card.dataset.score = String(r.rating); else delete card.dataset.score;
+    card.querySelector(".note").value = r.comment || "";
+    card.querySelector(".def").checked = !!r.isDefault;
+    card.classList.toggle("done", r.rating != null || !!(r.comment || "").trim() || !!r.isDefault);
+  }
+
+  function tally() {
+    var rated = 0, picked = 0;
+    cards.forEach(function (c) {
+      if (c.dataset.score) rated++;
+      if (c.querySelector(".def").checked) picked++;
+    });
+    doneEl.textContent = rated; picksEl.textContent = picked;
+  }
+
+  function apply() {
+    var shown = 0;
+    cards.forEach(function (c) {
+      var ok = (!active.audience || c.dataset.audience === active.audience)
+        && (!query || c.dataset.q.indexOf(query) !== -1)
+        && (active.state !== "todo" || !c.dataset.score)
+        && (active.state !== "picked" || c.querySelector(".def").checked);
+      c.hidden = !ok;
+      if (ok) shown++;
+    });
+    shownEl.textContent = shown;
+    emptyEl.hidden = shown !== 0 || !cards.length;
+  }
+
+  function save(card) {
+    var st = card.querySelector(".state");
+    if (!who()) { st.textContent = "add your name above to save"; st.className = "state err"; return; }
+    clearTimeout(timers[card.dataset.id]);
+    st.textContent = "saving..."; st.className = "state";
+    timers[card.dataset.id] = setTimeout(function () {
+      var pressed = card.querySelectorAll('.r[aria-pressed="true"]');
+      fetch("/api/design-review/entries", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kit: card.dataset.id,
+          reviewer: who(),
+          rating: pressed.length ? pressed.length : null,
+          comment: card.querySelector(".note").value,
+          isDefault: card.querySelector(".def").checked
+        })
+      }).then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        st.textContent = "saved";
+        setTimeout(function () { if (st.textContent === "saved") st.textContent = ""; }, 1600);
+      }).catch(function () {
+        st.textContent = "could not save - check your connection";
+        st.className = "state err";
+      });
+    }, 450);
+  }
+
+  function loadEntries() {
+    if (!who() || !cards.length) return;
+    fetch("/api/design-review/entries?reviewer=" + encodeURIComponent(who()))
+      .then(function (r) { return r.ok ? r.json() : { entries: [] }; })
+      .then(function (d) {
+        var mine = {};
+        (d.entries || []).forEach(function (e) { mine[e.kit] = e; });
+        cards.forEach(function (c) { paint(c, mine[c.dataset.id] || {}); });
+        tally(); apply();
+      })
+      .catch(function () {});
+  }
+
+  document.querySelectorAll(".chip").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var f = btn.dataset.f, v = btn.dataset.v;
+      active[f] = active[f] === v ? null : v;
+      document.querySelectorAll('.chip[data-f="' + f + '"]').forEach(function (o) {
+        o.setAttribute("aria-pressed", String(active[f] === o.dataset.v));
+      });
+      apply();
+    });
+  });
+  document.getElementById("q").addEventListener("input", function (e) {
+    query = e.target.value.trim().toLowerCase(); apply();
+  });
+  document.getElementById("lb-close").addEventListener("click", function () { document.getElementById("lb").close(); });
+  document.getElementById("lb").addEventListener("click", function (e) { if (e.target.id === "lb") e.target.close(); });
+
+  fetch("/api/design-review/kits")
+    .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(function (d) { build(d.kits || []); loadEntries(); })
+    .catch(function () {
+      loading.remove();
+      offline.hidden = false;
+      offline.textContent = "The designs could not be loaded. Refresh the page, and tell Dave if it keeps happening.";
+    });
+})();
+</script>
+</body>
+</html>
